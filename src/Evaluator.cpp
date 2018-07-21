@@ -139,8 +139,7 @@ namespace {
     constexpr Score KingThreat =        S( 23, 76);
     constexpr Score KnightQueenThreat = S( 21, 11);
     constexpr Score SliderQueenThreat = S( 42, 21);
-    constexpr Score Connectivity =      S(  3,  1);
-    constexpr Score Overloaded =        S( 10,  5);
+    constexpr Score Overloaded =        S( 16,  7);
     constexpr Score PasserHinder =      S(  4,  0);
 
 #undef S
@@ -160,7 +159,7 @@ namespace {
         0, 0, 0, 3, 7, 11, 20, 0
     };
 
-    constexpr Value LazyThreshold = Value(1500);
+    constexpr Value LazyThreshold =  Value(1500);
     constexpr Value SpaceThreshold = Value(12222);
 
     // Evaluator class contains various evaluation functions.
@@ -729,11 +728,10 @@ namespace {
                 score += PieceHanged * pop_count (b);
             }
 
-            // Bonus for overloaded: non-pawn enemies attacked once or more and defended exactly once
+            // Bonus for overloaded
             b = nonpawns_enemies
-              & sgl_attacks[Own][NONE]
-              & sgl_attacks[Opp][NONE]
-              & ~dbl_attacks[Opp];
+              & attacked_weak_enemies
+              & sgl_attacks[Opp][NONE];
             score += Overloaded * pop_count (b);
         }
 
@@ -787,10 +785,6 @@ namespace {
             // Bonus for safe slider attack threats on enemy queen
             score += SliderQueenThreat * pop_count (b);
         }
-        // Bonus for Connectivity: ensure that knights, bishops, rooks, and queens are protected
-        b = pos.pieces (Own, NIHT, BSHP, ROOK, QUEN)
-          & sgl_attacks[Own][NONE];
-        score += Connectivity * pop_count (b);
 
         if (Trace)
         {
@@ -1133,7 +1127,7 @@ string trace (const Position &pos)
         << "       Mobility" << Term::MOBILITY
         << "           King" << Term(KING)
         << "         Threat" << Term::THREAT
-        << "    Pawn Passer" << Term::PASSER
+        << "         Passer" << Term::PASSER
         << "          Space" << Term::SPACE
         << "----------------+-------------+-------------+--------------\n"
         << "          Total" << Term::TOTAL
