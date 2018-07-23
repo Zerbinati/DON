@@ -130,11 +130,11 @@ namespace EndGame {
         Endgames (const Endgames&) = delete;
         Endgames& operator= (const Endgames&) = delete;
 
-        template<typename T>
-        const EndgameBase<T>* probe (Key matl_key)
+        template<typename ET>
+        const EndgameBase<ET>* probe (Key matl_key)
         {
-            return map<T> ().find (matl_key) != map<T> ().end () ?
-                    map<T> ()[matl_key].get () :
+            return map<ET> ().find (matl_key) != map<ET> ().end () ?
+                    map<ET> ()[matl_key].get () :
                     nullptr;
         }
     };
