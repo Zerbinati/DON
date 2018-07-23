@@ -94,22 +94,44 @@ namespace EndGame {
             return std::get<std::is_same<T, Scale>::value> (maps);
         }
 
-        template<EndgameCode EC, typename ET = EndgameType<EC>, typename EP = Ptr<ET>>
+        template<EndgameCode EC, typename ET = EndgameType<EC>>
         void add (const std::string &code)
         {
             StateInfo si[CLR_NO];
             std::memset (si, 0, sizeof (si));
-            map<ET> ()[Position ().setup (code, WHITE, si[WHITE]).si->matl_key] = EP (new Endgame<EC> (WHITE));
-            map<ET> ()[Position ().setup (code, BLACK, si[BLACK]).si->matl_key] = EP (new Endgame<EC> (BLACK));
+            map<ET> ()[Position ().setup (code, WHITE, si[WHITE]).si->matl_key] = Ptr<ET> (new Endgame<EC> (WHITE));
+            map<ET> ()[Position ().setup (code, BLACK, si[BLACK]).si->matl_key] = Ptr<ET> (new Endgame<EC> (BLACK));
         }
 
     public:
-        Endgames ();
+        Endgames ()
+        {
+            // EVALUATION_FUNCTIONS
+            add<KPK>     ("KPK");
+            add<KNNK>    ("KNNK");
+            add<KBNK>    ("KBNK");
+            add<KRKP>    ("KRKP");
+            add<KRKB>    ("KRKB");
+            add<KRKN>    ("KRKN");
+            add<KQKP>    ("KQKP");
+            add<KQKR>    ("KQKR");
+
+            // SCALING_FUNCTIONS
+            add<KRPKR>   ("KRPKR");
+            add<KRPKB>   ("KRPKB");
+            add<KRPPKRP> ("KRPPKRP");
+            add<KNPK>    ("KNPK");
+            add<KBPKB>   ("KBPKB");
+            add<KBPPKB>  ("KBPPKB");
+            add<KBPKN>   ("KBPKN");
+            add<KNPKB>   ("KNPKB");
+        }
+
         Endgames (const Endgames&) = delete;
         Endgames& operator= (const Endgames&) = delete;
 
         template<typename T>
-        EndgameBase<T>* probe (Key matl_key)
+        const EndgameBase<T>* probe (Key matl_key)
         {
             return map<T> ().find (matl_key) != map<T> ().end () ?
                     map<T> ()[matl_key].get () :
