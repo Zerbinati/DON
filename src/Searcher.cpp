@@ -287,7 +287,7 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
-                                     [&](const ValMove &vm) { return tt_move == vm; }),
+                                     [&](const ValMove &m) { return tt_move == m; }),
                      moves.end ());
         value<GenType::CAPTURE> ();
         ++stage;
@@ -324,8 +324,8 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
-                                     [&](const ValMove &vm) { return tt_move == vm
-                                                                  || std::find (refutation_moves.begin (), refutation_moves.end (), vm) != refutation_moves.end (); }),
+                                     [&](const ValMove &m) { return tt_move == m
+                                                                 || std::find (refutation_moves.begin (), refutation_moves.end (), m) != refutation_moves.end (); }),
                      moves.end ());
         value<GenType::QUIET> ();
         ++stage;
@@ -351,7 +351,7 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
-                                     [&](const ValMove &vm) { return tt_move == vm; }),
+                                     [&](const ValMove &m) { return tt_move == m; }),
                      moves.end ());
         value<GenType::EVASION> ();
         ++stage;
@@ -383,7 +383,7 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
-                                     [&](const ValMove &vm) { return tt_move == vm; }),
+                                     [&](const ValMove &m) { return tt_move == m; }),
                      moves.end ());
         ++stage;
         i = 0;
