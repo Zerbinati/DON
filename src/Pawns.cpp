@@ -170,8 +170,7 @@ namespace Pawns {
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
         constexpr Bitboard BlockSquares = (WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb) & (FA_bb | FH_bb);
 
-        Bitboard front_ranks = rank_bb (fk_sq)
-                             | front_rank_bb (Own, fk_sq);
+        Bitboard front_ranks = ~front_rank_bb (Opp, fk_sq);
         Bitboard own_front_pawns = pos.pieces (Own, PAWN) & front_ranks;
         Bitboard opp_front_pawns = pos.pieces (Opp, PAWN) & front_ranks;
 
