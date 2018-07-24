@@ -147,7 +147,7 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        EndgameBase<Scale> *scale_func;
+        const EndgameBase<Scale> *scale_func;
         if (nullptr != (scale_func = EndGames->probe<Scale> (key)))
         {
             e->scale_func[scale_func->strong_color] = scale_func;

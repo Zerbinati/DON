@@ -82,29 +82,6 @@ namespace EndGame {
 
     }
 
-    Endgames::Endgames ()
-    {
-        // EVALUATION_FUNCTIONS
-        add<KPK>     ("KPK");
-        add<KNNK>    ("KNNK");
-        add<KBNK>    ("KBNK");
-        add<KRKP>    ("KRKP");
-        add<KRKB>    ("KRKB");
-        add<KRKN>    ("KRKN");
-        add<KQKP>    ("KQKP");
-        add<KQKR>    ("KQKR");
-
-        // SCALING_FUNCTIONS
-        add<KRPKR>   ("KRPKR");
-        add<KRPKB>   ("KRPKB");
-        add<KRPPKRP> ("KRPPKRP");
-        add<KNPK>    ("KNPK");
-        add<KBPKB>   ("KBPKB");
-        add<KBPPKB>  ("KBPPKB");
-        add<KBPKN>   ("KBPKN");
-        add<KNPKB>   ("KNPKB");
-    }
-
     /// Mate with KX vs K. This gives the attacking side a bonus
     /// for driving the defending king towards the edge of the board and
     /// for keeping the distance between the two kings small.

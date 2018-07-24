@@ -682,9 +682,7 @@ namespace {
             // Enemies attacked by minors
             b = (  attacked_weak_enemies
                    // Enemy defended non-pawns
-                 | defended_nonpawns_enemies
-                   // Enemy Rooks or Queens
-                 | pos.pieces (Opp, ROOK, QUEN))
+                 | defended_nonpawns_enemies)
               & (  sgl_attacks[Own][NIHT]
                  | sgl_attacks[Own][BSHP]);
             while (0 != b)
@@ -700,9 +698,7 @@ namespace {
             if (0 != attacked_weak_enemies)
             {
                 // Enemies attacked by majors
-                b = (  attacked_weak_enemies
-                       // Enemy Queens
-                     | pos.pieces (Opp, QUEN))
+                b = attacked_weak_enemies
                   & sgl_attacks[Own][ROOK];
                 while (0 != b)
                 {

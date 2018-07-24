@@ -1781,7 +1781,8 @@ namespace Searcher {
             {
                 for (i08 mc = 1; mc < 64; ++mc)
                 {
-                    double r = std::log (double (d)) * std::log (double (mc)) / 1.95;
+                    double slope = d > 2 ? 0.88 * d + 0.36 : d;
+                    double r = std::log (slope) * std::log (mc) / 1.95;
                     ReductionDepths[0][imp][d][mc] = i16(std::round (r));
                     ReductionDepths[1][imp][d][mc] = i16(std::max (ReductionDepths[0][imp][d][mc] - 1, 0));
                     if (   0 == imp
