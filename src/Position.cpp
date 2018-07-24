@@ -565,9 +565,7 @@ bool Position::legal (Move m) const
             && (   0 == (pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (active)])
                 || 0 == (pieces (~active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (active), mocc)));
     }
-    default:
-        assert(false);
-        return false;
+    default: assert(false); return false;
     }
 }
 /// Position::gives_check() tests whether a pseudo-legal move gives a check.
@@ -626,17 +624,19 @@ bool Position::gives_check (Move m) const
             && R_8 == rel_rank (active, dst_sq (m))
             && NIHT <= promote (m) && promote (m) <= QUEN);
         // Promotion with check?
-        return NIHT == promote (m) ? contains (PieceAttacks[NIHT][dst_sq (m)], square<KING> (~active)) :
-               BSHP == promote (m) ? contains (PieceAttacks[BSHP][dst_sq (m)], square<KING> (~active))
-                                  && contains (attacks_bb<BSHP> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active)) :
-               ROOK == promote (m) ? contains (PieceAttacks[ROOK][dst_sq (m)], square<KING> (~active))
-                                  && contains (attacks_bb<ROOK> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active)) :
-               QUEN == promote (m) ? contains (PieceAttacks[QUEN][dst_sq (m)], square<KING> (~active))
-                                  && contains (attacks_bb<QUEN> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active)) : (assert(false), false);
+        switch (promote (m))
+        {
+        case NIHT: return contains (PieceAttacks[NIHT][dst_sq (m)], square<KING> (~active));
+        case BSHP: return contains (PieceAttacks[BSHP][dst_sq (m)], square<KING> (~active))
+                       && contains (attacks_bb<BSHP> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active));
+        case ROOK: return contains (PieceAttacks[ROOK][dst_sq (m)], square<KING> (~active))
+                       && contains (attacks_bb<ROOK> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active));
+        case QUEN: return contains (PieceAttacks[QUEN][dst_sq (m)], square<KING> (~active))
+                       && contains (attacks_bb<QUEN> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active));
+        default: assert(false); return false;
+        }
     }
-    default:
-        assert(false);
-        return false;
+    default: assert(false); return false;
     }
 }
 /// Position::clear() clear the position.
@@ -1095,6 +1095,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         break;
     default:
         assert(false);
+        break;
     }
     si->posi_key ^= RandZob.piece_square[active][ppt][dst]
                   ^ RandZob.piece_square[active][mpt][org];
@@ -1175,6 +1176,7 @@ void Position::undo_move (Move m)
         break;
     default:
         assert(false);
+        break;
     }
 
     if (NONE != si->capture)
@@ -1308,7 +1310,7 @@ void Position::mirror ()
                 case 'Q': ch = 'K'; break;
                 case 'k': ch = 'q'; break;
                 case 'q': ch = 'k'; break;
-                default: assert(false);
+                default: assert(false); break;
                 }
             }
         }

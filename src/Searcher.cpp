@@ -394,6 +394,7 @@ Move MovePicker::next_move ()
                 MOVE_NONE;
     default:
         assert(false);
+        break;
     }
     return MOVE_NONE;
 }
