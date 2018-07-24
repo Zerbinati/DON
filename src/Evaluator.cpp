@@ -336,7 +336,9 @@ namespace {
                 attacks &= strline_bb (pos.square<KING> (Own), s);
             }
 
-            if (BSHP == PT)
+            switch (PT)
+            {
+            case BSHP:
             {
                 Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
                 Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
@@ -344,8 +346,8 @@ namespace {
                                   & (  attacks
                                      | (0 != bp ? pawn_attacks_bb<Own> (bp) & PieceAttacks[BSHP][s] : 0));
             }
-            else
-            if (QUEN == PT)
+                break;
+            case QUEN:
             {
                 Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
                 Bitboard qp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
@@ -357,10 +359,11 @@ namespace {
                                      | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                      | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
             }
-            else
-            {
+                break;
+            default:
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & attacks;
+                break;
             }
 
             sgl_attacks[Own][PT]   |= attacks;
@@ -381,8 +384,10 @@ namespace {
 
             Bitboard b;
             // Special extra evaluation for pieces
-            if (   NIHT == PT
-                || BSHP == PT)
+            switch (PT)
+            {
+            case NIHT:
+            case BSHP:
             {
                 // Bonus for minor behind a pawn
                 if (contains (shift<Pull> (pos.pieces (PAWN)), s))
@@ -449,8 +454,8 @@ namespace {
                     }
                 }
             }
-            else
-            if (ROOK == PT)
+                break;
+            case ROOK:
             {
                 // Bonus for rook aligning with enemy pawns on the same rank/file
                 if (   R_4 < rel_rank (Own, s)
@@ -477,8 +482,8 @@ namespace {
                     }
                 }
             }
-            else
-            if (QUEN == PT)
+                break;
+            case QUEN:
             {
                 // Penalty for pin or discover attack on the queen
                 b = 0;
@@ -491,6 +496,10 @@ namespace {
                 {
                     score -= QueenWeaken;
                 }
+            }
+                break;
+            default: assert(false);
+                break;
             }
         }
 
