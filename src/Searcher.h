@@ -112,10 +112,10 @@ struct Stats<T, D, Size>
 
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 /// during the current search, and is used for reduction and move ordering decisions, indexed by [color][move].
-typedef Stats<i16, 10368, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
+typedef Stats<i16, 10692, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
 
 /// CaptureHistory stores capture history, indexed by [piece][move][captured piece type]
-typedef Stats<i16, 10368, MAX_PIECE, SQ_NO*SQ_NO, PT_NO> CaptureHistory;
+typedef Stats<i16, 10692, MAX_PIECE, SQ_NO*SQ_NO, PT_NO> CaptureHistory;
 
 /// PieceDestinyHistory is like ButterflyHistory, indexed by [piece][destiny]
 typedef Stats<i16, 29952, MAX_PIECE, SQ_NO> PieceDestinyHistory;

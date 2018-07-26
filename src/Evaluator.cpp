@@ -133,14 +133,13 @@ namespace {
     constexpr Score KingUnderAttack =   S(  8,  0);
     constexpr Score PawnWeakUnopposed = S(  5, 29);
     constexpr Score PieceHanged =       S( 52, 30);
-    constexpr Score SafePawnThreat =    S(173,102);
+    constexpr Score PawnThreat =        S(173,102);
     constexpr Score PawnPushThreat =    S( 45, 40);
     constexpr Score RankThreat =        S( 16,  3);
     constexpr Score KingThreat =        S( 23, 76);
     constexpr Score KnightQueenThreat = S( 21, 11);
     constexpr Score SliderQueenThreat = S( 42, 21);
-    constexpr Score Connectivity =      S(  3,  1);
-    constexpr Score Overloaded =        S( 10,  5);
+    constexpr Score Overloaded =        S( 13,  6);
     constexpr Score PasserHinder =      S(  4,  0);
 
 #undef S
@@ -160,7 +159,7 @@ namespace {
         0, 0, 0, 3, 7, 11, 20, 0
     };
 
-    constexpr Value LazyThreshold = Value(1500);
+    constexpr Value LazyThreshold =  Value(1500);
     constexpr Value SpaceThreshold = Value(12222);
 
     // Evaluator class contains various evaluation functions.
@@ -314,11 +313,15 @@ namespace {
             assert(pos[s] == (Own|PT));
             Bitboard attacks;
             // Find attacked squares, including x-ray attacks for bishops and rooks
-            attacks = NIHT == PT ? PieceAttacks[NIHT][s] :
-                      BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN, BSHP) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN))) :
-                      ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN, ROOK) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN))) :
-                      QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN)       & ~pos.si->king_blockers[Own]))) : (assert(false), 0);
-
+            switch (PT)
+            {
+            case NIHT: attacks = PieceAttacks[NIHT][s]; break;
+            case BSHP: attacks = attacks_bb<BSHP> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN, BSHP) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN))); break;
+            case ROOK: attacks = attacks_bb<ROOK> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN, ROOK) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN))); break;
+            case QUEN: attacks = attacks_bb<QUEN> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN)       & ~pos.si->king_blockers[Own]))); break;
+            default: assert(false); attacks = 0; break;
+            }
+            
             ful_attacks[Own] |= attacks;
 
             if (QUEN == PT)
@@ -333,7 +336,9 @@ namespace {
                 attacks &= strline_bb (pos.square<KING> (Own), s);
             }
 
-            if (BSHP == PT)
+            switch (PT)
+            {
+            case BSHP:
             {
                 Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
                 Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
@@ -341,8 +346,8 @@ namespace {
                                   & (  attacks
                                      | (0 != bp ? pawn_attacks_bb<Own> (bp) & PieceAttacks[BSHP][s] : 0));
             }
-            else
-            if (QUEN == PT)
+                break;
+            case QUEN:
             {
                 Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
                 Bitboard qp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
@@ -354,10 +359,11 @@ namespace {
                                      | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                      | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
             }
-            else
-            {
+                break;
+            default:
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & attacks;
+                break;
             }
 
             sgl_attacks[Own][PT]   |= attacks;
@@ -378,8 +384,10 @@ namespace {
 
             Bitboard b;
             // Special extra evaluation for pieces
-            if (   NIHT == PT
-                || BSHP == PT)
+            switch (PT)
+            {
+            case NIHT:
+            case BSHP:
             {
                 // Bonus for minor behind a pawn
                 if (contains (shift<Pull> (pos.pieces (PAWN)), s))
@@ -446,8 +454,8 @@ namespace {
                     }
                 }
             }
-            else
-            if (ROOK == PT)
+                break;
+            case ROOK:
             {
                 // Bonus for rook aligning with enemy pawns on the same rank/file
                 if (   R_4 < rel_rank (Own, s)
@@ -474,8 +482,8 @@ namespace {
                     }
                 }
             }
-            else
-            if (QUEN == PT)
+                break;
+            case QUEN:
             {
                 // Penalty for pin or discover attack on the queen
                 b = 0;
@@ -488,6 +496,10 @@ namespace {
                 {
                     score -= QueenWeaken;
                 }
+            }
+                break;
+            default: assert(false);
+                break;
             }
         }
 
@@ -515,17 +527,15 @@ namespace {
         {
             if (   pos.si->can_castle (Own, CS_KING)
                 && pos.expeded_castle (Own, CS_KING)
-                && 0 == (pos.king_path_bb[Own][CS_KING] & ful_attacks[Opp])
-                && safety < pe->king_safety[Own][0])
+                && 0 == (pos.king_path_bb[Own][CS_KING] & ful_attacks[Opp]))
             {
-                safety = pe->king_safety[Own][0];
+                safety = std::max (pe->king_safety[Own][0], safety);
             }
             if (   pos.si->can_castle (Own, CS_QUEN)
                 && pos.expeded_castle (Own, CS_QUEN)
-                && 0 == (pos.king_path_bb[Own][CS_QUEN] & ful_attacks[Opp])
-                && safety < pe->king_safety[Own][1])
+                && 0 == (pos.king_path_bb[Own][CS_QUEN] & ful_attacks[Opp]))
             {
-                safety = pe->king_safety[Own][1];
+                safety = std::max (pe->king_safety[Own][1], safety);
             }
         }
 
@@ -676,7 +686,8 @@ namespace {
 
         Bitboard b;
 
-        if (0 != (defended_nonpawns_enemies | attacked_weak_enemies))
+        if (   0 != attacked_weak_enemies
+            || 0 != defended_nonpawns_enemies)
         {
             // Bonus according to the type of attacking pieces
 
@@ -695,7 +706,13 @@ namespace {
                 {
                     score += RankThreat * rel_rank (Opp, s);
                 }
+                else
+                if (contains (pos.si->king_blockers[Opp], s))
+                {
+                    score += RankThreat * rel_rank (Opp, s) / 2;
+                }
             }
+
             if (0 != attacked_weak_enemies)
             {
                 // Enemies attacked by majors
@@ -710,6 +727,11 @@ namespace {
                     {
                         score += RankThreat * rel_rank (Opp, s);
                     }
+                    else
+                    if (contains (pos.si->king_blockers[Opp], s))
+                    {
+                        score += RankThreat * rel_rank (Opp, s) / 2;
+                    }
                 }
                 // Enemies attacked by king
                 b = attacked_weak_enemies
@@ -723,14 +745,13 @@ namespace {
                 b = attacked_weak_enemies
                   & ~sgl_attacks[Opp][NONE];
                 score += PieceHanged * pop_count (b);
-            }
 
-            // Bonus for overloaded: non-pawn enemies attacked once or more and defended exactly once
-            b = nonpawns_enemies
-              & sgl_attacks[Own][NONE]
-              & sgl_attacks[Opp][NONE]
-              & ~dbl_attacks[Opp];
-            score += Overloaded * pop_count (b);
+                // Bonus for overloaded
+                b = nonpawns_enemies
+                  & attacked_weak_enemies
+                  & sgl_attacks[Opp][NONE];
+                score += Overloaded * pop_count (b);
+            }
         }
 
         // Bonus for opponent unopposed weak pawns
@@ -744,10 +765,11 @@ namespace {
         // Safe friend pawns
         b = safe_area
           & pos.pieces (Own, PAWN);
+        // Safe friend pawns attacks on nonpawn enemies
         b = nonpawns_enemies
           & pawn_attacks_bb<Own> (b)
           & sgl_attacks[Own][PAWN];
-        score += SafePawnThreat * pop_count (b);
+        score += PawnThreat * pop_count (b);
 
         // Friend pawns who can push on the next move
         b =  pos.pieces (Own, PAWN)
@@ -760,11 +782,9 @@ namespace {
         // Friend pawns push safe
         b &= safe_area
           & ~sgl_attacks[Opp][PAWN];
-        // Friend pawns push safe attacks an enemy piece not already attacked by pawn
+        // Friend pawns push safe attacks an enemies
         b =  pawn_attacks_bb<Own> (b)
-          &  pos.pieces (Opp)
-          & ~sgl_attacks[Own][PAWN];
-        // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
+          &  pos.pieces (Opp);
         score += PawnPushThreat * pop_count (b);
 
         // Bonus for threats on the next moves against enemy queens
@@ -783,10 +803,6 @@ namespace {
             // Bonus for safe slider attack threats on enemy queen
             score += SliderQueenThreat * pop_count (b);
         }
-        // Bonus for Connectivity: ensure that knights, bishops, rooks, and queens are protected
-        b = pos.pieces (Own, NIHT, BSHP, ROOK, QUEN)
-          & sgl_attacks[Own][NONE];
-        score += Connectivity * pop_count (b);
 
         if (Trace)
         {
@@ -1043,7 +1059,12 @@ namespace {
         Value v = (mg_value (score) + eg_value (score)) / 2;
         if (abs (v) > LazyThreshold)
         {
-            return WHITE == pos.active ? +v : -v;
+            switch (pos.active)
+            {
+            case WHITE: return +v;
+            case BLACK: return -v;
+            default: return VALUE_ZERO;
+            }
         }
 
         if (Trace)
@@ -1111,7 +1132,13 @@ string trace (const Position &pos)
 {
     pos.thread->contempt = SCORE_ZERO; // Reset any dynamic contempt
     auto value = Evaluator<true> (pos).value ();
-    value = WHITE == pos.active ? +value : -value; // Trace scores are from White's point of view
+    // Trace scores are from White's point of view
+    switch (pos.active)
+    {
+    case WHITE: value = +value; break;
+    case BLACK: value = -value; break;
+    default: value = VALUE_ZERO; break;
+    }
 
     ostringstream oss;
     oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed
@@ -1129,7 +1156,7 @@ string trace (const Position &pos)
         << "       Mobility" << Term::MOBILITY
         << "           King" << Term(KING)
         << "         Threat" << Term::THREAT
-        << "    Pawn Passer" << Term::PASSER
+        << "         Passer" << Term::PASSER
         << "          Space" << Term::SPACE
         << "----------------+-------------+-------------+--------------\n"
         << "          Total" << Term::TOTAL

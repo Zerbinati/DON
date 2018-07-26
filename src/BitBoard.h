@@ -278,11 +278,17 @@ namespace BitBoard {
 
     /// pawn_attacks_bb() returns the pawn attacks for the given color from the given bitboard.
     template<Color C>
-    constexpr Bitboard pawn_attacks_bb (Bitboard b)
+    inline Bitboard pawn_attacks_bb (Bitboard b)
     {
-        return WHITE == C ?
-                shift<DEL_NE> (b) | shift<DEL_NW> (b) :
-                shift<DEL_SE> (b) | shift<DEL_SW> (b);
+        switch (C)
+        {
+        case WHITE:
+            return shift<DEL_NE> (b) | shift<DEL_NW> (b);
+        case BLACK:
+            return shift<DEL_SE> (b) | shift<DEL_SW> (b);
+        default:
+            return 0;
+        }
     }
 
     inline Bitboard sliding_attacks (const Delta *deltas, Square s, Bitboard occ = 0)

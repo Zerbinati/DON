@@ -28,13 +28,20 @@ namespace {
         auto dst = dst_sq (m);
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
-        Bitboard attacks = NIHT == ptype (pos[org]) ? PieceAttacks[NIHT][dst] :
-                           BSHP == ptype (pos[org]) ? attacks_bb<BSHP> (dst, pos.pieces ()) :
-                           ROOK == ptype (pos[org]) ? attacks_bb<ROOK> (dst, pos.pieces ()) :
-                           QUEN == ptype (pos[org]) ? attacks_bb<QUEN> (dst, pos.pieces ()) : (assert(false), 0);
+        Bitboard attacks;
+        switch (ptype (pos[org]))
+        {
+        case NIHT: attacks = PieceAttacks[NIHT][dst]; break;
+        case BSHP: attacks = attacks_bb<BSHP> (dst, pos.pieces ()); break;
+        case ROOK: attacks = attacks_bb<ROOK> (dst, pos.pieces ()); break;
+        case QUEN: attacks = attacks_bb<QUEN> (dst, pos.pieces ()); break;
+        default: assert(false); attacks = 0; break;
+        }
 
         Bitboard amb = (attacks & pos.pieces (pos.active, ptype (pos[org]))) ^ org;
-        Bitboard pcs = amb; // & ~(pos.si->king_blockers[pos.active] & pos.pieces (pos.active)); // If pinned piece is considered as ambiguous
+        Bitboard pcs = amb;
+                    // If pinned piece is considered as ambiguous
+                    // & ~(pos.si->king_blockers[pos.active] & pos.pieces (pos.active));
         while (0 != pcs)
         {
             auto sq = pop_lsq (pcs);
