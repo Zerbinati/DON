@@ -133,7 +133,7 @@ namespace {
     constexpr Score KingUnderAttack =   S(  8,  0);
     constexpr Score PawnWeakUnopposed = S(  5, 29);
     constexpr Score PieceHanged =       S( 52, 30);
-    constexpr Score SafePawnThreat =    S(173,102);
+    constexpr Score PawnThreat =        S(173,102);
     constexpr Score PawnPushThreat =    S( 45, 40);
     constexpr Score RankThreat =        S( 16,  3);
     constexpr Score KingThreat =        S( 23, 76);
@@ -765,10 +765,11 @@ namespace {
         // Safe friend pawns
         b = safe_area
           & pos.pieces (Own, PAWN);
+        // Safe friend pawns attacks on nonpawn enemies
         b = nonpawns_enemies
           & pawn_attacks_bb<Own> (b)
           & sgl_attacks[Own][PAWN];
-        score += SafePawnThreat * pop_count (b);
+        score += PawnThreat * pop_count (b);
 
         // Friend pawns who can push on the next move
         b =  pos.pieces (Own, PAWN)
@@ -781,10 +782,9 @@ namespace {
         // Friend pawns push safe
         b &= safe_area
           & ~sgl_attacks[Opp][PAWN];
-        // Friend pawns push safe attacks an enemy piece not already attacked by pawn
+        // Friend pawns push safe attacks an enemies
         b =  pawn_attacks_bb<Own> (b)
           &  pos.pieces (Opp);
-        // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
         score += PawnPushThreat * pop_count (b);
 
         // Bonus for threats on the next moves against enemy queens
