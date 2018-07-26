@@ -139,7 +139,7 @@ namespace {
     constexpr Score KingThreat =        S( 23, 76);
     constexpr Score KnightQueenThreat = S( 21, 11);
     constexpr Score SliderQueenThreat = S( 42, 21);
-    constexpr Score Overloaded =        S( 16,  7);
+    constexpr Score Overloaded =        S( 13,  6);
     constexpr Score PasserHinder =      S(  4,  0);
 
 #undef S
@@ -706,6 +706,11 @@ namespace {
                 {
                     score += RankThreat * rel_rank (Opp, s);
                 }
+                else
+                if (contains (pos.si->king_blockers[Opp], s))
+                {
+                    score += RankThreat * rel_rank (Opp, s) / 2;
+                }
             }
 
             if (0 != attacked_weak_enemies)
@@ -721,6 +726,11 @@ namespace {
                     if (PAWN != pt)
                     {
                         score += RankThreat * rel_rank (Opp, s);
+                    }
+                    else
+                    if (contains (pos.si->king_blockers[Opp], s))
+                    {
+                        score += RankThreat * rel_rank (Opp, s) / 2;
                     }
                 }
                 // Enemies attacked by king
@@ -773,8 +783,7 @@ namespace {
           & ~sgl_attacks[Opp][PAWN];
         // Friend pawns push safe attacks an enemy piece not already attacked by pawn
         b =  pawn_attacks_bb<Own> (b)
-          &  pos.pieces (Opp)
-          & ~sgl_attacks[Own][PAWN];
+          &  pos.pieces (Opp);
         // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
         score += PawnPushThreat * pop_count (b);
 

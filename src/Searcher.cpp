@@ -444,7 +444,7 @@ namespace Searcher {
         /// stat_bonus() is the bonus, based on depth
         i32 stat_bonus (i16 depth)
         {
-            return depth <= 17 ? 32*(depth*(depth + 2) - 2) : 0;
+            return depth <= 17 ? (32*depth + 66)*depth - 66 : 0;
         }
 
         /// update_continuation_histories() updates tables of the move pairs with current move.
@@ -1440,7 +1440,9 @@ namespace Searcher {
                         // Reduced depth of the next LMR search.
                         i16 lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Countermoves based pruning. (~20 ELO)
-                               (   3 > lmr_depth
+                               (   4 > lmr_depth
+                                && (   3 > lmr_depth
+                                    || (!PVNode && (ss-1)->stats > 0))
                                 && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
                                 && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
                                 // Futility pruning: parent node. (~2 ELO)
@@ -1782,8 +1784,7 @@ namespace Searcher {
             {
                 for (i08 mc = 1; mc < 64; ++mc)
                 {
-                    double slope = d > 2 ? 0.88 * d + 0.36 : d;
-                    double r = std::log (slope) * std::log (mc) / 1.95;
+                    double r = std::log (d) * std::log (mc) / 1.95;
                     ReductionDepths[0][imp][d][mc] = i16(std::round (r));
                     ReductionDepths[1][imp][d][mc] = i16(std::max (ReductionDepths[0][imp][d][mc] - 1, 0));
                     if (   0 == imp
