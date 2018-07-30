@@ -129,8 +129,8 @@ namespace {
     constexpr Score RookOnPawns =       S(  8, 24);
     constexpr Score RookTrapped =       S( 92,  0);
     constexpr Score QueenWeaken =       S( 50, 10);
-    constexpr Score PawnLessFlank =     S( 20, 80);
-    constexpr Score KingUnderAttack =   S(  8,  0);
+    constexpr Score PawnLessFlank =     S( 19, 84);
+    constexpr Score KingTropism =       S(  6,  0);
     constexpr Score PawnWeakUnopposed = S(  5, 29);
     constexpr Score PieceHanged =       S( 52, 30);
     constexpr Score PawnThreat =        S(173,102);
@@ -140,7 +140,7 @@ namespace {
     constexpr Score KnightQueenThreat = S( 21, 11);
     constexpr Score SliderQueenThreat = S( 42, 21);
     constexpr Score Overloaded =        S( 13,  6);
-    constexpr Score PasserHinder =      S(  4,  0);
+    constexpr Score PasserHinder =      S(  8,  0);
 
 #undef S
 
@@ -541,7 +541,25 @@ namespace {
 
         auto score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
 
-        Bitboard b;
+        Bitboard king_flank = KingFlank_bb[_file (fk_sq)];
+        // Penalty for king on a pawn less flank
+        if (0 == (pos.pieces (PAWN) & king_flank))
+        {
+            score -= PawnLessFlank;
+        }
+
+        king_flank &= Camp_bb[Own];
+        
+        i32 tropism = // Squares attacked by enemy in friend king flank
+                      pop_count (  king_flank
+                                 & sgl_attacks[Opp][NONE])
+                    // Squares attacked by enemy twice in friend king flank and not defended by friend pawns.
+                    + pop_count (  king_flank
+                                 & dbl_attacks[Opp]
+                                 & ~sgl_attacks[Own][PAWN]);
+        // King tropism: To anticipate slow motion attacks on friend king zone
+        score -= KingTropism * tropism;
+
         // Main king safety evaluation
         if (king_attackers_count[Opp] + pos.count (Opp, QUEN) > 1)
         {
@@ -564,6 +582,7 @@ namespace {
             Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
             Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
 
+            Bitboard b;
             // Enemy queens safe checks
             b = (  rook_attack
                  | bshp_attack)
@@ -615,39 +634,21 @@ namespace {
                         +  69 * king_attacks_count[Opp]
                         + 185 * pop_count (king_ring[Own] & weak_area)
                         + 129 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
-                        - 873 * (0 == pos.count (Opp, QUEN) ? 1 : 0)
+                        +   4 * tropism
                         -   6 * safety / 8
-                        -   2;
-
+                        -  30;
+            if (0 == pos.count (Opp, QUEN))
+            {
+                king_danger -= 873;
+            }
             if (king_danger > 0)
             {
+                king_danger += mg_value (mobility[Opp] - mobility[Own]);
+                king_danger = std::max (king_danger, 0);
                 // Transform the king danger into a score, and subtract it from the score
-                king_danger = std::max (king_danger + mg_value (mobility[Opp] - mobility[Own]), 0);
                 score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
             }
         }
-
-        Bitboard kf_bb = KingFlank_bb[_file (fk_sq)];
-
-        // Penalty for king on a pawn less flank
-        if (0 == (  kf_bb
-                  & pos.pieces (PAWN)))
-        {
-            score -= PawnLessFlank;
-        }
-
-        Bitboard e;
-
-        // Squares attacked by enemy in friend king flank
-        b = Camp_bb[Own]
-          & kf_bb
-          & sgl_attacks[Opp][NONE];
-        // Squares attacked by enemy twice in friend king flank but not defended by friend pawns.
-        e = b
-          & dbl_attacks[Opp]
-          & ~sgl_attacks[Own][PAWN];
-        // King tropism, to anticipate slow motion attacks on friend king zone
-        score -= KingUnderAttack * (pop_count (b) + pop_count (e));
 
         if (Trace)
         {
@@ -759,9 +760,10 @@ namespace {
         {
             score += PawnWeakUnopposed * pop_count (pe->weak_unopposed[Opp]);
         }
+        Bitboard safe_area;
 
-        Bitboard safe_area =  sgl_attacks[Own][NONE]
-                           | ~sgl_attacks[Opp][NONE];
+        safe_area =  sgl_attacks[Own][NONE]
+                  | ~sgl_attacks[Opp][NONE];
         // Safe friend pawns
         b = safe_area
           & pos.pieces (Own, PAWN);
@@ -790,13 +792,13 @@ namespace {
         // Bonus for threats on the next moves against enemy queens
         if (0 != pos.pieces (Opp, QUEN))
         {
-            Bitboard safe_threat = mob_area[Own]
-                                 & ~defended_area;
-            b = safe_threat
+            safe_area = mob_area[Own]
+                      & ~defended_area;
+            b = safe_area
               & (sgl_attacks[Own][NIHT] & queen_attacks[Opp][0]);
             score += KnightQueenThreat * pop_count (b);
 
-            b = safe_threat
+            b = safe_area
               & (  (sgl_attacks[Own][BSHP] & queen_attacks[Opp][1])
                  | (sgl_attacks[Own][ROOK] & queen_attacks[Opp][2]))
               & dbl_attacks[Own];
@@ -919,8 +921,12 @@ namespace {
             }
 
             score += bonus
-                   + PasserFile[std::min (_file (s), ~_file (s))]
-                   - PasserHinder * pop_count (front_line_bb (Own, s) & pos.pieces (Opp));
+                   + PasserFile[std::min (_file (s), ~_file (s))];
+
+            if (0 != (front_line_bb (Own, s) & pos.pieces (Opp)))
+            {
+                score -= PasserHinder;
+            }
         }
 
         if (Trace)
@@ -1116,7 +1122,13 @@ namespace {
             write (Term::TOTAL, score);
         }
 
-        return (WHITE == pos.active ? +v : -v) + Tempo; // Side to move point of view
+        // Active side's point of view
+        switch (pos.active)
+        {
+        case WHITE: return +v + Tempo;
+        case BLACK: return -v + Tempo;
+        default: assert(false); return VALUE_ZERO;
+        }
     }
 }
 

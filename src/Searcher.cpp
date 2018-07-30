@@ -1440,9 +1440,7 @@ namespace Searcher {
                         // Reduced depth of the next LMR search.
                         i16 lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Countermoves based pruning. (~20 ELO)
-                               (   4 > lmr_depth
-                                && (   3 > lmr_depth
-                                    || (!PVNode && (ss-1)->stats > 0))
+                               (   ((ss-1)->stats > 0 ? 4 : 3) > lmr_depth
                                 && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
                                 && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
                                 // Futility pruning: parent node. (~2 ELO)
