@@ -2,9 +2,12 @@
 
 #include <cmath>
 #include "MoveGenerator.h"
+#include "Searcher.h"
+#include "Transposition.h"
 
 using namespace std;
 using namespace BitBoard;
+using namespace Searcher;
 
 namespace {
 
@@ -247,6 +250,73 @@ Move move_from_san (const string &san, Position &pos)
 //    }
 //    return MOVE_NONE;
 //}
+
+/// multipv_info() formats PV information according to UCI protocol.
+/// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
+string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
+{
+    auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), TimePoint(1));
+    auto &rms = th->root_moves;
+    auto pv_cur = th->pv_cur;
+
+    auto total_nodes = Threadpool.nodes ();
+    auto tb_hits = Threadpool.tb_hits ();
+    if (TBHasRoot)
+    {
+        tb_hits += rms.size ();
+    }
+
+    ostringstream oss;
+    for (size_t i = 0; i < Threadpool.pv_limit; ++i)
+    {
+        bool updated = i <= pv_cur
+                    && -VALUE_INFINITE != rms[i].new_value;
+
+        if (   !updated
+            && DepthOne == depth)
+        {
+            continue;
+        }
+
+        i16 d = updated ?
+                    depth :
+                    depth - DepthOne;
+        auto v = updated ?
+                    rms[i].new_value :
+                    rms[i].old_value;
+        bool tb = TBHasRoot
+                && abs (v) < +VALUE_MATE - i32(MaxDepth);
+        if (tb)
+        {
+            v = rms[i].tb_value;
+        }
+
+        oss << "info"
+            << " multipv "  << i + 1
+            << " depth "    << d
+            << " seldepth " << rms[i].sel_depth
+            << " score "    << to_string (v);
+        if (   !tb
+            && i == pv_cur)
+        {
+            oss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
+        }
+        oss << " nodes "    << total_nodes
+            << " time "     << elapsed_time
+            << " nps "      << total_nodes * 1000 / elapsed_time
+            << " tbhits "   << tb_hits;
+        if (elapsed_time > 1000)
+        {
+            oss << " hashfull " << TT.hash_full ();
+        }
+        oss << " pv"        << rms[i];
+        if (i < Threadpool.pv_limit - 1)
+        {
+            oss << "\n";
+        }
+    }
+    return oss.str ();
+}
 
 /// Returns formated human-readable search information.
 string pretty_pv_info (Thread *const &th)
