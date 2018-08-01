@@ -70,7 +70,7 @@ namespace BitBoard {
 //
 //        u08 MSB_Table[(1 << 8)];
 
-    #if !defined(ABM)
+#   if !defined(ABM)
         // Counts the non-zero bits using SWAR-Popcount algorithm
         u08 pop_count16 (u32 u)
         {
@@ -79,7 +79,7 @@ namespace BitBoard {
             u = ((u >> 4) + u) & 0x0F0FU;
             return u08((u * 0x0101U) >> 8);
         }
-    #endif
+#   endif
 
         // Max Bishop Table Size
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
@@ -223,12 +223,12 @@ namespace BitBoard {
         //    MSB_Table[b] =  MSB_Table[b - 1] + !more_than_one (b);
         //}
 
-    #if !defined(ABM)
+#   if !defined(ABM)
         for (u32 i = 0; i < (1 << 16); ++i)
         {
             PopCount16[i] = pop_count16 (i);
         }
-    #endif
+#   endif
 
         for (auto s1 : SQ)
         {

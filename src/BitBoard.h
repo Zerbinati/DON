@@ -89,18 +89,18 @@ namespace BitBoard {
         R7_bb|R6_bb|R5_bb
     };
 
+#   define S_02(n)  u64(1)<<(2*(n)),  u64(1)<<(2*(n)+1)
+#   define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
+#   define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
+#   define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
     constexpr Bitboard Square_bb[SQ_NO] =
     {
-#define S_02(n)  u64(1)<<(2*(n)),  u64(1)<<(2*(n)+1)
-#define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
-#define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
-#define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
         S_16(0), S_16(1), S_16(2), S_16(3),
-#undef S_16
-#undef S_08
-#undef S_04
-#undef S_02
     };
+#   undef S_16
+#   undef S_08
+#   undef S_04
+#   undef S_02
 
     constexpr Bitboard File_bb[F_NO] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
     constexpr Bitboard Rank_bb[R_NO] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
@@ -171,10 +171,10 @@ namespace BitBoard {
     {
         Bitboard  mask;
 
-    #if !defined(BM2)
+#   if !defined(BM2)
         Bitboard  number;
         u08       shift;
-    #endif
+#   endif
 
         Bitboard *attacks;
 
@@ -282,12 +282,9 @@ namespace BitBoard {
     {
         switch (C)
         {
-        case WHITE:
-            return shift<DEL_NE> (b) | shift<DEL_NW> (b);
-        case BLACK:
-            return shift<DEL_SE> (b) | shift<DEL_SW> (b);
-        default:
-            return 0;
+        case WHITE: return shift<DEL_NE> (b) | shift<DEL_NW> (b);
+        case BLACK: return shift<DEL_SE> (b) | shift<DEL_SW> (b);
+        default: assert(false); return 0;
         }
     }
 

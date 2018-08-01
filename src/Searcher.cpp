@@ -1150,9 +1150,7 @@ namespace Searcher {
 
                         assert(0 == thread->nmp_ply); // Recursive verification is not allowed
 
-                        // Do verification search at high depths, untill
-                        // ply exceeds nmp_ply, or
-                        // own not equal nmp_color.
+                        // Do verification search at high depths
                         thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
                         thread->nmp_color = own;
 

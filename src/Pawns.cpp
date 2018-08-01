@@ -12,7 +12,7 @@ namespace Pawns {
 
         constexpr i32 Seeds[R_NO] = { 0, 13, 24, 18, 65, 100, 175, 330 };
 
-    #define V(v) Value(v)
+#   define V(v) Value(v)
 
         constexpr Value Shelter[F_NO/2][R_NO] =
         {
@@ -31,15 +31,15 @@ namespace Pawns {
             { V(  0), V(  0), V( 66), V(  6), V(  5), V(  1), V(  15), V(0) }
         };
 
-    #undef V
+#   undef V
 
-    #define S(mg, eg) mk_score(mg, eg)
+#   define S(mg, eg) mk_score(mg, eg)
 
         constexpr Score Isolated = S( 5,15);
         constexpr Score Backward = S( 9,24);
         constexpr Score Blocked =  S(11,56);
 
-    #undef S
+#   undef S
 
         // Bonus for connected pawn indexed by [opposed][phalanx][twice supported][rank]
         Score Connected[2][2][3][R_NO];

@@ -4,7 +4,7 @@
 
 namespace {
 
-    #define S(mg, eg) mk_score (mg, eg)
+#   define S(mg, eg) mk_score (mg, eg)
     // HPSQT[piece-type][rank][file/2] contains half Piece-Square scores.
     // Table is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
@@ -72,7 +72,7 @@ namespace {
             { S(  63,   9), S( 88, 55), S( 47, 80), S(  0, 90) }
         }
     };
-    #undef S
+#   undef S
 }
 
 // PSQT[color][piece-type][square] table.
