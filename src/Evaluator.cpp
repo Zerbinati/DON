@@ -224,7 +224,7 @@ namespace {
     template<bool Trace> template<Color Own>
     void Evaluator<Trace>::initialize ()
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
@@ -302,7 +302,7 @@ namespace {
                     || ROOK == PT
                     || QUEN == PT, "PT incorrect");
 
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
@@ -515,7 +515,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::king ()
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
 
         auto fk_sq = pos.square<KING> (Own);
 
@@ -662,7 +662,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::threats ()
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr Bitboard R3BB = WHITE == Own ? R3_bb : R6_bb;
 
@@ -818,7 +818,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::passers ()
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
 
         auto king_proximity = [&](Color c, Square s)
@@ -945,7 +945,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::space ()
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
         constexpr auto Dull = WHITE == Own ? DEL_SS : DEL_NN;
 

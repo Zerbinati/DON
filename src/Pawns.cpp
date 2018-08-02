@@ -47,7 +47,7 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+            constexpr auto Opp = ~Own;
             constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
             constexpr auto LAtt = WHITE == Own ? DEL_NW : DEL_SE;
             constexpr auto RAtt = WHITE == Own ? DEL_NE : DEL_SW;
@@ -166,7 +166,7 @@ namespace Pawns {
     template<Color Own>
     Value Entry::evaluate_safety (const Position &pos, Square fk_sq) const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
         constexpr Bitboard BlockSquares = (WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb) & (FA_bb | FH_bb);
 
@@ -237,7 +237,7 @@ namespace Pawns {
                 {
                     for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
                     {
-                        auto v = 17 * support + ((Seeds[r] + (0 != phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
+                        i32 v = 17 * support + ((Seeds[r] + (0 != phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
                         Connected[opposed][phalanx][support][r] = mk_score (v, v * (r-2) / 4);
                     }
                 }

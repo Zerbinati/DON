@@ -735,7 +735,7 @@ void run (i32 argc, const char *const *argv)
     EndGame::initialize ();
     WinProcGroup::initialize ();
     TCluster::initialize ();
-    Threadpool.configure (option_threads ());
+    Threadpool.configure (threads_option ());
     Book.initialize (string(Options["Book File"]));
     TBSyzygy::initialize (string(Options["SyzygyPath"]));
     Searcher::initialize ();

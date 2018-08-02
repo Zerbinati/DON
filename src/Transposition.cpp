@@ -176,25 +176,25 @@ void TTable::clear ()
     }
     
     std::vector<std::thread> threads;
-    auto thread_count = option_threads ();
-    for (i32 idx = 0; idx < thread_count; ++idx)
+    auto thread_count = threads_option ();
+    for (u32 idx = 0; idx < thread_count; ++idx)
     {
         threads.push_back (std::thread ([this, idx, thread_count]()
-                            {
-                                if (8 <= thread_count)
-                                {
-                                    WinProcGroup::bind (idx);
-                                }
-                                size_t stride = cluster_count / thread_count;
-                                auto *pcluster = clusters + idx * stride;
-                                size_t count = idx != thread_count - 1 ?
-                                                stride :
-                                                cluster_count - idx * stride;
-                                for (auto *itc = pcluster; itc < pcluster + count; ++itc)
-                                {
-                                    itc->clear ();
-                                }
-                            }));
+                                        {
+                                            if (8 <= thread_count)
+                                            {
+                                                WinProcGroup::bind (idx);
+                                            }
+                                            size_t stride = cluster_count / thread_count;
+                                            auto *pcluster = clusters + idx * stride;
+                                            size_t count = idx != thread_count - 1 ?
+                                                            stride :
+                                                            cluster_count - idx * stride;
+                                            for (auto *itc = pcluster; itc < pcluster + count; ++itc)
+                                            {
+                                                itc->clear ();
+                                            }
+                                        }));
     }
     for (auto &th : threads)
     {

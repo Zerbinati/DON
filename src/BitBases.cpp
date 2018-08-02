@@ -66,7 +66,7 @@ namespace BitBases {
                 // If all moves lead to positions classified as WIN, the result of the current position is WIN
                 // otherwise the current position is classified as UNKNOWN.
 
-                constexpr auto Opp  = WHITE == Own ? BLACK : WHITE;
+                constexpr auto Opp  = ~Own;
                 constexpr auto Good = WHITE == Own ? Result::WIN : Result::DRAW;
                 constexpr auto Bad  = WHITE == Own ? Result::DRAW : Result::WIN;
 

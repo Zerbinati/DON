@@ -82,7 +82,7 @@ void TimeManager::initialize ()
 {
     available_nodes = 0;
 }
-/// TimeManager::initialize() calculates the allowed thinking time out of the time control and current game ply.
+/// TimeManager::set() calculates the allowed thinking time out of the time control and current game ply.
 /// Support four different kind of time controls, passed in 'limit':
 ///
 /// increment == 0, moves to go == 0 => y basetime                             ['sudden death']
@@ -218,7 +218,7 @@ void Thread::idle_loop ()
     // some Windows NUMA hardware, for instance in fishtest. To make it simple,
     // just check if running threads are below a threshold, in this case all this
     // NUMA machinery is not needed.
-    if (8 <= option_threads ())
+    if (8 <= threads_option ())
     {
         WinProcGroup::bind (index);
     }
@@ -439,7 +439,7 @@ void ThreadPool::configure (u32 thread_count)
         }
     }
     // Create new thread(s)
-    if (0 < thread_count)
+    if (0 != thread_count)
     {
         push_back (new MainThread (size ()));
         while (size () < thread_count)

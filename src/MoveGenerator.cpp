@@ -19,7 +19,7 @@ namespace {
                     || ROOK == PT
                     || QUEN == PT, "PT incorrect");
 
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
 
         if (   GenType::CHECK == GT
             || GenType::QUIET_CHECK == GT)
@@ -62,7 +62,7 @@ namespace {
             || DEL_SE == del
             || DEL_SW == del);
 
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
 
         while (0 != promotion)
         {
@@ -107,7 +107,7 @@ namespace {
     template<GenType GT, Color Own>
     void generate_pawn_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
         constexpr auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
@@ -214,7 +214,7 @@ namespace {
     template<GenType GT, Color Own, CastleSide CS>
     void generate_castling_moves (ValMoves &moves, const Position &pos)
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
         constexpr Bitboard R1BB = WHITE == Own ? R1_bb : R8_bb;
 
         assert(GenType::EVASION != GT
@@ -260,7 +260,7 @@ namespace {
     template<GenType GT, Color Own>
     void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = ~Own;
 
         assert(GenType::EVASION != GT);
 
