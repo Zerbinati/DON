@@ -78,6 +78,10 @@ TimePoint TimeManager::elapsed_time () const
                         Threadpool.nodes () :
                         now () - StartTime);
 }
+void TimeManager::initialize ()
+{
+    available_nodes = 0;
+}
 /// TimeManager::initialize() calculates the allowed thinking time out of the time control and current game ply.
 /// Support four different kind of time controls, passed in 'limit':
 ///
@@ -89,7 +93,7 @@ TimePoint TimeManager::elapsed_time () const
 /// Minimum movetime = No matter what, use at least this much time before doing the move, in milli-seconds.
 /// Overhead movetime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
 /// Move Slowness = Move Slowness, in %age.
-void TimeManager::initialize (Color c, i16 ply, u16 nodes_tm, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
+void TimeManager::set (Color c, i16 ply, u16 nodes_tm, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
 {
     nodes_time = nodes_tm;
 
@@ -244,10 +248,10 @@ void Thread::clear ()
     {
         for (auto &piece_destiny : pd)
         {
-            piece_destiny.get ()->fill (0);
+            piece_destiny->fill (0);
         }
     }
-    continuation_history[NO_PIECE][0].get ()->fill (CounterMovePruneThreshold - 1);
+    continuation_history[NO_PIECE][0]->fill (CounterMovePruneThreshold - 1);
     //// No need to clear
     //pawn_table.clear ();
     //matl_table.clear ();
@@ -256,8 +260,6 @@ void Thread::clear ()
 /// MainThread constructor
 MainThread::MainThread (size_t idx)
     : Thread (idx)
-    , last_value (VALUE_NONE)
-    , last_time_reduction (1.00)
 {}
 /// MainThread::clear()
 void MainThread::clear ()
@@ -267,7 +269,7 @@ void MainThread::clear ()
     last_value = VALUE_NONE;
     last_time_reduction = 1.00;
 
-    time_mgr.available_nodes = 0;
+    time_mgr.initialize ();
 }
 
 namespace WinProcGroup {
@@ -277,7 +279,7 @@ namespace WinProcGroup {
     /// initialize() retrieves logical processor information using specific API
     void initialize ()
     {
-#if defined(_WIN32)
+#   if defined(_WIN32)
         // Early exit if the needed API is not available at runtime
         auto kernel32 = GetModuleHandle ("Kernel32.dll");
         if (nullptr == kernel32)
@@ -353,9 +355,9 @@ namespace WinProcGroup {
             Groups.push_back (t % nodes);
         }
 
-#else
+#   else
 
-#endif
+#   endif
     }
     /// bind() set the group affinity for the thread index.
     void bind (size_t index)
@@ -367,7 +369,7 @@ namespace WinProcGroup {
         }
         u16 group = Groups[index];
 
-#if defined(_WIN32)
+#   if defined(_WIN32)
 
         auto kernel32 = GetModuleHandle ("Kernel32.dll");
         if (nullptr == kernel32)
@@ -391,9 +393,9 @@ namespace WinProcGroup {
             SetThreadGroupAffinity (GetCurrentThread (), &group_affinity, nullptr);
         }
 
-#else
+#   else
 
-#endif
+#   endif
     }
 
 }

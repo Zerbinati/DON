@@ -23,15 +23,19 @@ public:
     TimePoint optimum_time;
     TimePoint maximum_time;
 
-    u64 available_nodes = 0;
+    u64 available_nodes;
 
-    TimeManager () = default;
+    TimeManager ()
+    {
+        initialize ();
+    }
     TimeManager (const TimeManager&) = delete;
     TimeManager& operator= (const TimeManager&) = delete;
 
     TimePoint elapsed_time () const;
 
-    void initialize (Color, i16, u16, TimePoint, TimePoint, double, bool);
+    void initialize ();
+    void set (Color, i16, u16, TimePoint, TimePoint, double, bool);
     void update (Color);
 };
 

@@ -66,15 +66,14 @@ class StatsEntry
 {
 private:
 
-    typedef typename std::conditional<std::is_integral<T>::value, i32, T>::type Type;
-
     T entry;
 
 public:
 
-    T* get () { return &entry; }
     void operator= (const T &v) { entry = v; }
-    operator Type() const { return entry; }
+    T* operator&() { return &entry; }
+    T* operator->() { return &entry; }
+    operator const T&() const { return entry; }
 
     void operator<< (i32 bonus)
     {
@@ -95,11 +94,14 @@ template <typename T, i32 D, i32 Size, i32... Sizes>
 struct Stats
     : public std::array<Stats<T, D, Sizes...>, Size>
 {
-    T* get () { return this->at (0).get (); }
+    typedef Stats<T, D, Size, Sizes...> stats;
 
     void fill (const T &v)
     {
-        T *p = get ();
+        // For standard-layout 'this' points to first struct member
+        assert(std::is_standard_layout<stats>::value);
+
+        auto *p = reinterpret_cast<StatsEntry<T, D>*>(this);
         std::fill (p, p + sizeof (*this) / sizeof (*p), v);
     }
 };
@@ -107,7 +109,6 @@ template <typename T, i32 D, i32 Size>
 struct Stats<T, D, Size>
     : public std::array<StatsEntry<T, D>, Size>
 {
-    T* get () { return this->at (0).get (); }
 };
 
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful

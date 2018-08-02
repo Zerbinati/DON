@@ -521,7 +521,7 @@ namespace Searcher {
 
             auto *thread = pos.thread;
             ss->played_move = MOVE_NONE;
-            ss->pd_history = thread->continuation_history[NO_PIECE][0].get ();
+            ss->pd_history = &thread->continuation_history[NO_PIECE][0];
 
             auto own = pos.active;
             bool in_check = 0 != pos.si->checkers;
@@ -727,7 +727,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->pd_history = thread->continuation_history[mpc][dst].get ();
+                ss->pd_history = &thread->continuation_history[mpc][dst];
 
                 // Make the move.
                 pos.do_move (move, si, gives_check);
@@ -885,7 +885,7 @@ namespace Searcher {
                 && ss->ply < MaxDepth);
 
             ss->played_move = MOVE_NONE;
-            ss->pd_history = thread->continuation_history[NO_PIECE][0].get ();
+            ss->pd_history = &thread->continuation_history[NO_PIECE][0];
 
             assert(MOVE_NONE == (ss+1)->excluded_move);
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
@@ -1125,7 +1125,7 @@ namespace Searcher {
                                           ^ (SQ_NO != pos.si->enpassant_sq ? RandZob.enpassant[_file (pos.si->enpassant_sq)] : 0))->entries);
 
                     ss->played_move = MOVE_NULL;
-                    ss->pd_history = thread->continuation_history[NO_PIECE][0].get ();
+                    ss->pd_history = &thread->continuation_history[NO_PIECE][0];
 
                     pos.do_null_move (si);
 
@@ -1195,7 +1195,7 @@ namespace Searcher {
                         prefetch (TT.cluster (pos.posi_move_key (move))->entries);
 
                         ss->played_move = move;
-                        ss->pd_history = thread->continuation_history[pos[org_sq (move)]][dst_sq (move)].get ();
+                        ss->pd_history = &thread->continuation_history[pos[org_sq (move)]][dst_sq (move)];
 
                         pos.do_move (move, si);
 
@@ -1408,7 +1408,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->pd_history = thread->continuation_history[mpc][dst].get ();
+                ss->pd_history = &thread->continuation_history[mpc][dst];
 
                 // Step 15. Make the move.
                 pos.do_move (move, si, gives_check);
@@ -1760,7 +1760,7 @@ void Thread::search ()
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
         ss->stats = 0;
-        ss->pd_history = continuation_history[NO_PIECE][0].get ();
+        ss->pd_history = &continuation_history[NO_PIECE][0];
     }
 
     auto *main_thread = Threadpool.main_thread () == this ?
@@ -2033,14 +2033,14 @@ void MainThread::search ()
 
     if (Limits.time_mgr_used ())
     {
-        // Initialize the time manager before searching.
-        time_mgr.initialize (root_pos.active,
-                             root_pos.ply,
-                             u16(i32(Options["Nodes Time"])),
-                             TimePoint(i32(Options["Minimum Move Time"])),
-                             TimePoint(i32(Options["Overhead Move Time"])),
-                             i32(Options["Move Slowness"]) / 100.0,
-                             bool(Options["Ponder"]));
+        // Set the time manager before searching.
+        time_mgr.set (root_pos.active,
+                      root_pos.ply,
+                      u16(i32(Options["Nodes Time"])),
+                      TimePoint(i32(Options["Minimum Move Time"])),
+                      TimePoint(i32(Options["Overhead Move Time"])),
+                      i32(Options["Move Slowness"]) / 100.0,
+                      bool(Options["Ponder"]));
     }
 
     TT.generation = u08((root_pos.ply + 1) << 2);
