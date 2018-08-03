@@ -69,7 +69,7 @@ namespace Material {
         template<Color Own>
         i32 imbalance (const i32 (*count)[NONE])
         {
-            constexpr auto Opp = ~Own;
+            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
             i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"

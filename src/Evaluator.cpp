@@ -224,7 +224,7 @@ namespace {
     template<bool Trace> template<Color Own>
     void Evaluator<Trace>::initialize ()
     {
-        constexpr auto Opp = ~Own;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
@@ -235,8 +235,8 @@ namespace {
         if (0 != pinned_pawns)
         {
             Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
-            sgl_attacks[Own][PAWN] = pawn_attacks_bb<Own> (loosed_pawns)
-                                   | (  pawn_attacks_bb<Own> (pinned_pawns)
+            sgl_attacks[Own][PAWN] = pawn_attacks_bb (Own, loosed_pawns)
+                                   | (  pawn_attacks_bb (Own, pinned_pawns)
                                       & PieceAttacks[BSHP][pos.square<KING> (Own)]);
         }
         else
@@ -302,7 +302,7 @@ namespace {
                     || ROOK == PT
                     || QUEN == PT, "PT incorrect");
 
-        constexpr auto Opp = ~Own;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
@@ -344,7 +344,7 @@ namespace {
                 Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != bp ? pawn_attacks_bb<Own> (bp) & PieceAttacks[BSHP][s] : 0));
+                                     | (0 != bp ? pawn_attacks_bb (Own, bp) & PieceAttacks[BSHP][s] : 0));
             }
                 break;
             case QUEN:
@@ -355,7 +355,7 @@ namespace {
                 Bitboard qr = att & PieceAttacks[ROOK][s]  & pos.pieces (ROOK);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != qp ? pawn_attacks_bb<Own> (qp) & PieceAttacks[BSHP][s] : 0)
+                                     | (0 != qp ? pawn_attacks_bb (Own, qp) & PieceAttacks[BSHP][s] : 0)
                                      | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                      | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
             }
@@ -490,7 +490,7 @@ namespace {
                 if (0 != (  pos.slider_blockers (s, Own, pos.pieces (QUEN), b, b)
                           & ~(  (  pos.pieces (Opp, PAWN)
                                  & file_bb (s)
-                                 & ~pawn_attacks_bb<Own> (pos.pieces (Own)))
+                                 & ~pawn_attacks_bb (Own, pos.pieces (Own)))
                               | (  pos.si->king_blockers[Opp]
                                  & pos.pieces (Opp)))))
                 {
@@ -515,7 +515,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::king ()
     {
-        constexpr auto Opp = ~Own;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         auto fk_sq = pos.square<KING> (Own);
 
@@ -662,7 +662,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::threats ()
     {
-        constexpr auto Opp = ~Own;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr Bitboard R3BB = WHITE == Own ? R3_bb : R6_bb;
 
@@ -769,7 +769,7 @@ namespace {
           & pos.pieces (Own, PAWN);
         // Safe friend pawns attacks on nonpawn enemies
         b = nonpawns_enemies
-          & pawn_attacks_bb<Own> (b)
+          & pawn_attacks_bb (Own, b)
           & sgl_attacks[Own][PAWN];
         score += PawnThreat * pop_count (b);
 
@@ -785,7 +785,7 @@ namespace {
         b &= safe_area
           & ~sgl_attacks[Opp][PAWN];
         // Friend pawns push safe attacks an enemies
-        b =  pawn_attacks_bb<Own> (b)
+        b =  pawn_attacks_bb (Own, b)
           &  pos.pieces (Opp);
         score += PawnPushThreat * pop_count (b);
 
@@ -818,7 +818,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::passers ()
     {
-        constexpr auto Opp = ~Own;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
 
         auto king_proximity = [&](Color c, Square s)
@@ -945,7 +945,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::space ()
     {
-        constexpr auto Opp = ~Own;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
         constexpr auto Dull = WHITE == Own ? DEL_SS : DEL_NN;
 

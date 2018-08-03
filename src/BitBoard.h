@@ -276,11 +276,36 @@ namespace BitBoard {
     //// Rotate Left  (toward MSB)
     //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
 
-    /// pawn_attacks_bb() returns the pawn attacks for the given color from the given bitboard.
-    template<Color C>
-    inline Bitboard pawn_attacks_bb (Bitboard b)
+    inline Bitboard pawn_pushes_bb (Color c, Bitboard b)
     {
-        switch (C)
+        switch (c)
+        {
+        case WHITE: return shift<DEL_N> (b);
+        case BLACK: return shift<DEL_S> (b);
+        default: assert(false); return 0;
+        }
+    }
+    inline Bitboard pawn_lattacks_bb (Color c, Bitboard b)
+    {
+        switch (c)
+        {
+        case WHITE: return shift<DEL_NW> (b);
+        case BLACK: return shift<DEL_SE> (b);
+        default: assert(false); return 0;
+        }
+    }
+    inline Bitboard pawn_rattacks_bb (Color c, Bitboard b)
+    {
+        switch (c)
+        {
+        case WHITE: return shift<DEL_NE> (b);
+        case BLACK: return shift<DEL_SW> (b);
+        default: assert(false); return 0;
+        }
+    }
+    inline Bitboard pawn_attacks_bb (Color c, Bitboard b)
+    {
+        switch (c)
         {
         case WHITE: return shift<DEL_NE> (b) | shift<DEL_NW> (b);
         case BLACK: return shift<DEL_SE> (b) | shift<DEL_SW> (b);

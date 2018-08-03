@@ -47,7 +47,7 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            constexpr auto Opp = ~Own;
+            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
             constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
             constexpr auto LAtt = WHITE == Own ? DEL_NW : DEL_SE;
             constexpr auto RAtt = WHITE == Own ? DEL_NE : DEL_SW;
@@ -166,7 +166,7 @@ namespace Pawns {
     template<Color Own>
     Value Entry::evaluate_safety (const Position &pos, Square fk_sq) const
     {
-        constexpr auto Opp = ~Own;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
         constexpr Bitboard BlockSquares = (WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb) & (FA_bb | FH_bb);
 

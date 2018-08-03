@@ -27,11 +27,11 @@ namespace BitBases {
         // bit 15-17: white pawn R_7 - rank (from R_7 to R_2)
         u32 index (Color c, Square wk_sq, Square bk_sq, Square wp_sq)
         {
-            return u32(wk_sq)
-                | (u32(bk_sq) << 6)
-                | (u32(c) << 12)
-                | (u32(_file (wp_sq)) << 13)
-                | (u32(R_7 - _rank (wp_sq)) << 15);
+            return wk_sq
+                | (bk_sq << 6)
+                | (c << 12)
+                | (_file (wp_sq) << 13)
+                | ((R_7 - _rank (wp_sq)) << 15);
         }
 
         enum Result : u08
@@ -66,9 +66,9 @@ namespace BitBases {
                 // If all moves lead to positions classified as WIN, the result of the current position is WIN
                 // otherwise the current position is classified as UNKNOWN.
 
-                constexpr auto Opp  = ~Own;
+                constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
                 constexpr auto Good = WHITE == Own ? Result::WIN : Result::DRAW;
-                constexpr auto Bad  = WHITE == Own ? Result::DRAW : Result::WIN;
+                constexpr auto Bad = WHITE == Own ? Result::DRAW : Result::WIN;
 
                 Result r = Result::NONE;
                 Bitboard b = PieceAttacks[KING][k_sq[Own]];
@@ -82,16 +82,16 @@ namespace BitBases {
                 if (WHITE == Own)
                 {
                     // Single push
-                    if (_rank (p_sq) < R_7)
+                    if (R_7 > _rank (p_sq))
                     {
                         r |= db[index (Opp, k_sq[Own], k_sq[Opp], p_sq + DEL_N)].result;
                     }
                     // Double push
-                    if (   _rank (p_sq) == R_2
+                    if (   R_2 == _rank (p_sq)
                         // Front is not own king
-                        && k_sq[Own] != (p_sq + DEL_N)
+                        && k_sq[Own] != p_sq + DEL_N
                         // Front is not opp king
-                        && k_sq[Opp] != (p_sq + DEL_N))
+                        && k_sq[Opp] != p_sq + DEL_N)
                     {
                         r |= db[index (Opp, k_sq[Own], k_sq[Opp], p_sq + DEL_N + DEL_N)].result;
                     }

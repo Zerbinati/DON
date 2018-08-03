@@ -484,6 +484,24 @@ inline Delta pawn_push (Color c)
     default: assert(false); return DEL_O;
     }
 }
+inline Delta pawn_latt (Color c)
+{
+    switch (c)
+    {
+    case WHITE: return DEL_NW;
+    case BLACK: return DEL_SE;
+    default: assert(false); return DEL_O;
+    }
+}
+inline Delta pawn_ratt (Color c)
+{
+    switch (c)
+    {
+    case WHITE: return DEL_NE;
+    case BLACK: return DEL_SW;
+    default: assert(false); return DEL_O;
+    }
+}
 
 inline CastleRight castle_right (Color c)
 {
