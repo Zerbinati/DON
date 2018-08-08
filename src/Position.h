@@ -7,7 +7,7 @@
 #include <memory> // For std::unique_ptr
 #include <string>
 #include "BitBoard.h"
-#include "PSQT.h"
+#include "PSQTable.h"
 #include "Type.h"
 #include "Zobrist.h"
 
@@ -547,6 +547,9 @@ inline void StateInfo::set_check_info (const Position &pos)
     checks[QUEN] = checks[BSHP] | checks[ROOK];
     checks[KING] = 0;
 }
+
+template<Color Own>
+extern Value compute_npm (const Position&);
 
 #if !defined(NDEBUG)
 /// _ok() Check the validity of FEN string.

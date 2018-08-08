@@ -14,7 +14,7 @@
 #include "Option.h"
 #include "Pawns.h"
 #include "Polyglot.h"
-#include "PSQT.h"
+#include "PSQTable.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
 #include "Thread.h"

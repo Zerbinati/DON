@@ -70,7 +70,7 @@
     <Node Id="@218" Category="CodeSchema_ProjectItem" Bounds="-163.091746580735,416.518824235199,80.3780000770792,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\stdint.h" Label="stdint.h" />
     <Node Id="@22" Category="CodeSchema_ProjectItem" Bounds="-516.395084982842,870.155790843453,86.0646667437454,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\xiosbase" Label="xiosbase" />
     <Node Id="@220" Category="CodeSchema_ProjectItem" Bounds="422.137256980046,934.777380442355,93.4780000770791,25.998000077079" FilePath="$(VsSolution)\src\Polyglot.h" Label="Polyglot.h" />
-    <Node Id="@222" Category="CodeSchema_ProjectItem" Bounds="320.787721254134,542.791357493136,78.2746667437457,25.998000077079" FilePath="$(VsSolution)\src\PSQT.h" Label="PSQT.h" />
+    <Node Id="@222" Category="CodeSchema_ProjectItem" Bounds="320.787721254134,542.791357493136,78.2746667437457,25.998000077079" FilePath="$(VsSolution)\src\PSQTable.h" Label="PSQTable.h" />
     <Node Id="@224" Category="CodeSchema_ProjectItem" Bounds="-1300.13853440421,501.757759249965,87.194666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt.h" Label="corecrt.h" />
     <Node Id="@226" Category="CodeSchema_ProjectItem" Bounds="-1371.26412137074,346.61263438881,81.1980000770791,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\assert.h" Label="assert.h" />
     <Node Id="@228" Category="CodeSchema_ProjectItem" Bounds="450.832932435775,38.8094315287805,87.5546667437457,25.998000077079" FilePath="$(VsSolution)\src\Zobrist.h" Label="Zobrist.h" />
@@ -1055,7 +1055,7 @@
     <Alias n="218" Id="(@4 @217)" />
     <Alias n="219" Uri="File=$(VsSolutionUri)/src/Polyglot.h" />
     <Alias n="220" Id="(@1 @219)" />
-    <Alias n="221" Uri="File=$(VsSolutionUri)/src/PSQT.h" />
+    <Alias n="221" Uri="File=$(VsSolutionUri)/src/PSQTable.h" />
     <Alias n="222" Id="(@1 @221)" />
     <Alias n="223" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/corecrt.h" />
     <Alias n="224" Id="(@4 @223)" />
@@ -1149,7 +1149,7 @@
     <Alias n="312" Id="(@1 @311)" />
     <Alias n="313" Uri="File=$(VsSolutionUri)/src/Polyglot.cpp" />
     <Alias n="314" Id="(@1 @313)" />
-    <Alias n="315" Uri="File=$(VsSolutionUri)/src/PSQT.cpp" />
+    <Alias n="315" Uri="File=$(VsSolutionUri)/src/PSQTable.cpp" />
     <Alias n="316" Id="(@1 @315)" />
     <Alias n="317" Uri="File=$(VsSolutionUri)/src/Zobrist.cpp" />
     <Alias n="318" Id="(@1 @317)" />
