@@ -14,8 +14,8 @@ using namespace std;
 using namespace BitBoard;
 using namespace TBSyzygy;
 
-/// RootMove::extract_ponder_move_from_tt() extract ponder move from TT is called in case have no ponder move before exiting the search,
-bool RootMove::extract_ponder_move_from_tt (Position &pos)
+/// RootMove::extract_pm_from_tt() extracts ponder move from TT when it has no ponder move.
+bool RootMove::extract_pm_from_tt (Position &pos)
 {
     assert(1 == size ());
     assert(MOVE_NONE != front ());
@@ -49,7 +49,7 @@ RootMove::operator string () const
     return oss.str ();
 }
 
-/// RootMoves::initialize()
+/// RootMoves::initialize() initializes with search moves
 void RootMoves::initialize (const Position &pos, const vector<Move> &search_moves)
 {
     assert(empty ());
@@ -2233,7 +2233,7 @@ void MainThread::search ()
     auto bm = rm[0];
     auto pm = MOVE_NONE != bm
            && (   rm.size () > 1
-               || rm.extract_ponder_move_from_tt (root_pos)) ?
+               || rm.extract_pm_from_tt (root_pos)) ?
                   rm[1] :
                   MOVE_NONE;
     assert(MOVE_NONE != bm
