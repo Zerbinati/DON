@@ -1,6 +1,7 @@
 ﻿#include "Searcher.h"
 
 #include <cmath>
+#include <map>
 #include "Evaluator.h"
 #include "Logger.h"
 #include "Notation.h"
@@ -1400,31 +1401,26 @@ namespace Searcher {
                 {
                     i16 reduce_depth = reduction_depth (PVNode, improving, depth, move_count);
 
-                    // Decrease reduction for capture (~5 Elo)
-                    if (capture_or_promotion)
+                    // Decrease reduction if opponent's move count is high (~10 Elo)
+                    if ((ss-1)->move_count >= 16)
                     {
-                        if ((ss-1)->stats < 0)
-                        {
-                            reduce_depth -= 1;
-                        }
+                        reduce_depth -= 1;
                     }
-                    else
+
+                    if (!capture_or_promotion)
                     {
-                        // Decrease reduction if opponent's move count is high (~5 Elo)
-                        if ((ss-1)->move_count >= 16)
-                        {
-                            reduce_depth -= 1;
-                        }
                         // Decrease reduction for exact PV nodes (~0 Elo)
                         if (pv_exact)
                         {
                             reduce_depth -= 1;
                         }
+
                         // Increase reduction if TT move is a capture (~0 Elo)
                         if (ttm_capture)
                         {
                             reduce_depth += 1;
                         }
+
                         // Increase reduction for cut nodes (~5 Elo)
                         if (cut_node)
                         {
