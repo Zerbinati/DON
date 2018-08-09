@@ -5,11 +5,11 @@
 namespace {
 
 #   define S(mg, eg) mk_score (mg, eg)
-    // HPSQT[piece-type][rank][file/2] contains half Piece-Square scores.
-    // Table is defined for files A..D and white side,
+    // HPSQ[piece-type][rank][file/2] table contains half Piece-Square scores.
+    // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
     // For each piece type on a given square a (midgame, endgame) score pair is assigned.
-    const Score HPSQT[NONE][R_NO][F_NO/2] =
+    const Score HPSQ[NONE][R_NO][F_NO/2] =
     {
         { // Pawn
             { S(   0,   0), S(  0,  0), S(  0,  0), S(  0,  0) },
@@ -75,7 +75,7 @@ namespace {
 #   undef S
 }
 
-Score PSQT[CLR_NO][NONE][SQ_NO];
+Score PSQ[CLR_NO][NONE][SQ_NO];
 
 /// Computes the scores for the middle game and the endgame.
 /// These functions are used to initialize the scores when a new position is set up,
@@ -89,24 +89,24 @@ Score compute_psq (const Position &pos)
         {
             for (auto s : pos.squares[c][pt])
             {
-                psq += PSQT[c][pt][s];
+                psq += PSQ[c][pt][s];
             }
         }
     }
     return psq;
 }
 
-/// psqt_initialize() initializes lookup tables at startup
-void psqt_initialize ()
+/// psq_initialize() initializes psq lookup tables.
+void psq_initialize ()
 {
     for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
         const auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
         for (auto s : SQ)
         {
-            const auto psq = p + HPSQT[pt][_rank (s)][std::min (_file (s), ~_file (s))];
-            PSQT[WHITE][pt][ s] = +psq;
-            PSQT[BLACK][pt][~s] = -psq;
+            const auto psq = p + HPSQ[pt][_rank (s)][std::min (_file (s), ~_file (s))];
+            PSQ[WHITE][pt][ s] = +psq;
+            PSQ[BLACK][pt][~s] = -psq;
         }
     }
 }

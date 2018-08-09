@@ -400,21 +400,6 @@ namespace WinProcGroup {
 
 }
 
-/// ThreadPool::best_thread()
-Thread* ThreadPool::best_thread () const
-{
-    auto *best_th = front ();
-    for (auto *th : *this)
-    {
-        if (   best_th->root_moves[0].new_value < th->root_moves[0].new_value
-            && (   best_th->finished_depth <= th->finished_depth
-                || VALUE_MATE_MAX_PLY <= th->root_moves[0].new_value))
-        {
-            best_th = th;
-        }
-    }
-    return best_th;
-}
 /// ThreadPool::clear() clears the threadpool
 void ThreadPool::clear ()
 {

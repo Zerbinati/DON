@@ -727,7 +727,7 @@ void run (i32 argc, const char *const *argv)
 
     BitBoard::initialize ();
     BitBases::initialize ();
-    psqt_initialize ();
+    psq_initialize ();
     zobrist_initialize ();
     Position::initialize ();
     UCI::initialize ();

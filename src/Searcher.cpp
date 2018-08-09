@@ -1701,7 +1701,7 @@ namespace Searcher {
 
     }
 
-    /// initialize() initializes lookup tables at startup.
+    /// initialize() initializes some lookup tables.
     void initialize ()
     {
         for (i08 d = 0; d < 16; ++d)
@@ -2165,7 +2165,7 @@ void MainThread::search ()
            && !Threadpool.stop)
     {}
 
-    Thread *bt = this;
+    Thread *best_thread = this;
     if (think)
     {
         // Stop the threads if not already stopped.
@@ -2185,19 +2185,43 @@ void MainThread::search ()
             && MOVE_NONE != root_moves[0][0]
             && !skill_mgr_enabled ())
         {
-            bt = Threadpool.best_thread ();
-            // If new best thread then send PV info again.
-            if (bt != this)
+            std::map<Move, i32> votes;
+            
+            // Find out minimum score and reset votes for moves which can be voted
+            auto min_value = root_moves[0].new_value;
+            for (auto *th : Threadpool)
             {
-                sync_cout << multipv_info (bt, bt->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
+                min_value = std::min (th->root_moves[0].new_value, min_value);
+                votes[th->root_moves[0][0]] = 0;
+            }
+            // Vote according to value and depth
+            for (auto *th : Threadpool)
+            {
+                votes[th->root_moves[0][0]] += i32(th->root_moves[0].new_value - min_value)
+                                             + th->finished_depth;
+            }
+            // Select best thread
+            i32 best_vote = votes[root_moves[0][0]];
+            for (auto *th : Threadpool)
+            {
+                if (votes[th->root_moves[0][0]] > best_vote)
+                {
+                    best_vote = votes[th->root_moves[0][0]];
+                    best_thread = th;
+                }
+            }
+            // If new best thread then send PV info again.
+            if (best_thread != this)
+            {
+                sync_cout << multipv_info (best_thread, best_thread->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
             }
         }
     }
 
-    assert(!bt->root_moves.empty ()
-        && !bt->root_moves[0].empty ());
+    assert(!best_thread->root_moves.empty ()
+        && !best_thread->root_moves[0].empty ());
 
-    auto &rm = bt->root_moves[0];
+    auto &rm = best_thread->root_moves[0];
 
     if (Limits.time_mgr_used ())
     {

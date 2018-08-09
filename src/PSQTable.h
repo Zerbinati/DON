@@ -5,10 +5,10 @@
 
 class Position;
 
-extern Score PSQT[CLR_NO][NONE][SQ_NO];
+extern Score PSQ[CLR_NO][NONE][SQ_NO];
 
 extern Score compute_psq (const Position&);
 
-extern void psqt_initialize ();
+extern void psq_initialize ();
 
 #endif // _PSQT_H_INC_

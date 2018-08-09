@@ -325,7 +325,7 @@
     <Node Id="@317" Category="CodeSchema_Method" Bounds="25991.46843595,23902.0398183571,208.986666666664,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="generate_castling_moves‎&lt;5‎,1‎,0‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@318" Category="CodeSchema_Method" Bounds="25883.2946434409,23962.1338385723,208.986666666679,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="generate_castling_moves‎&lt;5‎,1‎,1‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@319" Category="CodeSchema_Method" Bounds="25571.3791210962,23356.3317794633,105.923333333332,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="generate‎&lt;0‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@32" Category="CodeSchema_Namespace" Bounds="25348.9987754959,25108.9417760218,256.490117187524,197.881237499983" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="4" Group="Expanded" Label="PSQT" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@32" Category="CodeSchema_Namespace" Bounds="25348.9987754959,25108.9417760218,256.490117187524,197.881237499983" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="4" Group="Expanded" Label="PSQ" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@320" Category="CodeSchema_Method" Bounds="25623.2862668695,23523.2517794633,105.923333333332,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="generate‎&lt;1‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@321" Category="CodeSchema_Method" Bounds="25590.2217410143,23079.4117794633,105.923333333332,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="generate‎&lt;2‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@322" Category="CodeSchema_Method" Bounds="25535.1822627261,23190.3717794633,105.923333333332,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="generate‎&lt;3‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6205,7 +6205,7 @@
     <Alias n="28" Id="Namespace=Pawns" />
     <Alias n="29" Id="(@1 @28)" />
     <Alias n="30" Id="(@1 Namespace=&quot;Pawns::`anonymous namespace'&quot;)" />
-    <Alias n="31" Id="Namespace=PSQT" />
+    <Alias n="31" Id="Namespace=PSQ" />
     <Alias n="32" Id="(@1 @31)" />
     <Alias n="33" Id="Namespace=Searcher" />
     <Alias n="34" Id="(@1 @33)" />

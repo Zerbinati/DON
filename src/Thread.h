@@ -198,8 +198,6 @@ public:
     u64 nodes () const { return accumulate (&Thread::nodes); }
     u64 tb_hits () const { return accumulate (&Thread::tb_hits); }
 
-    Thread* best_thread () const;
-
     void clear ();
     void configure (u32);
 

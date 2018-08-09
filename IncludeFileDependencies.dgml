@@ -121,7 +121,7 @@
     <Node Id="@310" Category="CodeSchema_ProjectItem" Bounds="185.181034649317,318.799414133761,106.551333410412,25.998000077079" FilePath="$(VsSolution)\src\BitBases.cpp" Label="BitBases.cpp" />
     <Node Id="@312" Category="CodeSchema_ProjectItem" Bounds="299.376948955957,990.775366282198,96.2213334104124,25.998000077079" FilePath="$(VsSolution)\src\Pawns.cpp" Label="Pawns.cpp" />
     <Node Id="@314" Category="CodeSchema_ProjectItem" Bounds="429.062512106999,542.791357493136,106.338000077079,25.998000077079" FilePath="$(VsSolution)\src\Polyglot.cpp" Label="Polyglot.cpp" />
-    <Node Id="@316" Category="CodeSchema_ProjectItem" Bounds="286.600763246322,430.795416331027,91.1346667437457,25.998000077079" FilePath="$(VsSolution)\src\PSQT.cpp" Label="PSQT.cpp" />
+    <Node Id="@316" Category="CodeSchema_ProjectItem" Bounds="286.600763246322,430.795416331027,91.1346667437457,25.998000077079" FilePath="$(VsSolution)\src\PSQ.cpp" Label="PSQ.cpp" />
     <Node Id="@318" Category="CodeSchema_ProjectItem" Bounds="277.093941957259,206.80341956589,100.414666743746,25.998000077079" FilePath="$(VsSolution)\src\Zobrist.cpp" Label="Zobrist.cpp" />
     <Node Id="@32" Category="CodeSchema_ProjectItem" Bounds="-132.660784751606,864.502824851832,76.6013334104123,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\xstring" Label="xstring" />
     <Node Id="@320" Category="CodeSchema_ProjectItem" Bounds="433.227327373926,318.799414133761,111.421333410412,25.998000077079" FilePath="$(VsSolution)\src\TBsyzygy.cpp" Label="TBsyzygy.cpp" />

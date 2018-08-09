@@ -226,7 +226,7 @@ namespace Pawns {
         return e;
     }
 
-    /// Pawns::initialize() initializes lookup tables at startup.
+    /// Pawns::initialize() initializes pawn lookup tables.
     void initialize ()
     {
         for (i08 opposed = 0; opposed < 2; ++opposed)
