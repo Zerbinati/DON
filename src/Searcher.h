@@ -249,8 +249,6 @@ public:
     void operator+= (Move m) { emplace_back (m); }
     //void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
-    bool extract_pm_from_tt (Position&);
-
     explicit operator std::string () const;
 };
 

@@ -211,6 +211,26 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
 {
     return cluster (key)->probe (u16(key >> 0x30), tt_hit, generation);
 }
+/// TTable::extract_pm_from_tt() extracts ponder move from TT.
+Move TTable::extract_pm (Position &pos, Move bm)
+{
+    StateInfo si;
+    pos.do_move (bm, si);
+    bool tt_hit;
+    auto *tte = probe (pos.si->posi_key, tt_hit);
+    Move pm = tt_hit ? tte->move () : MOVE_NONE;
+    if (   MOVE_NONE != pm
+        && !(   pos.pseudo_legal (pm)
+             && pos.legal (pm)))
+    {
+        pm = MOVE_NONE;
+    }
+    assert(MOVE_NONE == pm
+        || MoveList<GenType::LEGAL> (pos).contains (pm));
+    pos.undo_move (bm);
+    return pm;
+}
+
 /// TTable::hash_full() returns an approximation of the per-mille of the 
 /// all transposition entries during a search which have received
 /// at least one write during the current search.

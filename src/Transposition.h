@@ -154,6 +154,8 @@ public:
 
     TEntry* probe (Key, bool&) const;
 
+    Move extract_pm (Position&, Move);
+
     u32 hash_full () const;
 
     void save (const std::string&) const;

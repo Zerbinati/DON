@@ -14,29 +14,6 @@ using namespace std;
 using namespace BitBoard;
 using namespace TBSyzygy;
 
-/// RootMove::extract_pm_from_tt() extracts ponder move from TT when it has no ponder move.
-bool RootMove::extract_pm_from_tt (Position &pos)
-{
-    assert(1 == size ());
-    assert(MOVE_NONE != front ());
-
-    StateInfo si;
-    auto bm = front ();
-    pos.do_move (bm, si);
-    bool tt_hit;
-    auto *tte = TT.probe (pos.si->posi_key, tt_hit);
-    Move pm;
-    if (   tt_hit
-        && MOVE_NONE != (pm = tte->move ()) // Local copy to be SMP safe
-        && pos.pseudo_legal (pm)
-        && pos.legal (pm))
-    {
-        assert(MoveList<GenType::LEGAL> (pos).contains (pm));
-        *this += pm;
-    }
-    pos.undo_move (bm);
-    return 1 < size ();
-}
 /// RootMove::operator string()
 RootMove::operator string () const
 {
@@ -2231,11 +2208,11 @@ void MainThread::search ()
     }
 
     auto bm = rm[0];
-    auto pm = MOVE_NONE != bm
-           && (   rm.size () > 1
-               || rm.extract_pm_from_tt (root_pos)) ?
-                  rm[1] :
-                  MOVE_NONE;
+    auto pm = MOVE_NONE != bm ?
+                rm.size () > 1 ?
+                    rm[1] :
+                    TT.extract_pm (root_pos, bm) :
+                MOVE_NONE;
     assert(MOVE_NONE != bm
         || (MOVE_NONE == bm
          && MOVE_NONE == pm));
