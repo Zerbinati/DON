@@ -548,9 +548,6 @@ inline void StateInfo::set_check_info (const Position &pos)
     checks[KING] = 0;
 }
 
-template<Color Own>
-extern Value compute_npm (const Position&);
-
 #if !defined(NDEBUG)
 /// _ok() Check the validity of FEN string.
 inline bool _ok (const std::string &fen, bool full = true)

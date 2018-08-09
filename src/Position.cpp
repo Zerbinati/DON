@@ -12,7 +12,22 @@ using namespace BitBoard;
 using namespace TBSyzygy;
 
 namespace {
-    
+
+    /// Computes the non-pawn middle game material value for the given side.
+    /// Material values are updated incrementally during the search.
+    template<Color Own>
+    Value compute_npm (const Position &pos)
+    {
+        auto npm = VALUE_ZERO;
+        for (auto pt : { NIHT, BSHP, ROOK, QUEN })
+        {
+            npm += PieceValues[MG][pt] * pos.count (Own, pt);
+        }
+        return npm;
+    }
+    template Value compute_npm<WHITE> (const Position&);
+    template Value compute_npm<BLACK> (const Position&);
+
     // Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition".
     // Description of the algorithm in the following paper:
     // https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
@@ -1435,21 +1450,6 @@ Position::operator string () const
     oss << "\n";
     return oss.str ();
 }
-
-/// Computes the non-pawn middle game material value for the given side.
-/// Material values are updated incrementally during the search.
-template<Color Own>
-Value compute_npm (const Position &pos)
-{
-    auto npm = VALUE_ZERO;
-    for (auto pt : { NIHT, BSHP, ROOK, QUEN })
-    {
-        npm += PieceValues[MG][pt] * pos.count (Own, pt);
-    }
-    return npm;
-}
-template Value compute_npm<WHITE> (const Position&);
-template Value compute_npm<BLACK> (const Position&);
 
 #if !defined(NDEBUG)
 /// Position::ok() performs some consistency checks for the position,

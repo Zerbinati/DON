@@ -1653,7 +1653,10 @@ namespace Searcher {
 
             if (PVNode)
             {
-                best_value = std::min (max_value, best_value);
+                if (best_value > max_value)
+                {
+                    best_value = max_value;
+                }
             }
 
             if (MOVE_NONE == ss->excluded_move)
@@ -2164,11 +2167,14 @@ void MainThread::search ()
         {
             std::map<Move, i32> votes;
             
-            // Find out minimum score and reset votes for moves which can be voted
+            // Find out minimum value and reset votes for moves which can be voted
             auto min_value = root_moves[0].new_value;
             for (auto *th : Threadpool)
             {
-                min_value = std::min (th->root_moves[0].new_value, min_value);
+                if (min_value > th->root_moves[0].new_value)
+                {
+                    min_value = th->root_moves[0].new_value;
+                }
                 votes[th->root_moves[0][0]] = 0;
             }
             // Vote according to value and depth
@@ -2178,10 +2184,10 @@ void MainThread::search ()
                                              + th->finished_depth;
             }
             // Select best thread
-            i32 best_vote = votes[root_moves[0][0]];
+            auto best_vote = votes[root_moves[0][0]];
             for (auto *th : Threadpool)
             {
-                if (votes[th->root_moves[0][0]] > best_vote)
+                if (best_vote < votes[th->root_moves[0][0]])
                 {
                     best_vote = votes[th->root_moves[0][0]];
                     best_thread = th;

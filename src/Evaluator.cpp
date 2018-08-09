@@ -949,6 +949,11 @@ namespace {
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
         constexpr auto Dull = WHITE == Own ? DEL_SS : DEL_NN;
 
+        if (pos.si->non_pawn_material () < SpaceThreshold)
+        {
+            return SCORE_ZERO;
+        }
+
         // Safe squares for friend pieces inside the area defined by SpaceMask.
         // - if not occupied by friend pawns
         // - if not attacked by an enemy pawns
@@ -1097,14 +1102,11 @@ namespace {
         score += mobility[WHITE] - mobility[BLACK];
 
         // Rest should be evaluated after (full attack information needed including king)
-        score += king<WHITE> () - king<BLACK> ();
+        score += king<   WHITE> () - king<   BLACK> ()
+               + threats<WHITE> () - threats<BLACK> ()
+               + passers<WHITE> () - passers<BLACK> ()
+               + space<  WHITE> () - space<  BLACK> ();
 
-        score += threats<WHITE> () - threats<BLACK> ()
-               + passers<WHITE> () - passers<BLACK> ();
-        if (pos.si->non_pawn_material () >= SpaceThreshold)
-        {
-            score += space<WHITE> () - space<BLACK> ();
-        }
         score += initiative (eg_value (score));
 
         assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);

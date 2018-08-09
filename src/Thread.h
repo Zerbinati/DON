@@ -217,14 +217,16 @@ extern Mutex OutputMutex;
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, OutputState state)
 {
-    if (OutputState::OS_LOCK == state)
+    switch (state)
     {
+    case OutputState::OS_LOCK:
         OutputMutex.lock ();
-    }
-    else
-    if (OutputState::OS_UNLOCK == state)
-    {
+        break;
+    case OutputState::OS_UNLOCK:
         OutputMutex.unlock ();
+        break;
+    default:
+        break;
     }
     return os;
 }
