@@ -225,8 +225,6 @@ namespace {
     void Evaluator<Trace>::initialize ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
-        constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
         std::fill_n (sgl_attacks[Own], i32(KING), 0);
         std::fill_n (queen_attacks[Own], 3, 0);
@@ -262,7 +260,7 @@ namespace {
                           | pos.pieces (Opp, QUEN, KING)
                           | (  pos.pieces (Opp, PAWN)
                              & (  LowRanks_bb[Opp]
-                                | shift<Push> (pos.pieces ()))));
+                                | pawn_pushes_bb (Own, pos.pieces ()))));
         mobility[Opp] = SCORE_ZERO;
 
         king_attackers_weight[Own] = 0;
@@ -272,7 +270,7 @@ namespace {
             king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
             if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
             {
-                king_ring[Opp] |= shift<Pull> (king_ring[Opp]);
+                king_ring[Opp] |= pawn_pushes_bb (Opp, king_ring[Opp]);
             }
             if (F_H == _file (pos.square<KING> (Opp)))
             {
@@ -303,8 +301,6 @@ namespace {
                     || QUEN == PT, "PT incorrect");
 
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
-        constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
         auto score = SCORE_ZERO;
 
@@ -390,7 +386,7 @@ namespace {
             case BSHP:
             {
                 // Bonus for minor behind a pawn
-                if (contains (shift<Pull> (pos.pieces (PAWN)), s))
+                if (contains (pawn_pushes_bb (Opp, pos.pieces (PAWN)), s))
                 {
                     score += MinorBehindPawn;
                 }
@@ -421,7 +417,7 @@ namespace {
                     // more when the center files are blocked with pawns.
                     b = pos.pieces (Own, PAWN)
                       & Side_bb[CS_NO]
-                      & shift<Pull> (pos.pieces ());
+                      & pawn_pushes_bb (Opp, pos.pieces ());
                     score -= BishopPawns
                            * (1 + pop_count (b))
                            * pe->color_count[Own][color (s)];
@@ -442,11 +438,11 @@ namespace {
                             && contains (FA_bb|FH_bb, s)
                             && R_1 == rel_rank (Own, s))
                         {
-                            auto del = Delta((F_E - _file (s))/3) + Push;
+                            auto del = Delta((F_E - _file (s))/3) + pawn_push (Own);
                             if (contains (pos.pieces (Own, PAWN), s+del))
                             {
                                 score -= BishopTrapped
-                                       * (!contains (pos.pieces (), s + del + Push) ?
+                                       * (!contains (pos.pieces (), s + del + pawn_push (Own)) ?
                                               !contains (pos.pieces (Own, PAWN), s + del + del) ?
                                                   1 : 2 : 4);
                             }
@@ -663,8 +659,6 @@ namespace {
     Score Evaluator<Trace>::threats ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
-        constexpr Bitboard R3BB = WHITE == Own ? R3_bb : R6_bb;
 
         auto score = SCORE_ZERO;
 
@@ -777,9 +771,9 @@ namespace {
         b =  pos.pieces (Own, PAWN)
           & ~pos.si->king_blockers[Own];
         // Friend pawns push
-        b =  shift<Push> (b)
+        b =  pawn_pushes_bb (Own, b)
           & ~pos.pieces ();
-        b |= shift<Push> (b & R3BB)
+        b |= pawn_pushes_bb (Own, b & rank_bb (rel_rank (Own, R_3)))
           & ~pos.pieces ();
         // Friend pawns push safe
         b &= safe_area
@@ -819,7 +813,6 @@ namespace {
     Score Evaluator<Trace>::passers ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
 
         auto king_proximity = [&](Color c, Square s)
                               {
@@ -832,7 +825,7 @@ namespace {
         while (0 != psr)
         {
             auto s = pop_lsq (psr);
-            assert(0 == (pos.pieces (Opp, PAWN) & shift<Push> (front_line_bb (Own, s))));
+            assert(0 == (pos.pieces (Opp, PAWN) & pawn_pushes_bb (Own, front_line_bb (Own, s))));
 
             i32 r = rel_rank (Own, s);
             i32 w = PasserDanger[r];
@@ -840,7 +833,7 @@ namespace {
             // Base bonus depending on rank.
             Score bonus = PasserRank[r];
 
-            auto push_sq = s + Push;
+            auto push_sq = s + pawn_push (Own);
 
             if (0 != w)
             {
@@ -854,7 +847,7 @@ namespace {
                 // If block square is not the queening square then consider also a second push.
                 if (R_7 != r)
                 {
-                    bonus -= mk_score (0, 1*w*king_proximity (Own, push_sq + Push));
+                    bonus -= mk_score (0, 1*w*king_proximity (Own, push_sq + pawn_push (Own)));
                 }
 
                 // If the pawn is free to advance.
@@ -946,8 +939,6 @@ namespace {
     Score Evaluator<Trace>::space ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
-        constexpr auto Dull = WHITE == Own ? DEL_SS : DEL_NN;
 
         if (pos.si->non_pawn_material () < SpaceThreshold)
         {
@@ -965,8 +956,8 @@ namespace {
 
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PAWN);
-        behind |= shift<Pull> (behind);
-        behind |= shift<Dull> (behind);
+        behind |= pawn_pushes_bb (Opp, behind);
+        behind |= pawn_pushes_bb (Opp, pawn_pushes_bb (Opp, behind));
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
         i32 weight = pos.count (Own) - 2 * pe->open_count;
         auto score = mk_score (bonus * weight * weight / 16, 0);

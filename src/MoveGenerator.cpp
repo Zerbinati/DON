@@ -329,36 +329,31 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
 {
     assert(0 != pos.si->checkers);
     moves.clear ();
-    auto checker_sq = SQ_NO;
-    Bitboard checker_attacks = 0;
-    Bitboard jumpers = pos.si->checkers & pos.pieces (NIHT);
-    if (0 != jumpers)
-    {
-        checker_sq = scan_lsq (jumpers);
-        checker_attacks |= PieceAttacks[NIHT][checker_sq];
-    }
+    auto check_sq = SQ_NO;
+    Bitboard check_attacks = 0;
+
     auto fk_sq = pos.square<KING> (pos.active);
     Bitboard mocc = pos.pieces () ^ fk_sq;
-    Bitboard sliders = pos.si->checkers & ~(pos.pieces (PAWN) | jumpers);
-    // Squares attacked by slider checkers will remove them from the king evasions
+    Bitboard checkers = pos.si->checkers & ~pos.pieces (PAWN);
+    // Squares attacked by checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
-    while (0 != sliders)
+    while (0 != checkers)
     {
-        checker_sq = pop_lsq (sliders);
-        assert(color (pos[checker_sq]) == ~pos.active);
-        auto pt = ptype (pos[checker_sq]);
-        switch (pt)
+        check_sq = pop_lsq (checkers);
+        assert(color (pos[check_sq]) == ~pos.active);
+        switch (ptype (pos[check_sq]))
         {
-        case BSHP: checker_attacks |= attacks_bb<BSHP> (checker_sq, mocc); break;
-        case ROOK: checker_attacks |= attacks_bb<ROOK> (checker_sq, mocc); break;
-        case QUEN: checker_attacks |= attacks_bb<QUEN> (checker_sq, mocc); break;
-        default: assert(false); checker_attacks |= 0; break;
+        case NIHT: check_attacks |= PieceAttacks[NIHT][check_sq]; break;
+        case BSHP: check_attacks |= attacks_bb<BSHP> (check_sq, mocc); break;
+        case ROOK: check_attacks |= attacks_bb<ROOK> (check_sq, mocc); break;
+        case QUEN: check_attacks |= attacks_bb<QUEN> (check_sq, mocc); break;
+        default: assert(false); check_attacks |= 0; break;
         }
     }
 
     // Generate evasions for king, capture and non capture moves
     Bitboard attacks = PieceAttacks[KING][fk_sq]
-                     & ~(  checker_attacks
+                     & ~(  check_attacks
                          | pos.pieces (pos.active)
                          | PieceAttacks[KING][pos.square<KING> (~pos.active)]);
     while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
@@ -371,9 +366,9 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
     }
 
     // Generates blocking or captures of the checking piece
-    Bitboard targets = SQ_NO == checker_sq ?
+    Bitboard targets = SQ_NO == check_sq ?
                         square_bb (scan_lsq (pos.si->checkers)) :
-                        between_bb (checker_sq, fk_sq) | checker_sq;
+                        between_bb (check_sq, fk_sq) | check_sq;
 
     generate_moves<GenType::EVASION> (moves, pos, targets);
 }
@@ -390,9 +385,8 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
     while (0 != dsc_blockers_ex)
     {
         auto org = pop_lsq (dsc_blockers_ex);
-        auto pt = ptype (pos[org]);
         Bitboard attacks;
-        switch (pt)
+        switch (ptype (pos[org]))
         {
         case NIHT: attacks = PieceAttacks[NIHT][org]; break;
         case BSHP: attacks = attacks_bb<BSHP> (org, pos.pieces ()); break;
@@ -420,9 +414,8 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
     while (0 != dsc_blockers_ex)
     {
         auto org = pop_lsq (dsc_blockers_ex);
-        auto pt = ptype (pos[org]);
         Bitboard attacks;
-        switch (pt)
+        switch (ptype (pos[org]))
         {
         case NIHT: attacks = PieceAttacks[NIHT][org]; break;
         case BSHP: attacks = attacks_bb<BSHP> (org, pos.pieces ()); break;

@@ -545,9 +545,8 @@ namespace Searcher {
                             DepthQSNoCheck;
 
             if (   !PVNode
-                && tt_hit
+                && VALUE_NONE != tt_value
                 && qs_depth <= tte->depth ()
-                && VALUE_NONE != tt_value // Only in case of TT access race
                 && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 return tt_value;
@@ -901,9 +900,8 @@ namespace Searcher {
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
-                && tt_hit
+                && VALUE_NONE != tt_value
                 && depth <= tte->depth ()
-                && VALUE_NONE != tt_value // Only in case of TT access race.
                 && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 // Update move sorting heuristics on tt_move.
