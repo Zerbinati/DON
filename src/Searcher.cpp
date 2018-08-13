@@ -400,10 +400,7 @@ namespace Searcher {
         };
 
         // Razoring and futility margin
-        constexpr Value RazorMargin[3] =
-        {
-            Value(0), Value(590), Value(604)
-        };
+        constexpr Value RazorMargin = Value(600);
 
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][16];
@@ -422,7 +419,7 @@ namespace Searcher {
         /// stat_bonus() is the bonus, based on depth
         i32 stat_bonus (i16 depth)
         {
-            return depth < 18 ? (32*depth + 66)*depth - 66 : 0;
+            return depth < 18 ? (29*depth + 138)*depth - 134 : 0;
         }
 
         /// update_continuation_histories() updates tables of the move pairs with current move.
@@ -486,7 +483,6 @@ namespace Searcher {
         Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth = DepthZero)
         {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-            assert(PVNode || (alfa == beta-1));
             assert(DepthZero >= depth);
 
             Value prev_alfa;
@@ -1046,21 +1042,10 @@ namespace Searcher {
                 }
 
                 // Step 7. Razoring. (~2 ELO)
-                if (   !PVNode
-                    && 3 > depth
-                    && tt_eval <= alfa - RazorMargin[depth])
+                if (   2 > depth
+                    && tt_eval <= alfa - RazorMargin)
                 {
-                    auto alfa_margin = alfa;
-                    if (1 < depth)
-                    {
-                        alfa_margin -= RazorMargin[depth];
-                    }
-                    auto v = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
-                    if (   2 > depth
-                        || v <= alfa_margin)
-                    {
-                        return v;
-                    }
+                    return quien_search<false> (pos, ss, alfa, beta);
                 }
 
                 improving = (ss-0)->static_eval >= (ss-2)->static_eval
@@ -1084,7 +1069,7 @@ namespace Searcher {
                     && MOVE_NULL != (ss-1)->played_move
                     && MOVE_NONE == ss->excluded_move
                     && VALUE_ZERO != pos.si->non_pawn_material (own)
-                    && (ss-1)->stats < 22500
+                    && (ss-1)->stats < 23200
                     && tt_eval >= beta
                     && ss->static_eval + 36*depth - 225 >= beta
                     && (   thread->nmp_ply <= ss->ply

@@ -126,13 +126,13 @@ namespace {
     constexpr Score BishopOnDiagonal =  S( 22,  0);
     constexpr Score BishopPawns =       S(  3,  7);
     constexpr Score BishopTrapped =     S( 50, 50);
-    constexpr Score RookOnPawns =       S(  8, 24);
+    constexpr Score RookOnPawns =       S( 10, 30);
     constexpr Score RookTrapped =       S( 92,  0);
     constexpr Score QueenWeaken =       S( 50, 10);
     constexpr Score PawnLessFlank =     S( 19, 84);
     constexpr Score KingTropism =       S(  6,  0);
     constexpr Score PawnWeakUnopposed = S(  5, 29);
-    constexpr Score PieceHanged =       S( 52, 30);
+    constexpr Score PieceHanged =       S( 57, 32);
     constexpr Score PawnThreat =        S(173,102);
     constexpr Score PawnPushThreat =    S( 45, 40);
     constexpr Score RankThreat =        S( 16,  3);
