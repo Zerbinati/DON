@@ -483,6 +483,7 @@ namespace Searcher {
         Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth = DepthZero)
         {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
+            assert(PVNode || (alfa == beta-1));
             assert(DepthZero >= depth);
 
             Value prev_alfa;
@@ -1043,9 +1044,9 @@ namespace Searcher {
 
                 // Step 7. Razoring. (~2 ELO)
                 if (   2 > depth
-                    && tt_eval <= alfa - RazorMargin)
+                    && tt_eval <= std::max (alfa - RazorMargin, -VALUE_INFINITE))
                 {
-                    return quien_search<false> (pos, ss, alfa, beta);
+                    return quien_search<PVNode> (pos, ss, alfa, beta);
                 }
 
                 improving = (ss-0)->static_eval >= (ss-2)->static_eval
