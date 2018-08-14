@@ -203,15 +203,14 @@ namespace Pawns {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe (const Position &pos)
     {
-        auto key = pos.si->pawn_key;
-        auto *e = pos.thread->pawn_table[key];
+        auto *e = pos.thread->pawn_table[pos.si->pawn_key];
 
-        if (e->key == key)
+        if (e->key == pos.si->pawn_key)
         {
             return e;
         }
 
-        e->key = key;
+        e->key = pos.si->pawn_key;
         e->scores[WHITE] = evaluate<WHITE> (pos, e);
         e->scores[BLACK] = evaluate<BLACK> (pos, e);
         e->open_count = u08(pop_count ((e->semiopens[WHITE] & e->semiopens[BLACK])));
