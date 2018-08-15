@@ -14,29 +14,26 @@ namespace Material {
         constexpr i32 OwnQuadratic[NONE][NONE] =
         {
             //          Own Pieces
-            //  P    N    B     R  Q    BP
-            {   0,   0,   0,    0, 0,   40 }, // P
-            { 255, -67,   0,    0, 0,   32 }, // N
-            { 104,   4,   0,    0, 0,    0 }, // B     Own Pieces
-            {  -2,  47, 105, -221, 0,  -26 }, // R
-            {  24, 117, 133, -134, 0, -189 }, // Q
-            {   0,   0,   0,    0, 0, 1443 }  // BP
+            //  P    N    B     R   Q    BP
+            {  38,   0,   0,    0,  0,   40 }, // P
+            { 255, -62,   0,    0,  0,   32 }, // N
+            { 104,   4,   0,    0,  0,    0 }, // B     Own Pieces
+            {  -2,  47, 105, -208,  0,  -26 }, // R
+            {  24, 117, 133, -134, -6, -189 }, // Q
+            {   0,   0,   0,    0,  0, 1438 }  // BP
         };
 
         constexpr i32 OppQuadratic[NONE][NONE] =
         {
             //          Opp Pieces
-            //  P    N    B     R  Q    BP
-            {   0,   0,   0,    0, 0,   36 }, // P
-            {  63,   0,   0,    0, 0,    9 }, // N
-            {  65,  42,   0,    0, 0,   59 }, // B     Own Pieces
-            {  39,  24, -24,    0, 0,   46 }, // R
-            { 100, -42, 137,  268, 0,   97 }, // Q
-            {   0,   0,   0,    0, 0,    0 }  // BP
+            //  P    N    B     R   Q    BP
+            {   0,   0,   0,    0,  0,   36 }, // P
+            {  63,   0,   0,    0,  0,    9 }, // N
+            {  65,  42,   0,    0,  0,   59 }, // B     Own Pieces
+            {  39,  24, -24,    0,  0,   46 }, // R
+            { 100, -42, 137,  268,  0,   97 }, // Q
+            {   0,   0,   0,    0,  0,    0 }  // BP
         };
-
-        constexpr int PawnBonus[9] = { 0, 304,  144, -320, -560, -704, -672, -464, -320 };
-
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
@@ -45,7 +42,7 @@ namespace Material {
             Endgame<KXK> (WHITE),
             Endgame<KXK> (BLACK)
         };
-
+        // Endgame generic scale functions
         Endgame<KPKP> ScaleKPKP[CLR_NO] =
         {
             Endgame<KPKP> (WHITE),
@@ -74,7 +71,7 @@ namespace Material {
         {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-            i32 value = PawnBonus[count[Own][PAWN]];
+            i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN })
