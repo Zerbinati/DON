@@ -342,7 +342,7 @@ namespace BitBoard {
     /// Attacks of the Queen with occupancy
     template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ) { return BMagics[s].attacks_bb (occ)
                                                                                 | RMagics[s].attacks_bb (occ); }
-    
+
 #if !defined(ABM) // PopCount Table
 
     inline i32 pop_count (Bitboard bb)

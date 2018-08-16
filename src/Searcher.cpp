@@ -1259,12 +1259,12 @@ namespace Searcher {
                     if (elapsed_time > 3000)
                     {
                         sync_cout << "info"
-                                  << " currmove "       << move
+                                  << " currmove " << move
                                   << " currmovenumber " << thread->pv_cur + move_count
-                                  << " maxmoves "       << thread->root_moves.size ()
-                                  << " depth "          << depth
-                                  << " seldepth "       << (*std::find (thread->root_moves.begin (), thread->root_moves.end (), move)).sel_depth
-                                  << " time "           << elapsed_time << sync_endl;
+                                  << " maxmoves " << thread->root_moves.size ()
+                                  << " depth " << depth
+                                  << " seldepth " << (*std::find (thread->root_moves.begin (), thread->root_moves.end (), move)).sel_depth
+                                  << " time " << elapsed_time << sync_endl;
                     }
                 }
 

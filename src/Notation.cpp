@@ -114,14 +114,14 @@ string move_to_can (Move m)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
-
-    auto can = to_string (org_sq (m))
-             + to_string (fix_dst_sq (m, bool(Options["UCI_Chess960"])));
+    ostringstream oss;
+    oss << to_string (org_sq (m))
+        << to_string (fix_dst_sq (m, bool(Options["UCI_Chess960"])));
     if (PROMOTE == mtype (m))
     {
-        can += PieceChar[BLACK|promote (m)];
+        oss << (BLACK|promote (m));
     }
-    return can;
+    return oss.str ();
 }
 /// Converts a string representing a move in coordinate algebraic notation
 /// to the corresponding legal move, if any.
@@ -133,6 +133,8 @@ Move move_from_can (const string &can, const Position &pos)
     //{
     //    can[4] = char(tolower (can[4]));
     //}
+    assert(5 > can.length ()
+        || islower (can[4]));
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     {
         if (can == move_to_can (vm))
@@ -150,7 +152,7 @@ string move_to_san (Move m, Position &pos)
     if (MOVE_NULL == m) return "(null)";
     assert(MoveList<GenType::LEGAL> (pos).contains (m));
 
-    string san;
+    ostringstream oss;
     auto org = org_sq (m);
     auto dst = dst_sq (m);
 
@@ -158,20 +160,20 @@ string move_to_san (Move m, Position &pos)
     {
         if (PAWN != ptype (pos[org]))
         {
-            san = PieceChar[WHITE|ptype (pos[org])];
+            oss << (WHITE|ptype (pos[org]));
             if (KING != ptype (pos[org]))
             {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'dst' with a legal move.
                 switch (ambiguity (m, pos))
                 {
                 case Ambiguity::AMB_RANK:
-                    san += to_char (_file (org));
+                    oss << to_char (_file (org));
                     break;
                 case Ambiguity::AMB_FILE:
-                    san += to_char (_rank (org));
+                    oss << to_char (_rank (org));
                     break;
                 case Ambiguity::AMB_SQUARE:
-                    san += to_string (org);
+                    oss << to_string (org);
                     break;
                 case Ambiguity::AMB_NONE:
                 default:
@@ -184,23 +186,22 @@ string move_to_san (Move m, Position &pos)
         {
             if (PAWN == ptype (pos[org]))
             {
-                san += to_char (_file (org));
+                oss << to_char (_file (org));
             }
-            san += "x";
+            oss << "x";
         }
 
-        san += to_string (dst);
+        oss << to_string (dst);
 
         if (   PAWN == ptype (pos[org])
             && PROMOTE == mtype (m))
         {
-            san += "=";
-            san += PieceChar[WHITE|promote (m)];
+            oss << "=" << (WHITE|promote (m));
         }
     }
     else
     {
-        san = (dst > org ? "O-O" : "O-O-O");
+        oss << (dst > org ? "O-O" : "O-O-O");
     }
 
     // Move marker for check & checkmate
@@ -208,11 +209,11 @@ string move_to_san (Move m, Position &pos)
     {
         StateInfo si;
         pos.do_move (m, si, true);
-        san += (0 != MoveList<GenType::LEGAL> (pos).size () ? "+" : "#");
+        oss << (0 != MoveList<GenType::LEGAL> (pos).size () ? "+" : "#");
         pos.undo_move (m);
     }
 
-    return san;
+    return oss.str ();
 }
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
@@ -292,24 +293,24 @@ string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
         }
 
         oss << "info"
-            << " multipv "  << i + 1
-            << " depth "    << d
+            << " multipv " << i + 1
+            << " depth " << d
             << " seldepth " << rms[i].sel_depth
-            << " score "    << to_string (v);
+            << " score " << to_string (v);
         if (   !tb
             && i == pv_cur)
         {
             oss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
         }
-        oss << " nodes "    << total_nodes
-            << " time "     << elapsed_time
-            << " nps "      << total_nodes * 1000 / elapsed_time
-            << " tbhits "   << tb_hits;
+        oss << " nodes " << total_nodes
+            << " time " << elapsed_time
+            << " nps " << total_nodes * 1000 / elapsed_time
+            << " tbhits " << tb_hits;
         if (elapsed_time > 1000)
         {
             oss << " hashfull " << TT.hash_full ();
         }
-        oss << " pv"        << rms[i];
+        oss << " pv" << rms[i];
         if (i < Threadpool.pv_limit - 1)
         {
             oss << "\n";

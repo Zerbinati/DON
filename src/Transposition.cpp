@@ -214,6 +214,7 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
 /// TTable::extract_pm_from_tt() extracts ponder move from TT.
 Move TTable::extract_pm (Position &pos, Move bm)
 {
+    assert(MoveList<GenType::LEGAL> (pos).contains (bm));
     StateInfo si;
     pos.do_move (bm, si);
     bool tt_hit;

@@ -230,13 +230,7 @@ namespace Material {
             }
         };
 
-        i32 imb[CLR_NO] =
-        {
-            imbalance<WHITE> (piece_count),
-            imbalance<BLACK> (piece_count)
-        };
-
-        auto value = (imb[WHITE] - imb[BLACK]) / 16; // Imbalance Resolution
+        auto value = (imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16; // Imbalance Resolution
         e->imbalance = mk_score (value, value);
 
         return e;

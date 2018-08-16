@@ -13,7 +13,7 @@
 ///  Depth      08 bits
 ///  Generation 06 bits
 ///  Bound      02 bits
-///  --------------------
+///  ------------------
 ///  Total      80 bits = 10 bytes
 class TEntry
 {
