@@ -565,8 +565,8 @@ template<MoveType MT>
 constexpr Move mk_move (Square org, Square dst)               { return Move(MT                                      + (i08(org) << 6) + i08(dst)); }
 constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((i08(pt) - i08(NIHT)) << 12) + (i08(org) << 6) + i08(dst)); }
 
-constexpr i16   value_to_cp (Value v) { return i16(i32(v)*100/i32(VALUE_EG_PAWN)); }
-constexpr Value cp_to_value (i16  cp) { return Value(cp*i32(VALUE_EG_PAWN)/100); }
+constexpr i16   value_to_cp (Value v) { return i16(i32(v)*100/VALUE_EG_PAWN); }
+constexpr Value cp_to_value (i16  cp) { return Value(cp*VALUE_EG_PAWN/100); }
 
 constexpr Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 constexpr Value mated_in (i32 ply) { return -VALUE_MATE + ply; }

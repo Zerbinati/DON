@@ -110,8 +110,10 @@ inline std::basic_ostream<CharT, Traits>&
 
 inline std::ostream& operator<< (std::ostream &os, Score score)
 {
-    os << std::setw (5) << value_to_cp (mg_value (score)) / 100.0 << " "
-       << std::setw (5) << value_to_cp (eg_value (score)) / 100.0;
+    os << std::showpos << std::showpoint
+       << std::setw (5) << value_to_cp (mg_value (score)) / 100.0 << " "
+       << std::setw (5) << value_to_cp (eg_value (score)) / 100.0
+       << std::noshowpoint << std::noshowpos;
     return os;
 }
 

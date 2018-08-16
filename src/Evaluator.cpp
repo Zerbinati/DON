@@ -1150,26 +1150,28 @@ string trace (const Position &pos)
     }
 
     ostringstream oss;
-    oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed
+    oss << std::setprecision (2) << std::fixed
         << "      Eval Term |    White    |    Black    |    Total     \n"
         << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
         << "----------------+-------------+-------------+--------------\n"
         << "       Material" << Term::MATERIAL
         << "      Imbalance" << Term::IMBALANCE
         << "     Initiative" << Term::INITIATIVE
-        << "           Pawn" << Term(PAWN)
-        << "         Knight" << Term(NIHT)
-        << "         Bishop" << Term(BSHP)
-        << "           Rook" << Term(ROOK)
-        << "          Queen" << Term(QUEN)
+        << "           Pawn" << Term (PAWN)
+        << "         Knight" << Term (NIHT)
+        << "         Bishop" << Term (BSHP)
+        << "           Rook" << Term (ROOK)
+        << "          Queen" << Term (QUEN)
         << "       Mobility" << Term::MOBILITY
-        << "           King" << Term(KING)
+        << "           King" << Term (KING)
         << "         Threat" << Term::THREAT
         << "         Passer" << Term::PASSER
         << "          Space" << Term::SPACE
         << "----------------+-------------+-------------+--------------\n"
         << "          Total" << Term::TOTAL
-        << "\nEvaluation: " << value_to_cp (value) / 100.0 << " (white side)\n"
+        << std::endl
+        << std::showpos << std::showpoint
+        << "Evaluation: " << value_to_cp (value) / 100.0 << " (white side)\n"
         << std::noshowpoint << std::noshowpos;
     return oss.str ();
 }

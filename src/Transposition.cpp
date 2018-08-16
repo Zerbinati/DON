@@ -60,7 +60,7 @@ void TCluster::clear ()
     std::memcpy (this, &Empty, sizeof (*this));
 }
 
-size_t TCluster::full_entry_count (u08 gen) const
+size_t TCluster::fresh_entry_count (u08 gen) const
 {
     size_t count = 0;
     for (const auto *ite = entries; ite < entries + EntryCount; ++ite)
@@ -240,13 +240,13 @@ Move TTable::extract_pm (Position &pos, Move bm)
 /// hash, are using <x>%. of the state of full.
 u32 TTable::hash_full () const
 {
-    size_t full_entry_count = 0;
+    size_t fresh_entry_count = 0;
     const auto cluster_limit = std::min (size_t(1000 / TCluster::EntryCount), cluster_count);
     for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
     {
-        full_entry_count += itc->full_entry_count (generation);
+        fresh_entry_count += itc->fresh_entry_count (generation);
     }
-    return u32(full_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
+    return u32(fresh_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
 }
 /// TTable::save() saves hash to file
 void TTable::save (const string &hash_fn) const

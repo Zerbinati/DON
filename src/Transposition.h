@@ -86,7 +86,7 @@ public:
 
     void clear ();
 
-    size_t full_entry_count (u08) const;
+    size_t fresh_entry_count (u08) const;
 
 };
 
