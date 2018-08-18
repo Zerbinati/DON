@@ -836,7 +836,7 @@ namespace Searcher {
                 {
                     return ss->ply >= MaxDepth
                         && !in_check ?
-                                evaluate (pos) :
+                                evaluate (pos) - (0 < (ss-1)->stats ? 10 : 0) :
                                 VALUE_DRAW;
                 }
 
@@ -1013,7 +1013,7 @@ namespace Searcher {
                     // Never assume anything on values stored in TT.
                     if (VALUE_NONE == (tt_eval = tte->eval ()))
                     {
-                        tt_eval = evaluate (pos);
+                        tt_eval = evaluate (pos) - (0 < (ss-1)->stats ? 10 : 0);
                     }
                     ss->static_eval = tt_eval;
 
@@ -1028,10 +1028,11 @@ namespace Searcher {
                 {
                     assert(MOVE_NULL != (ss-1)->played_move
                         || VALUE_NONE != (ss-1)->static_eval);
+
                     tt_eval =
                     ss->static_eval = MOVE_NULL != (ss-1)->played_move ?
-                                evaluate (pos) :
-                                -(ss-1)->static_eval + Tempo*2;
+                                        evaluate (pos) - ((ss-1)->stats + sign ((ss-1)->stats) * 5000) / 1024 :
+                                        -(ss-1)->static_eval + Tempo*2;
 
                     tte->save (key,
                                MOVE_NONE,

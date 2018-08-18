@@ -16,10 +16,10 @@ namespace Pawns {
 
         constexpr Value Shelter[F_NO/2][R_NO] =
         {
-            { V( -3), V( 81), V( 93), V( 58), V( 39), V( 18), V(  25), V(0) },
-            { V(-40), V( 61), V( 35), V(-49), V(-29), V(-11), V( -63), V(0) },
-            { V( -7), V( 75), V( 23), V( -2), V( 32), V(  3), V( -45), V(0) },
-            { V(-36), V(-13), V(-29), V(-52), V(-48), V(-67), V(-166), V(0) }
+            { V( -6), V( 81), V( 93), V( 58), V( 39), V( 18), V(  25), V(0) },
+            { V(-43), V( 61), V( 35), V(-49), V(-29), V(-11), V( -63), V(0) },
+            { V(-10), V( 75), V( 23), V( -2), V( 32), V(  3), V( -45), V(0) },
+            { V(-39), V(-13), V(-29), V(-52), V(-48), V(-67), V(-166), V(0) }
         };
 
         constexpr Value Storm[F_NO/2+1][R_NO] =
@@ -168,12 +168,9 @@ namespace Pawns {
         Bitboard own_front_pawns = pos.pieces (Own, PAWN) & front_ranks;
         Bitboard opp_front_pawns = pos.pieces (Opp, PAWN) & front_ranks;
 
-        auto value = Value(0 != (own_front_pawns & file_bb (fk_sq)) ? +5 : -5);
-
-        if (contains (pawn_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq))
-        {
-            value += Value(374);
-        }
+        auto value = contains (pawn_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq) ?
+                        Value(374) :
+                        Value(5);
 
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
         for (auto f : { kf - File(1), kf, kf + File(1) })
