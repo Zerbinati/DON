@@ -501,7 +501,7 @@ namespace {
 
         if (Trace)
         {
-            write (Term(PT), Own, score);
+            write (Term (PT), Own, score);
         }
 
         return score;
@@ -648,7 +648,7 @@ namespace {
 
         if (Trace)
         {
-            write (Term(KING), Own, score);
+            write (Term (KING), Own, score);
         }
 
         return score;
@@ -1112,7 +1112,7 @@ namespace {
         if (Trace)
         {
             // Write remaining evaluation terms
-            write (Term(PAWN), pe->scores[WHITE], pe->scores[BLACK]);
+            write (Term (PAWN), pe->scores[WHITE], pe->scores[BLACK]);
             write (Term::MATERIAL, pos.psq);
             write (Term::IMBALANCE, me->imbalance);
             write (Term::MOBILITY, mobility[WHITE], mobility[BLACK]);

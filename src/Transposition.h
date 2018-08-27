@@ -107,9 +107,9 @@ private:
     void free_aligned_memory ();
 
 public:
-    // Minimum size of Transposition::Table (4 MB)
+    // Minimum size of Table
     static constexpr u32 MinHashSize = 4;
-    // Maximum size of Transposition::Table (131072 MB = 128 GB)
+    // Maximum size of Table
     static constexpr u32 MaxHashSize =
 #       if defined(BIT64)
             128 * 1024

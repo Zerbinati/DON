@@ -836,7 +836,7 @@ namespace Searcher {
                 {
                     return ss->ply >= MaxDepth
                         && !in_check ?
-                                evaluate (pos) - (0 < (ss-1)->stats ? 10 : 0) :
+                                evaluate (pos) - sign ((ss-1)->stats) * 10 :
                                 VALUE_DRAW;
                 }
 
@@ -891,8 +891,7 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            Value tt_eval;
-
+            
             bool improving;
 
             // At non-PV nodes we check for an early TT cutoff.
@@ -999,11 +998,13 @@ namespace Searcher {
             }
 
             StateInfo si;
+            Value eval
+                , tt_eval;
 
             // Step 6. Static evaluation of the position
             if (in_check)
             {
-                ss->static_eval = VALUE_NONE;
+                ss->static_eval = eval = VALUE_NONE;
                 improving = false;
             }
             else
@@ -1011,11 +1012,10 @@ namespace Searcher {
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT.
-                    if (VALUE_NONE == (tt_eval = tte->eval ()))
+                    if (VALUE_NONE == (ss->static_eval = eval = tt_eval = tte->eval ()))
                     {
-                        tt_eval = evaluate (pos) - (0 < (ss-1)->stats ? 10 : 0);
+                        ss->static_eval = tt_eval = (eval = evaluate (pos)) - sign ((ss-1)->stats) * 10;
                     }
-                    ss->static_eval = tt_eval;
 
                     // Can tt_value be used as a better position evaluation?
                     if (   VALUE_NONE != tt_value
@@ -1029,15 +1029,14 @@ namespace Searcher {
                     assert(MOVE_NULL != (ss-1)->played_move
                         || VALUE_NONE != (ss-1)->static_eval);
 
-                    tt_eval =
-                    ss->static_eval = MOVE_NULL != (ss-1)->played_move ?
-                                        evaluate (pos) - ((ss-1)->stats + sign ((ss-1)->stats) * 5000) / 1024 :
-                                        -(ss-1)->static_eval + Tempo*2;
+                    ss->static_eval = tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                                        (eval = evaluate (pos)) - ((ss-1)->stats + sign ((ss-1)->stats) * 5000) / 1024 :
+                                        (eval = -(ss-1)->static_eval + Tempo*2);
 
                     tte->save (key,
                                MOVE_NONE,
                                VALUE_NONE,
-                               ss->static_eval,
+                               eval,
                                DepthNone,
                                BOUND_NONE,
                                TT.generation);
@@ -1645,7 +1644,7 @@ namespace Searcher {
                 tte->save (key,
                            best_move,
                            value_to_tt (best_value, ss->ply),
-                           ss->static_eval,
+                           eval,
                            depth,
                            best_value >= beta ?
                                BOUND_LOWER :
