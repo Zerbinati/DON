@@ -1193,7 +1193,8 @@ namespace Searcher {
 
             // Step 11. Internal iterative deepening (IID). (~2 ELO)
             if (   7 < depth
-                && MOVE_NONE == tt_move)
+                && MOVE_NONE == tt_move
+                && 0 != MoveList<GenType::LEGAL> (pos).size ())
             {
                 depth_search<PVNode> (pos, ss, alfa, beta, depth - 7, cut_node);
 
