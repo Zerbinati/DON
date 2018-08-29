@@ -238,7 +238,7 @@ namespace BitBoard {
     inline Bitboard between_bb (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return Between_bb[s1][s2]; }
     inline Bitboard strline_bb (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return StrLine_bb[s1][s2]; }
 
-    inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
+    inline Bitboard dist_rings_bb (Square s, u08 d) { assert(_ok (s)); return DistRings_bb[s][d]; }
 
     inline Bitboard pawn_attack_span (Color c, Square s) { assert(_ok (s)); return PawnAttackSpan[c][s]; }
     inline Bitboard pawn_pass_span (Color c, Square s) { assert(_ok (s)); return PawnPassSpan[c][s]; }

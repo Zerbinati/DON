@@ -469,28 +469,30 @@ inline void Position::place_piece_on (Square s, Piece pc)
 }
 inline void Position::remove_piece_on (Square s)
 {
+    Piece pc = board[s];
     assert(!empty (s));
-    color_bb[color (board[s])] ^= s;
-    types_bb[ptype (board[s])] ^= s;
+    color_bb[color (pc)] ^= s;
+    types_bb[ptype (pc)] ^= s;
     types_bb[NONE] ^= s;
-    squares[color (board[s])][ptype (board[s])].remove (s);
-    psq -= PSQ[color (board[s])][ptype (board[s])][s];
+    squares[color (pc)][ptype (pc)].remove (s);
+    psq -= PSQ[color (pc)][ptype (pc)][s];
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
 inline void Position::move_piece_on_to (Square s1, Square s2)
 {
+    Piece pc = board[s1];
     assert(!empty (s1)
-        && std::count (squares[color (board[s1])][ptype (board[s1])].begin (),
-                       squares[color (board[s1])][ptype (board[s1])].end (), s1) == 1);
+        && std::count (squares[color (pc)][ptype (pc)].begin (),
+                       squares[color (pc)][ptype (pc)].end (), s1) == 1);
     Bitboard bb = square_bb (s1) ^ square_bb (s2);
-    color_bb[color (board[s1])] ^= bb;
-    types_bb[ptype (board[s1])] ^= bb;
+    color_bb[color (pc)] ^= bb;
+    types_bb[ptype (pc)] ^= bb;
     types_bb[NONE] ^= bb;
-    std::replace (squares[color (board[s1])][ptype (board[s1])].begin (),
-                  squares[color (board[s1])][ptype (board[s1])].end (), s1, s2);
-    psq += PSQ[color (board[s1])][ptype (board[s1])][s2]
-         - PSQ[color (board[s1])][ptype (board[s1])][s1];
-    board[s2] = board[s1];
+    std::replace (squares[color (pc)][ptype (pc)].begin (),
+                  squares[color (pc)][ptype (pc)].end (), s1, s2);
+    psq += PSQ[color (pc)][ptype (pc)][s2]
+         - PSQ[color (pc)][ptype (pc)][s1];
+    board[s2] = pc;
     board[s1] = NO_PIECE;
 }
 

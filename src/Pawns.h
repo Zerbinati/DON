@@ -52,7 +52,7 @@ namespace Pawns {
             Bitboard pawns = pos.pieces (Own, PAWN);
             if (0 != pawns)
             {
-                while (0 == (pawns & BitBoard::dist_rings_bb (fk_sq, kp_dist++))) {}
+                while (0 == (pawns & BitBoard::dist_rings_bb (fk_sq, ++kp_dist))) {}
             }
 
             king_square[Own][index[Own]] = fk_sq;

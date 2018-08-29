@@ -981,20 +981,9 @@ namespace {
                         // Outflanking
                        +  12 * (  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
                                 - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK)))
-                       - 136;
-        // Pawn on both flanks
-        if (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
-            && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]))
-        {
-            complexity += 16;
-        }
-        if (VALUE_ZERO == pos.si->non_pawn_material ())
-        {
-            complexity += 48;
-        }
-        // Now apply the bonus: note that we find the attacking side by extracting
-        // the sign of the endgame value, and that we carefully cap the bonus so
-        // that the endgame score will never change sign after the bonus.
+                       +  48 * (VALUE_ZERO == pos.si->non_pawn_material () ? 1 : 0)
+                       - 110;
+
         auto score = mk_score (0, sign (eg) * std::max (complexity, -abs (eg)));
 
         if (Trace)

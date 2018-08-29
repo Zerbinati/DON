@@ -517,7 +517,7 @@ namespace Searcher {
 
             Move move;
             // Transposition table lookup.
-            Key  key = pos.si->posi_key;
+            Key key = pos.si->posi_key;
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = tt_hit
@@ -567,12 +567,12 @@ namespace Searcher {
             {
                 if (tt_hit)
                 {
+                    ss->static_eval = best_value = tte->eval ();
                     // Never assume anything on values stored in TT.
-                    if (VALUE_NONE == (best_value = tte->eval ()))
+                    if (VALUE_NONE == best_value)
                     {
-                        best_value = evaluate (pos);
+                        ss->static_eval = best_value = evaluate (pos);
                     }
-                    ss->static_eval = best_value;
 
                     // Can tt_value be used as a better position evaluation?
                     if (   VALUE_NONE != tt_value
@@ -874,7 +874,7 @@ namespace Searcher {
             // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
-            Key  key = pos.si->posi_key ^ (Key(ss->excluded_move) << 0x10);
+            Key key = pos.si->posi_key ^ (Key(ss->excluded_move) << 0x10);
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = root_node ?
@@ -998,45 +998,49 @@ namespace Searcher {
             }
 
             StateInfo si;
-            Value eval
-                , tt_eval;
+            Value tt_eval;
 
             // Step 6. Static evaluation of the position
             if (in_check)
             {
-                ss->static_eval = eval = VALUE_NONE;
+                ss->static_eval = tt_eval = VALUE_NONE;
                 improving = false;
             }
             else
             {
+                Value eval;
                 if (tt_hit)
                 {
+                    ss->static_eval = eval = tt_eval = tte->eval ();
                     // Never assume anything on values stored in TT.
-                    if (VALUE_NONE == (ss->static_eval = eval = tt_eval = tte->eval ()))
+                    if (VALUE_NONE == tt_eval)
                     {
-                        ss->static_eval = tt_eval = (eval = evaluate (pos)) - sign ((ss-1)->stats) * 10;
+                        ss->static_eval = eval = tt_eval = evaluate (pos);
                     }
 
                     // Can tt_value be used as a better position evaluation?
                     if (   VALUE_NONE != tt_value
-                        && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
+                        && BOUND_NONE != (tte->bound () & (tt_value > eval ? BOUND_LOWER : BOUND_UPPER)))
                     {
-                        tt_eval = tt_value;
+                        eval = tt_value;
                     }
                 }
                 else
                 {
-                    assert(MOVE_NULL != (ss-1)->played_move
-                        || VALUE_NONE != (ss-1)->static_eval);
-
-                    ss->static_eval = tt_eval = MOVE_NULL != (ss-1)->played_move ?
-                                        (eval = evaluate (pos)) - ((ss-1)->stats + sign ((ss-1)->stats) * 5000) / 1024 :
-                                        (eval = -(ss-1)->static_eval + Tempo*2);
+                    if (MOVE_NULL != (ss-1)->played_move)
+                    {
+                        tt_eval = evaluate (pos);
+                        ss->static_eval = eval = tt_eval - ((ss-1)->stats + sign ((ss-1)->stats) * 2500) / 512;
+                    }
+                    else
+                    {
+                        ss->static_eval = eval = tt_eval = -(ss-1)->static_eval + Tempo * 2;
+                    }
 
                     tte->save (key,
                                MOVE_NONE,
                                VALUE_NONE,
-                               eval,
+                               tt_eval,
                                DepthNone,
                                BOUND_NONE,
                                TT.generation);
@@ -1044,7 +1048,7 @@ namespace Searcher {
 
                 // Step 7. Razoring. (~2 ELO)
                 if (   2 > depth
-                    && tt_eval <= std::max (alfa - RazorMargin, -VALUE_INFINITE))
+                    && eval <= std::max (alfa - RazorMargin, -VALUE_INFINITE))
                 {
                     return quien_search<PVNode> (pos, ss, alfa, beta);
                 }
@@ -1058,10 +1062,10 @@ namespace Searcher {
                 if (   !root_node
                     && 7 > depth
                     //&& 0 == Limits.mate
-                    && tt_eval - (improving ? 125 : 175) * depth >= beta
-                    && tt_eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
+                    && eval - (improving ? 125 : 175) * depth >= beta
+                    && eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
                 {
-                    return tt_eval;
+                    return eval;
                 }
 
                 // Step 9. Null move search with verification search. (~40 ELO)
@@ -1071,7 +1075,7 @@ namespace Searcher {
                     && MOVE_NONE == ss->excluded_move
                     && VALUE_ZERO != pos.si->non_pawn_material (own)
                     && (ss-1)->stats < 23200
-                    && tt_eval >= beta
+                    && eval >= beta
                     && ss->static_eval + 36*depth - 225 >= beta
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != own))
@@ -1079,7 +1083,7 @@ namespace Searcher {
                     assert(MOVE_NONE != (ss-1)->played_move);
 
                     // Null move dynamic reduction based on depth and static evaluation.
-                    auto R = i16((67*depth + 823) / 256 + std::min (i32((tt_eval - beta)/VALUE_MG_PAWN), 3));
+                    auto R = i16((67*depth + 823) / 256 + std::min (i32((eval - beta)/VALUE_MG_PAWN), 3));
 
                     // Speculative prefetch as early as possible
                     prefetch (TT.cluster (  pos.si->posi_key
@@ -1151,6 +1155,11 @@ namespace Searcher {
                             && pos.legal (move)
                             && pos.capture_or_promotion (move));
 
+                        if (move == ss->excluded_move)
+                        {
+                            continue;
+                        }
+
                         ++pc_movecount;
 
                         // Speculative prefetch as early as possible
@@ -1196,6 +1205,11 @@ namespace Searcher {
                                value_of_tt (tte->value (), ss->ply) :
                                VALUE_NONE;
                 }
+            }
+
+            if (PVNode)
+            {
+                (ss+1)->pv.clear ();
             }
 
             value = VALUE_ZERO;
@@ -1266,11 +1280,6 @@ namespace Searcher {
                                   << " seldepth " << (*std::find (thread->root_moves.begin (), thread->root_moves.end (), move)).sel_depth
                                   << " time " << elapsed_time << sync_endl;
                     }
-                }
-
-                if (PVNode)
-                {
-                    (ss+1)->pv.clear ();
                 }
 
                 // Step 13. Extensions. (~70 ELO)
@@ -1644,7 +1653,7 @@ namespace Searcher {
                 tte->save (key,
                            best_move,
                            value_to_tt (best_value, ss->ply),
-                           eval,
+                           tt_eval,
                            depth,
                            best_value >= beta ?
                                BOUND_LOWER :
