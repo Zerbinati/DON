@@ -583,12 +583,14 @@ namespace Searcher {
                 }
                 else
                 {
-                    assert(MOVE_NULL != (ss-1)->played_move
-                        || VALUE_NONE != (ss-1)->static_eval);
-                    best_value =
-                    ss->static_eval = MOVE_NULL != (ss-1)->played_move ?
-                                evaluate (pos) :
-                                -(ss-1)->static_eval + Tempo*2;
+                    if (MOVE_NULL != (ss-1)->played_move)
+                    {
+                        ss->static_eval = best_value = evaluate (pos);
+                    }
+                    else
+                    {
+                        ss->static_eval = best_value = -(ss-1)->static_eval + Tempo * 2;
+                    }
                 }
 
                 if (alfa < best_value)
