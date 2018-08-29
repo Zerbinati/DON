@@ -1189,24 +1189,24 @@ namespace Searcher {
                         }
                     }
                 }
+            }
 
-                // Step 11. Internal iterative deepening (IID). (~2 ELO)
-                if (   7 < depth
-                    && MOVE_NONE == tt_move)
-                {
-                    depth_search<PVNode> (pos, ss, alfa, beta, depth - 7, cut_node);
+            // Step 11. Internal iterative deepening (IID). (~2 ELO)
+            if (   7 < depth
+                && MOVE_NONE == tt_move)
+            {
+                depth_search<PVNode> (pos, ss, alfa, beta, depth - 7, cut_node);
 
-                    tte = TT.probe (key, tt_hit);
-                    tt_move = tt_hit
-                           && MOVE_NONE != (move = tte->move ())
-                           && pos.pseudo_legal (move)
-                           && pos.legal (move) ?
-                               move :
-                               MOVE_NONE;
-                    tt_value = tt_hit ?
-                               value_of_tt (tte->value (), ss->ply) :
-                               VALUE_NONE;
-                }
+                tte = TT.probe (key, tt_hit);
+                tt_move = tt_hit
+                        && MOVE_NONE != (move = tte->move ())
+                        && pos.pseudo_legal (move)
+                        && pos.legal (move) ?
+                            move :
+                            MOVE_NONE;
+                tt_value = tt_hit ?
+                            value_of_tt (tte->value (), ss->ply) :
+                            VALUE_NONE;
             }
 
             value = VALUE_ZERO;
