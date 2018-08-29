@@ -1207,11 +1207,6 @@ namespace Searcher {
                 }
             }
 
-            if (PVNode)
-            {
-                (ss+1)->pv.clear ();
-            }
-
             value = VALUE_ZERO;
 
             bool pv_exact = PVNode
@@ -1280,6 +1275,11 @@ namespace Searcher {
                                   << " seldepth " << (*std::find (thread->root_moves.begin (), thread->root_moves.end (), move)).sel_depth
                                   << " time " << elapsed_time << sync_endl;
                     }
+                }
+                
+                if (PVNode)
+                {
+                    (ss+1)->pv.clear ();
                 }
 
                 // Step 13. Extensions. (~70 ELO)
