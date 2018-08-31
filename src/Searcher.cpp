@@ -1209,7 +1209,7 @@ namespace Searcher {
                             VALUE_NONE;
             }
 
-            value = VALUE_ZERO;
+            value = best_value;
 
             bool pv_exact = PVNode
                          && tt_hit
