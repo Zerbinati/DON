@@ -1082,8 +1082,6 @@ namespace Searcher {
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != own))
                 {
-                    assert(MOVE_NONE != (ss-1)->played_move);
-
                     // Null move dynamic reduction based on depth and static evaluation.
                     auto R = i16((67*depth + 823) / 256 + std::min (i32((eval - beta)/VALUE_MG_PAWN), 3));
 
@@ -1199,9 +1197,9 @@ namespace Searcher {
 
                 tte = TT.probe (key, tt_hit);
                 tt_move = tt_hit
-                        && MOVE_NONE != (move = tte->move ())
-                        && pos.pseudo_legal (move)
-                        && pos.legal (move) ?
+                       && MOVE_NONE != (move = tte->move ())
+                       && pos.pseudo_legal (move)
+                       && pos.legal (move) ?
                             move :
                             MOVE_NONE;
                 tt_value = tt_hit ?

@@ -123,7 +123,7 @@ namespace {
 
     constexpr Score MinorBehindPawn =   S( 16,  0);
     constexpr Score MinorKingProtect =  S(  6,  6);
-    constexpr Score BishopOnDiagonal =  S( 22,  0);
+    constexpr Score BishopOnDiagonal =  S( 46,  0);
     constexpr Score BishopPawns =       S(  3,  7);
     constexpr Score BishopTrapped =     S( 50, 50);
     constexpr Score RookOnPawns =       S( 10, 30);
@@ -424,7 +424,7 @@ namespace {
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     if (   contains (Diagonals_bb, s)
-                        && more_than_one (Center_bb & (attacks_bb<BSHP> (s, pos.pieces (PAWN)) | s)))
+                        && more_than_one (attacks_bb<BSHP> (s, pos.pieces (PAWN)) & Center_bb))
                     {
                         score += BishopOnDiagonal;
                     }
@@ -981,8 +981,11 @@ namespace {
                         // Outflanking
                        +  12 * (  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
                                 - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK)))
+                        // Pawn on both flanks
+                       +  16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
+                                && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]) ? 1 : 0)
                        +  48 * (VALUE_ZERO == pos.si->non_pawn_material () ? 1 : 0)
-                       - 110;
+                       - 118;
 
         auto score = mk_score (0, sign (eg) * std::max (complexity, -abs (eg)));
 
