@@ -35,9 +35,9 @@ namespace Pawns {
 
 #   define S(mg, eg) mk_score(mg, eg)
 
-        constexpr Score Isolated = S( 5,15);
         constexpr Score Backward = S( 9,24);
         constexpr Score Blocked =  S(11,56);
+        constexpr Score Isolated = S( 5,15);
 
 #   undef S
 
