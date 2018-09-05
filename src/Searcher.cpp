@@ -1083,7 +1083,7 @@ namespace Searcher {
                         || thread->nmp_color != own))
                 {
                     // Null move dynamic reduction based on depth and static evaluation.
-                    auto R = i16((67*depth + 823) / 256 + std::min (i32((eval - beta)/VALUE_MG_PAWN), 3));
+                    auto R = i16((67*depth + 823) / 256 + std::min (i32(eval - beta)/200, 3));
 
                     // Speculative prefetch as early as possible
                     prefetch (TT.cluster (  pos.si->posi_key
@@ -1149,7 +1149,7 @@ namespace Searcher {
                     MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
                     while (   MOVE_NONE != (move = move_picker.next_move ())
-                            && 3 > pc_movecount)
+                           && 3 > pc_movecount)
                     {
                         assert(pos.pseudo_legal (move)
                             && pos.legal (move)
