@@ -1138,7 +1138,7 @@ string trace (const Position &pos)
     {
     case WHITE: value = +value; break;
     case BLACK: value = -value; break;
-    default: value = VALUE_ZERO; break;
+    default: assert(false); value = VALUE_ZERO; break;
     }
 
     ostringstream oss;

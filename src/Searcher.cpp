@@ -899,6 +899,7 @@ namespace Searcher {
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && VALUE_NONE != tt_value
+                && MOVE_NONE == ss->excluded_move
                 && depth <= tte->depth ()
                 && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
