@@ -1061,7 +1061,7 @@ namespace {
             {
             case WHITE: return +v;
             case BLACK: return -v;
-            default: return VALUE_ZERO;
+            default: assert(false); return VALUE_ZERO;
             }
         }
 
