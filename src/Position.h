@@ -13,9 +13,7 @@
 
 using namespace BitBoard;
 
-/// StateInfo stores information needed to restore a Position object to its previous state
-/// when we retract a move. Whenever a move is made on the board (by calling do_move),
-/// a StateInfo object must be passed as a parameter.
+/// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
 ///
 ///  - Castling-rights information.
 ///  - Enpassant square (SQ_NO if no Enpassant capture is possible).
@@ -93,8 +91,8 @@ class Thread;
 ///  - 64-entry array of pieces, indexed by the square.
 ///  - Bitboards of each piece type.
 ///  - Bitboards of each color
-///  - Bitboard of all occupied squares.
-///  - List of squares for the pieces.
+///  - Bitboard of occupied square.
+///  - List of square for the pieces.
 ///  - Information about the castling rights.
 ///  - Initial files of both pairs of rooks, castle path and kings path, this is used to implement the Chess960 castling rules.
 ///  - Color of side on move.
@@ -117,9 +115,9 @@ private:
     PieceType pick_least_val_att (PieceType, Square, Bitboard, Bitboard&, Bitboard&) const;
 
 public:
-    Piece    board[SQ_NO];
+    Piece    piece[SQ_NO];
     Bitboard color_bb[CLR_NO];
-    Bitboard types_bb[PT_NO];
+    Bitboard type_bb[PT_NO];
     std::list<Square> squares[CLR_NO][NONE];
 
     CastleRight castle_mask[SQ_NO];
@@ -222,17 +220,17 @@ public:
 inline Piece Position::operator[] (Square s) const
 {
     assert(_ok (s));
-    return board[s];
+    return piece[s];
 }
 inline bool Position::empty (Square s)  const
 {
     assert(_ok (s));
-    return NO_PIECE == board[s];
+    return NO_PIECE == piece[s];
 }
 
 inline Bitboard Position::pieces () const
 {
-    return types_bb[NONE];
+    return type_bb[NONE];
 }
 inline Bitboard Position::pieces (Color c) const
 {
@@ -241,13 +239,13 @@ inline Bitboard Position::pieces (Color c) const
 inline Bitboard Position::pieces (PieceType pt) const
 {
     assert(PAWN <= pt && pt <= KING);
-    return types_bb[pt];
+    return type_bb[pt];
 }
 template<typename ...PieceTypes>
 inline Bitboard Position::pieces (PieceType pt, PieceTypes... pts) const
 {
     assert(PAWN <= pt && pt <= KING);
-    return types_bb[pt] | pieces (pts...);
+    return type_bb[pt] | pieces (pts...);
 }
 template<typename ...PieceTypes>
 inline Bitboard Position::pieces (Color c, PieceTypes... pts) const
@@ -311,7 +309,7 @@ inline Key Position::posi_move_key (Move m) const
 
     auto key = si->posi_key;
     auto ppt = PROMOTE != mtype (m) ?
-                ptype (board[org]) :
+                ptype (piece[org]) :
                 promote (m);
     if (CASTLE == mtype (m))
     {
@@ -321,7 +319,7 @@ inline Key Position::posi_move_key (Move m) const
     else
     {
         if (   NORMAL == mtype (m)
-            && PAWN == ptype (board[org])
+            && PAWN == ptype (piece[org])
             && 16 == (u08(dst) ^ u08(org)))
         {
             const auto ep_sq = org + (dst - org) / 2;
@@ -331,7 +329,7 @@ inline Key Position::posi_move_key (Move m) const
             }
         }
         auto cpt = ENPASSANT != mtype (m) ?
-                    ptype (board[dst]) :
+                    ptype (piece[dst]) :
                     PAWN;
         if (NONE != cpt)
         {
@@ -351,7 +349,7 @@ inline Key Position::posi_move_key (Move m) const
     return key
          ^ RandZob.color
          ^ RandZob.piece_square[active][ppt][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
-         ^ RandZob.piece_square[active][ptype (board[org])][org]
+         ^ RandZob.piece_square[active][ptype (piece[org])][org]
          ^ (SQ_NO != si->enpassant_sq ? RandZob.enpassant[_file (si->enpassant_sq)] : 0);
 }
 
@@ -447,7 +445,7 @@ inline bool Position::capture_or_promotion (Move m) const
 inline PieceType Position::cap_type (Move m) const
 {
     return ENPASSANT != mtype (m) ?
-            ptype (board[dst_sq (m)]) :
+            ptype (piece[dst_sq (m)]) :
             PAWN;
 }
 
@@ -461,39 +459,39 @@ inline void Position::place_piece_on (Square s, Piece pc)
     //assert(empty (s)); // Not needed, in case of remove_piece_on()
     assert(_ok (pc));
     color_bb[color (pc)] |= s;
-    types_bb[ptype (pc)] |= s;
-    types_bb[NONE] |= s;
+    type_bb[ptype (pc)] |= s;
+    type_bb[NONE] |= s;
     squares[color (pc)][ptype (pc)].emplace_back (s);
     psq += PSQ[color (pc)][ptype (pc)][s];
-    board[s] = pc;
+    piece[s] = pc;
 }
 inline void Position::remove_piece_on (Square s)
 {
-    Piece pc = board[s];
+    Piece pc = piece[s];
     assert(!empty (s));
     color_bb[color (pc)] ^= s;
-    types_bb[ptype (pc)] ^= s;
-    types_bb[NONE] ^= s;
+    type_bb[ptype (pc)] ^= s;
+    type_bb[NONE] ^= s;
     squares[color (pc)][ptype (pc)].remove (s);
     psq -= PSQ[color (pc)][ptype (pc)][s];
-    //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
+    //piece[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
 inline void Position::move_piece_on_to (Square s1, Square s2)
 {
-    Piece pc = board[s1];
+    Piece pc = piece[s1];
     assert(!empty (s1)
         && std::count (squares[color (pc)][ptype (pc)].begin (),
                        squares[color (pc)][ptype (pc)].end (), s1) == 1);
     Bitboard bb = square_bb (s1) ^ square_bb (s2);
     color_bb[color (pc)] ^= bb;
-    types_bb[ptype (pc)] ^= bb;
-    types_bb[NONE] ^= bb;
+    type_bb[ptype (pc)] ^= bb;
+    type_bb[NONE] ^= bb;
     std::replace (squares[color (pc)][ptype (pc)].begin (),
                   squares[color (pc)][ptype (pc)].end (), s1, s2);
     psq += PSQ[color (pc)][ptype (pc)][s2]
          - PSQ[color (pc)][ptype (pc)][s1];
-    board[s2] = pc;
-    board[s1] = NO_PIECE;
+    piece[s2] = pc;
+    piece[s1] = NO_PIECE;
 }
 
 /// do_castling()
@@ -505,7 +503,7 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     // Remove both pieces first since squares could overlap in chess960
     remove_piece_on (king_org);
     remove_piece_on (rook_org);
-    board[king_org] = board[rook_org] = NO_PIECE; // Not done by remove_piece_on()
+    piece[king_org] = piece[rook_org] = NO_PIECE; // Not done by remove_piece_on()
     place_piece_on (king_dst, active | KING);
     place_piece_on (rook_dst, active | ROOK);
 }
@@ -518,7 +516,7 @@ inline void Position::undo_castling (Square king_org, Square &king_dst, Square &
     // Remove both pieces first since squares could overlap in chess960
     remove_piece_on (king_dst);
     remove_piece_on (rook_dst);
-    board[king_dst] = board[rook_dst] = NO_PIECE; // Not done by remove_piece_on()
+    piece[king_dst] = piece[rook_dst] = NO_PIECE; // Not done by remove_piece_on()
     place_piece_on (king_org, active | KING);
     place_piece_on (rook_org, active | ROOK);
 }
