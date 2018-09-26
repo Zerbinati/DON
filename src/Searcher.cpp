@@ -1278,7 +1278,7 @@ namespace Searcher {
                                   << " time " << elapsed_time << sync_endl;
                     }
                 }
-                
+
                 if (PVNode)
                 {
                     (ss+1)->pv.clear ();

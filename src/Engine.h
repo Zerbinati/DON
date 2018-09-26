@@ -10,7 +10,7 @@ const std::string Author = "Ehsan Rashid";
 
 extern std::string info ();
 
-extern void run (i32, const char *const *);
-extern void stop (i32);
+extern void run (int, const char *const *);
+extern void stop (int);
 
 #endif // _ENGINE_H_INC_

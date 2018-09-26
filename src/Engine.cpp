@@ -715,8 +715,8 @@ string info ()
     return oss.str ();
 }
 
-/// Engine::run() runs with command arguments
-void run (i32 argc, const char *const *argv)
+/// run() runs with command arguments
+void run (int argc, const char *const *argv)
 {
     std::cout << Name << " " << info () << " by " << Author << std::endl;
     std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
@@ -744,8 +744,8 @@ void run (i32 argc, const char *const *argv)
     loop (argc, argv);
 }
 
-/// Engine::stop() exits with a code (in case of some crash).
-void stop (i32 code)
+/// stop() exits with a code (in case of some crash).
+void stop (int code)
 {
     Threadpool.stop = true;
     Threadpool.configure (0);

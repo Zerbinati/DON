@@ -158,7 +158,7 @@ public:
     i32 count (Color, PieceType) const;
 
     template<PieceType>
-    Square square (Color, i08 = 0) const;
+    Square square (Color, u08 = 0) const;
 
     Key pg_key () const;
     Key posi_move_key (Move) const;
@@ -286,13 +286,11 @@ inline i32 Position::count (Color c, PieceType pt) const
 }
 
 template<PieceType PT>
-inline Square Position::square (Color c, i08 index) const
+inline Square Position::square (Color c, u08 index) const
 {
     static_assert (PAWN <= PT && PT <= KING, "PT incorrect");
-    assert(i08(squares[c][PT].size ()) > index);
-    return 0 == index ?
-             *squares[c][PT].begin () : 
-             *std::next (squares[c][PT].begin (), index);
+    assert(squares[c][PT].size () > index);
+    return *std::next (squares[c][PT].begin (), index);
 }
 
 inline Key Position::pg_key () const
