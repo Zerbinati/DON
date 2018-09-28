@@ -13,14 +13,14 @@ namespace std {
     struct null_unary_functor
         : public unary_function<T*, void>
     {
-        void operator() (const T *) const {}
+        void operator() (const T*) const {}
     };
 
     template<typename T>
     struct null_binary_functor
         : public binary_function<T*, T*, void>
     {
-        void operator() (const T *, const T *) const {}
+        void operator() (const T*, const T*) const {}
     };
 
     // Case-insensitive comparator for char

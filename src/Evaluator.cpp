@@ -140,7 +140,6 @@ namespace {
     constexpr Score KnightQueenThreat = S( 21, 11);
     constexpr Score SliderQueenThreat = S( 42, 21);
     constexpr Score Overloaded =        S( 13,  6);
-    constexpr Score PasserHinder =      S(  8,  0);
 
 #undef S
 
@@ -897,12 +896,6 @@ namespace {
 
                     bonus += mk_score (k*w, k*w);
                 }
-                else
-                // If the pawn is blocked by own pieces.
-                if (contains (pos.pieces (Own), push_sq))
-                {
-                    bonus += mk_score (1*w + 2*r, 1*w + 2*r);
-                }
             }
 
             // Scale down bonus for candidate passers which need more than one 
@@ -913,13 +906,7 @@ namespace {
                 bonus /= 2;
             }
 
-            score += bonus
-                   + PasserFile[std::min (_file (s), ~_file (s))];
-
-            if (0 != (front_line_bb (Own, s) & pos.pieces (Opp)))
-            {
-                score -= PasserHinder;
-            }
+            score += bonus + PasserFile[std::min (_file (s), ~_file (s))];
         }
 
         if (Trace)

@@ -347,7 +347,7 @@ Move MovePicker::next_move ()
 
     case Stage::QS_CAPTURES:
         if (pick_move<BEST> ([&]() { return DepthQSRecapture < depth
-                                        || dst_sq (vm) == recap_sq; }))
+                                         || dst_sq (vm) == recap_sq; }))
         {
             return vm;
         }
@@ -409,7 +409,7 @@ namespace Searcher {
         i16 ReductionDepths[2][2][64][64];
         i16 reduction_depth (bool pv, bool imp, i16 d, u08 mc)
         {
-            return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][d <= 63 ? d : 63][mc <= 63 ? mc : 63];
+            return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][std::min (d, i16(63))][std::min (mc, u08(63))];
         }
 
         i32 BasicContempt = 0;
@@ -666,10 +666,7 @@ namespace Searcher {
                         auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst])];
                         if (futility_value <= alfa)
                         {
-                            if (best_value < futility_value)
-                            {
-                                best_value = futility_value;
-                            }
+                            best_value = std::max (futility_value, best_value);
                             continue;
                         }
                     }
@@ -677,10 +674,7 @@ namespace Searcher {
                     if (   futility_base <= alfa
                         && !pos.see_ge (move, Value(1)))
                     {
-                        if (best_value < futility_base)
-                        {
-                            best_value = futility_base;
-                        }
+                        best_value = std::max (futility_base, best_value);
                         continue;
                     }
                 }
@@ -817,10 +811,7 @@ namespace Searcher {
             if (PVNode)
             {
                 // Used to send sel_depth info to GUI (sel_depth from 1, ply from 0)
-                if (thread->sel_depth < ss->ply + 1)
-                {
-                    thread->sel_depth = ss->ply + 1;
-                }
+                thread->sel_depth = std::max (i16(ss->ply + 1), thread->sel_depth);
             }
 
             Value value;
@@ -838,7 +829,7 @@ namespace Searcher {
                 {
                     return ss->ply >= MaxDepth
                         && !in_check ?
-                                evaluate (pos) - sign ((ss-1)->stats) * 10 :
+                                evaluate (pos) :
                                 VALUE_DRAW;
                 }
 
