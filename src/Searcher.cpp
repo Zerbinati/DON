@@ -425,7 +425,7 @@ namespace Searcher {
         /// update_continuation_histories() updates tables of the move pairs with current move.
         void update_continuation_histories (Stack *const &ss, Piece pc, Square dst, i32 bonus)
         {
-            for (auto *s : { ss-1, ss-2, ss-4 })
+            for (const auto *const &s : { ss-1, ss-2, ss-4 })
             {
                 if (_ok (s->played_move))
                 {
@@ -1923,7 +1923,7 @@ void Thread::search ()
 
                     // If the best_move is stable over several iterations, reduce time accordingly
                     double time_reduction = 1.00;
-                    for (auto i : { 3, 4, 5 })
+                    for (const auto i : { 3, 4, 5 })
                     {
                         if (main_thread->best_move_depth * i < finished_depth)
                         {

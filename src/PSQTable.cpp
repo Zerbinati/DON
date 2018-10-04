@@ -83,11 +83,11 @@ Score PSQ[CLR_NO][NONE][SQ_NO];
 Score compute_psq (const Position &pos)
 {
     auto psq = SCORE_ZERO;
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (auto s : pos.squares[c][pt])
+            for (const auto &s : pos.squares[c][pt])
             {
                 psq += PSQ[c][pt][s];
             }
@@ -99,10 +99,10 @@ Score compute_psq (const Position &pos)
 /// psq_initialize() initializes psq lookup tables.
 void psq_initialize ()
 {
-    for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+    for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
         const auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
-        for (auto s : SQ)
+        for (const auto &s : SQ)
         {
             const auto psq = p + HPSQ[pt][_rank (s)][std::min (_file (s), ~_file (s))];
             PSQ[WHITE][pt][ s] = +psq;

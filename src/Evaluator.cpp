@@ -169,8 +169,8 @@ namespace {
 
         const Position &pos;
 
-        Pawns::Entry *pe = nullptr;
-        Material::Entry *me = nullptr;
+        Pawns::Entry *pe;
+        Material::Entry *me;
 
         Bitboard mob_area[CLR_NO];
         Score    mobility[CLR_NO];
@@ -303,7 +303,7 @@ namespace {
 
         auto score = SCORE_ZERO;
 
-        for (auto s : pos.squares[Own][PT])
+        for (const auto &s : pos.squares[Own][PT])
         {
             assert(pos[s] == (Own|PT));
             Bitboard attacks;

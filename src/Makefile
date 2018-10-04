@@ -39,9 +39,9 @@ endif
 # Flag                --- Comp switch      --- Description
 # ----------------------------------------------------------------------------
 #
-# sanitize =*no           (-fsanitize)
-#           *undefined--- (undefined)      --- Enable undefined behavior checks
-#           *thread   --- (thread)         --- Enable threading error checks
+# sanitize =no            (-fsanitize)
+#           undefined --- (undefined)      --- Enable undefined behavior checks
+#           thread    --- (thread)         --- Enable threading error checks
 # debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
 # optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch    = (name)    --- (-arch)          --- Target architecture

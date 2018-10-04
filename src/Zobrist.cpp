@@ -9,9 +9,9 @@ using namespace std;
 Key Zobrist::compute_matl_key (const Position &pos) const
 {
     Key matl_key = 0;
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             for (u08 pc = 0; pc < pos.count (c, pt); ++pc)
             {
@@ -26,9 +26,9 @@ Key Zobrist::compute_pawn_key (const Position &pos) const
 {
     Key pawn_key = piece_square[WHITE][KING][0]
                  ^ piece_square[BLACK][KING][0]; // Zero Pawn key
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto s : pos.squares[c][PAWN])
+        for (const auto &s : pos.squares[c][PAWN])
         {
             pawn_key ^= piece_square[c][PAWN][s];
         }
@@ -39,11 +39,11 @@ Key Zobrist::compute_pawn_key (const Position &pos) const
 Key Zobrist::compute_posi_key (const Position &pos) const
 {
     Key posi_key = 0;
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (auto s : pos.squares[c][pt])
+            for (const auto &s : pos.squares[c][pt])
             {
                 posi_key ^= piece_square[c][pt][s];
             }
@@ -165,24 +165,24 @@ void zobrist_initialize ()
     static PRNG prng (0x105524);
 
     // Initialize Random Zobrist
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (auto s : SQ)
+            for (const auto &s : SQ)
             {
                 RandZob.piece_square[c][pt][s] = prng.rand<Key> ();
             }
         }
     }
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto cs : { CS_KING, CS_QUEN })
+        for (const auto &cs : { CS_KING, CS_QUEN })
         {
             RandZob.castle_right[c][cs] = prng.rand<Key> ();
         }
     }
-    for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+    for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
     {
         RandZob.enpassant[f] = prng.rand<Key> ();
     }

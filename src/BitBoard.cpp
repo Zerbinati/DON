@@ -119,7 +119,7 @@ namespace BitBoard {
 #       endif
 
             u32 offset = 0;
-            for (auto s : SQ)
+            for (const auto &s : SQ)
             {
                 auto &magic = magics[s];
 
@@ -213,7 +213,7 @@ namespace BitBoard {
         assert((Color_bb[WHITE] & Color_bb[BLACK]) == 0
             && (Color_bb[WHITE] | Color_bb[BLACK]) == (Color_bb[WHITE] ^ Color_bb[BLACK]));
 
-        //for (auto s : SQ)
+        //for (const auto &s : SQ)
         //{
         //    //Square_bb[s] = U64(1) << s;
         //    BSF_Table[bsf_index (Square_bb[s])] = s;
@@ -230,9 +230,9 @@ namespace BitBoard {
         }
 #   endif
 
-        for (auto s1 : SQ)
+        for (const auto &s1 : SQ)
         {
-            for (auto s2 : SQ)
+            for (const auto &s2 : SQ)
             {
                 if (s1 != s2)
                 {
@@ -242,9 +242,9 @@ namespace BitBoard {
             }
         }
 
-        for (auto c : { WHITE, BLACK })
+        for (const auto &c : { WHITE, BLACK })
         {
-            for (auto s : SQ)
+            for (const auto &s : SQ)
             {
                 FrontLine_bb  [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
                 PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (s)] & AdjFile_bb[_file (s)];
@@ -252,12 +252,12 @@ namespace BitBoard {
             }
         }
 
-        for (auto s : SQ)
+        for (const auto &s : SQ)
         {
             u08 k;
             Delta del;
 
-            for (auto c : { WHITE, BLACK })
+            for (const auto &c : { WHITE, BLACK })
             {
                 k = 0;
                 while (DEL_O != (del = PawnDeltas[c][k++]))
@@ -308,9 +308,9 @@ namespace BitBoard {
         initialize_table (RTable, RMagics, PieceDeltas[ROOK]);
 
         // NOTE:: must be after initialize Bishop & Rook Table
-        for (auto s1 : SQ)
+        for (const auto &s1 : SQ)
         {
-            for (auto s2 : SQ)
+            for (const auto &s2 : SQ)
             {
                 if (s1 != s2)
                 {
@@ -341,10 +341,10 @@ namespace BitBoard {
     {
         ostringstream oss;
         oss << " /---------------\\\n";
-        for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+        for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
         {
             oss << to_char (r) << "|";
-            for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+            for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
             {
                 oss << (contains (bb, f|r) ? "+" : "-");
                 if (f < F_H)
@@ -355,7 +355,7 @@ namespace BitBoard {
             oss << "|\n";
         }
         oss << " \\---------------/\n ";
-        for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+        for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
             oss << " " << to_char (f, false);
         }

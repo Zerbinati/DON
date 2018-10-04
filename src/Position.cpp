@@ -19,7 +19,7 @@ namespace {
     Value compute_npm (const Position &pos)
     {
         auto npm = VALUE_ZERO;
-        for (auto pt : { NIHT, BSHP, ROOK, QUEN })
+        for (const auto &pt : { NIHT, BSHP, ROOK, QUEN })
         {
             npm += PieceValues[MG][pt] * pos.count (Own, pt);
         }
@@ -55,13 +55,13 @@ void Position::initialize ()
     // Prepare the Cuckoo tables
     std::memset (Cuckoos, 0, sizeof (Cuckoos));
     u16 count = 0;
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto pt : { NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt : { NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (auto s1 : SQ)
+            for (const auto &s1 : SQ)
             {
-                for (auto s2 : SQ)
+                for (const auto &s2 : SQ)
                 {
                     if (   s1 < s2
                         && contains (PieceAttacks[pt][s1], s2))
@@ -657,19 +657,19 @@ bool Position::gives_check (Move m) const
 /// Position::clear() clear the position.
 void Position::clear ()
 {
-    for (auto s : SQ)
+    for (const auto &s : SQ)
     {
         piece[s] = NO_PIECE;
         castle_mask[s] = CR_NONE;
     }
-    for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING, NONE })
+    for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING, NONE })
     {
         type_bb[pt] = 0;
     }
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
         color_bb[c] = 0;
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             squares[c][pt].clear ();
         }
@@ -1255,7 +1255,7 @@ void Position::flip ()
     istringstream iss (fen ());
     string ff, token;
     // 1. Piece placement
-    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         std::getline (iss, token, r > R_1 ? '/' : ' ');
         toggle (token);
@@ -1295,7 +1295,7 @@ void Position::mirror ()
     istringstream iss (fen ());
     string ff, token;
     // 1. Piece placement
-    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         std::getline (iss, token, r > R_1 ? '/' : ' ');
         std::reverse (token.begin (), token.end ());
@@ -1354,7 +1354,7 @@ string Position::fen (bool full) const
 {
     ostringstream oss;
 
-    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         for (auto f = F_A; f <= F_H; ++f)
         {
@@ -1406,16 +1406,16 @@ Position::operator string () const
 {
     ostringstream oss;
     oss << " +---+---+---+---+---+---+---+---+\n";
-    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         oss << to_char (r) << "| ";
-        for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+        for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
             oss << piece[f|r] << " | ";
         }
         oss << "\n +---+---+---+---+---+---+---+---+\n";
     }
-    for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+    for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
     {
         oss << "   " << to_char (f, false);
     }
@@ -1467,7 +1467,7 @@ bool Position::ok () const
         assert(false && "Position OK: BASIC");
         return false;
     }
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
         if (   16 < count (c)
             || count (c) != pop_count (pieces (c))
@@ -1498,9 +1498,9 @@ bool Position::ok () const
         assert(false && "Position OK: BITBOARD");
         return false;
     }
-    for (auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+    for (const auto &pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        for (auto pt2 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt2 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             if (   pt1 != pt2
                 && 0 != (pieces (pt1) & pieces (pt2)))
@@ -1510,7 +1510,7 @@ bool Position::ok () const
             }
         }
     }
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
         if (   1 != pop_count (pieces (c, KING))
             || (           (pop_count (pieces (c, PAWN))
@@ -1540,9 +1540,9 @@ bool Position::ok () const
     }
 
     // SQUARE_LIST
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             if (count (c, pt) != pop_count (pieces (c, pt)))
             {
@@ -1561,7 +1561,7 @@ bool Position::ok () const
         }
     }
     // CASTLING
-    for (auto c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
         for (auto cs : { CS_KING, CS_QUEN })
         {

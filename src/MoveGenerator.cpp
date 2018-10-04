@@ -26,7 +26,7 @@ namespace {
         }
         if (0 != targets)
         {
-            for (auto s : pos.squares[pos.active][PT])
+            for (const auto &s : pos.squares[pos.active][PT])
             {
                 if (   (   GenType::CHECK == GT
                         || GenType::QUIET_CHECK == GT)

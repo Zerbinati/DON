@@ -74,7 +74,7 @@ namespace Pawns {
             auto score = SCORE_ZERO;
 
             Bitboard b;
-            for (auto s : pos.squares[Own][PAWN])
+            for (const auto &s : pos.squares[Own][PAWN])
             {
                 assert(pos[s] == (Own|PAWN));
 
@@ -173,7 +173,7 @@ namespace Pawns {
                         Value(5);
 
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
-        for (auto f : { kf - File(1), kf, kf + File(1) })
+        for (const auto &f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);
             Bitboard f_own_front_pawns = own_front_pawns & file_bb (f);
@@ -225,7 +225,7 @@ namespace Pawns {
             {
                 for (i08 support = 0; support < 3; ++support)
                 {
-                    for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
+                    for (const auto &r : { R_2, R_3, R_4, R_5, R_6, R_7 })
                     {
                         i32 v = 17 * support + ((Seeds[r] + (0 != phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
                         Connected[opposed][phalanx][support][r] = mk_score (v, v * (r-2) / 4);

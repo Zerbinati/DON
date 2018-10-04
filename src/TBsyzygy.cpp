@@ -452,9 +452,9 @@ namespace TBSyzygy {
             piece_count = pos.count ();
             has_pawns = 0 != pos.count (PAWN);
             has_unique_pieces = false;
-            for (auto c : { WHITE, BLACK })
+            for (const auto &c : { WHITE, BLACK })
             {    
-                for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
+                for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
                 {
                     if (1 == pos.count (c, pt))
                     {
@@ -1355,7 +1355,7 @@ namespace TBSyzygy {
 
             // Pieces strings in decreasing order for each color, like ("KPP","KR")
             string w, b;
-            for (auto pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
+            for (const auto &pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
             {
                 w += string(pos.count (WHITE, pt), PieceChar[pt]);
                 b += string(pos.count (BLACK, pt), PieceChar[pt]);
@@ -1724,7 +1724,7 @@ namespace TBSyzygy {
         {
             // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
             i32 code = 0;
-            for (auto s : SQ)
+            for (const auto &s : SQ)
             {
                 if (off_A1H8 (s) < 0)
                 {
@@ -1734,10 +1734,10 @@ namespace TBSyzygy {
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
             code = 0;
             vector<Square> diagonal;
-            for (auto s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
-                            SQ_A2, SQ_B2, SQ_C2, SQ_D2,
-                            SQ_A3, SQ_B3, SQ_C3, SQ_D3,
-                            SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
+            for (const auto &s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+                                   SQ_A2, SQ_B2, SQ_C2, SQ_D2,
+                                   SQ_A3, SQ_B3, SQ_C3, SQ_D3,
+                                   SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
             {
                 if (off_A1H8 (s) < 0)
                 {
@@ -1760,15 +1760,15 @@ namespace TBSyzygy {
             code = 0;
             for (i32 idx = 0; idx < 10; ++idx)
             {
-                for (auto s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
-                                 SQ_A2, SQ_B2, SQ_C2, SQ_D2,
-                                 SQ_A3, SQ_B3, SQ_C3, SQ_D3,
-                                 SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
+                for (const auto &s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+                                        SQ_A2, SQ_B2, SQ_C2, SQ_D2,
+                                        SQ_A3, SQ_B3, SQ_C3, SQ_D3,
+                                        SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
                 {
                     if (   MapA1D1D4[s1] == idx
                         && (0 != idx || SQ_B1 == s1)) // SQ_B1 is mapped to 0
                     {
-                        for (auto s2 : SQ)
+                        for (const auto &s2 : SQ)
                         {
                             if (contains (PieceAttacks[KING][s1] | s1, s2))
                             {
@@ -1822,7 +1822,7 @@ namespace TBSyzygy {
             // with 6-men TB can have up to 4 leading pawns (KPPPPK).
             for (i32 lead_pawn_count = 1; lead_pawn_count <= 4; ++lead_pawn_count)
             {
-                for (auto f : { F_A, F_B, F_C, F_D })
+                for (const auto &f : { F_A, F_B, F_C, F_D })
                 {
                     // Restart the index at every file because TB table is splitted
                     // by file, so we can reuse the same index for different files.
@@ -1830,7 +1830,7 @@ namespace TBSyzygy {
 
                     // Sum all possible combinations for a given file, starting with
                     // the leading pawn on rank 2 and increasing the rank.
-                    for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
+                    for (const auto &r : { R_2, R_3, R_4, R_5, R_6, R_7 })
                     {
                         auto sq = f|r;
 
