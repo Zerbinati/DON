@@ -313,24 +313,6 @@ namespace BitBoard {
         }
     }
 
-    inline Bitboard sliding_attacks (const Delta *deltas, Square s, Bitboard occ = 0)
-    {
-        Bitboard slide_attacks = 0;
-        while (DEL_O != *deltas)
-        {
-            for (auto sq = s + *deltas; _ok (sq) && 1 == dist (sq, sq - *deltas); sq += *deltas)
-            {
-                slide_attacks |= sq;
-                if (contains (occ, sq))
-                {
-                    break;
-                }
-            }
-            ++deltas;
-        }
-        return slide_attacks;
-    }
-    
     /// attacks_bb(s, occ) takes a square and a bitboard of occupied squares,
     /// and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
     template<PieceType PT> Bitboard attacks_bb (Square, Bitboard);
@@ -611,6 +593,8 @@ namespace BitBoard {
 //#   endif
         return sq;
     }
+
+    extern Bitboard sliding_attacks (PieceType pt, Square s, Bitboard occ = 0);
 
     extern void initialize ();
 

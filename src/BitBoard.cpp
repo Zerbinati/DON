@@ -33,17 +33,17 @@ namespace BitBoard {
 
         constexpr Delta PawnDeltas[CLR_NO][3] =
         {
-            { DEL_NW, DEL_NE, DEL_O },
-            { DEL_SE, DEL_SW, DEL_O },
+            { DEL_NW, DEL_NE },
+            { DEL_SE, DEL_SW },
         };
         constexpr Delta PieceDeltas[NONE][9] =
         {
-            { DEL_O },
-            { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE, DEL_O },
-            { DEL_SW, DEL_SE, DEL_NW, DEL_NE, DEL_O },
-            { DEL_S, DEL_W, DEL_E, DEL_N, DEL_O },
-            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
-            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
+            { },
+            { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
+            { DEL_SW, DEL_SE, DEL_NW, DEL_NE },
+            { DEL_S, DEL_W, DEL_E, DEL_N },
+            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
+            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
         };
 
 //        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
@@ -101,7 +101,7 @@ namespace BitBoard {
         /// Magic bitboards are used to look up attacks of sliding pieces.
         /// As a reference see chessprogramming.wikispaces.com/Magic+Bitboards.
         /// In particular, here we use the so called "fancy" approach.
-        void initialize_table (Bitboard *const table, Magic *const magics, const Delta *const deltas)
+        void initialize_table (PieceType pt, Bitboard *const table, Magic *const magics)
         {
 
 #       if !defined(BM2)
@@ -131,7 +131,7 @@ namespace BitBoard {
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                magic.mask = sliding_attacks (deltas, s)
+                magic.mask = sliding_attacks (pt, s)
                             // Board edges are not considered in the relevant occupancies
                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
 
@@ -153,10 +153,10 @@ namespace BitBoard {
                 do
                 {
 #               if defined(BM2)
-                    magic.attacks[PEXT(occ, magic.mask)] = sliding_attacks (deltas, s, occ);
+                    magic.attacks[PEXT(occ, magic.mask)] = sliding_attacks (pt, s, occ);
 #               else
                     occupancy[size] = occ;
-                    reference[size] = sliding_attacks (deltas, s, occ);
+                    reference[size] = sliding_attacks (pt, s, occ);
 #               endif
 
                     ++size;
@@ -208,6 +208,23 @@ namespace BitBoard {
 
     }
 
+    Bitboard sliding_attacks (PieceType pt, Square s, Bitboard occ)
+    {
+        Bitboard slide_attacks = 0;
+        for (auto del : PieceDeltas[pt])
+        {
+            for (auto sq = s + del; _ok (sq) && 1 == dist (sq, sq - del); sq += del)
+            {
+                slide_attacks |= sq;
+                if (contains (occ, sq))
+                {
+                    break;
+                }
+            }
+        }
+        return slide_attacks;
+    }
+
     void initialize ()
     {
         assert((Color_bb[WHITE] & Color_bb[BLACK]) == 0
@@ -254,13 +271,9 @@ namespace BitBoard {
 
         for (const auto &s : SQ)
         {
-            u08 k;
-            Delta del;
-
             for (const auto &c : { WHITE, BLACK })
             {
-                k = 0;
-                while (DEL_O != (del = PawnDeltas[c][k++]))
+                for (auto del : PawnDeltas[c])
                 {
                     auto sq = s + del;
                     if (   _ok (sq)
@@ -271,41 +284,35 @@ namespace BitBoard {
                 }
             }
 
-            PieceType pt;
-
-            pt = NIHT;
-            k = 0;
-            while (DEL_O != (del = PieceDeltas[pt][k++]))
+            for (auto del : PieceDeltas[NIHT])
             {
                 auto sq = s + del;
                 if (   _ok (sq)
                     && 2 == dist (s, sq))
                 {
-                    PieceAttacks[pt][s] |= sq;
+                    PieceAttacks[NIHT][s] |= sq;
                 }
             }
 
-            pt = KING;
-            k = 0;
-            while (DEL_O != (del = PieceDeltas[pt][k++]))
+            for (auto del : PieceDeltas[KING])
             {
                 auto sq = s + del;
                 if (   _ok (sq)
                     && 1 == dist (s, sq))
                 {
-                    PieceAttacks[pt][s] |= sq;
+                    PieceAttacks[KING][s] |= sq;
                 }
             }
 
-            PieceAttacks[BSHP][s] = sliding_attacks (PieceDeltas[BSHP], s);
-            PieceAttacks[ROOK][s] = sliding_attacks (PieceDeltas[ROOK], s);
+            PieceAttacks[BSHP][s] = sliding_attacks (BSHP, s);
+            PieceAttacks[ROOK][s] = sliding_attacks (ROOK, s);
             PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s]
                                   | PieceAttacks[ROOK][s];
         }
 
         // Initialize Bishop & Rook Table
-        initialize_table (BTable, BMagics, PieceDeltas[BSHP]);
-        initialize_table (RTable, RMagics, PieceDeltas[ROOK]);
+        initialize_table (BSHP, BTable, BMagics);
+        initialize_table (ROOK, RTable, RMagics);
 
         // NOTE:: must be after initialize Bishop & Rook Table
         for (const auto &s1 : SQ)
