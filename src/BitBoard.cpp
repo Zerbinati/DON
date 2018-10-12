@@ -31,12 +31,12 @@ namespace BitBoard {
 
     namespace {
 
-        constexpr Delta PawnDeltas[CLR_NO][3] =
+        constexpr Delta PawnDeltas[CLR_NO][2] =
         {
             { DEL_NW, DEL_NE },
             { DEL_SE, DEL_SW },
         };
-        constexpr Delta PieceDeltas[NONE][9] =
+        constexpr Delta PieceDeltas[NONE][8] =
         {
             { },
             { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
@@ -46,7 +46,7 @@ namespace BitBoard {
             { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
         };
 
-//        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
+//        // De Bruijn sequences.
 //#   if defined(BIT64)
 //        constexpr u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
 //#   else
@@ -99,7 +99,6 @@ namespace BitBoard {
 
         /// Initialize all bishop and rook attacks at startup.
         /// Magic bitboards are used to look up attacks of sliding pieces.
-        /// As a reference see chessprogramming.wikispaces.com/Magic+Bitboards.
         /// In particular, here we use the so called "fancy" approach.
         void initialize_table (PieceType pt, Bitboard *const table, Magic *const magics)
         {
@@ -123,7 +122,7 @@ namespace BitBoard {
             {
                 auto &magic = magics[s];
 
-                // attacks_bb[s] is a pointer to the beginning of the attacks table for square
+                // magics[s].attacks is a pointer to the beginning of the attacks table for square
                 magic.attacks = &table[offset];
 
                 // Given a square, the mask is the bitboard of sliding attacks from
@@ -145,8 +144,7 @@ namespace BitBoard {
                     - u08(pop_count (magic.mask));
 #           endif
 
-                // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
-                // store the corresponding sliding attack bitboard in reference[].
+                // Use Carry-Rippler trick to enumerate all subsets of magics[s].mask
                 // Have individual table sizes for each square with "Fancy Magic Bitboards".
                 u32 size = 0;
                 Bitboard occ = 0;
@@ -156,6 +154,7 @@ namespace BitBoard {
                     magic.attacks[PEXT(occ, magic.mask)] = slide_attacks (pt, s, occ);
 #               else
                     occupancy[size] = occ;
+                    // Store the corresponding slide attack bitboard in reference[].
                     reference[size] = slide_attacks (pt, s, occ);
 #               endif
 
@@ -180,9 +179,8 @@ namespace BitBoard {
                     }
 
                     // A good magic must map every possible occupancy to an index that
-                    // looks up the correct sliding attack in the attacks_bb[s] database.
-                    // Note that build up the database for square as a side
-                    // effect of verifying the magic.
+                    // looks up the correct slide attack in the magics[s].attacks database.
+                    // Note that build up the database for square as a side effect of verifying the magic.
                     bool used[MaxIndex] = {false};
                     for (i = 0; i < size; ++i)
                     {
