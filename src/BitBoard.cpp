@@ -135,13 +135,13 @@ namespace BitBoard {
                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
 
 #           if !defined(BM2)
-                magic.shift =
+                magic.shift = u08(
 #               if defined(BIT64)
                     64
 #               else
                     32
 #               endif
-                    - u08(pop_count (magic.mask));
+                    - pop_count (magic.mask));
 #           endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of magics[s].mask
@@ -181,7 +181,7 @@ namespace BitBoard {
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct slide attack in the magics[s].attacks database.
                     // Note that build up the database for square as a side effect of verifying the magic.
-                    bool used[MaxIndex] = {false};
+                    auto used = std::make_unique<bool[]> (size);
                     for (i = 0; i < size; ++i)
                     {
                         u16 idx = magic.index (occupancy[i]);
