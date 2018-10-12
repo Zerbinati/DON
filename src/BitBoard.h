@@ -441,9 +441,9 @@ namespace BitBoard {
         assert(0 != bb);
         return
 #   if defined(BIT64)
-        Square(i08(SQ_H8) ^ __builtin_clzll (bb));
+        Square(__builtin_clzll (bb) ^ i08(SQ_H8));
 #   else
-        Square(0 != (i08(SQ_H8) ^ (u32(bb >> 0x20)) ?
+        Square(0 != ((u32(bb >> 0x20) ^ i08(SQ_H8)) ?
                 __builtin_clz (bb >> 0x20) :
                 __builtin_clz (bb >> 0x00) + 0x20));
 #   endif
@@ -594,7 +594,7 @@ namespace BitBoard {
         return sq;
     }
 
-    extern Bitboard sliding_attacks (PieceType pt, Square s, Bitboard occ = 0);
+    extern Bitboard slide_attacks (PieceType, Square, Bitboard = 0);
 
     extern void initialize ();
 

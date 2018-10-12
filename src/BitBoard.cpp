@@ -131,7 +131,7 @@ namespace BitBoard {
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                magic.mask = sliding_attacks (pt, s)
+                magic.mask = slide_attacks (pt, s)
                             // Board edges are not considered in the relevant occupancies
                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
 
@@ -153,10 +153,10 @@ namespace BitBoard {
                 do
                 {
 #               if defined(BM2)
-                    magic.attacks[PEXT(occ, magic.mask)] = sliding_attacks (pt, s, occ);
+                    magic.attacks[PEXT(occ, magic.mask)] = slide_attacks (pt, s, occ);
 #               else
                     occupancy[size] = occ;
-                    reference[size] = sliding_attacks (pt, s, occ);
+                    reference[size] = slide_attacks (pt, s, occ);
 #               endif
 
                     ++size;
@@ -208,21 +208,22 @@ namespace BitBoard {
 
     }
 
-    Bitboard sliding_attacks (PieceType pt, Square s, Bitboard occ)
+    Bitboard slide_attacks (PieceType pt, Square s, Bitboard occ)
     {
-        Bitboard slide_attacks = 0;
+        assert(BSHP <= pt && pt <= QUEN);
+        Bitboard attacks = 0;
         for (auto del : PieceDeltas[pt])
         {
             for (auto sq = s + del; _ok (sq) && 1 == dist (sq, sq - del); sq += del)
             {
-                slide_attacks |= sq;
+                attacks |= sq;
                 if (contains (occ, sq))
                 {
                     break;
                 }
             }
         }
-        return slide_attacks;
+        return attacks;
     }
 
     void initialize ()
@@ -304,8 +305,8 @@ namespace BitBoard {
                 }
             }
 
-            PieceAttacks[BSHP][s] = sliding_attacks (BSHP, s);
-            PieceAttacks[ROOK][s] = sliding_attacks (ROOK, s);
+            PieceAttacks[BSHP][s] = slide_attacks (BSHP, s);
+            PieceAttacks[ROOK][s] = slide_attacks (ROOK, s);
             PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s]
                                   | PieceAttacks[ROOK][s];
         }
