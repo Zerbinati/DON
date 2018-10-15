@@ -105,11 +105,11 @@ namespace {
 
     constexpr Score MinorThreat[NONE] =
     {
-        S( 0,31), S(39,42), S(57,44), S(68,112), S(47,120), S( 0, 0)
+        S( 0,31), S(39,42), S(57,44), S(68,112), S(62,120), S( 0, 0)
     };
     constexpr Score MajorThreat[NONE] =
     {
-        S( 0,24), S(38,71), S(38,61), S( 0, 38), S(36, 38), S( 0, 0)
+        S( 0,24), S(38,71), S(38,61), S( 0, 38), S(51, 38), S( 0, 0)
     };
 
     constexpr Score PasserFile[F_NO/2] =
@@ -628,7 +628,7 @@ namespace {
             king_danger +=  1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
                         +  69 * king_attacks_count[Opp]
                         + 185 * pop_count (king_ring[Own] & weak_area)
-                        + 129 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
+                        + 150 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
                         +   4 * tropism
                         -   6 * safety / 8
                         -  30;
@@ -700,11 +700,6 @@ namespace {
                 {
                     score += RankThreat * rel_rank (Opp, s);
                 }
-                else
-                if (contains (pos.si->king_blockers[Opp], s))
-                {
-                    score += RankThreat * rel_rank (Opp, s) / 2;
-                }
             }
 
             if (0 != attacked_weak_enemies)
@@ -720,11 +715,6 @@ namespace {
                     if (PAWN != pt)
                     {
                         score += RankThreat * rel_rank (Opp, s);
-                    }
-                    else
-                    if (contains (pos.si->king_blockers[Opp], s))
-                    {
-                        score += RankThreat * rel_rank (Opp, s) / 2;
                     }
                 }
                 // Enemies attacked by king

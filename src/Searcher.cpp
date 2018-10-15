@@ -422,6 +422,12 @@ namespace Searcher {
             return depth < 18 ? (29*depth + 138)*depth - 134 : 0;
         }
 
+        // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
+        Value value_draw (i16 depth, Thread* thread)
+        {
+            return VALUE_DRAW + (depth < 4 ? 0 : 2 * i32(thread->nodes.load (std::memory_order_relaxed) % 2) - 1);
+        }
+
         /// update_continuation_histories() updates tables of the move pairs with current move.
         void update_continuation_histories (Stack *const &ss, Piece pc, Square dst, i32 bonus)
         {
@@ -465,7 +471,7 @@ namespace Searcher {
             assert(VALUE_NONE != v);
             return v >= +VALUE_MATE_MAX_PLY ? v + ply :
                    v <= -VALUE_MATE_MAX_PLY ? v - ply :
-                   v;
+                                              v;
         }
         /// It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
         /// Non-mate scores are unchanged.
@@ -475,7 +481,7 @@ namespace Searcher {
             return v ==  VALUE_NONE         ? VALUE_NONE :
                    v >= +VALUE_MATE_MAX_PLY ? v - ply :
                    v <= -VALUE_MATE_MAX_PLY ? v + ply :
-                   v;
+                                              v;
         }
 
         /// quien_search() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
@@ -778,7 +784,7 @@ namespace Searcher {
                 && pos.si->clock_ply >= 3
                 && pos.cycled (ss->ply))
             {
-                alfa = VALUE_DRAW;
+                alfa = value_draw (depth, pos.thread);
                 if (alfa >= beta)
                 {
                     return alfa;
@@ -830,7 +836,7 @@ namespace Searcher {
                     return ss->ply >= MaxDepth
                         && !in_check ?
                                 evaluate (pos) :
-                                VALUE_DRAW;
+                                value_draw (depth, pos.thread);
                 }
 
                 // Step 3. Mate distance pruning.
@@ -1070,7 +1076,7 @@ namespace Searcher {
                     && VALUE_ZERO != pos.si->non_pawn_material (own)
                     && (ss-1)->stats < 23200
                     && eval >= beta
-                    && ss->static_eval + 36*depth - 225 >= beta
+                    && tt_eval + 36*depth - 225 >= beta
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != own))
                 {
@@ -1206,7 +1212,8 @@ namespace Searcher {
                          && tt_hit
                          && BOUND_EXACT == tte->bound ();
 
-            bool ttm_capture = false;
+            bool ttm_capture = MOVE_NONE != tt_move
+                            && pos.capture_or_promotion (tt_move);
 
             u08 move_count = 0;
 
@@ -1281,7 +1288,6 @@ namespace Searcher {
 
                 // Check extension (CE) (~2 ELO)
                 if (   gives_check
-                    && !move_count_pruning
                     && pos.see_ge (move))
                 {
                     extension = DepthOne;
@@ -1359,12 +1365,6 @@ namespace Searcher {
                     {
                         continue;
                     }
-                }
-
-                if (   move == tt_move
-                    && capture_or_promotion)
-                {
-                    ttm_capture = true;
                 }
 
                 // Speculative prefetch as early as possible
@@ -1552,6 +1552,13 @@ namespace Searcher {
                                 alfa = value;
                             }
                         }
+                    }
+                    else
+                    if (   PVNode
+                        && !root_node
+                        && value == alfa)
+                    {
+                        update_pv (ss->pv, move, (ss+1)->pv);
                     }
                 }
 
