@@ -1,5 +1,6 @@
 #include "BitBoard.h"
 
+#include <memory>
 #include "PRNG.h"
 #include "Notation.h"
 
@@ -86,21 +87,19 @@ namespace BitBoard {
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32 = 4 * 0x200 + 4 * 0x40 + 12 * 0x80 + 32 * 0x20
         //    2048 +     256 +     1536 +     1408 =     0x800 +    0x100 +     0x600 +     0x580
         //                                    5248 =                                       0x1480
-        constexpr u32 MaxBTSize = U32(0x1480);
-        Bitboard BTable[MaxBTSize];
+        Bitboard BAttacks[0x1480];
 
         // Max Rook Table Size
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024 = 4 * 0x1000 + 24 * 0x800 + 36 * 0x400
         //    16384 +     49152 +     36864 =     0x4000 +     0xC000 +     0x9000
         //                           102400 =                              0x19000
-        constexpr u32 MaxRTSize = U32(0x19000);
-        Bitboard RTable[MaxRTSize];
+        Bitboard RAttacks[0x19000];
 
         /// Initialize all bishop and rook attacks at startup.
         /// Magic bitboards are used to look up attacks of sliding pieces.
         /// In particular, here we use the so called "fancy" approach.
-        void initialize_table (PieceType pt, Bitboard *const table, Magic *const magics)
+        void initialize_table (PieceType pt, Bitboard *const attacks, Magic *const magics)
         {
 
 #       if !defined(BM2)
@@ -123,7 +122,7 @@ namespace BitBoard {
                 auto &magic = magics[s];
 
                 // magics[s].attacks is a pointer to the beginning of the attacks table for square
-                magic.attacks = &table[offset];
+                magic.attacks = &attacks[offset];
 
                 // Given a square, the mask is the bitboard of sliding attacks from
                 // computed on an empty board. The index must be big enough to contain
@@ -310,8 +309,8 @@ namespace BitBoard {
         }
 
         // Initialize Bishop & Rook Table
-        initialize_table (BSHP, BTable, BMagics);
-        initialize_table (ROOK, RTable, RMagics);
+        initialize_table (BSHP, BAttacks, BMagics);
+        initialize_table (ROOK, RAttacks, RMagics);
 
         // NOTE:: must be after initialize Bishop & Rook Table
         for (const auto &s1 : SQ)
