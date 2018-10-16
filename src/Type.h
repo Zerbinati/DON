@@ -180,30 +180,30 @@ enum Delta : i08
     DEL_E =  001,
     DEL_N =  010,
     
-    DEL_W = -i08(DEL_E),
-    DEL_S = -i08(DEL_N),
+    DEL_W = -DEL_E,
+    DEL_S = -DEL_N,
 
-    DEL_NN = i08(DEL_N) + i08(DEL_N),
-    DEL_EE = i08(DEL_E) + i08(DEL_E),
-    DEL_SS = i08(DEL_S) + i08(DEL_S),
-    DEL_WW = i08(DEL_W) + i08(DEL_W),
+    DEL_NN = DEL_N + DEL_N,
+    DEL_EE = DEL_E + DEL_E,
+    DEL_SS = DEL_S + DEL_S,
+    DEL_WW = DEL_W + DEL_W,
 
-    DEL_NE = i08(DEL_N) + i08(DEL_E),
-    DEL_SE = i08(DEL_S) + i08(DEL_E),
-    DEL_SW = i08(DEL_S) + i08(DEL_W),
-    DEL_NW = i08(DEL_N) + i08(DEL_W),
+    DEL_NE = DEL_N + DEL_E,
+    DEL_SE = DEL_S + DEL_E,
+    DEL_SW = DEL_S + DEL_W,
+    DEL_NW = DEL_N + DEL_W,
 
-    DEL_NNE = i08(DEL_NN) + i08(DEL_E),
-    DEL_NNW = i08(DEL_NN) + i08(DEL_W),
+    DEL_NNE = DEL_NN + DEL_E,
+    DEL_NNW = DEL_NN + DEL_W,
 
-    DEL_EEN = i08(DEL_EE) + i08(DEL_N),
-    DEL_EES = i08(DEL_EE) + i08(DEL_S),
+    DEL_EEN = DEL_EE + DEL_N,
+    DEL_EES = DEL_EE + DEL_S,
 
-    DEL_SSE = i08(DEL_SS) + i08(DEL_E),
-    DEL_SSW = i08(DEL_SS) + i08(DEL_W),
+    DEL_SSE = DEL_SS + DEL_E,
+    DEL_SSW = DEL_SS + DEL_W,
 
-    DEL_WWN = i08(DEL_WW) + i08(DEL_N),
-    DEL_WWS = i08(DEL_WW) + i08(DEL_S),
+    DEL_WWN = DEL_WW + DEL_N,
+    DEL_WWS = DEL_WW + DEL_S,
 };
 
 enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NO };
@@ -440,33 +440,33 @@ BITWISE_OPERATORS(Bound)
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-constexpr Color operator~ (Color c) { return Color(i08(c) ^ i08(BLACK)); }
+constexpr Color operator~ (Color c) { return Color(c ^ BLACK); }
 
-constexpr bool _ok       (File f) { return 0 == (i08(f) & ~i08(F_H)); }
-constexpr File operator~ (File f) { return File(i08(f) ^ i08(F_H)); }
+constexpr bool _ok       (File f) { return F_A <= f && f <= F_H; }
+constexpr File operator~ (File f) { return File(f ^ F_H); }
 constexpr File to_file   (char f) { return File(f - 'a'); }
 
-constexpr bool _ok       (Rank r) { return 0 == (i08(r) & ~i08(R_8)); }
-constexpr Rank operator~ (Rank r) { return Rank(i08(r) ^ i08(R_8)); }
+constexpr bool _ok       (Rank r) { return R_1 <= r && r <= R_8; }
+constexpr Rank operator~ (Rank r) { return Rank(r ^ R_8); }
 constexpr Rank to_rank   (char r) { return Rank(r - '1'); }
 
-constexpr Square operator| (File f, Rank r) { return Square((i08( r) << 3) + i08(f)); }
-constexpr Square operator| (Rank r, File f) { return Square((i08(~r) << 3) + i08(f)); }
+constexpr Square operator| (File f, Rank r) { return Square(( r << 3) + f); }
+constexpr Square operator| (Rank r, File f) { return Square((~r << 3) + f); }
 constexpr Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-constexpr bool _ok    (Square s) { return 0 == (i08(s) & ~i08(SQ_H8)); }
-constexpr File _file  (Square s) { return File(i08(s) & i08(F_H)); }
-constexpr Rank _rank  (Square s) { return Rank(i08(s) >> 3); }
-constexpr Color color (Square s) { return 0 != ((i08(s) ^ (i08(s) >> 3)) & 1) ? WHITE : BLACK; }
+constexpr bool _ok    (Square s) { return SQ_A1 <= s && s <= SQ_H8; }
+constexpr File _file  (Square s) { return File(s & 7); }
+constexpr Rank _rank  (Square s) { return Rank(s >> 3); }
+constexpr Color color (Square s) { return 0 != ((s ^ (s >> 3)) & 1) ? WHITE : BLACK; }
 
 // SQ_A1 -> SQ_A8
-constexpr Square operator~ (Square s) { return Square(i08(s) ^ i08(SQ_A8)); }
+constexpr Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
 // SQ_A1 -> SQ_H1
-constexpr Square operator! (Square s) { return Square(i08(s) ^ i08(SQ_H1)); }
+constexpr Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
-constexpr Square rel_sq (Color c, Square s) { return Square(i08(s) ^ (i08(c)*i08(SQ_A8))); }
+constexpr Square rel_sq (Color c, Square s) { return Square(s ^ (c*SQ_A8)); }
 
-constexpr Rank rel_rank (Color c, Rank r)   { return Rank(i08(r) ^ (i08(c)*i08(R_8))); }
+constexpr Rank rel_rank (Color c, Rank r)   { return Rank(r ^ (c*R_8)); }
 constexpr Rank rel_rank (Color c, Square s) { return rel_rank (c, _rank (s)); }
 
 inline bool opposite_colors (Square s1, Square s2)
@@ -535,22 +535,22 @@ inline CastleRight castle_right (Color c, CastleSide cs)
     }
 }
 
-constexpr Piece operator| (Color c, PieceType pt) { return Piece((i08(c) << 3) + pt); }
+constexpr Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
 
 constexpr bool _ok (Piece p)
 {
     return (W_PAWN <= p && p <= W_KING)
         || (B_PAWN <= p && p <= B_KING);
 }
-constexpr PieceType ptype (Piece p) { return PieceType(i08(p) & 7); }
-constexpr Color     color (Piece p) { return Color(i08(p) >> 3); }
-constexpr Piece operator~ (Piece p) { return Piece(i08(p) ^ 8); }
+constexpr PieceType ptype (Piece p) { return PieceType(p & 7); }
+constexpr Color     color (Piece p) { return Color(p >> 3); }
+constexpr Piece operator~ (Piece p) { return Piece(p ^ 8); }
 
-constexpr Square    org_sq  (Move m) { return Square((u16(m) >> 6) & i08(SQ_H8)); }
-constexpr Square    dst_sq  (Move m) { return Square((u16(m) >> 0) & i08(SQ_H8)); }
+constexpr Square    org_sq  (Move m) { return Square((m >> 6) & SQ_H8); }
+constexpr Square    dst_sq  (Move m) { return Square((m >> 0) & SQ_H8); }
 constexpr bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
-constexpr PieceType promote (Move m) { return PieceType(((u16(m) >> 12) & 3) + 1); }
-constexpr MoveType  mtype   (Move m) { return MoveType(u16(m) & u16(PROMOTE)); }
+constexpr PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + 1); }
+constexpr MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
 constexpr i16       move_pp (Move m) { return u16(m) & 0x0FFF; }
 inline    void      promote (Move &m, PieceType pt) { m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF)); }
 constexpr Square fix_dst_sq (Move m, bool chess960 = false)
@@ -562,8 +562,8 @@ constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 }
 
 template<MoveType MT>
-constexpr Move mk_move (Square org, Square dst)               { return Move(MT                                      + (i08(org) << 6) + i08(dst)); }
-constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((i08(pt) - i08(NIHT)) << 12) + (i08(org) << 6) + i08(dst)); }
+constexpr Move mk_move (Square org, Square dst)               { return Move(MT                         + (org << 6) + dst); }
+constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((pt - 1) << 12) + (org << 6) + dst); }
 
 constexpr i16   value_to_cp (Value v) { return i16(i32(v)*100/VALUE_EG_PAWN); }
 constexpr Value cp_to_value (i16  cp) { return Value(cp*VALUE_EG_PAWN/100); }
