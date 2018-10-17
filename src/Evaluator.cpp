@@ -705,8 +705,8 @@ namespace {
             if (0 != attacked_weak_enemies)
             {
                 // Enemies attacked by majors
-                b = attacked_weak_enemies
-                  & sgl_attacks[Own][ROOK];
+                b =  attacked_weak_enemies
+                  &  sgl_attacks[Own][ROOK];
                 while (0 != b)
                 {
                     auto s = pop_lsq (b);
@@ -718,22 +718,22 @@ namespace {
                     }
                 }
                 // Enemies attacked by king
-                b = attacked_weak_enemies
-                  & sgl_attacks[Own][KING];
+                b =  attacked_weak_enemies
+                  &  sgl_attacks[Own][KING];
                 if (0 != b)
                 {
                     score += KingThreat;
                 }
 
                 // Enemies attacked are hanging
-                b = attacked_weak_enemies
+                b =  attacked_weak_enemies
                   & ~sgl_attacks[Opp][NONE];
                 score += PieceHanged * pop_count (b);
 
                 // Bonus for overloaded
-                b = nonpawns_enemies
-                  & attacked_weak_enemies
-                  & sgl_attacks[Opp][NONE];
+                b =  nonpawns_enemies
+                  &  attacked_weak_enemies
+                  &  sgl_attacks[Opp][NONE];
                 score += Overloaded * pop_count (b);
             }
         }
@@ -748,12 +748,12 @@ namespace {
         safe_area =  sgl_attacks[Own][NONE]
                   | ~sgl_attacks[Opp][NONE];
         // Safe friend pawns
-        b = safe_area
-          & pos.pieces (Own, PAWN);
+        b =  safe_area
+          &  pos.pieces (Own, PAWN);
         // Safe friend pawns attacks on nonpawn enemies
-        b = nonpawns_enemies
-          & pawn_attacks_bb (Own, b)
-          & sgl_attacks[Own][PAWN];
+        b =  nonpawns_enemies
+          &  pawn_attacks_bb (Own, b)
+          &  sgl_attacks[Own][PAWN];
         score += PawnThreat * pop_count (b);
 
         // Friend pawns who can push on the next move

@@ -114,7 +114,7 @@ namespace TBSyzygy {
             VALUE_DRAW - 2,
             VALUE_DRAW,
             VALUE_DRAW + 2,
-            +VALUE_MATE - (MaxDepth - 1)
+            +VALUE_MATE - (MaxDepth + 1)
         };
 
         i32 MapPawns[SQ_NO];

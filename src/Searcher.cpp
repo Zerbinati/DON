@@ -725,8 +725,6 @@ namespace Searcher {
                         // Update pv even in fail-high case
                         if (PVNode)
                         {
-                            best_move = move;
-
                             update_pv (ss->pv, move, (ss+1)->pv);
                         }
 
@@ -745,12 +743,11 @@ namespace Searcher {
                             return value;
                         }
                         else
+                        // Update alfa! Always alfa < beta
+                        if (PVNode)
                         {
-                            // Update alfa! Always alfa < beta
-                            if (PVNode)
-                            {
-                                alfa = value;
-                            }
+                            alfa = value;
+                            best_move = move;
                         }
                     }
                 }
@@ -1530,12 +1527,10 @@ namespace Searcher {
                         best_move = move;
 
                         // Update pv even in fail-high case.
-                        if (PVNode)
+                        if (   PVNode
+                            && !root_node)
                         {
-                            if (!root_node)
-                            {
-                                update_pv (ss->pv, move, (ss+1)->pv);
-                            }
+                            update_pv (ss->pv, move, (ss+1)->pv);
                         }
 
                         // Fail high
