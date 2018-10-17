@@ -143,7 +143,6 @@ typedef u64 Key;
 typedef u64 Bitboard;
 
 constexpr i16 DepthZero         =  0;
-constexpr i16 DepthOne          =  1;
 constexpr i16 DepthQSCheck      =  0;
 constexpr i16 DepthQSNoCheck    = -1;
 constexpr i16 DepthQSRecapture  = -5;
@@ -213,15 +212,15 @@ enum CastleRight : u08
 {
     CR_NONE  = 0,                   // 0000
     CR_WKING = 1,                   // 0001
-    CR_WQUEN = u08(CR_WKING) << 1,  // 0010
-    CR_BKING = u08(CR_WKING) << 2,  // 0100
-    CR_BQUEN = u08(CR_WKING) << 3,  // 1000
+    CR_WQUEN = CR_WKING << 1,       // 0010
+    CR_BKING = CR_WKING << 2,       // 0100
+    CR_BQUEN = CR_WKING << 3,       // 1000
 
-    CR_WHITE = u08(CR_WKING) + u08(CR_WQUEN),   // 0011
-    CR_BLACK = u08(CR_BKING) + u08(CR_BQUEN),   // 1100
-    CR_KING  = u08(CR_WKING) + u08(CR_BKING),   // 0101
-    CR_QUEN  = u08(CR_WQUEN) + u08(CR_BQUEN),   // 1010
-    CR_ANY   = u08(CR_WHITE) + u08(CR_BLACK),   // 1111
+    CR_WHITE = CR_WKING + CR_WQUEN, // 0011
+    CR_BLACK = CR_BKING + CR_BQUEN, // 1100
+    CR_KING  = CR_WKING + CR_BKING, // 0101
+    CR_QUEN  = CR_WQUEN + CR_BQUEN, // 1010
+    CR_ANY   = CR_WHITE + CR_BLACK, // 1111
     CR_NO,
 };
 
@@ -287,10 +286,10 @@ enum Value : i32
     VALUE_DRAW      = 0,
 
     VALUE_NONE      = SHRT_MAX,
-    VALUE_INFINITE  = i32(VALUE_NONE) - 1,
-    VALUE_MATE      = i32(VALUE_INFINITE) - 1,
+    VALUE_INFINITE  = VALUE_NONE - 1,
+    VALUE_MATE      = VALUE_INFINITE - 1,
 
-    VALUE_MATE_MAX_PLY = i32(VALUE_MATE) - 2*MaxDepth,
+    VALUE_MATE_MAX_PLY = VALUE_MATE - 2*MaxDepth,
 
     VALUE_KNOWN_WIN = 10000,
 

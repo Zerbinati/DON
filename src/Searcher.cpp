@@ -958,8 +958,8 @@ namespace Searcher {
 
                         auto draw = TBUseRule50 ? 1 : 0;
 
-                        value = wdl < -draw ? -VALUE_MATE + i32(MaxDepth + ss->ply + 1) :
-                                wdl > +draw ? +VALUE_MATE - i32(MaxDepth + ss->ply + 1) :
+                        value = wdl < -draw ? -VALUE_MATE + (MaxDepth + ss->ply + 1) :
+                                wdl > +draw ? +VALUE_MATE - (MaxDepth + ss->ply + 1) :
                                                VALUE_ZERO + 2 * wdl * draw;
 
                         auto bound = wdl < -draw ? BOUND_UPPER :
@@ -1286,13 +1286,6 @@ namespace Searcher {
 
                 i16 extension = DepthZero;
 
-                // Check extension (CE) (~2 ELO)
-                if (   gives_check
-                    && pos.see_ge (move))
-                {
-                    extension = DepthOne;
-                }
-                else
                 // Singular extension (SE) (~60 ELO)
                 // We extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
@@ -1315,12 +1308,19 @@ namespace Searcher {
 
                     if (value < beta_margin)
                     {
-                        extension = DepthOne;
+                        extension = 1;
                     }
+                }
+                else
+                // Check extension (CE) (~2 ELO)
+                if (   gives_check
+                    && pos.see_ge (move))
+                {
+                    extension = 1;
                 }
 
                 // Calculate new depth for this move
-                i16 new_depth = depth - DepthOne + extension;
+                i16 new_depth = depth - 1 + extension;
 
                 // Step 14. Pruning at shallow depth. (~170 ELO)
                 if (   !root_node
@@ -1361,7 +1361,7 @@ namespace Searcher {
                     else
                     // SEE based pruning. (~20 ELO)
                     if (   DepthZero == extension
-                        && !pos.see_ge (move, Value(-i32(VALUE_EG_PAWN)*depth)))
+                        && !pos.see_ge (move, -VALUE_EG_PAWN*i32(depth)))
                     {
                         continue;
                     }

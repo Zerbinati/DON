@@ -274,14 +274,14 @@ string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
                     && -VALUE_INFINITE != rms[i].new_value;
 
         if (   !updated
-            && DepthOne == depth)
+            && 1 == depth)
         {
             continue;
         }
 
         i16 d = updated ?
                     depth :
-                    depth - DepthOne;
+                    depth - 1;
         auto v = updated ?
                     rms[i].new_value :
                     rms[i].old_value;

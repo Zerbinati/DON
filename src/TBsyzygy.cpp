@@ -110,11 +110,11 @@ namespace TBSyzygy {
         };
         constexpr Value WDL_To_Value[] =
         {
-            -VALUE_MATE + i32(MaxDepth) + 1,
+            -VALUE_MATE + (MaxDepth + 1),
             VALUE_DRAW - 2,
             VALUE_DRAW,
             VALUE_DRAW + 2,
-            +VALUE_MATE - i32(MaxDepth) - 1
+            +VALUE_MATE - (MaxDepth - 1)
         };
 
         i32 MapPawns[SQ_NO];
@@ -1707,11 +1707,11 @@ namespace TBSyzygy {
             // Determine the score to be displayed for this move. Assign at least
             // 1 cp to cursed wins and let it grow to 49 cp as the positions gets
             // closer to a real win.
-            rm.tb_value = r >= bound ? +VALUE_MATE - i32(MaxDepth) - 1 :
-                          r >  0     ? Value((std::max (+3, r - 800) * i32(VALUE_EG_PAWN)) / 200) :
+            rm.tb_value = r >= bound ? +VALUE_MATE - (MaxDepth + 1) :
+                          r >  0     ? (VALUE_EG_PAWN * std::max (+3, r - 800)) / 200 :
                           r == 0     ? VALUE_DRAW :
-                          r > -bound ? Value((std::min (-3, r + 800) * i32(VALUE_EG_PAWN)) / 200) :
-                                       -VALUE_MATE + i32(MaxDepth) + 1;
+                          r > -bound ? (VALUE_EG_PAWN * std::min (-3, r + 800)) / 200 :
+                                       -VALUE_MATE + (MaxDepth + 1);
         }
         return true;
     }
