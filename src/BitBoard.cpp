@@ -132,6 +132,9 @@ namespace BitBoard {
                 magic.mask = slide_attacks (pt, s)
                             // Board edges are not considered in the relevant occupancies
                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
+                
+                auto mask_popcount = pop_count (magic.mask);
+                //magic.Attacks = new Bitboard[pow (2, mask_popcount)];
 
 #           if !defined(BM2)
                 magic.shift = u08(
@@ -140,12 +143,15 @@ namespace BitBoard {
 #               else
                     32
 #               endif
-                    - pop_count (magic.mask));
+                    - mask_popcount);
+#           endif
+
+#           if !defined(BM2)
+                u32 size = 0;
 #           endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of magics[s].mask
                 // Have individual table sizes for each square with "Fancy Magic Bitboards".
-                u32 size = 0;
                 Bitboard occ = 0;
                 do
                 {
@@ -155,25 +161,27 @@ namespace BitBoard {
                     occupancy[size] = occ;
                     // Store the corresponding slide attack bitboard in reference[].
                     reference[size] = slide_attacks (pt, s, occ);
-#               endif
-
                     ++size;
+#               endif
+                    
                     occ = (occ - magic.mask) & magic.mask;
                 }
                 while (0 != occ);
 
 #           if !defined(BM2)
                 
-                PRNG rng (Seeds[_rank (s)]);
+                assert(size == pow (2, mask_popcount));
+
+                PRNG prng (Seeds[_rank (s)]);
                 
-                u32 i = 0;
+                u32 i;
                 // Find a magic for square picking up an (almost) random number
                 // until found the one that passes the verification test.
-                while (i < size)
+                do
                 {
                     do
                     {
-                        magic.number = rng.sparse_rand<Bitboard> ();
+                        magic.number = prng.sparse_rand<Bitboard> ();
                     }
                     while (pop_count ((magic.mask * magic.number) >> 0x38) < 6);
 
@@ -196,10 +204,9 @@ namespace BitBoard {
                         used[idx] = true;
                         magic.attacks[idx] = reference[i];
                     }
-                }
+                } while (i < size);
 #           endif
-                // Set the offset of the table for the next square.
-                offset += size;
+                offset += u32(pow (2, mask_popcount));
             }
         }
 
