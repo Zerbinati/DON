@@ -1548,13 +1548,6 @@ namespace Searcher {
                             }
                         }
                     }
-                    else
-                    if (   PVNode
-                        && !root_node
-                        && value == alfa)
-                    {
-                        update_pv (ss->pv, move, (ss+1)->pv);
-                    }
                 }
 
                 if (move != best_move)

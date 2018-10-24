@@ -171,11 +171,11 @@ namespace BitBoard {
                 // until found the one that passes the verification test.
                 while (i < size)
                 {
-                    magic.number = 0;
-                    while (pop_count ((magic.mask * magic.number) >> 0x38) < 6)
+                    do
                     {
                         magic.number = rng.sparse_rand<Bitboard> ();
                     }
+                    while (pop_count ((magic.mask * magic.number) >> 0x38) < 6);
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct slide attack in the magics[s].attacks database.
