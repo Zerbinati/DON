@@ -165,8 +165,7 @@ namespace BitBoard {
 #               endif
                     
                     occ = (occ - magic.mask) & magic.mask;
-                }
-                while (0 != occ);
+                } while (0 != occ);
 
 #           if !defined(BM2)
                 
@@ -182,8 +181,7 @@ namespace BitBoard {
                     do
                     {
                         magic.number = prng.sparse_rand<Bitboard> ();
-                    }
-                    while (pop_count ((magic.mask * magic.number) >> 0x38) < 6);
+                    } while (pop_count ((magic.mask * magic.number) >> 0x38) < 6);
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct slide attack in the magics[s].attacks database.

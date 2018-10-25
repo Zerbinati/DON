@@ -550,7 +550,7 @@ constexpr Square    dst_sq  (Move m) { return Square((m >> 0) & SQ_H8); }
 constexpr bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 constexpr PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + 1); }
 constexpr MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
-constexpr i16       move_pp (Move m) { return u16(m) & 0x0FFF; }
+constexpr u16       move_pp (Move m) { return u16(m & 0x0FFF); }
 inline    void      promote (Move &m, PieceType pt) { m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF)); }
 constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 {
@@ -564,8 +564,8 @@ template<MoveType MT>
 constexpr Move mk_move (Square org, Square dst)               { return Move(MT                         + (org << 6) + dst); }
 constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((pt - 1) << 12) + (org << 6) + dst); }
 
-constexpr i16   value_to_cp (Value v) { return i16(i32(v)*100/VALUE_EG_PAWN); }
-constexpr Value cp_to_value (i16  cp) { return Value(cp*VALUE_EG_PAWN/100); }
+constexpr i16   value_to_cp (Value v) { return i16((v*100)/VALUE_EG_PAWN); }
+constexpr Value cp_to_value (i16  cp) { return Value((cp*VALUE_EG_PAWN)/100); }
 
 constexpr Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 constexpr Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
@@ -703,8 +703,7 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
         {
             break;
         }
-    }
-    while (iss.good ());
+    } while (iss.good ());
 
     return tokens;
 }
