@@ -2,6 +2,9 @@
 
 #include <cmath>
 #include <map>
+#include <stdlib.h>
+#include <time.h>
+
 #include "Evaluator.h"
 #include "Logger.h"
 #include "Notation.h"
@@ -423,9 +426,10 @@ namespace Searcher {
         }
 
         // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
-        Value value_draw (i16 depth, Thread* thread)
+        Value value_draw (i16 depth /*, Thread* thread*/)
         {
-            return VALUE_DRAW + (depth < 4 ? 0 : 2 * i32(thread->nodes.load (std::memory_order_relaxed) % 2) - 1);
+            //return VALUE_DRAW + (depth < 4 ? 0 : 2 * i32(thread->nodes.load (std::memory_order_relaxed) % 2) - 1);
+            return VALUE_DRAW + (depth < 4 ? 0 : rand () % 3 - 1);
         }
 
         /// update_continuation_histories() updates tables of the move pairs with current move.
@@ -781,7 +785,7 @@ namespace Searcher {
                 && pos.si->clock_ply >= 3
                 && pos.cycled (ss->ply))
             {
-                alfa = value_draw (depth, pos.thread);
+                alfa = value_draw (depth/*, pos.thread*/);
                 if (alfa >= beta)
                 {
                     return alfa;
@@ -833,7 +837,7 @@ namespace Searcher {
                     return ss->ply >= MaxDepth
                         && !in_check ?
                                 evaluate (pos) :
-                                value_draw (depth, pos.thread);
+                                value_draw (depth/*, pos.thread*/);
                 }
 
                 // Step 3. Mate distance pruning.
@@ -1661,6 +1665,8 @@ namespace Searcher {
     /// initialize() initializes some lookup tables.
     void initialize ()
     {
+        srand (time (NULL));
+
         for (i08 d = 0; d < 16; ++d)
         {
             FutilityMoveCounts[0][d] = u08(0.74 * std::pow (d, 1.78) + 2.4);
@@ -1767,6 +1773,7 @@ void Thread::search ()
             rm.old_value = rm.new_value;
         }
 
+        i16 adjusted_depth = running_depth;
         size_t pv_beg = 0;
         pv_end = 0;
 
@@ -1808,9 +1815,11 @@ void Thread::search ()
 
             // Start with a small aspiration window and, in case of fail high/low,
             // research with bigger window until not failing high/low anymore.
+            i16 failed_high_count = 0;
             while (true)
             {
-                best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false);
+                adjusted_depth = std::max (1, running_depth - failed_high_count);
+                best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
                 // done with a stable algorithm because all the values but the first
@@ -1833,7 +1842,7 @@ void Thread::search ()
                     && (best_value <= alfa || beta <= best_value)
                     && main_thread->time_mgr.elapsed_time () > 3000)
                 {
-                    sync_cout << multipv_info (main_thread, running_depth, alfa, beta) << sync_endl;
+                    sync_cout << multipv_info (main_thread, adjusted_depth, alfa, beta) << sync_endl;
                 }
 
                 // If fail low set new bounds.
@@ -1844,6 +1853,7 @@ void Thread::search ()
 
                     if (nullptr != main_thread)
                     {
+                        failed_high_count = 0;
                         if (Limits.time_mgr_used ())
                         {
                             main_thread->failed_low = true;
@@ -1857,6 +1867,10 @@ void Thread::search ()
                 {
                     // NOTE:: Don't change alfa = (alfa + beta) / 2
                     beta = std::min (best_value + window, +VALUE_INFINITE);
+                    if (nullptr != main_thread)
+                    {
+                        ++failed_high_count = 0;
+                    }
                 }
                 // Otherwise exit the loop.
                 else
@@ -1877,13 +1891,13 @@ void Thread::search ()
                     || Threadpool.pv_limit - 1 == pv_cur
                     || main_thread->time_mgr.elapsed_time () > 3000))
             {
-                sync_cout << multipv_info (main_thread, running_depth, alfa, beta) << sync_endl;
+                sync_cout << multipv_info (main_thread, adjusted_depth, alfa, beta) << sync_endl;
             }
         }
 
         if (!Threadpool.stop)
         {
-            finished_depth = running_depth;
+            finished_depth = adjusted_depth;
         }
 
         // Has any of the threads found a "mate in <x>"?
@@ -1913,7 +1927,7 @@ void Thread::search ()
                     if (main_thread->best_move != root_moves[0][0])
                     {
                         main_thread->best_move = root_moves[0][0];
-                        main_thread->best_move_depth = running_depth;
+                        main_thread->best_move_depth = adjusted_depth;
                     }
 
                     // If the best_move is stable over several iterations, reduce time accordingly

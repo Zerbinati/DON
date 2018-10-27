@@ -272,9 +272,9 @@ namespace BitBoard {
     template<> constexpr Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 9; }
 
     //// Rotate Right (toward LSB)
-    //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }
+    //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQ_NO - k)); }
     //// Rotate Left  (toward MSB)
-    //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
+    //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQ_NO - k)); }
 
     inline Bitboard pawn_pushes_bb (Color c, Bitboard b)
     {

@@ -175,7 +175,7 @@ void TTable::clear ()
     {
         threads.push_back (std::thread ([this, idx, thread_count]()
                                         {
-                                            if (8 <= thread_count)
+                                            if (8 < thread_count)
                                             {
                                                 WinProcGroup::bind (idx);
                                             }

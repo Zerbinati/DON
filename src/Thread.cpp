@@ -218,7 +218,7 @@ void Thread::idle_loop ()
     // some Windows NUMA hardware, for instance in fishtest. To make it simple,
     // just check if running threads are below a threshold, in this case all this
     // NUMA machinery is not needed.
-    if (8 <= threads_option ())
+    if (8 < threads_option ())
     {
         WinProcGroup::bind (index);
     }
