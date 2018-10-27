@@ -1818,7 +1818,7 @@ void Thread::search ()
             i16 failed_high_count = 0;
             while (true)
             {
-                adjusted_depth = std::max (1, running_depth - failed_high_count);
+                adjusted_depth = std::max (running_depth - failed_high_count, 1);
                 best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -1867,9 +1867,10 @@ void Thread::search ()
                 {
                     // NOTE:: Don't change alfa = (alfa + beta) / 2
                     beta = std::min (best_value + window, +VALUE_INFINITE);
+
                     if (nullptr != main_thread)
                     {
-                        ++failed_high_count = 0;
+                        ++failed_high_count;
                     }
                 }
                 // Otherwise exit the loop.
