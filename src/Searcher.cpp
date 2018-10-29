@@ -1287,6 +1287,13 @@ namespace Searcher {
 
                 i16 extension = DepthZero;
 
+                // Check extension (CE) (~2 ELO)
+                if (   gives_check
+                    && pos.see_ge (move))
+                {
+                    extension = 1;
+                }
+                else
                 // Singular extension (SE) (~60 ELO)
                 // We extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
@@ -1300,7 +1307,6 @@ namespace Searcher {
                     && 7 < depth && depth < tte->depth () + 4
                     && BOUND_NONE != (tte->bound () & BOUND_LOWER))
                 {
-                    assert(VALUE_NONE != tt_value);
                     auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
 
                     ss->excluded_move = move;
@@ -1311,13 +1317,6 @@ namespace Searcher {
                     {
                         extension = 1;
                     }
-                }
-                else
-                // Check extension (CE) (~2 ELO)
-                if (   gives_check
-                    && pos.see_ge (move))
-                {
-                    extension = 1;
                 }
 
                 // Calculate new depth for this move
