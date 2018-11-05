@@ -100,7 +100,7 @@ namespace {
 
     constexpr Score RookOnFile[2] =
     {
-        S(20, 7), S(45,20)
+        S(18, 7), S(44,20)
     };
 
     constexpr Score MinorThreat[NONE] =
@@ -126,17 +126,17 @@ namespace {
     constexpr Score BishopOnDiagonal =  S( 46,  0);
     constexpr Score BishopPawns =       S(  3,  7);
     constexpr Score BishopTrapped =     S( 50, 50);
-    constexpr Score RookOnPawns =       S( 10, 30);
-    constexpr Score RookTrapped =       S( 92,  0);
+    constexpr Score RookOnPawns =       S( 10, 29);
+    constexpr Score RookTrapped =       S( 96,  5);
     constexpr Score QueenWeaken =       S( 50, 10);
     constexpr Score PawnLessFlank =     S( 19, 84);
     constexpr Score KingTropism =       S(  6,  0);
-    constexpr Score PawnWeakUnopposed = S(  5, 29);
+    constexpr Score PawnWeakUnopposed = S( 15, 19);
     constexpr Score PieceHanged =       S( 57, 32);
     constexpr Score PawnThreat =        S(173,102);
     constexpr Score PawnPushThreat =    S( 45, 40);
     constexpr Score RankThreat =        S( 16,  3);
-    constexpr Score KingThreat =        S( 23, 76);
+    constexpr Score KingThreat =        S( 22, 78);
     constexpr Score KnightQueenThreat = S( 21, 11);
     constexpr Score SliderQueenThreat = S( 42, 21);
     constexpr Score Overloaded =        S( 13,  6);
@@ -629,18 +629,18 @@ namespace {
                         +  69 * king_attacks_count[Opp]
                         + 185 * pop_count (king_ring[Own] & weak_area)
                         + 150 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
+                        +   1 * mg_value (mobility[Opp] - mobility[Own])
                         +   4 * tropism
-                        -   6 * safety / 8
+                        -   3 * safety / 4
                         -  30;
             if (0 == pos.count (Opp, QUEN))
             {
                 king_danger -= 873;
             }
+
+            // Transform the king danger into a score
             if (king_danger > 0)
             {
-                king_danger += mg_value (mobility[Opp] - mobility[Own]);
-                king_danger = std::max (king_danger, 0);
-                // Transform the king danger into a score, and subtract it from the score
                 score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
             }
         }
@@ -743,6 +743,7 @@ namespace {
         {
             score += PawnWeakUnopposed * pop_count (pe->weak_unopposed[Opp]);
         }
+
         Bitboard safe_area;
 
         safe_area =  sgl_attacks[Own][NONE]

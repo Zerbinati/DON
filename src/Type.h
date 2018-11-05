@@ -297,7 +297,7 @@ enum Value : i32
     VALUE_MG_NIHT =  784, VALUE_EG_NIHT =  868,
     VALUE_MG_BSHP =  828, VALUE_EG_BSHP =  916,
     VALUE_MG_ROOK = 1286, VALUE_EG_ROOK = 1378,
-    VALUE_MG_QUEN = 2528, VALUE_EG_QUEN = 2698,
+    VALUE_MG_QUEN = 2529, VALUE_EG_QUEN = 2687,
 
     VALUE_MIDGAME = 15258,
     VALUE_ENDGAME =  3915,
@@ -536,7 +536,7 @@ inline CastleRight castle_right (Color c, CastleSide cs)
 
 constexpr Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
 
-constexpr bool _ok (Piece p)
+constexpr bool      _ok   (Piece p)
 {
     return (W_PAWN <= p && p <= W_KING)
         || (B_PAWN <= p && p <= B_KING);

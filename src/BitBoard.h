@@ -213,24 +213,24 @@ namespace BitBoard {
     template<> inline i32 dist<File> (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return dist (_file (s1), _file (s2)); }
     template<> inline i32 dist<Rank> (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return dist (_rank (s1), _rank (s2)); }
 
-    constexpr bool contains (Bitboard bb, Square s) { return 0 != (bb & Square_bb[s]); }
+    inline bool contains (Bitboard bb, Square s) { assert(_ok (s)); return 0 != (bb & Square_bb[s]); }
 
-    constexpr Bitboard operator| (Bitboard  bb, Square s) { return bb | Square_bb[s]; }
-    constexpr Bitboard operator^ (Bitboard  bb, Square s) { return bb ^ Square_bb[s]; }
+    inline Bitboard operator| (Bitboard  bb, Square s) { assert(_ok (s)); return bb | Square_bb[s]; }
+    inline Bitboard operator^ (Bitboard  bb, Square s) { assert(_ok (s)); return bb ^ Square_bb[s]; }
 
     inline Bitboard& operator|= (Bitboard &bb, Square s) { assert(_ok (s)); return bb |= Square_bb[s]; }
     inline Bitboard& operator^= (Bitboard &bb, Square s) { assert(_ok (s)); return bb ^= Square_bb[s]; }
 
-    constexpr Bitboard square_bb (Square s) { return Square_bb[s]; }
+    inline Bitboard square_bb (Square s) { assert(_ok (s)); return Square_bb[s]; }
 
-    constexpr Bitboard file_bb (File f) { return File_bb[f]; }
-    constexpr Bitboard file_bb (Square s) { return File_bb[_file (s)]; }
+    inline Bitboard file_bb (File f) { assert(_ok (f)); return File_bb[f]; }
+    inline Bitboard file_bb (Square s) { assert(_ok (s)); return File_bb[_file (s)]; }
 
-    constexpr Bitboard rank_bb (Rank r) { return Rank_bb[r]; }
-    constexpr Bitboard rank_bb (Square s) { return Rank_bb[_rank (s)]; }
+    inline Bitboard rank_bb (Rank r) { assert(_ok (r)); return Rank_bb[r]; }
+    inline Bitboard rank_bb (Square s) { assert(_ok (s)); return Rank_bb[_rank (s)]; }
 
-    constexpr Bitboard adj_file_bb (File f) { return AdjFile_bb[f]; }
-    constexpr Bitboard adj_rank_bb (Rank r) { return AdjRank_bb[r]; }
+    inline Bitboard adj_file_bb (File f) { assert(_ok (f)); return AdjFile_bb[f]; }
+    inline Bitboard adj_rank_bb (Rank r) { assert(_ok (r)); return AdjRank_bb[r]; }
 
     inline Bitboard front_rank_bb (Color c, Square s) { assert(_ok (s)); return FrontRank_bb[c][_rank (s)]; }
     inline Bitboard front_line_bb (Color c, Square s) { assert(_ok (s)); return FrontLine_bb[c][s]; }

@@ -1772,7 +1772,6 @@ void Thread::search ()
             rm.old_value = rm.new_value;
         }
 
-        i16 adjusted_depth = running_depth;
         size_t pv_beg = 0;
         pv_end = 0;
 
@@ -1797,7 +1796,7 @@ void Thread::search ()
             if (4 < running_depth)
             {
                 auto old_value = root_moves[pv_cur].old_value;
-                window = Value(18);
+                window = Value(20);
                 alfa = std::max (old_value - window, -VALUE_INFINITE);
                 beta = std::min (old_value + window, +VALUE_INFINITE);
 
@@ -1817,7 +1816,7 @@ void Thread::search ()
             i16 failed_high_count = 0;
             while (true)
             {
-                adjusted_depth = std::max (running_depth - failed_high_count, 1);
+                i16 adjusted_depth = std::max (running_depth - failed_high_count, 1);
                 best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -1841,7 +1840,7 @@ void Thread::search ()
                     && (best_value <= alfa || beta <= best_value)
                     && main_thread->time_mgr.elapsed_time () > 3000)
                 {
-                    sync_cout << multipv_info (main_thread, adjusted_depth, alfa, beta) << sync_endl;
+                    sync_cout << multipv_info (main_thread, running_depth, alfa, beta) << sync_endl;
                 }
 
                 // If fail low set new bounds.
@@ -1891,13 +1890,13 @@ void Thread::search ()
                     || Threadpool.pv_limit - 1 == pv_cur
                     || main_thread->time_mgr.elapsed_time () > 3000))
             {
-                sync_cout << multipv_info (main_thread, adjusted_depth, alfa, beta) << sync_endl;
+                sync_cout << multipv_info (main_thread, running_depth, alfa, beta) << sync_endl;
             }
         }
 
         if (!Threadpool.stop)
         {
-            finished_depth = adjusted_depth;
+            finished_depth = running_depth;
         }
 
         // Has any of the threads found a "mate in <x>"?
@@ -1927,7 +1926,7 @@ void Thread::search ()
                     if (main_thread->best_move != root_moves[0][0])
                     {
                         main_thread->best_move = root_moves[0][0];
-                        main_thread->best_move_depth = adjusted_depth;
+                        main_thread->best_move_depth = running_depth;
                     }
 
                     // If the best_move is stable over several iterations, reduce time accordingly
