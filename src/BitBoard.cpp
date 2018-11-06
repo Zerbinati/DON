@@ -99,8 +99,27 @@ namespace BitBoard {
         /// Initialize all bishop and rook attacks at startup.
         /// Magic bitboards are used to look up attacks of sliding pieces.
         /// In particular, here we use the so called "fancy" approach.
-        void initialize_table (PieceType pt, Bitboard *const attacks, Magic *const magics)
+        template<PieceType PT>
+        void initialize_magic ()
         {
+            static_assert (BSHP <= PT && PT <= ROOK, "PT incorrect");
+
+            Bitboard *attacks;
+            Magic *magics;
+            switch (PT)
+            {
+            case BSHP:
+                attacks = BAttacks;
+                magics = BMagics;
+                break;
+            case ROOK:
+                attacks = RAttacks;
+                magics = RMagics;
+                break;
+            default:
+                assert(false);
+                break;
+            }
 
 #       if !defined(BM2)
             constexpr i16 MaxIndex = 0x1000;
@@ -129,7 +148,7 @@ namespace BitBoard {
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                magic.mask = slide_attacks (pt, s)
+                magic.mask = slide_attacks (PT, s)
                             // Board edges are not considered in the relevant occupancies
                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
                 
@@ -156,11 +175,11 @@ namespace BitBoard {
                 do
                 {
 #               if defined(BM2)
-                    magic.attacks[PEXT(occ, magic.mask)] = slide_attacks (pt, s, occ);
+                    magic.attacks[PEXT(occ, magic.mask)] = slide_attacks (PT, s, occ);
 #               else
                     occupancy[size] = occ;
                     // Store the corresponding slide attack bitboard in reference[].
-                    reference[size] = slide_attacks (pt, s, occ);
+                    reference[size] = slide_attacks (PT, s, occ);
                     ++size;
 #               endif
                     
@@ -207,7 +226,10 @@ namespace BitBoard {
                 offset += u32(pow (2, mask_popcount));
             }
         }
-
+        /// Explicit template instantiations
+        /// --------------------------------
+        template void initialize_magic<BSHP> ();
+        template void initialize_magic<ROOK> ();
     }
 
     Bitboard slide_attacks (PieceType pt, Square s, Bitboard occ)
@@ -313,9 +335,9 @@ namespace BitBoard {
                                   | PieceAttacks[ROOK][s];
         }
 
-        // Initialize Bishop & Rook Table
-        initialize_table (BSHP, BAttacks, BMagics);
-        initialize_table (ROOK, RAttacks, RMagics);
+        // Initialize Magic Table
+        initialize_magic<BSHP> ();
+        initialize_magic<ROOK> ();
 
         // NOTE:: must be after initialize Bishop & Rook Table
         for (const auto &s1 : SQ)

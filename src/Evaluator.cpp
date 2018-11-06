@@ -225,7 +225,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        std::fill_n (sgl_attacks[Own], i32(KING), 0);
+        std::fill_n (sgl_attacks[Own], KING, 0);
         std::fill_n (queen_attacks[Own], 3, 0);
 
         Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
@@ -267,16 +267,18 @@ namespace {
         if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
         {
             king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
-            if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
+
+            if (contains (Rank_bb[rel_rank (Opp, R_1)], pos.square<KING> (Opp)))
             {
                 king_ring[Opp] |= pawn_pushes_bb (Opp, king_ring[Opp]);
             }
-            if (F_H == _file (pos.square<KING> (Opp)))
+
+            if (contains (FH_bb, pos.square<KING> (Opp)))
             {
                 king_ring[Opp] |= shift<DEL_W> (king_ring[Opp]);
             }
             else
-            if (F_A == _file (pos.square<KING> (Opp)))
+            if (contains (FA_bb, pos.square<KING> (Opp)))
             {
                 king_ring[Opp] |= shift<DEL_E> (king_ring[Opp]);
             }
@@ -959,11 +961,17 @@ namespace {
                         // Outflanking
                        +  12 * (  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
                                 - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK)))
-                        // Pawn on both flanks
-                       +  16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
-                                && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]) ? 1 : 0)
-                       +  48 * (VALUE_ZERO == pos.si->non_pawn_material () ? 1 : 0)
                        - 118;
+        // Pawn on both flanks
+        if (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
+            && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]))
+        {
+            complexity += 16;
+        }
+        if (VALUE_ZERO == pos.si->non_pawn_material ())
+        {
+            complexity += 48;
+        }
 
         auto score = mk_score (0, sign (eg) * std::max (complexity, -abs (eg)));
 
