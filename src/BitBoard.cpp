@@ -148,7 +148,7 @@ namespace BitBoard {
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                magic.mask = slide_attacks (PT, s)
+                magic.mask = slide_attacks<PT> (s)
                             // Board edges are not considered in the relevant occupancies
                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
                 
@@ -175,11 +175,11 @@ namespace BitBoard {
                 do
                 {
 #               if defined(BM2)
-                    magic.attacks[PEXT(occ, magic.mask)] = slide_attacks (PT, s, occ);
+                    magic.attacks[PEXT(occ, magic.mask)] = slide_attacks<PT> (s, occ);
 #               else
                     occupancy[size] = occ;
                     // Store the corresponding slide attack bitboard in reference[].
-                    reference[size] = slide_attacks (PT, s, occ);
+                    reference[size] = slide_attacks<PT> (s, occ);
                     ++size;
 #               endif
                     
@@ -232,11 +232,13 @@ namespace BitBoard {
         template void initialize_magic<ROOK> ();
     }
 
-    Bitboard slide_attacks (PieceType pt, Square s, Bitboard occ)
+    template<PieceType PT>
+    Bitboard slide_attacks (Square s, Bitboard occ)
     {
-        assert(BSHP <= pt && pt <= QUEN);
+        static_assert (BSHP <= PT && PT <= QUEN, "PT incorrect");
+
         Bitboard attacks = 0;
-        for (auto del : PieceDeltas[pt])
+        for (auto del : PieceDeltas[PT])
         {
             for (auto sq = s + del; _ok (sq) && 1 == dist (sq, sq - del); sq += del)
             {
@@ -249,6 +251,11 @@ namespace BitBoard {
         }
         return attacks;
     }
+    /// Explicit template instantiations
+    /// --------------------------------
+    template Bitboard slide_attacks<BSHP> (Square, Bitboard);
+    template Bitboard slide_attacks<ROOK> (Square, Bitboard);
+    template Bitboard slide_attacks<QUEN> (Square, Bitboard);
 
     void initialize ()
     {
@@ -329,8 +336,8 @@ namespace BitBoard {
                 }
             }
 
-            PieceAttacks[BSHP][s] = slide_attacks (BSHP, s);
-            PieceAttacks[ROOK][s] = slide_attacks (ROOK, s);
+            PieceAttacks[BSHP][s] = slide_attacks<BSHP> (s);
+            PieceAttacks[ROOK][s] = slide_attacks<ROOK> (s);
             PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s]
                                   | PieceAttacks[ROOK][s];
         }

@@ -594,7 +594,8 @@ namespace BitBoard {
         return sq;
     }
 
-    extern Bitboard slide_attacks (PieceType, Square, Bitboard = 0);
+    template<PieceType PT>
+    extern Bitboard slide_attacks (Square, Bitboard = 0);
 
     extern void initialize ();
 

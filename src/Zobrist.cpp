@@ -80,9 +80,14 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //    i08 f = F_A;
 //    i08 r = R_8;
 //    while (   iss >> token
-//           && f <= F_NO
-//           && r >= R_1)
+//           && F_NO >= f
+//           && R_1 <= r)
 //    {
+//        if (isspace (token))
+//        {
+//            break;
+//        }
+//        else
 //        if (isdigit (token))
 //        {
 //            f += token - '0';
@@ -100,15 +105,14 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //            ++f;
 //        }
 //        else
-//        if (isspace (token))
+//        if (token == '/')
 //        {
-//            break;
+//            f = F_A;
+//           --r;
 //        }
 //        else
 //        {
-//            assert('/' == token);
-//            f = F_A;
-//            --r;
+//            assert(false);
 //        }
 //    }
 //    assert(F_NO != kf[WHITE]
@@ -121,9 +125,12 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //    }
 //
 //    iss >> token;
-//    while (   iss >> token
-//           && !isspace (token))
+//    while (iss >> token)
 //    {
+//        if (isspace (token))
+//        {
+//            break;
+//        }
 //        auto c = isupper (token) ? WHITE : BLACK;
 //        token = char(tolower (token));
 //        if ('k' == token)
@@ -142,9 +149,13 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //            fen_key ^= castle_right[c][kf[c] < to_file (token) ? CS_KING : CS_QUEN];
 //        }
 //        else
+//        if (token == '-')
 //        {
-//            assert('-' == token);
 //            continue;
+//        }
+//        else
+//        {
+//            assert(false);
 //        }
 //    }
 //
