@@ -673,7 +673,7 @@ void Position::clear ()
         {
             squares[c][pt].clear ();
         }
-        for (auto cs : { CS_KING, CS_QUEN })
+        for (auto &cs : { CS_KING, CS_QUEN })
         {
             castle_rook_sq[c][cs] = SQ_NO;
             castle_path_bb[c][cs] = 0;
@@ -851,12 +851,18 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         {
             break;
         }
+        if (token == '-')
+        {
+            continue;
+        }
+
         auto rook_org = SQ_NO;
         Color c = isupper (token) ? WHITE : BLACK;
         token = char(tolower (token));
+
+        assert(R_1 == rel_rank (c, square<KING> (c)));
         if (token == 'k')
         {
-            assert(R_1 == rel_rank (c, square<KING> (c)));
             for (rook_org = rel_sq (c, SQ_H1); rook_org > square<KING> (c); --rook_org)
             {
                 assert(!contains (pieces (c, KING), rook_org));
@@ -869,7 +875,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         else
         if (token == 'q')
         {
-            assert(R_1 == rel_rank (c, square<KING> (c)));
             for (rook_org = rel_sq (c, SQ_A1); rook_org < square<KING> (c); ++rook_org)
             {
                 assert(!contains (pieces (c, KING), rook_org));
@@ -883,19 +888,12 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         // Chess960
         if ('a' <= token && token <= 'h')
         {
-            assert(R_1 == rel_rank (c, square<KING> (c)));
             rook_org = to_file (token)|_rank (square<KING> (c));
-        }
-        else
-        if (token == '-')
-        {
-            continue;
         }
         else
         {
             assert(false);
         }
-        
         set_castle (c, rook_org);
     }
 
