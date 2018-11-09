@@ -84,7 +84,7 @@ namespace {
 
         // ---Chess 960---
         "setoption name UCI_Chess960 value true",
-        "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w KQkq - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
+        "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
     };
 
     i32 month_index (const string &month)
@@ -151,18 +151,23 @@ namespace {
         else
         //if (token == "fen")
         {
-            while (   iss >> token
-                   && token != "moves") // Consume "moves" token if any
+            while (iss >> token) // Consume "moves" token if any
             {
+                if (token == "moves")
+                {
+                    break;
+                }
                 fen += token + " ";
+                token.clear ();
             }
             assert(_ok (fen));
         }
+        assert(token == "" || token == "moves");
 
         states = StateListPtr (new std::deque<StateInfo> (1)); // Drop old and create a new one
         pos.setup (fen, states->back (), pos.thread);
+        assert(pos.fen() == trim (fen));
 
-        //if (token != "moves") return;
         u16 count = 0;
         // Parse and validate moves (if any)
         while (iss >> token)

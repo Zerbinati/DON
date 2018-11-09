@@ -812,7 +812,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         {
             break;
         }
-        else
+
         if (isdigit (token))
         {
             f += token - '0';

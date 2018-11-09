@@ -87,7 +87,7 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //        {
 //            break;
 //        }
-//        else
+//
 //        if (isdigit (token))
 //        {
 //            f += token - '0';
@@ -131,6 +131,11 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //        {
 //            break;
 //        }
+//        if (token == '-')
+//        {
+//            continue;
+//        }
+//
 //        auto c = isupper (token) ? WHITE : BLACK;
 //        token = char(tolower (token));
 //        if ('k' == token)
@@ -147,11 +152,6 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //        if ('a' <= token && token <= 'h')
 //        {
 //            fen_key ^= castle_right[c][kf[c] < to_file (token) ? CS_KING : CS_QUEN];
-//        }
-//        else
-//        if (token == '-')
-//        {
-//            continue;
 //        }
 //        else
 //        {
