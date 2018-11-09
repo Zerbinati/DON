@@ -160,7 +160,7 @@ namespace {
                 fen += token + " ";
                 token.clear ();
             }
-            assert(_ok (fen));
+            //assert(_ok (fen));
         }
         assert(token == "" || token == "moves");
 

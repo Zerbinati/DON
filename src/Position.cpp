@@ -835,8 +835,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             assert(false);
         }
     }
-    assert(SQ_NO != square<KING> (WHITE)
-        && SQ_NO != square<KING> (BLACK));
+    assert(1 == count (WHITE, KING) && SQ_NO != square<KING> (WHITE)
+        && 1 == count (BLACK, KING) && SQ_NO != square<KING> (BLACK));
 
     // 2. Active color
     iss >> token;

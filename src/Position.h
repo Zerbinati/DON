@@ -157,6 +157,8 @@ public:
     i32 count (PieceType) const;
     i32 count (Color, PieceType) const;
 
+    i32 diff (PieceType) const;
+
     template<PieceType>
     Square square (Color, u08 = 0) const;
 
@@ -238,13 +240,13 @@ inline Bitboard Position::pieces (Color c) const
 }
 inline Bitboard Position::pieces (PieceType pt) const
 {
-    assert(PAWN <= pt && pt <= KING);
+    assert(_ok (pt));
     return type_bb[pt];
 }
 template<typename ...PieceTypes>
 inline Bitboard Position::pieces (PieceType pt, PieceTypes... pts) const
 {
-    assert(PAWN <= pt && pt <= KING);
+    assert(_ok (pt));
     return type_bb[pt] | pieces (pts...);
 }
 template<typename ...PieceTypes>
@@ -275,20 +277,26 @@ inline i32 Position::count (Color c) const
 /// Position::count() counts specific type
 inline i32 Position::count (PieceType pt) const
 {
-    assert(PAWN <= pt && pt <= KING);
+    assert(_ok (pt));
     return i32(squares[WHITE][pt].size () + squares[BLACK][pt].size ());
 }
 /// Position::count() counts specific color and type
 inline i32 Position::count (Color c, PieceType pt) const
 {
-    assert(PAWN <= pt && pt <= KING);
+    assert(_ok (pt));
     return i32(squares[c][pt].size ());
+}
+
+inline i32 Position::diff (PieceType pt) const
+{
+    return count (WHITE, pt)
+         - count (BLACK, pt);
 }
 
 template<PieceType PT>
 inline Square Position::square (Color c, u08 index) const
 {
-    static_assert (PAWN <= PT && PT <= KING, "PT incorrect");
+    static_assert (_ok (PT), "PT incorrect");
     assert(squares[c][PT].size () > index);
     return *std::next (squares[c][PT].begin (), index);
 }
@@ -465,8 +473,8 @@ inline void Position::place_piece_on (Square s, Piece pc)
 }
 inline void Position::remove_piece_on (Square s)
 {
-    Piece pc = piece[s];
     assert(!empty (s));
+    Piece pc = piece[s];
     color_bb[color (pc)] ^= s;
     type_bb[ptype (pc)] ^= s;
     type_bb[NONE] ^= s;

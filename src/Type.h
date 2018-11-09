@@ -534,9 +534,14 @@ inline CastleRight castle_right (Color c, CastleSide cs)
     }
 }
 
+constexpr bool _ok (PieceType pt)
+{
+    return PAWN <= pt && pt <= KING;
+}
+
 constexpr Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
 
-constexpr bool      _ok   (Piece p)
+constexpr bool _ok (Piece p)
 {
     return (W_PAWN <= p && p <= W_KING)
         || (B_PAWN <= p && p <= B_KING);
