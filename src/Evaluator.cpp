@@ -547,13 +547,16 @@ namespace {
 
         king_flank &= Camp_bb[Own];
         
-        i32 tropism = // Squares attacked by enemy in friend king flank
-                      pop_count (  king_flank
-                                 & sgl_attacks[Opp][NONE])
-                    // Squares attacked by enemy twice in friend king flank and not defended by friend pawns.
-                    + pop_count (  king_flank
-                                 & dbl_attacks[Opp]
-                                 & ~sgl_attacks[Own][PAWN]);
+        // Squares attacked by enemy in friend king flank
+        Bitboard b1 = king_flank
+                    & sgl_attacks[Opp][NONE];
+        // Squares attacked by enemy twice in friend king flank.
+        Bitboard b2 = b1
+                    & dbl_attacks[Opp];
+
+        i32 tropism = pop_count (b1)
+                    + pop_count (b2);
+
         // King tropism: To anticipate slow motion attacks on friend king zone
         score -= KingTropism * tropism;
 

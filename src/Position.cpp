@@ -723,8 +723,8 @@ void Position::set_castle (Color c, Square rook_org)
 /// Position::can_enpassant() Can the enpassant possible.
 bool Position::can_enpassant (Color c, Square ep_sq, bool move_done) const
 {
-    assert(SQ_NO != ep_sq);
-    assert(R_6 == rel_rank (c, ep_sq));
+    assert(SQ_NO != ep_sq
+        && R_6 == rel_rank (c, ep_sq));
     auto cap = move_done ?
                 ep_sq - pawn_push (c) :
                 ep_sq + pawn_push (c);
@@ -1467,7 +1467,7 @@ bool Position::ok () const
     // BASIC
     if (   (   active != WHITE
             && active != BLACK)
-        || (   32 < count ()
+        || (   count () > 32
             || count () != pop_count (pieces ())))
     {
         assert(false && "Position OK: BASIC");
@@ -1475,7 +1475,7 @@ bool Position::ok () const
     }
     for (const auto &c : { WHITE, BLACK })
     {
-        if (   16 < count (c)
+        if (   count (c) > 16
             || count (c) != pop_count (pieces (c))
             || 1 != std::count (piece, piece + SQ_NO, (c|KING))
             || 1 != count (c, KING)
