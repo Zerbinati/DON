@@ -153,11 +153,6 @@ namespace {
         0, 77, 55, 44, 10, 0
     };
 
-    constexpr i32 PasserDanger[R_NO] =
-    {
-        0, 0, 0, 3, 7, 11, 20, 0
-    };
-
     constexpr Value LazyThreshold =  Value(1500);
     constexpr Value SpaceThreshold = Value(12222);
 
@@ -823,15 +818,15 @@ namespace {
             assert(0 == (pos.pieces (Opp, PAWN) & pawn_pushes_bb (Own, front_line_bb (Own, s))));
 
             i32 r = rel_rank (Own, s);
-            i32 w = PasserDanger[r];
-
             // Base bonus depending on rank.
             Score bonus = PasserRank[r];
 
             auto push_sq = s + pawn_push (Own);
 
-            if (0 != w)
+            if (R_3 < r)
             {
+                i32 w = (r-2) * (r-2) + 2;
+
                 // Adjust bonus based on the king's proximity
                 if (!contains (pawn_pass_span (Own, s), pos.square<KING> (Opp)))
                 {

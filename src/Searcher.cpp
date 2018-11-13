@@ -1321,7 +1321,7 @@ namespace Searcher {
 
                 // Extension for king moves that change castling rights
                 if (   12 > depth
-                    && ptype (mpc) == KING
+                    && KING == ptype (mpc)
                     && pos.si->can_castle (own))
                 {
                     extension = 1;
