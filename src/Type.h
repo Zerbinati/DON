@@ -468,13 +468,6 @@ constexpr Square rel_sq (Color c, Square s) { return Square(s ^ (c*SQ_A8)); }
 constexpr Rank rel_rank (Color c, Rank r)   { return Rank(r ^ (c*R_8)); }
 constexpr Rank rel_rank (Color c, Square s) { return rel_rank (c, _rank (s)); }
 
-inline bool opposite_colors (Square s1, Square s2)
-{
-    assert(_ok (s1) && _ok (s2));
-    i08 s = i08(s1) ^ i08(s2);
-    return 0 != (((s >> 3) ^ s) & 1);
-}
-
 inline Delta pawn_push (Color c)
 {
     switch (c)

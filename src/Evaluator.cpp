@@ -121,25 +121,25 @@ namespace {
         S( 0, 0), S(  5, 18), S( 12, 23), S( 10, 31), S( 57, 62), S(163,167), S(271,250), S( 0, 0)
     };
 
-    constexpr Score MinorBehindPawn =   S( 16,  0);
-    constexpr Score MinorKingProtect =  S(  6,  6);
-    constexpr Score BishopOnDiagonal =  S( 46,  0);
+    constexpr Score MinorBehindPawn =   S( 18,  3);
+    constexpr Score MinorKingProtect =  S(  7,  8);
+    constexpr Score BishopOnDiagonal =  S( 45,  0);
     constexpr Score BishopPawns =       S(  3,  7);
     constexpr Score BishopTrapped =     S( 50, 50);
-    constexpr Score RookOnPawns =       S( 10, 29);
-    constexpr Score RookTrapped =       S( 96,  5);
-    constexpr Score QueenWeaken =       S( 50, 10);
-    constexpr Score PawnLessFlank =     S( 19, 84);
-    constexpr Score KingTropism =       S(  6,  0);
-    constexpr Score PawnWeakUnopposed = S( 15, 19);
-    constexpr Score PieceHanged =       S( 57, 32);
-    constexpr Score PawnThreat =        S(173,102);
-    constexpr Score PawnPushThreat =    S( 45, 40);
-    constexpr Score RankThreat =        S( 16,  3);
-    constexpr Score KingThreat =        S( 22, 78);
-    constexpr Score KnightQueenThreat = S( 21, 11);
-    constexpr Score SliderQueenThreat = S( 42, 21);
-    constexpr Score Overloaded =        S( 13,  6);
+    constexpr Score RookOnPawns =       S( 10, 32);
+    constexpr Score RookTrapped =       S( 96,  4);
+    constexpr Score QueenWeaken =       S( 49, 15);
+    constexpr Score PawnLessFlank =     S( 17, 95);
+    constexpr Score KingTropism =       S(  8,  0);
+    constexpr Score PieceRestricted =   S(  7,  6);
+    constexpr Score PawnWeakUnopposed = S( 12, 23);
+    constexpr Score PieceHanged =       S( 69, 36);
+    constexpr Score PawnThreat =        S(173, 94);
+    constexpr Score PawnPushThreat =    S( 48, 39);
+    constexpr Score RankThreat =        S( 13,  0);
+    constexpr Score KingThreat =        S( 24, 89);
+    constexpr Score KnightOnQueen =     S( 16, 12);
+    constexpr Score SliderOnQueen =     S( 59, 18);
 
 #undef S
 
@@ -259,6 +259,8 @@ namespace {
 
         king_attackers_weight[Own] = 0;
         king_attacks_count[Own] = 0;
+        king_ring[Opp] = 0;
+        king_attackers_count[Own] = 0;
         if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
         {
             king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
@@ -279,11 +281,7 @@ namespace {
             }
 
             king_attackers_count[Own] = pop_count (king_ring[Opp] & sgl_attacks[Own][PAWN]);
-        }
-        else
-        {
-            king_ring[Opp] = 0;
-            king_attackers_count[Own] = 0;
+            king_ring[Opp] &= ~pawn_dbl_attacks_bb (Opp, pos.pieces (Opp, PAWN));
         }
     }
 
@@ -540,10 +538,9 @@ namespace {
             score -= PawnLessFlank;
         }
 
-        king_flank &= Camp_bb[Own];
-        
         // Squares attacked by enemy in friend king flank
         Bitboard b1 = king_flank
+                    & Camp_bb[Own]
                     & sgl_attacks[Opp][NONE];
         // Squares attacked by enemy twice in friend king flank.
         Bitboard b2 = b1
@@ -625,14 +622,14 @@ namespace {
             // - number and types of the enemy's attacking pieces,
             // - number of attacked and undefended squares around friend king,
             // - quality of the pawn shelter ('mg score' safety).
-            king_danger +=  1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
-                        +  69 * king_attacks_count[Opp]
-                        + 185 * pop_count (king_ring[Own] & weak_area)
-                        + 150 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
-                        +   1 * mg_value (mobility[Opp] - mobility[Own])
-                        +   4 * tropism
-                        -   3 * safety / 4
-                        -  30;
+            king_danger +=   1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
+                        +   69 * king_attacks_count[Opp]
+                        +  185 * pop_count (king_ring[Own] & weak_area)
+                        +  150 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
+                        +    1 * mg_value (mobility[Opp] - mobility[Own])
+                        + 0.25 * tropism * tropism
+                        - 0.75 * safety
+                        -   30;
             if (0 == pos.count (Opp, QUEN))
             {
                 king_danger -= 873;
@@ -726,17 +723,19 @@ namespace {
                 }
 
                 // Enemies attacked are hanging
-                b =  attacked_weak_enemies
-                  & ~sgl_attacks[Opp][NONE];
+                b = attacked_weak_enemies
+                  & (  ~sgl_attacks[Opp][NONE]
+                     | (  nonpawns_enemies
+                        & dbl_attacks[Own]));
                 score += PieceHanged * pop_count (b);
-
-                // Bonus for overloaded
-                b =  nonpawns_enemies
-                  &  attacked_weak_enemies
-                  &  sgl_attacks[Opp][NONE];
-                score += Overloaded * pop_count (b);
             }
         }
+
+        // Bonus for restricting their piece moves
+        Bitboard restricted =  sgl_attacks[Opp][NONE]
+                            & ~defended_area
+                            &  sgl_attacks[Own][NONE];
+        score += PieceRestricted * pop_count (restricted);
 
         // Bonus for opponent unopposed weak pawns
         if (0 != pos.pieces (Own, ROOK, QUEN))
@@ -780,14 +779,14 @@ namespace {
                       & ~defended_area;
             b = safe_area
               & (sgl_attacks[Own][NIHT] & queen_attacks[Opp][0]);
-            score += KnightQueenThreat * pop_count (b);
+            score += KnightOnQueen * pop_count (b);
 
             b = safe_area
               & (  (sgl_attacks[Own][BSHP] & queen_attacks[Opp][1])
                  | (sgl_attacks[Own][ROOK] & queen_attacks[Opp][2]))
               & dbl_attacks[Own];
             // Bonus for safe slider attack threats on enemy queen
-            score += SliderQueenThreat * pop_count (b);
+            score += SliderOnQueen * pop_count (b);
         }
 
         if (Trace)

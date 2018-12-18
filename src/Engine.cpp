@@ -742,7 +742,6 @@ void run (int argc, const char *const *argv)
     TCluster::initialize ();
     Threadpool.configure (threads_option ());
     Book.initialize (string(Options["Book File"]));
-    TBSyzygy::initialize (string(Options["SyzygyPath"]));
     Searcher::initialize ();
     Searcher::clear ();
 

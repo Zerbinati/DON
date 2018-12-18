@@ -5,7 +5,7 @@
 #include "Type.h"
 
 // Tempo bonus
-constexpr Value Tempo = Value(20);
+constexpr Value Tempo = Value(28);
 
 extern Value evaluate (const Position&);
 

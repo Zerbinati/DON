@@ -126,10 +126,10 @@ class MainThread
     : public Thread
 {
 private :
-
-    u64    check_count;
     
 public:
+    
+    u64    check_count;
 
     Value  last_value;
     double last_time_reduction;

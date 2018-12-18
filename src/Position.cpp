@@ -395,10 +395,10 @@ bool Position::pseudo_legal (Move m) const
         auto cs = dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN;
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if (   KING != ptype (piece[org_sq (m)])
+        if (   !contains (pieces (active, KING), org_sq (m))
+            || !contains (pieces (active, ROOK), dst_sq (m))
             || R_1 != rel_rank (active, org_sq (m))
             || R_1 != rel_rank (active, dst_sq (m))
-            || !contains (pieces (active, ROOK), dst_sq (m))
             || !si->can_castle (active, cs)
             || !expeded_castle (active, cs)
             || 0 != si->checkers)
@@ -505,7 +505,7 @@ bool Position::pseudo_legal (Move m) const
     {
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (KING == ptype (piece[org_sq (m)]))
+        if (contains (pieces (active, KING), org_sq (m)))
         {
             return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
         }
@@ -516,7 +516,8 @@ bool Position::pseudo_legal (Move m) const
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
                    contains (si->checkers | between_bb (scan_lsq (si->checkers), square<KING> (active)), dst_sq (m)) :
                 // Move must be a capture of the checking Enpassant pawn or a blocking evasion of the checking piece
-                   (0 != (si->checkers & pieces (~active, PAWN)) && contains (si->checkers, dst_sq (m) - pawn_push (active)))
+                   (   0 != (si->checkers & pieces (~active, PAWN))
+                    && contains (si->checkers, dst_sq (m) - pawn_push (active)))
                 || contains (between_bb (scan_lsq (si->checkers), square<KING> (active)), dst_sq (m));
         }
         return false;
@@ -526,8 +527,9 @@ bool Position::pseudo_legal (Move m) const
 /// Position::legal() tests whether a pseudo-legal move is legal.
 bool Position::legal (Move m) const
 {
-    assert(_ok (m));
-    assert(contains (pieces (active), org_sq (m)));
+    assert(_ok (m)
+        && contains (pieces (active), org_sq (m)));
+
     switch (mtype (m))
     {
     case NORMAL:
@@ -535,7 +537,7 @@ bool Position::legal (Move m) const
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        if (contains (pieces (KING), org_sq (m)))
+        if (contains (pieces (active, KING), org_sq (m)))
         {
             return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
         }
@@ -545,7 +547,7 @@ bool Position::legal (Move m) const
         return !contains (si->king_blockers[active], org_sq (m))
             || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
     case PROMOTE:
-        assert(PAWN == ptype (piece[org_sq (m)])
+        assert(contains (pieces (active, PAWN), org_sq (m))
             && R_7 == rel_rank (active, org_sq (m))
             && R_8 == rel_rank (active, dst_sq (m))
             && NIHT <= promote (m) && promote (m) <= QUEN);
@@ -556,7 +558,7 @@ bool Position::legal (Move m) const
             || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
     case CASTLE:
         // Castling moves are checked for legality during move generation.
-        assert(KING == ptype (piece[org_sq (m)])
+        assert(contains (pieces (active, KING), org_sq (m))
             && R_1 == rel_rank (active, org_sq (m))
             && R_1 == rel_rank (active, dst_sq (m))
             && contains (pieces (active, KING), org_sq (m))
@@ -604,11 +606,10 @@ bool Position::gives_check (Move m) const
         return false;
     case CASTLE:
     {
-        assert(KING == ptype (piece[org_sq (m)])
+        assert(contains (pieces (active, KING), org_sq (m))
+            && contains (pieces (active, ROOK), dst_sq (m))
             && R_1 == rel_rank (active, org_sq (m))
             && R_1 == rel_rank (active, dst_sq (m))
-            && contains (pieces (active, KING), org_sq (m))
-            && contains (pieces (active, ROOK), dst_sq (m))
             && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN));
         // Castling with check?
         auto king_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_G1 : SQ_C1);
@@ -618,7 +619,7 @@ bool Position::gives_check (Move m) const
     }
     case ENPASSANT:
     {
-        assert(PAWN == ptype (piece[org_sq (m)])
+        assert(contains (pieces (active, PAWN), org_sq (m))
             && R_5 == rel_rank (active, org_sq (m))
             && R_6 == rel_rank (active, dst_sq (m))
             && empty (dst_sq (m))
@@ -634,7 +635,7 @@ bool Position::gives_check (Move m) const
     }
     case PROMOTE:
     {
-        assert(PAWN == ptype (piece[org_sq (m)])
+        assert(contains (pieces (active, PAWN), org_sq (m))
             && R_7 == rel_rank (active, org_sq (m))
             && R_8 == rel_rank (active, dst_sq (m))
             && NIHT <= promote (m) && promote (m) <= QUEN);

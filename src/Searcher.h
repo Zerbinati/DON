@@ -55,6 +55,11 @@ public:
             && 0 == nodes
             && 0 == mate;
     }
+
+    bool mate_search () const
+    {
+        return 0 != mate;
+    }
 };
 
 /// StatsEntry stores the stats table value. It is usually a number but could

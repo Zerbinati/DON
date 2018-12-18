@@ -128,6 +128,8 @@ void TTable::free_aligned_memory ()
 /// TTable::resize() sets the size of the table, measured in mega-bytes.
 u32 TTable::resize (u32 mem_size)
 {
+    Threadpool.main_thread ()->wait_while_busy ();
+
     mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
     size_t msize = size_t(mem_size) << 20;
 

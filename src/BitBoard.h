@@ -255,6 +255,15 @@ namespace BitBoard {
         0 != (bb & (bb - 1));
 //#   endif
     }
+    
+    inline bool opposite_colors (Square s1, Square s2)
+    {
+        //assert(_ok (s1) && _ok (s2));
+        //i08 s = i08(s1) ^ i08(s2);
+        //return 0 != (((s >> 3) ^ s) & 1);
+        return (contains (Color_bb[WHITE], s1) && contains (Color_bb[BLACK], s2))
+            || (contains (Color_bb[BLACK], s1) && contains (Color_bb[WHITE], s2));
+    }
 
     /// Shift the bitboard using delta
     template<Delta DEL>
@@ -309,6 +318,16 @@ namespace BitBoard {
         {
         case WHITE: return shift<DEL_NE> (b) | shift<DEL_NW> (b);
         case BLACK: return shift<DEL_SE> (b) | shift<DEL_SW> (b);
+        default: assert(false); return 0;
+        }
+    }
+
+    inline Bitboard pawn_dbl_attacks_bb (Color c, Bitboard b)
+    {
+        switch (c)
+        {
+        case WHITE: return shift<DEL_NE> (b) & shift<DEL_NW> (b);
+        case BLACK: return shift<DEL_SE> (b) & shift<DEL_SW> (b);
         default: assert(false); return 0;
         }
     }

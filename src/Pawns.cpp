@@ -27,8 +27,7 @@ namespace Pawns {
             { V( 89), V(107), V(123), V( 93), V( 57), V( 45), V(  51), V(0) },
             { V( 44), V(-18), V(123), V( 46), V( 39), V( -7), V(  23), V(0) },
             { V(  4), V( 52), V(162), V( 37), V(  7), V(-14), V(  -2), V(0) },
-            { V(-10), V(-14), V( 90), V( 15), V(  2), V( -7), V( -16), V(0) },
-            { V(  0), V(  0), V( 66), V(  6), V(  5), V(  1), V(  15), V(0) }
+            { V(-10), V(-14), V( 90), V( 15), V(  2), V( -7), V( -16), V(0) }
         };
 
 #   undef V
@@ -187,7 +186,10 @@ namespace Pawns {
             auto ff = std::min (f, ~f);
             assert(ff < 4);
             value += Shelter[ff][own_r];
-            value -= Storm[R_1 != own_r && (own_r + 1 == opp_r) ? 4 : ff][opp_r];
+            value -= R_1 != own_r && (own_r + 1 == opp_r) ?
+                        R_3 == opp_r ?
+                            66 : 0 :
+                        Storm[ff][opp_r];
         }
 
         return value;

@@ -336,6 +336,7 @@ namespace TBSyzygy {
                                 MAP_SHARED,
                                 fd,
                                 0);
+                madvise (*base_address, statbuf.st_size, MADV_RANDOM);
                 ::close (fd);
                 if (MAP_FAILED == *base_address)
                 {
@@ -1782,7 +1783,7 @@ namespace TBSyzygy {
                             else
                             if (off_A1H8 (s1) == 0 && off_A1H8 (s2) == 0)
                             {
-                                both_on_diagonal.push_back (std::make_pair (idx, s2));
+                                both_on_diagonal.emplace_back (std::make_pair (idx, s2));
                             }
                             else
                             {
