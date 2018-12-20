@@ -42,10 +42,17 @@ namespace Pawns {
         template<Color Own>
         u08 king_safety_on (const Position &pos, Square fk_sq)
         {
-            auto p = std::find (king_square[Own], king_square[Own] + index[Own] + 1, fk_sq);
-            if (p != king_square[Own] + index[Own] + 1)
+            i08 idx = std::find (king_square[Own], king_square[Own] + index[Own] + 1, fk_sq) - king_square[Own];
+            assert(0 <= idx);
+            if (idx <= index[Own])
             {
-                return u08(p - king_square[Own]);
+                return idx;
+            }
+            
+            idx = index[Own];
+            if (idx < MaxCache - 1)
+            {
+                ++index[Own];
             }
 
             u08 kp_dist = 0;
@@ -55,10 +62,10 @@ namespace Pawns {
                 while (0 == (pawns & BitBoard::dist_rings_bb (fk_sq, ++kp_dist))) {}
             }
 
-            king_square[Own][index[Own]] = fk_sq;
-            king_pawn_dist[Own][index[Own]] = kp_dist;
-            king_safety[Own][index[Own]] = evaluate_safety<Own> (pos, fk_sq);
-            return index[Own] < MaxCache - 1 ? index[Own]++ : index[Own];
+            king_square[Own][idx] = fk_sq;
+            king_pawn_dist[Own][idx] = kp_dist;
+            king_safety[Own][idx] = evaluate_safety<Own> (pos, fk_sq);
+            return idx;
         }
 
     };

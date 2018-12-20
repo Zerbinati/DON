@@ -51,8 +51,8 @@ namespace Pawns {
             Bitboard own_pawns = pos.pieces (Own, PAWN);
             Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            Bitboard latt = pawn_lattacks_bb (Own, own_pawns);
-            Bitboard ratt = pawn_rattacks_bb (Own, own_pawns);
+            Bitboard latt = pawn_l_attacks_bb (Own, own_pawns);
+            Bitboard ratt = pawn_r_attacks_bb (Own, own_pawns);
 
             e->any_attacks[Own] = latt | ratt;
             e->dbl_attacks[Own] = latt & ratt;

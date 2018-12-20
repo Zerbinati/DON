@@ -1144,9 +1144,9 @@ namespace Searcher {
                     && abs (beta) < +VALUE_MATE_MAX_PLY)
                 {
                     u08 pc_movecount = 0;
-                    auto beta_margin = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
+                    auto raised_beta = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
                     // Initialize movepicker (3) for the current position
-                    MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
+                    MovePicker move_picker (pos, tt_move, raised_beta - ss->static_eval);
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
                     while (   MOVE_NONE != (move = move_picker.next_move ())
                            && 3 > pc_movecount)
@@ -1171,17 +1171,17 @@ namespace Searcher {
                         pos.do_move (move, si);
 
                         // Perform a preliminary quien_search to verify that the move holds
-                        value = -quien_search<false> (pos, ss+1, -beta_margin, -beta_margin+1);
+                        value = -quien_search<false> (pos, ss+1, -raised_beta, -raised_beta+1);
 
                         // If the quien_search held perform the regular search
-                        if (value >= beta_margin)
+                        if (value >= raised_beta)
                         {
-                            value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node);
+                            value = -depth_search<false> (pos, ss+1, -raised_beta, -raised_beta+1, depth - 4, !cut_node);
                         }
 
                         pos.undo_move (move);
 
-                        if (value >= beta_margin)
+                        if (value >= raised_beta)
                         {
                             return value;
                         }
@@ -1288,39 +1288,35 @@ namespace Searcher {
 
                 i16 extension = DepthZero;
 
-                // Castle extension
-                if (CASTLE == mtype (move))
-                {
-                    extension = 1;
-                }
-                else
-                // Check extension (~2 ELO)
-                if (   gives_check
-                    && pos.see_ge (move))
+                if (// Castle extension
+                       CASTLE == mtype (move)
+                    // Check extension (~2 ELO)
+                    || (   gives_check
+                        && pos.see_ge (move)))
                 {
                     extension = 1;
                 }
                 else
                 // Singular extension (SE) (~60 ELO)
-                // We extend the TT move if its value is much better than its siblings.
+                // Extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
                 // and just one fails high on (alfa, beta), then that move is singular and should be extended.
                 // To verify this do a reduced search on all the other moves but the tt_move,
                 // if result is lower than tt_value minus a margin then extend tt_move.
                 if (   !root_node
-                    && MOVE_NONE == ss->excluded_move // Recursive singular search is not allowed.
+                    && MOVE_NONE == ss->excluded_move // Avoid recursive singular search.
                     && move == tt_move
                     && VALUE_NONE != tt_value // Handle tt_hit
                     && 7 < depth && depth < tte->depth () + 4
                     && BOUND_NONE != (tte->bound () & BOUND_LOWER))
                 {
-                    auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
+                    auto reduced_beta = std::max (tt_value - 2*depth, -VALUE_MATE);
 
                     ss->excluded_move = move;
-                    value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node);
+                    value = depth_search<false> (pos, ss, reduced_beta-1, reduced_beta, depth/2, cut_node);
                     ss->excluded_move = MOVE_NONE;
 
-                    if (value < beta_margin)
+                    if (value < reduced_beta)
                     {
                         extension = 1;
                     }

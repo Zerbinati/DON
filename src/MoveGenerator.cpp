@@ -148,8 +148,8 @@ namespace {
             || GenType::CAPTURE == GT
             || GenType::CHECK == GT)
         {
-            Bitboard l_attack = enemies & pawn_lattacks_bb (pos.active, Rx_pawns);
-            Bitboard r_attack = enemies & pawn_rattacks_bb (pos.active, Rx_pawns);
+            Bitboard l_attack = enemies & pawn_l_attacks_bb (pos.active, Rx_pawns);
+            Bitboard r_attack = enemies & pawn_r_attacks_bb (pos.active, Rx_pawns);
             if (GenType::CHECK == GT)
             {
                 l_attack &= pos.si->checks[PAWN];
@@ -159,8 +159,8 @@ namespace {
                 Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[~pos.active];
                 if (0 != dsc_pawns)
                 {
-                    l_attack |= enemies & pawn_lattacks_bb (pos.active, dsc_pawns);
-                    r_attack |= enemies & pawn_rattacks_bb (pos.active, dsc_pawns);
+                    l_attack |= enemies & pawn_l_attacks_bb (pos.active, dsc_pawns);
+                    r_attack |= enemies & pawn_r_attacks_bb (pos.active, dsc_pawns);
                 }
             }
             while (0 != l_attack) { auto dst = pop_lsq (l_attack); moves += mk_move<NORMAL> (dst - pawn_latt (pos.active), dst); }
@@ -194,8 +194,8 @@ namespace {
             }
             // Promoting pawns
             generate_promotion_moves<GT> (moves, pos, empties & pawn_pushes_bb (pos.active, R7_pawns), pawn_push (pos.active));
-            generate_promotion_moves<GT> (moves, pos, enemies & pawn_lattacks_bb (pos.active, R7_pawns), pawn_latt (pos.active));
-            generate_promotion_moves<GT> (moves, pos, enemies & pawn_rattacks_bb (pos.active, R7_pawns), pawn_ratt (pos.active));
+            generate_promotion_moves<GT> (moves, pos, enemies & pawn_l_attacks_bb (pos.active, R7_pawns), pawn_latt (pos.active));
+            generate_promotion_moves<GT> (moves, pos, enemies & pawn_r_attacks_bb (pos.active, R7_pawns), pawn_ratt (pos.active));
         }
     }
 

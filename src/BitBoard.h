@@ -294,7 +294,7 @@ namespace BitBoard {
         default: assert(false); return 0;
         }
     }
-    inline Bitboard pawn_lattacks_bb (Color c, Bitboard b)
+    inline Bitboard pawn_l_attacks_bb (Color c, Bitboard b)
     {
         switch (c)
         {
@@ -303,7 +303,7 @@ namespace BitBoard {
         default: assert(false); return 0;
         }
     }
-    inline Bitboard pawn_rattacks_bb (Color c, Bitboard b)
+    inline Bitboard pawn_r_attacks_bb (Color c, Bitboard b)
     {
         switch (c)
         {
@@ -312,7 +312,7 @@ namespace BitBoard {
         default: assert(false); return 0;
         }
     }
-    inline Bitboard pawn_attacks_bb (Color c, Bitboard b)
+    inline Bitboard pawn_sgl_attacks_bb (Color c, Bitboard b)
     {
         switch (c)
         {

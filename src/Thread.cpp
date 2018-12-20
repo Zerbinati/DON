@@ -409,7 +409,7 @@ void ThreadPool::clear ()
     }
 }
 /// ThreadPool::configure() creates/destroys threads to match the requested number.
-/// Created and launched threads will go immediately to sleep in idle_loop.
+/// Created and launched threads will immediately go to sleep in idle_loop.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::configure (u32 thread_count)
 {

@@ -1340,11 +1340,11 @@ namespace TBSyzygy {
         {
             static Mutex mutex;
 
-            // Avoid a thread reads 'ready' == true while another is still in set(),
-            // this could happen due to compiler reordering.
+            // Use 'acquire' to avoid a thread reading 'ready' == true while
+            // another is still working. (compiler reordering may cause this).
             if (e.ready.load (std::memory_order::memory_order_acquire))
             {
-                return e.base_address;
+                return e.base_address; // Could be nullptr if file does not exist
             }
 
             std::unique_lock<Mutex> lk (mutex);

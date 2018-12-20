@@ -63,17 +63,22 @@ public:
         return npm[c];
     }
 
+    CastleRight castle_right (Color c)
+    {
+        return castle_rights & ::castle_right (c);
+    }
+
     bool can_castle (CastleRight cr) const
     {
         return CR_NONE != (castle_rights & cr);
     }
     bool can_castle (Color c) const
     {
-        return can_castle (castle_right (c));
+        return can_castle (::castle_right (c));
     }
     bool can_castle (Color c, CastleSide cs) const
     {
-        return can_castle (castle_right (c, cs));
+        return can_castle (::castle_right (c, cs));
     }
 
     void set_check_info (const Position &pos);

@@ -227,8 +227,8 @@ namespace {
         if (0 != pinned_pawns)
         {
             Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
-            sgl_attacks[Own][PAWN] = pawn_attacks_bb (Own, loosed_pawns)
-                                   | (  pawn_attacks_bb (Own, pinned_pawns)
+            sgl_attacks[Own][PAWN] = pawn_sgl_attacks_bb (Own, loosed_pawns)
+                                   | (  pawn_sgl_attacks_bb (Own, pinned_pawns)
                                       & PieceAttacks[BSHP][pos.square<KING> (Own)]);
         }
         else
@@ -334,7 +334,7 @@ namespace {
                 Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != bp ? pawn_attacks_bb (Own, bp) & PieceAttacks[BSHP][s] : 0));
+                                     | (0 != bp ? pawn_sgl_attacks_bb (Own, bp) & PieceAttacks[BSHP][s] : 0));
             }
                 break;
             case QUEN:
@@ -345,7 +345,7 @@ namespace {
                 Bitboard qr = att & PieceAttacks[ROOK][s]  & pos.pieces (ROOK);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != qp ? pawn_attacks_bb (Own, qp) & PieceAttacks[BSHP][s] : 0)
+                                     | (0 != qp ? pawn_sgl_attacks_bb (Own, qp) & PieceAttacks[BSHP][s] : 0)
                                      | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                      | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
             }
@@ -480,7 +480,7 @@ namespace {
                 if (0 != (  pos.slider_blockers (s, Own, pos.pieces (QUEN), b, b)
                           & ~(  (  pos.pieces (Opp, PAWN)
                                  & file_bb (s)
-                                 & ~pawn_attacks_bb (Own, pos.pieces (Own)))
+                                 & ~pawn_sgl_attacks_bb (Own, pos.pieces (Own)))
                               | (  pos.si->king_blockers[Opp]
                                  & pos.pieces (Opp)))))
                 {
@@ -659,8 +659,8 @@ namespace {
         auto score = SCORE_ZERO;
 
         // Enemy non-pawns
-        Bitboard nonpawns_enemies = pos.pieces (Opp)
-                                  ^ pos.pieces (Opp, PAWN);
+        Bitboard nonpawns_enemies =  pos.pieces (Opp)
+                                  & ~pos.pieces (Opp, PAWN);
         // Squares defended by the opponent,
         // - attack the square with a pawn
         // - attack the square twice and not defended twice.
@@ -752,7 +752,7 @@ namespace {
           &  pos.pieces (Own, PAWN);
         // Safe friend pawns attacks on nonpawn enemies
         b =  nonpawns_enemies
-          &  pawn_attacks_bb (Own, b)
+          &  pawn_sgl_attacks_bb (Own, b)
           &  sgl_attacks[Own][PAWN];
         score += PawnThreat * pop_count (b);
 
@@ -768,7 +768,7 @@ namespace {
         b &= safe_area
           & ~sgl_attacks[Opp][PAWN];
         // Friend pawns push safe attacks an enemies
-        b =  pawn_attacks_bb (Own, b)
+        b =  pawn_sgl_attacks_bb (Own, b)
           &  pos.pieces (Opp);
         score += PawnPushThreat * pop_count (b);
 
