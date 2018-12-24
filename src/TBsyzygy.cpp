@@ -273,7 +273,7 @@ namespace TBSyzygy {
                                 FILE_SHARE_READ,
                                 nullptr,
                                 OPEN_EXISTING,
-                                FILE_ATTRIBUTE_NORMAL,
+                                FILE_FLAG_RANDOM_ACCESS, // FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
                                 nullptr);
                 if (INVALID_HANDLE_VALUE == fd)
                 {

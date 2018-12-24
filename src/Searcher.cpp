@@ -909,24 +909,23 @@ namespace Searcher {
                             update_continuation_histories (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
                         }
 
-                        // Extra penalty for a quiet tt_move in previous ply when it gets refuted.
-                        if (   1 == (ss-1)->move_count
-                            && _ok ((ss-1)->played_move)
+                        // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted.
+                        if (   NONE == pos.si->capture
                             && !pos.si->promotion
-                            && NONE == pos.si->capture)
+                            && (   1 == (ss-1)->move_count
+                                || (   MOVE_NONE != (ss-1)->killer_moves[0]
+                                    && (ss-1)->played_move == (ss-1)->killer_moves[0])))
                         {
                             update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                         }
                     }
                     else
+                    // Penalty for a quiet tt_move that fails low.
+                    if (!pos.capture_or_promotion (tt_move))
                     {
-                        // Penalty for a quiet tt_move that fails low.
-                        if (!pos.capture_or_promotion (tt_move))
-                        {
-                            auto bonus = stat_bonus (depth);
-                            thread->butterfly_history[own][move_pp (tt_move)] << -bonus;
-                            update_continuation_histories (ss, pos[org_sq (tt_move)], dst_sq (tt_move), -bonus);
-                        }
+                        auto bonus = stat_bonus (depth);
+                        thread->butterfly_history[own][move_pp (tt_move)] << -bonus;
+                        update_continuation_histories (ss, pos[org_sq (tt_move)], dst_sq (tt_move), -bonus);
                     }
                 }
                 return tt_value;
@@ -1612,7 +1611,7 @@ namespace Searcher {
                     thread->capture_history[pos[org_sq (cm)]][move_pp (cm)][pos.cap_type (cm)] << -cbonus;
                 }
 
-                // Extra penalty for a quiet TT or main killer move in previous ply when it gets refuted
+                // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
                 if (   NONE == pos.si->capture
                     && !pos.si->promotion
                     && (   1 == (ss-1)->move_count
@@ -2156,7 +2155,7 @@ void MainThread::search ()
             && MOVE_NONE != root_moves[0][0]
             && !skill_mgr_enabled ())
         {
-            std::map<Move, i32> votes;
+            std::map<Move, i64> votes;
             
             // Find out minimum value and reset votes for moves which can be voted
             auto min_value = root_moves[0].new_value;
@@ -2169,10 +2168,11 @@ void MainThread::search ()
                 votes[th->root_moves[0][0]] = 0;
             }
             // Vote according to value and depth
+            auto square = [](i64 x) { return x * x; };
             for (auto *th : Threadpool)
             {
-                votes[th->root_moves[0][0]] += i32(th->root_moves[0].new_value - min_value)
-                                             + th->finished_depth;
+                votes[th->root_moves[0][0]] += 200
+                                             + square (th->root_moves[0].new_value - min_value + 1) * th->finished_depth;
             }
             // Select best thread
             auto best_vote = votes[root_moves[0][0]];
