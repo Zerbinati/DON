@@ -314,6 +314,7 @@ namespace BitBoard {
                         PawnAttacks[c][s] |= sq;
                     }
                 }
+                assert(2 >= pop_count (PawnAttacks[c][s]));
             }
 
             for (auto del : PieceDeltas[NIHT])

@@ -164,7 +164,6 @@ namespace EndGame {
     template<> Value Endgame<KNNK>::operator() (const Position &pos) const
     {
         assert(verify_material (pos, strong_color, VALUE_MG_NIHT*2, 0));
-        (void) pos;
         return VALUE_DRAW + pos.count (strong_color, NIHT);
     }
 
