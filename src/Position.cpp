@@ -273,7 +273,7 @@ bool Position::see_ge (Move m, Value threshold) const
     }
 
     auto victim = ptype (piece[org]);
-    assert(PAWN <= victim && victim <= KING);
+    assert(_ok (victim));
 
     // Now assume the worst possible result: that the opponent can capture our piece for free.
     balance -= PieceValues[MG][victim];

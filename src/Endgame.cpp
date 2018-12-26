@@ -156,8 +156,8 @@ namespace EndGame {
                    + PushClose[dist (sk_sq, wk_sq)]
                    + PushToCorner[opposite_colors (sb_sq, SQ_A1) ?
                                         ~wk_sq :
-                                         wk_sq];
-
+                                         wk_sq] * 32;
+        assert(abs (value) < +VALUE_MATE_MAX_PLY);
         return strong_color == pos.active ? +value : -value;
     }
     /// Draw with KNN vs K
@@ -165,7 +165,7 @@ namespace EndGame {
     {
         assert(verify_material (pos, strong_color, VALUE_MG_NIHT*2, 0));
         (void) pos;
-        return VALUE_DRAW;
+        return VALUE_DRAW + pos.count (strong_color, NIHT);
     }
 
     /// KR vs KP. This is a somewhat tricky endgame to evaluate precisely without a bitbase.

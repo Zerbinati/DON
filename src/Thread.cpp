@@ -319,8 +319,7 @@ namespace WinProcGroup {
 
         DWORD offset = 0;
         auto *ptrSysLogicalProcInfoCurr = ptrSysLogicalProcInfoBase;
-        while (ptrSysLogicalProcInfoCurr->Size > 0
-            && ptrSysLogicalProcInfoCurr->Size + offset <= length)
+        while (offset < length)
         {
             if (ptrSysLogicalProcInfoCurr->Relationship == LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore)
             {
@@ -328,11 +327,11 @@ namespace WinProcGroup {
                 threads += ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT ? 2 : 1;
             }
             else
-                if (ptrSysLogicalProcInfoCurr->Relationship == LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode)
-                {
-                    ++nodes;
-                }
-
+            if (ptrSysLogicalProcInfoCurr->Relationship == LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode)
+            {
+                ++nodes;
+            }
+            assert(0 != ptrSysLogicalProcInfoCurr->Size);
             offset += ptrSysLogicalProcInfoCurr->Size;
             ptrSysLogicalProcInfoCurr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)((char*)(ptrSysLogicalProcInfoCurr)+ptrSysLogicalProcInfoCurr->Size);
         }

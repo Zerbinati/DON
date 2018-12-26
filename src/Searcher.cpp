@@ -913,8 +913,7 @@ namespace Searcher {
                         if (   NONE == pos.si->capture
                             && !pos.si->promotion
                             && (   1 == (ss-1)->move_count
-                                || (   MOVE_NONE != (ss-1)->killer_moves[0]
-                                    && (ss-1)->played_move == (ss-1)->killer_moves[0])))
+                                || (ss-1)->played_move == (ss-1)->killer_moves[0]))
                         {
                             update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                         }
@@ -1615,8 +1614,7 @@ namespace Searcher {
                 if (   NONE == pos.si->capture
                     && !pos.si->promotion
                     && (   1 == (ss-1)->move_count
-                        || (   MOVE_NONE != (ss-1)->killer_moves[0]
-                            && (ss-1)->played_move == (ss-1)->killer_moves[0])))
+                        || (ss-1)->played_move == (ss-1)->killer_moves[0]))
                 {
                     update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                 }
@@ -1625,7 +1623,6 @@ namespace Searcher {
             // Bonus for prior countermove that caused the fail low.
             if (   (   2 < depth
                     || PVNode)
-                && _ok ((ss-1)->played_move)
                 && NONE == pos.si->capture
                 && !pos.si->promotion)
             {
@@ -1714,10 +1711,14 @@ using namespace Searcher;
 /// - Maximum search depth is reached.
 void Thread::search ()
 {
-    Stack stacks[MaxDepth + 7]; // To allow referencing (ss-4) and (ss+2)
-    for (auto ss = stacks; ss < stacks + MaxDepth + 7; ++ss)
+    // To allow access to (ss-5) up to (ss+2), the stack must be oversized.
+    // The former is needed to allow update_continuation_histories(ss-1, ...),
+    // which accesses its argument at ss-4, also near the root.
+    // The latter is needed for stats and killer initialization.
+    Stack stacks[MaxDepth + 8];
+    for (auto ss = stacks; ss < stacks + MaxDepth + 8; ++ss)
     {
-        ss->ply = i16(ss - (stacks+4));
+        ss->ply = i16(ss - (stacks+5));
         ss->played_move = MOVE_NONE;
         ss->excluded_move = MOVE_NONE;
         std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
@@ -1819,7 +1820,7 @@ void Thread::search ()
             while (true)
             {
                 i16 adjusted_depth = std::max (running_depth - failed_high_count, 1);
-                best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, adjusted_depth, false);
+                best_value = depth_search<true> (root_pos, stacks+5, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
                 // done with a stable algorithm because all the values but the first
