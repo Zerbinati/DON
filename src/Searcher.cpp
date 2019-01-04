@@ -2157,26 +2157,24 @@ void MainThread::search ()
             && !skill_mgr_enabled ())
         {
             std::map<Move, i64> votes;
-            
+            i32 min_value = INT_MAX;
             // Find out minimum value and reset votes for moves which can be voted
-            auto min_value = root_moves[0].new_value;
             for (auto *th : Threadpool)
             {
+                votes[th->root_moves[0][0]] = 0;
                 if (min_value > th->root_moves[0].new_value)
                 {
                     min_value = th->root_moves[0].new_value;
                 }
-                votes[th->root_moves[0][0]] = 0;
             }
             // Vote according to value and depth
-            auto square = [](i64 x) { return x * x; };
+            auto square = [](i64 x) { return (u64)(x * x); };
             for (auto *th : Threadpool)
             {
-                votes[th->root_moves[0][0]] += 200
-                                             + square (th->root_moves[0].new_value - min_value + 1) * th->finished_depth;
+                votes[th->root_moves[0][0]] += 200 + square (th->root_moves[0].new_value - min_value + 1) * th->finished_depth;
             }
             // Select best thread
-            auto best_vote = votes[root_moves[0][0]];
+            auto best_vote = 0;
             for (auto *th : Threadpool)
             {
                 if (best_vote < votes[th->root_moves[0][0]])

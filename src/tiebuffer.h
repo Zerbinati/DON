@@ -16,6 +16,9 @@ namespace std {
     class basic_tie_buf
         : public basic_streambuf<Elem, Traits>
     {
+    public:
+
+        typedef typename Traits::int_type   int_type;
 
     private:
         // MSVC requires split streambuf for cin and cout
@@ -25,8 +28,6 @@ namespace std {
         int_type last_ch = '\n';
 
     public:
-
-        typedef typename Traits::int_type   int_type;
 
         basic_tie_buf (basic_streambuf<Elem, Traits> *strmbuf1,
                        basic_streambuf<Elem, Traits> *strmbuf2)
