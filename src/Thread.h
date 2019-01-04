@@ -51,7 +51,7 @@ inline bool skill_mgr_enabled ()
 class SkillManager
 {
 public:
-    static PRNG prng;
+    static PRNG PRNG;
 
     Move best_move = MOVE_NONE;
 

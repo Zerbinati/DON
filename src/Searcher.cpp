@@ -2207,7 +2207,7 @@ void MainThread::search ()
 
     auto bm = rm[0];
     auto pm = MOVE_NONE != bm ?
-                rm.size () > 1 ?
+                1 < rm.size () ?
                     rm[1] :
                     TT.extract_pm (root_pos, bm) :
                 MOVE_NONE;

@@ -39,8 +39,8 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit, u08 gen)
         // Due to packed storage format for generation and its cyclic nature
         // add 0x103 (0x100 + 3 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        if (  rte->d08 - ((gen - rte->gb08 + 0x103) & 0xFC) * 2
-            > ite->d08 - ((gen - ite->gb08 + 0x103) & 0xFC) * 2)
+        if (  rte->worth (gen)
+            > ite->worth (gen))
         {
             rte = ite;
         }
@@ -210,24 +210,26 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
 /// TTable::extract_pm_from_tt() extracts ponder move from TT.
 Move TTable::extract_pm (Position &pos, Move bm)
 {
-    if (!MoveList<GenType::LEGAL> (pos).contains (bm))
+    Move pm = MOVE_NONE;
+    if (   MOVE_NONE != bm
+        && MoveList<GenType::LEGAL> (pos).contains (bm))
     {
-        return MOVE_NONE;
+        StateInfo si;
+        pos.do_move (bm, si);
+        bool tt_hit;
+        auto *tte = probe (pos.si->posi_key, tt_hit);
+        Move m;
+        if (   tt_hit
+            && MOVE_NONE != (m = tte->move ())
+            && pos.pseudo_legal (m)
+            && pos.legal (m))
+        {
+            pm = m;
+        }
+        assert(MOVE_NONE == pm
+            || MoveList<GenType::LEGAL> (pos).contains (pm));
+        pos.undo_move (bm);
     }
-    StateInfo si;
-    pos.do_move (bm, si);
-    bool tt_hit;
-    auto *tte = probe (pos.si->posi_key, tt_hit);
-    Move pm = tt_hit ? tte->move () : MOVE_NONE;
-    if (   MOVE_NONE != pm
-        && !(   pos.pseudo_legal (pm)
-             && pos.legal (pm)))
-    {
-        pm = MOVE_NONE;
-    }
-    assert(MOVE_NONE == pm
-        || MoveList<GenType::LEGAL> (pos).contains (pm));
-    pos.undo_move (bm);
     return pm;
 }
 

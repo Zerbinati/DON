@@ -153,9 +153,6 @@ namespace {
         0, 77, 55, 44, 10, 0
     };
 
-    constexpr Value LazyThreshold =  Value(1500);
-    constexpr Value SpaceThreshold = Value(12222);
-
     // Evaluator class contains various evaluation functions.
     template<bool Trace>
     class Evaluator
@@ -221,7 +218,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        std::fill_n (sgl_attacks[Own], KING, 0);
+        std::fill_n (sgl_attacks[Own], 5, 0);
         std::fill_n (queen_attacks[Own], 3, 0);
 
         Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
@@ -769,7 +766,7 @@ namespace {
         // Bonus for threats on the next moves against enemy queens
         if (0 != pos.pieces (Opp, QUEN))
         {
-            safe_area = mob_area[Own]
+            safe_area =  mob_area[Own]
                       & ~defended_area;
             b = safe_area
               & (sgl_attacks[Own][NIHT] & queen_attacks[Opp][0]);
@@ -911,7 +908,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        if (pos.si->non_pawn_material () < SpaceThreshold)
+        if (pos.si->non_pawn_material () < Value(12222)) // Space Threshold
         {
             return SCORE_ZERO;
         }
@@ -1026,13 +1023,13 @@ namespace {
         // - pawn score
         score = pos.psq
               + me->imbalance
-              + pe->scores[WHITE]
-              - pe->scores[BLACK]
+              + (pe->scores[WHITE] - pe->scores[BLACK])
               + pos.thread->contempt;
 
         // Early exit if score is high
         Value v = (mg_value (score) + eg_value (score)) / 2;
-        if (abs (v) > LazyThreshold)
+
+        if (abs (v) > Value(1500)) // Lazy Threshold
         {
             switch (pos.active)
             {
@@ -1062,10 +1059,10 @@ namespace {
         score += mobility[WHITE] - mobility[BLACK];
 
         // Rest should be evaluated after (full attack information needed including king)
-        score += king<   WHITE> () - king<   BLACK> ()
+        score += king   <WHITE> () - king   <BLACK> ()
                + threats<WHITE> () - threats<BLACK> ()
                + passers<WHITE> () - passers<BLACK> ()
-               + space<  WHITE> () - space<  BLACK> ();
+               + space  <WHITE> () - space  <BLACK> ();
 
         score += initiative (eg_value (score));
 

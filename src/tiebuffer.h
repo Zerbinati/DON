@@ -22,6 +22,8 @@ namespace std {
         basic_streambuf<Elem, Traits> *_strmbuf1;
         basic_streambuf<Elem, Traits> *_strmbuf2;
 
+        int_type last_ch = '\n';
+
     public:
 
         typedef typename Traits::int_type   int_type;
@@ -36,8 +38,6 @@ namespace std {
 
         int_type write (int_type c, const Elem *prefix)
         {
-            static int_type last_ch = '\n';
-            
             if ('\n' == last_ch)
             {
                 streamsize length = strlen (prefix);

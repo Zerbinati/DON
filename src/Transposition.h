@@ -39,6 +39,8 @@ public:
     u08   generation () const { return u08  (gb08 & 0xFC); }
     bool  empty      () const { return d08 == DepthEmpty; }
 
+    i16 worth (u08 gen) const { return d08 - ((gen - gb08 + 0x103) & 0xFC) * 2; }
+
     void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, u08 g)
     {
         // Preserve more valuable entries
