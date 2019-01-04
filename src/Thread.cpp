@@ -223,7 +223,7 @@ void Thread::idle_loop ()
         WinProcGroup::bind (index);
     }
 
-    while (true)
+    do
     {
         unique_lock<Mutex> lk (mutex);
         busy = false;
@@ -236,7 +236,7 @@ void Thread::idle_loop ()
         lk.unlock ();
 
         search ();
-    }
+    } while (true);
 }
 /// Thread::clear() clears all the thread related stuff.
 void Thread::clear ()

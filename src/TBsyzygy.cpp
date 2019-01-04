@@ -822,8 +822,7 @@ namespace TBSyzygy {
                                      ~pop_lsq (b) :
                                       pop_lsq (b);
                     ++size;
-                }
-                while (0 != b);
+                } while (0 != b);
 
                 std::swap (squares[0], *std::max_element (squares, squares + size, pawns_comp));
 
@@ -863,8 +862,7 @@ namespace TBSyzygy {
                                  ~pos[s] :
                                   pos[s];
                 ++size;
-            }
-            while (0 != b);
+            } while (0 != b);
 
             assert(size >= 2);
 

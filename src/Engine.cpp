@@ -651,18 +651,15 @@ namespace {
                         std::cout << move_to_san (vm, pos) << " ";
                         ++count;
                     }
-                    std::cout << "(" << count << ")";
-
-                    std::cout << sync_endl;
+                    std::cout << "(" << count << ")" << sync_endl;
                 }
                 else
                 {
                     sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
                 }
             }
-        }
-        while (   1 == argc
-               && cmd != "quit");
+        } while (   1 == argc
+                 && cmd != "quit");
     }
 }
 

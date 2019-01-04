@@ -73,11 +73,12 @@ void Position::initialize ()
                         cuckoo.move = mk_move<NORMAL> (s1, s2);
 
                         u16 i = H1 (cuckoo.key);
-                        while (true)
+                        do
                         {
                             std::swap (Cuckoos[i], cuckoo);
                             // Arrived at empty slot ?
-                            if (0 == cuckoo.key)
+                            if (   0 == cuckoo.key
+                                || MOVE_NONE == cuckoo.move)
                             {
                                 break;
                             }
@@ -85,7 +86,7 @@ void Position::initialize ()
                             i = i == H1 (cuckoo.key) ?
                                 H2 (cuckoo.key) :
                                 H1 (cuckoo.key);
-                        }
+                        } while (true);
 
                         ++count;
                     }
@@ -211,8 +212,7 @@ bool Position::repeated () const
                 return true;
             }
             p += 2;
-        }
-        while (p <= end);
+        } while (p <= end);
         csi = csi->ptr;
     }
     return false;

@@ -180,8 +180,8 @@ namespace {
         Bitboard queen_attacks[CLR_NO][3];
 
         // Zone around the king which is considered by the king safety evaluation.
-        // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
-        // For instance, if black king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
+        // The squares directly adjacent to the king, , plus (only for a king on its first rank) the squares two ranks in front.
+        // For instance, if black king is on g8, king_ring[BLACK] is f8, h8, f7, g7, h7, f6, g6 and h6.
         Bitboard king_ring[CLR_NO];
         // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
         u08 king_attackers_count[CLR_NO];
@@ -190,6 +190,7 @@ namespace {
         i32 king_attackers_weight[CLR_NO];
         // Number of attacks by the color to squares directly adjacent to the enemy king.
         // Pieces which attack more than one square are counted multiple times.
+        // For instance, if there is a white knight on g5 and black's king is on g8, this white knight adds 2 to king_attacks_count[WHITE]
         u08 king_attacks_count[CLR_NO];
 
         template<Color> void initialize ();
@@ -257,32 +258,25 @@ namespace {
                                 | pawn_pushes_bb (Own, pos.pieces ()))));
         mobility[Opp] = SCORE_ZERO;
 
+        king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
+        if (contains (Rank_bb[rel_rank (Opp, R_1)], pos.square<KING> (Opp)))
+        {
+            king_ring[Opp] |= pawn_pushes_bb (Opp, king_ring[Opp]);
+        }
+        if (contains (FH_bb, pos.square<KING> (Opp)))
+        {
+            king_ring[Opp] |= shift<DEL_W> (king_ring[Opp]);
+        }
+        else
+        if (contains (FA_bb, pos.square<KING> (Opp)))
+        {
+            king_ring[Opp] |= shift<DEL_E> (king_ring[Opp]);
+        }
+
+        king_attackers_count[Own] = pop_count (king_ring[Opp] & sgl_attacks[Own][PAWN]);
+        king_ring[Opp] &= ~pawn_dbl_attacks_bb (Opp, pos.pieces (Opp, PAWN));
         king_attackers_weight[Own] = 0;
         king_attacks_count[Own] = 0;
-        king_ring[Opp] = 0;
-        king_attackers_count[Own] = 0;
-        if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
-        {
-            king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
-
-            if (contains (Rank_bb[rel_rank (Opp, R_1)], pos.square<KING> (Opp)))
-            {
-                king_ring[Opp] |= pawn_pushes_bb (Opp, king_ring[Opp]);
-            }
-
-            if (contains (FH_bb, pos.square<KING> (Opp)))
-            {
-                king_ring[Opp] |= shift<DEL_W> (king_ring[Opp]);
-            }
-            else
-            if (contains (FA_bb, pos.square<KING> (Opp)))
-            {
-                king_ring[Opp] |= shift<DEL_E> (king_ring[Opp]);
-            }
-
-            king_attackers_count[Own] = pop_count (king_ring[Opp] & sgl_attacks[Own][PAWN]);
-            king_ring[Opp] &= ~pawn_dbl_attacks_bb (Opp, pos.pieces (Opp, PAWN));
-        }
     }
 
     /// pieces() evaluates the pieces of the color and type.
@@ -660,7 +654,7 @@ namespace {
 
         // Enemy non-pawns
         Bitboard nonpawns_enemies =  pos.pieces (Opp)
-                                  & ~pos.pieces (Opp, PAWN);
+                                  & ~pos.pieces (PAWN);
         // Squares defended by the opponent,
         // - attack the square with a pawn
         // - attack the square twice and not defended twice.
@@ -936,7 +930,7 @@ namespace {
         behind |= pawn_pushes_bb (Opp, behind);
         behind |= pawn_pushes_bb (Opp, pawn_pushes_bb (Opp, behind));
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
-        i32 weight = pos.count (Own) - 2 * pe->open_count;
+        i32 weight = pos.count (Own) - 2 * pop_count (pe->semiopens[WHITE] & pe->semiopens[BLACK]);
         auto score = mk_score (bonus * weight * weight / 16, 0);
 
         if (Trace)

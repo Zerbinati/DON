@@ -5,7 +5,7 @@
 namespace {
 
 #   define S(mg, eg) mk_score (mg, eg)
-    // PieceHalfSQ[piece-type][rank][file/2] table contains half Piece-Square scores.
+    // PieceHalfSQ[piece-type][rank][file/2] table contains half Piece-Square scores (symmetric distribution).
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
     // For each piece type on a given square a (midgame, endgame) score pair is assigned.
@@ -65,7 +65,7 @@ namespace {
     };
 
     constexpr Score PawnFullSQ[R_NO][F_NO] =
-    { // Pawn
+    { // Pawn (asymmetric distribution)
         { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) },
         { S(  0,-11), S( -3, -4), S( 13, -1), S( 19, -4), S( 16, 17), S( 13,  7), S(  4,  4), S( -4,-13) },
         { S(-16, -8), S(-12, -6), S( 20, -3), S( 21,  0), S( 25,-11), S( 29,  3), S(  0,  0), S(-27, -1) },
