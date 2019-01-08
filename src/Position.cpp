@@ -351,7 +351,8 @@ bool Position::see_ge (Move m, Value threshold) const
 Bitboard Position::slider_blockers (Square s, Color own, Bitboard ex_attackers, Bitboard &pinners, Bitboard &hiddens) const
 {
     // Sliders are attackers that are aligned on square in x-ray.
-    Bitboard sliders = (pieces (~own) & ~ex_attackers)
+    Bitboard sliders = (  pieces (~own)
+                        & ~ex_attackers)
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     Bitboard blockers = 0;
@@ -392,35 +393,13 @@ bool Position::pseudo_legal (Move m) const
 
     if (CASTLE == mtype (m))
     {
-        auto cs = dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN;
-        // Check whether the destination square is attacked by the opponent.
-        // Castling moves are checked for legality during move generation.
-        if (   !contains (pieces (active, KING), org_sq (m))
-            || !contains (pieces (active, ROOK), dst_sq (m))
-            || R_1 != rel_rank (active, org_sq (m))
-            || R_1 != rel_rank (active, dst_sq (m))
-            || !si->can_castle (active, cs)
-            || !expeded_castle (active, cs)
-            || 0 != si->checkers)
-        {
-            return false;
-        }
-        // Castle is always encoded as "King captures friendly Rook".
-        assert(dst_sq (m) == castle_rook_sq[active][cs]);
-        Bitboard b = king_path_bb[active][cs];
-        // Check king's path for attackers.
-        while (0 != b)
-        {
-            if (0 != attackers_to (pop_lsq (b), ~active))
-            {
-                return false;
-            }
-        }
-        // In case of Chess960, verify that when moving the castling rook we do not discover some hidden checker.
-        // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        return !bool(Options["UCI_Chess960"])
-            || 0 == (b = pieces (~active, ROOK, QUEN) & rank_bb (rel_rank (active, R_1)))
-            || 0 == (b & attacks_bb<ROOK> (rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_G1 : SQ_C1), pieces () ^ dst_sq (m)));
+        return contains (pieces (active, KING), org_sq (m))
+            && contains (pieces (active, ROOK), dst_sq (m))
+            && R_1 == rel_rank (active, org_sq (m))
+            && R_1 == rel_rank (active, dst_sq (m))
+            && si->can_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
+            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
+            && 0 == si->checkers;
     }
 
     // The captured square cannot be occupied by a friendly piece
@@ -545,13 +524,30 @@ bool Position::legal (Move m) const
             && NIHT <= promote (m) && promote (m) <= QUEN);
         break;
     case CASTLE:
+    {
         assert(contains (pieces (active, KING), org_sq (m))
             && R_1 == rel_rank (active, org_sq (m))
             && R_1 == rel_rank (active, dst_sq (m))
             && contains (pieces (active, KING), org_sq (m))
             && contains (pieces (active, ROOK), dst_sq (m))
             && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN));
-        return true;
+        // Castle is always encoded as "King captures friendly Rook".
+        assert(dst_sq (m) == castle_rook_sq[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN]);
+        Bitboard b = king_path_bb[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN];
+        // Check king's path for attackers.
+        while (0 != b)
+        {
+            if (0 != attackers_to (pop_lsq (b), ~active))
+            {
+                return false;
+            }
+        }
+        // In case of Chess960, verify that when moving the castling rook we do not discover some hidden checker.
+        // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+        return !bool(Options["UCI_Chess960"])
+            || 0 == (b = pieces (~active, ROOK, QUEN) & rank_bb (rel_rank (active, R_1)))
+            || 0 == (b & attacks_bb<ROOK> (rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_G1 : SQ_C1), pieces () ^ dst_sq (m)));
+    }
     case ENPASSANT:
     {
         // Enpassant captures are a tricky special case. Because they are rather uncommon,

@@ -34,16 +34,8 @@ namespace {
                 {
                     continue;
                 }
-                Bitboard attacks;
-                switch (PT)
-                {
-                case NIHT: attacks = PieceAttacks[NIHT][s]; break;
-                case BSHP: attacks = attacks_bb<BSHP> (s, pos.pieces ()); break;
-                case ROOK: attacks = attacks_bb<ROOK> (s, pos.pieces ()); break;
-                case QUEN: attacks = attacks_bb<QUEN> (s, pos.pieces ()); break;
-                default: assert(false); attacks = 0; break;
-                }
-                attacks &= targets;
+                Bitboard attacks = targets
+                                 & attacks_bb<PT> (s, pos.pieces ());
                 while (0 != attacks) { moves += mk_move<NORMAL> (s, pop_lsq (attacks)); }
             }
         }
@@ -53,13 +45,6 @@ namespace {
     template<GenType GT>
     void generate_promotion_moves (ValMoves &moves, const Position &pos, Bitboard promotion, Delta del)
     {
-        assert(DEL_N  == del
-            || DEL_NE == del
-            || DEL_NW == del
-            || DEL_S  == del
-            || DEL_SE == del
-            || DEL_SW == del);
-
         while (0 != promotion)
         {
             auto dst = pop_lsq (promotion);
@@ -203,16 +188,13 @@ namespace {
     template<GenType GT>
     void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        assert(GenType::EVASION != GT);
-
-        auto fk_sq = pos.square<KING> (pos.active);
-
         if (   GenType::NATURAL == GT
             || GenType::CAPTURE == GT
             || GenType::QUIET == GT
             || GenType::CHECK == GT
             || GenType::QUIET_CHECK == GT)
         {
+            auto fk_sq = pos.square<KING> (pos.active);
             Bitboard attacks = targets
                              &  PieceAttacks[KING][fk_sq]
                              & ~PieceAttacks[KING][pos.square<KING> (~pos.active)];
@@ -241,19 +223,12 @@ namespace {
     template<GenType GT>
     void generate_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        generate_pawn_moves <GT> (moves, pos, targets);
+        generate_pawn_moves<GT> (moves, pos, targets);
         generate_piece_moves<GT, NIHT> (moves, pos, targets);
         generate_piece_moves<GT, BSHP> (moves, pos, targets);
         generate_piece_moves<GT, ROOK> (moves, pos, targets);
         generate_piece_moves<GT, QUEN> (moves, pos, targets);
-        if (   GenType::NATURAL == GT
-            || GenType::CAPTURE == GT
-            || GenType::QUIET == GT
-            || GenType::CHECK == GT
-            || GenType::QUIET_CHECK == GT)
-        {
-            generate_king_moves<GT> (moves, pos, targets);
-        }
+        generate_king_moves<GT> (moves, pos, targets);
     }
 }
 
@@ -406,8 +381,7 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                                  {
                                      return (   pos.enpassant (vm)
                                              || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
-                                         && !(   pos.pseudo_legal (vm)
-                                              && pos.legal (vm));
+                                         && !pos.legal (vm);
                                  }),
                  moves.end ());
 }

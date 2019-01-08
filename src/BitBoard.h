@@ -335,7 +335,9 @@ namespace BitBoard {
     /// attacks_bb(s, occ) takes a square and a bitboard of occupied squares,
     /// and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
     template<PieceType PT> Bitboard attacks_bb (Square, Bitboard);
-    
+
+    template<> inline Bitboard attacks_bb<NIHT> (Square s, Bitboard    ) { return PieceAttacks[NIHT][s]; }
+    template<> inline Bitboard attacks_bb<KING> (Square s, Bitboard    ) { return PieceAttacks[KING][s]; }
     /// Attacks of the Bishop with occupancy
     template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BMagics[s].attacks_bb (occ); }
     /// Attacks of the Rook with occupancy

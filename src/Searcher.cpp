@@ -1286,15 +1286,6 @@ namespace Searcher {
 
                 i16 extension = DepthZero;
 
-                if (// Castle extension
-                       CASTLE == mtype (move)
-                    // Check extension (~2 ELO)
-                    || (   gives_check
-                        && pos.see_ge (move)))
-                {
-                    extension = 1;
-                }
-                else
                 // Singular extension (SE) (~60 ELO)
                 // Extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
@@ -1324,10 +1315,20 @@ namespace Searcher {
                     // that is multiple moves fail high, and we can prune the whole subtree by returning
                     // the hard beta bound.
                     else
-                    if (cut_node && singular_beta > beta)
+                    if (   cut_node
+                        && singular_beta > beta)
                     {
                         return beta;
                     }
+                }
+                else
+                if (// Castle extension
+                       CASTLE == mtype (move)
+                    // Check extension (~2 ELO)
+                    || (   gives_check
+                        && pos.see_ge (move)))
+                {
+                    extension = 1;
                 }
 
                 // Calculate new depth for this move
