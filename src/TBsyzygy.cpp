@@ -283,6 +283,13 @@ namespace TBSyzygy {
 
                 DWORD high_size;
                 DWORD low_size = GetFileSize (fd, &high_size);
+                
+                if (16 != low_size % 64)
+                {
+                    std::cerr << "Corrupt tablebase file " << filename << std::endl;
+                    stop (EXIT_FAILURE);
+                }
+
                 HANDLE mmap = CreateFileMapping (
                                 fd,
                                 nullptr,
@@ -327,6 +334,13 @@ namespace TBSyzygy {
                     stop (EXIT_FAILURE);
                     return nullptr;
                 }
+                if (16 != statbuf.st_size % 64)
+                {
+                    std::cerr << "Corrupt tablebase file " << filename << std::endl;
+                    ::close (fd);
+                    stop (EXIT_FAILURE);
+                    return nullptr;
+                }
 
                 *mapping = statbuf.st_size;
                 *base_address = mmap (
@@ -341,7 +355,7 @@ namespace TBSyzygy {
                 if (MAP_FAILED == *base_address)
                 {
                     std::cerr << "Could not mmap() " << filename << std::endl;
-                    Engine::stop (EXIT_FAILURE);
+                    stop (EXIT_FAILURE);
                 }
 #           endif
 

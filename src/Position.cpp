@@ -416,15 +416,11 @@ bool Position::pseudo_legal (Move m) const
                 return false;
             }
         }
-        auto king_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_G1 : SQ_C1);
-        // Chess960
+        // In case of Chess960, verify that when moving the castling rook we do not discover some hidden checker.
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        if (   0 != (b = pieces (~active, ROOK, QUEN) & rank_bb (rel_rank (active, R_1)))
-            && 0 != (b & attacks_bb<ROOK> (king_dst, pieces () ^ dst_sq (m))))
-        {
-            return false;
-        }
-        return true; // No capture
+        return !bool(Options["UCI_Chess960"])
+            || 0 == (b = pieces (~active, ROOK, QUEN) & rank_bb (rel_rank (active, R_1)))
+            || 0 == (b & attacks_bb<ROOK> (rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_G1 : SQ_C1), pieces () ^ dst_sq (m)));
     }
 
     // The captured square cannot be occupied by a friendly piece
@@ -541,23 +537,14 @@ bool Position::legal (Move m) const
         {
             return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
         }
-        // A non-king move is legal if and only if
-        // - not pinned
-        // - moving along the ray from the king
-        return !contains (si->king_blockers[active], org_sq (m))
-            || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
+        break;
     case PROMOTE:
         assert(contains (pieces (active, PAWN), org_sq (m))
             && R_7 == rel_rank (active, org_sq (m))
             && R_8 == rel_rank (active, dst_sq (m))
             && NIHT <= promote (m) && promote (m) <= QUEN);
-        // A non-king move is legal if and only if
-        // - not pinned
-        // - moving along the ray from the king
-        return !contains (si->king_blockers[active], org_sq (m))
-            || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
+        break;
     case CASTLE:
-        // Castling moves are checked for legality during move generation.
         assert(contains (pieces (active, KING), org_sq (m))
             && R_1 == rel_rank (active, org_sq (m))
             && R_1 == rel_rank (active, dst_sq (m))
@@ -584,6 +571,12 @@ bool Position::legal (Move m) const
     }
     default: assert(false); return false;
     }
+
+    // A non-king move is legal if and only if
+    // - not pinned
+    // - moving along the ray from the king
+    return !contains (si->king_blockers[active], org_sq (m))
+        || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
 }
 /// Position::gives_check() tests whether a pseudo-legal move gives a check.
 bool Position::gives_check (Move m) const

@@ -199,82 +199,39 @@ namespace {
         }
     }
 
-    /// Generates king castling move
-    template<GenType GT, CastleSide CS>
-    void generate_castling_moves (ValMoves &moves, const Position &pos)
-    {
-        assert(GenType::EVASION != GT
-            && pos.si->can_castle (pos.active, CS)
-            && pos.expeded_castle (pos.active, CS)
-            && 0 == pos.si->checkers);
-
-        auto king_org = pos.square<KING> (pos.active);
-        auto rook_org = pos.castle_rook_sq[pos.active][CS];
-        assert(contains (pos.pieces (pos.active, ROOK), rook_org));
-
-        Bitboard b = pos.king_path_bb[pos.active][CS];
-        // Check king's path for attackers
-        while (0 != b)
-        {
-            if (0 != pos.attackers_to (pop_lsq (b), ~pos.active))
-            {
-                return;
-            }
-        }
-        auto king_dst = rel_sq (pos.active, rook_org > king_org ? SQ_G1 : SQ_C1);
-        // Chess960
-        // Because generate only legal castling moves needed to verify that
-        // when moving the castling rook do not discover some hidden checker.
-        // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        if (   0 != (b = pos.pieces (~pos.active, ROOK, QUEN) & rank_bb (rel_rank (pos.active, R_1)))
-            && 0 != (b & attacks_bb<ROOK> (king_dst, pos.pieces () ^ rook_org)))
-        {
-            return;
-        }
-
-        auto m = mk_move<CASTLE> (king_org, rook_org);
-        if (   GenType::NATURAL == GT
-            || GenType::QUIET == GT
-            || (   (   GenType::CHECK == GT
-                    || GenType::QUIET_CHECK == GT)
-                && pos.gives_check (m)))
-        {
-            moves += m;
-        }
-    }
     /// Generates king normal move
     template<GenType GT>
     void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
         assert(GenType::EVASION != GT);
 
+        auto fk_sq = pos.square<KING> (pos.active);
+
         if (   GenType::NATURAL == GT
             || GenType::CAPTURE == GT
-            || GenType::QUIET == GT)
+            || GenType::QUIET == GT
+            || GenType::CHECK == GT
+            || GenType::QUIET_CHECK == GT)
         {
-            auto fk_sq = pos.square<KING> (pos.active);
             Bitboard attacks = targets
                              &  PieceAttacks[KING][fk_sq]
                              & ~PieceAttacks[KING][pos.square<KING> (~pos.active)];
             while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
-        }
 
-        if (   (   GenType::NATURAL == GT
-                || GenType::QUIET == GT
-                || GenType::CHECK == GT
-                || GenType::QUIET_CHECK == GT)
-            && 0 == pos.si->checkers
-            && pos.si->can_castle (pos.active))
-        {
-            if (   pos.expeded_castle (pos.active, CS_KING)
-                && pos.si->can_castle (pos.active, CS_KING))
+            if (   GenType::CAPTURE != GT
+                && 0 == pos.si->checkers
+                && pos.si->can_castle (pos.active))
             {
-                generate_castling_moves<GT, CS_KING> (moves, pos);
-            }
-            if (   pos.expeded_castle (pos.active, CS_QUEN)
-                && pos.si->can_castle (pos.active, CS_QUEN))
-            {
-                generate_castling_moves<GT, CS_QUEN> (moves, pos);
+                if (   pos.expeded_castle (pos.active, CS_KING)
+                    && pos.si->can_castle (pos.active, CS_KING))
+                {
+                    moves += mk_move<CASTLE> (fk_sq, pos.castle_rook_sq[pos.active][CS_KING]);
+                }
+                if (   pos.expeded_castle (pos.active, CS_QUEN)
+                    && pos.si->can_castle (pos.active, CS_QUEN))
+                {
+                    moves += mk_move<CASTLE> (fk_sq, pos.castle_rook_sq[pos.active][CS_QUEN]);
+                }
             }
         }
     }
@@ -449,7 +406,8 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                                  {
                                      return (   pos.enpassant (vm)
                                              || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
-                                         && !pos.legal (vm);
+                                         && !(   pos.pseudo_legal (vm)
+                                              && pos.legal (vm));
                                  }),
                  moves.end ());
 }

@@ -46,15 +46,15 @@ This distribution of DON consists of the following files:
 Syzygybases are configured using the UCI options:
 "SyzygyPath", "SyzygyProbeDepth", "SyzygyLimitPiece" and "SyzygyUseRule50".
 
-"SyzygyPath" option should be set to the directory or directories that contain
-the .rtbw and .rtbz files. Multiple directories should be separated by
-";" on Windows and by ":" on Unix-based operating systems.
+"SyzygyPath" option should be set to the directory or directories that contain the .rtbw and .rtbz files.
+Multiple directories should be separated by ";" on Windows and by ":" on Unix-based operating systems.
 **Do not use spaces around the ";" or ":".**
 
 Example: `C:\tablebases\wdl345;C:\tablebases\wdl6;D:\tablebases\dtz345;D:\tablebases\dtz6`
 
-It is recommended to store .rtbw files on an SSD. There is no loss in
-storing the .rtbz files on a regular HD.
+It is recommended to store '.rtbw' files on an SSD. There is no loss in storing the .rtbz files on a regular HD.
+It is recommended to verify all md5 checksums of the downloaded tablebase files (`md5sum -c checksum.md5`)
+as corruption will lead to engine crashes.
 
 "SyzygyProbeDepth" option set the lets the engine probe depth.
 Set this option to a higher value if you experience too much
