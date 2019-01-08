@@ -395,11 +395,11 @@ bool Position::pseudo_legal (Move m) const
     {
         return contains (pieces (active, KING), org_sq (m))
             && contains (pieces (active, ROOK), dst_sq (m))
+            && 0 == si->checkers
+            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
             && R_1 == rel_rank (active, org_sq (m))
             && R_1 == rel_rank (active, dst_sq (m))
-            && si->can_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
-            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
-            && 0 == si->checkers;
+            && si->can_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN);
     }
 
     // The captured square cannot be occupied by a friendly piece
@@ -577,8 +577,8 @@ bool Position::legal (Move m) const
 /// Position::gives_check() tests whether a pseudo-legal move gives a check.
 bool Position::gives_check (Move m) const
 {
-    assert(_ok (m));
-    assert(contains (pieces (active), org_sq (m)));
+    assert(_ok (m)
+        && contains (pieces (active), org_sq (m)));
 
     if (    // Direct check ?
            contains (si->checks[ptype (piece[org_sq (m)])], dst_sq (m))
@@ -969,8 +969,8 @@ Position& Position::setup (const string &code, Color c, StateInfo &nsi)
 /// The move is assumed to be legal.
 void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 {
-    assert(_ok (m));
-    assert(&nsi != si);
+    assert(_ok (m)
+        && &nsi != si);
 
     thread->nodes.fetch_add (1, std::memory_order::memory_order_relaxed);
     // Copy some fields of old state info to new state info object
@@ -1141,8 +1141,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 /// The move is assumed to be legal.
 void Position::undo_move (Move m)
 {
-    assert(_ok (m));
-    assert(nullptr != si->ptr
+    assert(_ok (m)
+        && nullptr != si->ptr
         && KING != si->capture);
 
     auto org = org_sq (m);

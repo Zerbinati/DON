@@ -202,6 +202,7 @@ namespace {
 
             if (   GenType::CAPTURE != GT
                 && 0 == pos.si->checkers
+                && R_1 == rel_rank (pos.active, fk_sq)
                 && pos.si->can_castle (pos.active))
             {
                 if (   pos.expeded_castle (pos.active, CS_KING)
@@ -240,10 +241,14 @@ void generate (ValMoves &moves, const Position &pos)
                 || GenType::CAPTURE == GT
                 || GenType::QUIET == GT, "GT incorrect");
     moves.clear ();
-    Bitboard targets = GenType::NATURAL == GT ? ~pos.pieces ( pos.active) :
-                       GenType::CAPTURE == GT ?  pos.pieces (~pos.active) :
-                       GenType::QUIET == GT ?   ~pos.pieces () : (assert(false), 0);
-
+    Bitboard targets;
+    switch (GT)
+    {
+    case GenType::NATURAL: targets = ~pos.pieces (pos.active); break;
+    case GenType::CAPTURE: targets =  pos.pieces (~pos.active); break;
+    case GenType::QUIET:   targets = ~pos.pieces (); break;
+    default: assert(false);targets = 0;
+    }
     generate_moves<GT> (moves, pos, targets);
 }
 
@@ -391,7 +396,7 @@ void filter_illegal (ValMoves &moves, const Position &pos)
 template<bool RootNode>
 u64 perft (Position &pos, i16 depth)
 {
-    u64 leaf_nodes = 0;
+    u64 total_nodes = 0;
     i16 move_count = 0;
 
     bool LeafNode = 2 >= depth;
@@ -437,9 +442,9 @@ u64 perft (Position &pos, i16 depth)
                       << std::left << sync_endl;
         }
 
-        leaf_nodes += inter_nodes;
+        total_nodes += inter_nodes;
     }
-    return leaf_nodes;
+    return total_nodes;
 }
 /// Explicit template instantiations
 /// --------------------------------
