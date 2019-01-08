@@ -1308,15 +1308,25 @@ namespace Searcher {
                     && 7 < depth && depth < tte->depth () + 4
                     && BOUND_NONE != (tte->bound () & BOUND_LOWER))
                 {
-                    auto reduced_beta = std::max (tt_value - 2*depth, -VALUE_MATE);
+                    auto singular_beta = std::max (tt_value - 2*depth, -VALUE_MATE);
 
                     ss->excluded_move = move;
-                    value = depth_search<false> (pos, ss, reduced_beta-1, reduced_beta, depth/2, cut_node);
+                    value = depth_search<false> (pos, ss, singular_beta -1, singular_beta, depth/2, cut_node);
                     ss->excluded_move = MOVE_NONE;
 
-                    if (value < reduced_beta)
+                    if (value < singular_beta)
                     {
                         extension = 1;
+                    }
+                    // Multi-cut pruning
+                    // Our ttMove is assumed to fail high, and now we failed high also on a reduced
+                    // search without the ttMove. So we assume this expected Cut-node is not singular,
+                    // that is multiple moves fail high, and we can prune the whole subtree by returning
+                    // the hard beta bound.
+                    else
+                    if (cut_node && singular_beta > beta)
+                    {
+                        return beta;
                     }
                 }
 
