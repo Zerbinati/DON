@@ -195,9 +195,6 @@ void MovePicker::value ()
 
     for (auto &m : moves)
     {
-        assert(pos.pseudo_legal (m)
-            && pos.legal (m));
-
         if (GenType::CAPTURE == GT)
         {
             assert(pos.capture_or_promotion (m));
@@ -236,7 +233,10 @@ bool MovePicker::pick_move (Pred filter)
             std::swap (*beg, *std::max_element (beg, moves.end ()));
         }
         vm = *beg;
-        if (filter ())
+        if (   (   !(   pos.enpassant (vm)
+                     || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
+                || pos.legal (vm))
+            && filter ())
         {
             return true;
         }
@@ -265,7 +265,7 @@ Move MovePicker::next_move ()
     case Stage::PC_INIT:
     case Stage::QS_INIT:
         generate<GenType::CAPTURE> (moves, pos);
-        filter_illegal (moves, pos);
+        //filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
                                      [&](const ValMove &m) { return tt_move == m; }),
@@ -302,7 +302,7 @@ Move MovePicker::next_move ()
         }
 
         generate<GenType::QUIET> (moves, pos);
-        filter_illegal (moves, pos);
+        //filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
                                      [&](const ValMove &m) { return tt_move == m
@@ -329,7 +329,7 @@ Move MovePicker::next_move ()
     case Stage::EVA_INIT:
         assert(0 != pos.si->checkers);
         generate<GenType::EVASION> (moves, pos);
-        filter_illegal (moves, pos);
+        //filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
                                      [&](const ValMove &m) { return tt_move == m; }),
@@ -361,7 +361,7 @@ Move MovePicker::next_move ()
         }
 
         generate<GenType::QUIET_CHECK> (moves, pos);
-        filter_illegal (moves, pos);
+        //filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
                                      [&](const ValMove &m) { return tt_move == m; }),
@@ -1310,8 +1310,8 @@ namespace Searcher {
                         extension = 1;
                     }
                     // Multi-cut pruning
-                    // Our ttMove is assumed to fail high, and now we failed high also on a reduced
-                    // search without the ttMove. So we assume this expected Cut-node is not singular,
+                    // Our tt_move is assumed to fail high, and now we failed high also on a reduced
+                    // search without the tt_move. So we assume this expected Cut-node is not singular,
                     // that is multiple moves fail high, and we can prune the whole subtree by returning
                     // the hard beta bound.
                     else

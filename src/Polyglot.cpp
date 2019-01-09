@@ -318,7 +318,10 @@ Move PolyBook::probe (Position &pos, i16 move_num, bool pick_best)
 
     Move move;
     move = Move(entries[pick1_index].move);
-    if (MOVE_NONE == move) return move;
+    if (MOVE_NONE == move)
+    {
+        return MOVE_NONE;
+    }
 
     move = convert_move (pos, move);
 
@@ -343,7 +346,10 @@ Move PolyBook::probe (Position &pos, i16 move_num, bool pick_best)
     }
 
     move = Move(entries[pick2_index].move);
-    if (MOVE_NONE == move) return move;
+    if (MOVE_NONE == move)
+    {
+        return MOVE_NONE;
+    }
 
     move = convert_move (pos, move);
 

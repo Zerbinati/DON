@@ -190,17 +190,16 @@ namespace {
     {
         if (   GenType::NATURAL == GT
             || GenType::CAPTURE == GT
-            || GenType::QUIET == GT
-            || GenType::CHECK == GT
-            || GenType::QUIET_CHECK == GT)
+            || GenType::QUIET == GT)
         {
             auto fk_sq = pos.square<KING> (pos.active);
-            Bitboard attacks = targets
+            Bitboard attacks =  targets
                              &  PieceAttacks[KING][fk_sq]
                              & ~PieceAttacks[KING][pos.square<KING> (~pos.active)];
             while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
 
-            if (   GenType::CAPTURE != GT
+            if (   (   GenType::NATURAL == GT
+                    || GenType::QUIET == GT)
                 && 0 == pos.si->checkers
                 && R_1 == rel_rank (pos.active, fk_sq)
                 && pos.si->can_castle (pos.active))
@@ -328,7 +327,7 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
         case NIHT: attacks = PieceAttacks[NIHT][org]; break;
         case BSHP: attacks = attacks_bb<BSHP> (org, pos.pieces ()); break;
         case ROOK: attacks = attacks_bb<ROOK> (org, pos.pieces ()); break;
-        case QUEN: attacks = attacks_bb<QUEN> (org, pos.pieces ()); break;
+        //case QUEN: attacks = attacks_bb<QUEN> (org, pos.pieces ()); break;
         case KING: attacks = PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)]; break;
         default: assert(false); attacks = 0; break;
         }
@@ -357,7 +356,7 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
         case NIHT: attacks = PieceAttacks[NIHT][org]; break;
         case BSHP: attacks = attacks_bb<BSHP> (org, pos.pieces ()); break;
         case ROOK: attacks = attacks_bb<ROOK> (org, pos.pieces ()); break;
-        case QUEN: attacks = attacks_bb<QUEN> (org, pos.pieces ()); break;
+        //case QUEN: attacks = attacks_bb<QUEN> (org, pos.pieces ()); break;
         case KING: attacks = PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)]; break;
         default: assert(false); attacks = 0; break;
         }
