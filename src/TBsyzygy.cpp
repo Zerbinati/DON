@@ -668,7 +668,7 @@ namespace TBSyzygy {
             i32 buf64_size = 64;
             Sym sym;
 
-            while (true)
+            do
             {
                 i32 len = 0; // This is the symbol length - d->min_sym_len
 
@@ -706,7 +706,7 @@ namespace TBSyzygy {
                     buf64_size += 32;
                     buf64 |= u64(number<u32, Endian::BIG> (ptr++)) << (64 - buf64_size);
                 }
-            }
+            } while (true);
 
             // Ok, now we have our symbol that expands into d->sym_len[sym] + 1 symbols.
             // We binary-search for our value recursively expanding into the left and

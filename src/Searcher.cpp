@@ -1828,7 +1828,7 @@ void Thread::search ()
             // Start with a small aspiration window and, in case of fail high/low,
             // research with bigger window until not failing high/low anymore.
             i16 failed_high_count = 0;
-            while (true)
+            do
             {
                 i16 adjusted_depth = std::max (running_depth - failed_high_count, 1);
                 best_value = depth_search<true> (root_pos, stacks+5, alfa, beta, adjusted_depth, false);
@@ -1894,7 +1894,7 @@ void Thread::search ()
                 window += window / 4 + 5;
 
                 assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-            }
+            } while (true);
 
             // Sort the PV lines searched so far and update the GUI.
             std::stable_sort (root_moves.begin () + pv_beg, root_moves.begin () + pv_cur + 1);
