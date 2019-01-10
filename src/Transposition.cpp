@@ -30,15 +30,11 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit, u08 gen)
         if (   ite->empty ()
             || ite->k16 == key16)
         {
-            ite->gb08 = u08(gen + ite->bound ()); // Refresh entry.
+            ite->gpb08 = u08(gen + (ite->pv_hit () ? 4 : 0) + ite->bound ()); // Refresh entry.
             tt_hit = !ite->empty ();
             return ite;
         }
         // Replacement strategy.
-        // The worth of an entry is calculated as its depth minus 2 times its relative age.
-        // Due to packed storage format for generation and its cyclic nature
-        // add 0x103 (0x100 + 3 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
-        // to calculate the entry age correctly even after generation overflows into the next cycle.
         if (  rte->worth (gen)
             > ite->worth (gen))
         {
@@ -125,7 +121,7 @@ void TTable::free_aligned_memory ()
     clusters = nullptr;
 }
 
-/// TTable::resize() sets the size of the table, measured in mega-bytes.
+/// TTable::resize() sets the size of the table, measured in MB.
 u32 TTable::resize (u32 mem_size)
 {
     Threadpool.main_thread ()->wait_while_busy ();
@@ -207,8 +203,25 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
 {
     return cluster (key)->probe (u16(key >> 0x30), tt_hit, generation);
 }
+/// TTable::hash_full() returns an approximation of the per-mille of the 
+/// all transposition entries during a search which have received
+/// at least one write during the current search.
+/// It is used to display the "info hashfull ..." information in UCI.
+/// "the hash is <x> per mill full", the engine should send this info regularly.
+/// hash, are using <x>%. of the state of full.
+u32 TTable::hash_full () const
+{
+    size_t fresh_entry_count = 0;
+    const auto cluster_limit = std::min (size_t(1000 / TCluster::EntryCount), cluster_count);
+    for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
+    {
+        fresh_entry_count += itc->fresh_entry_count (generation);
+    }
+    return u32(fresh_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
+}
+
 /// TTable::extract_pm_from_tt() extracts ponder move from TT.
-Move TTable::extract_pm (Position &pos, Move bm)
+Move TTable::extract_pm (Position &pos, Move bm) const
 {
     Move pm = MOVE_NONE;
     if (   MOVE_NONE != bm
@@ -233,22 +246,6 @@ Move TTable::extract_pm (Position &pos, Move bm)
     return pm;
 }
 
-/// TTable::hash_full() returns an approximation of the per-mille of the 
-/// all transposition entries during a search which have received
-/// at least one write during the current search.
-/// It is used to display the "info hashfull ..." information in UCI.
-/// "the hash is <x> per mill full", the engine should send this info regularly.
-/// hash, are using <x>%. of the state of full.
-u32 TTable::hash_full () const
-{
-    size_t fresh_entry_count = 0;
-    const auto cluster_limit = std::min (size_t(1000 / TCluster::EntryCount), cluster_count);
-    for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
-    {
-        fresh_entry_count += itc->fresh_entry_count (generation);
-    }
-    return u32(fresh_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
-}
 /// TTable::save() saves hash to file
 void TTable::save (const string &hash_fn) const
 {

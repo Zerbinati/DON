@@ -11,7 +11,8 @@
 ///  Value      16 bits
 ///  Evaluation 16 bits
 ///  Depth      08 bits
-///  Generation 06 bits
+///  Generation 05 bits
+///  PV Node    01 bits
 ///  Bound      02 bits
 ///  ------------------
 ///  Total      80 bits = 10 bytes
@@ -23,7 +24,7 @@ private:
     i16 v16;
     i16 e16;
     i08 d08;
-    u08 gb08;
+    u08 gpb08;
 
     friend class TCluster;
 
@@ -35,29 +36,32 @@ public:
     Value value      () const { return Value(v16); }
     Value eval       () const { return Value(e16); }
     i16   depth      () const { return i16  (d08); }
-    Bound bound      () const { return Bound(gb08 & 0x03); }
-    u08   generation () const { return u08  (gb08 & 0xFC); }
+    u08   generation () const { return u08  (gpb08 & 0xF8); }
+    bool  pv_hit     () const { return 0 != (gpb08 & 0x04); }
+    Bound bound      () const { return Bound(gpb08 & 0x03); }
     bool  empty      () const { return d08 == DepthEmpty; }
+    // Due to packed storage format for generation and its cyclic nature
+    // add 0x107 (0x100 + 7 (4 + BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
+    // to calculate the entry age correctly even after generation overflows into the next cycle.
+    i16 worth (u08 gen) const { return d08 - ((gen - gpb08 + 0x107) & 0xF8) * 2; }
 
-    i16 worth (u08 gen) const { return d08 - ((gen - gb08 + 0x103) & 0xFC) * 2; }
-
-    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, u08 g)
+    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, bool pv_node, u08 g)
     {
         // Preserve more valuable entries
         if (   MOVE_NONE != m
             || k16 != (k >> 0x30))
         {
-            m16  = u16(m);
+            m16   = u16(m);
         }
         if (   d08 - 4 < d
             || BOUND_EXACT == b
             || k16 != (k >> 0x30))
         {
-            k16  = u16(k >> 0x30);
-            d08  = i08(d);
-            gb08 = u08(g + b);
-            v16  = i16(v);
-            e16  = i16(e);
+            k16   = u16(k >> 0x30);
+            v16   = i16(v);
+            e16   = i16(e);
+            d08   = i08(d);
+            gpb08 = u08(g + (pv_node ? 4 : 0) + b);
         }
         assert(!empty ());
     }
@@ -109,9 +113,9 @@ private:
     void free_aligned_memory ();
 
 public:
-    // Minimum size of Table
+    // Minimum size of Table (MB)
     static constexpr u32 MinHashSize = 4;
-    // Maximum size of Table
+    // Maximum size of Table (MB)
     static constexpr u32 MaxHashSize =
 #       if defined(BIT64)
             128 * 1024
@@ -156,9 +160,9 @@ public:
 
     TEntry* probe (Key, bool&) const;
 
-    Move extract_pm (Position&, Move);
-
     u32 hash_full () const;
+
+    Move extract_pm (Position&, Move) const;
 
     void save (const std::string&) const;
     void load (const std::string&);

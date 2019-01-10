@@ -542,6 +542,9 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
+            auto pv_hit = tt_hit ?
+                            tte->pv_hit () :
+                            false;
 
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
@@ -616,6 +619,7 @@ namespace Searcher {
                                        ss->static_eval,
                                        DepthNone,
                                        BOUND_LOWER,
+                                       pv_hit,
                                        TT.generation);
                         }
 
@@ -760,6 +764,7 @@ namespace Searcher {
                             && best_value > prev_alfa ?
                                 BOUND_EXACT :
                                 BOUND_UPPER,
+                       pv_hit,
                        TT.generation);
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -885,13 +890,15 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            
+            auto pv_hit = tt_hit ?
+                            tte->pv_hit () :
+                            false;
+
             bool improving;
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && VALUE_NONE != tt_value
-                && MOVE_NONE == ss->excluded_move
                 && depth <= tte->depth ()
                 && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
@@ -928,6 +935,13 @@ namespace Searcher {
                     }
                 }
                 return tt_value;
+            }
+
+            if (   PVNode
+                && 6 < depth
+                && MOVE_NONE == ss->excluded_move)
+            {
+                pv_hit = true;
             }
 
             // Step 5. Tablebases probe.
@@ -974,6 +988,7 @@ namespace Searcher {
                                        VALUE_NONE,
                                        i16(std::min (depth + 6, MaxDepth - 1)),
                                        bound,
+                                       pv_hit,
                                        TT.generation);
 
                             return value;
@@ -1042,6 +1057,7 @@ namespace Searcher {
                                tt_eval,
                                DepthNone,
                                BOUND_NONE,
+                               pv_hit,
                                TT.generation);
                 }
 
@@ -1204,6 +1220,9 @@ namespace Searcher {
                 tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
+                pv_hit = tt_hit ?
+                            tte->pv_hit () :
+                            false;
             }
 
             value = best_value;
@@ -1397,6 +1416,13 @@ namespace Searcher {
                         || !capture_or_promotion))
                 {
                     i16 reduce_depth = reduction_depth (PVNode, improving, depth, move_count);
+
+                    // Decrease reduction if position is or has been on the PV
+                    if (   !PVNode
+                        && pv_hit)
+                    {
+                        reduce_depth -= 1;
+                    }
 
                     // Decrease reduction if opponent's move count is high (~10 Elo)
                     if ((ss-1)->move_count >= 16)
@@ -1661,6 +1687,7 @@ namespace Searcher {
                                && MOVE_NONE != best_move ?
                                    BOUND_EXACT :
                                    BOUND_UPPER,
+                           pv_hit,
                            TT.generation);
             }
 
@@ -2025,8 +2052,8 @@ void MainThread::search ()
                       bool(Options["Ponder"]));
     }
 
-    TT.generation = u08((root_pos.ply + 1) << 2);
-    assert(0 == (TT.generation & 0x03));
+    TT.generation = u08((root_pos.ply + 1) << 3);
+    assert(0 == (TT.generation & 0x04));
 
     bool think = true;
 
