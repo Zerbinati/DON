@@ -183,7 +183,7 @@ public:
     MovePicker& operator= (const MovePicker&) = delete;
 
     MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, const Move*, Move);
-    MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, Move);
+    MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, Square);
     MovePicker (const Position&, Move, Value);
 
     Move next_move ();

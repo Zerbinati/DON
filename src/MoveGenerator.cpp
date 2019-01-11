@@ -318,6 +318,7 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
     Bitboard dsc_blockers_ex =  pos.si->king_blockers[~pos.active]
                              &  pos.pieces (pos.active)
                              & ~pos.pieces (PAWN);
+    assert(0 == (dsc_blockers_ex & pos.pieces (pos.active, QUEN)));
     while (0 != dsc_blockers_ex)
     {
         auto org = pop_lsq (dsc_blockers_ex);
@@ -347,6 +348,7 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
     Bitboard dsc_blockers_ex =  pos.si->king_blockers[~pos.active]
                              &  pos.pieces (pos.active)
                              & ~pos.pieces (PAWN);
+    assert(0 == (dsc_blockers_ex & pos.pieces (pos.active, QUEN)));
     while (0 != dsc_blockers_ex)
     {
         auto org = pop_lsq (dsc_blockers_ex);
