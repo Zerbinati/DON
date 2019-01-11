@@ -95,7 +95,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
         }
         Move cm;
         if (   _ok (lm)
-            && (cm = pos.thread->move_history[pos[fix_dst_sq (lm)]][move_pp (lm)]) != MOVE_NONE
+            && MOVE_NONE != (cm = pos.thread->move_history[pos[fix_dst_sq (lm)]][move_pp (lm)])
             && cm != tt_move
             && std::find (refutation_moves.begin (), refutation_moves.end (), cm) == refutation_moves.end ())
         {
@@ -542,9 +542,8 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            auto pv_hit = tt_hit ?
-                            tte->pv_hit () :
-                            false;
+            auto pv_hit = tt_hit
+                       && tte->pv_hit ();
 
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
@@ -555,7 +554,7 @@ namespace Searcher {
                             DepthQSNoCheck;
 
             if (   !PVNode
-                && VALUE_NONE != tt_value
+                && VALUE_NONE != tt_value // Handle tt_hit
                 && qs_depth <= tte->depth ()
                 && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
@@ -619,8 +618,7 @@ namespace Searcher {
                                        ss->static_eval,
                                        DepthNone,
                                        BOUND_LOWER,
-                                       pv_hit,
-                                       TT.generation);
+                                       pv_hit);
                         }
 
                         assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -764,8 +762,7 @@ namespace Searcher {
                             && best_value > prev_alfa ?
                                 BOUND_EXACT :
                                 BOUND_UPPER,
-                       pv_hit,
-                       TT.generation);
+                       pv_hit);
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -817,7 +814,10 @@ namespace Searcher {
             if (PVNode)
             {
                 // Used to send sel_depth info to GUI (sel_depth from 1, ply from 0)
-                thread->sel_depth = std::max (i16(ss->ply + 1), thread->sel_depth);
+                if (thread->sel_depth < i16(ss->ply + 1))
+                {
+                    thread->sel_depth = i16(ss->ply + 1);
+                }
             }
 
             Value value;
@@ -890,15 +890,15 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            auto pv_hit = tt_hit ?
-                            tte->pv_hit () :
-                            false;
+            auto pv_hit = tt_hit
+                       && tte->pv_hit ();
 
             bool improving;
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
-                && VALUE_NONE != tt_value
+                && MOVE_NONE == ss->excluded_move
+                && VALUE_NONE != tt_value // Handle tt_hit
                 && depth <= tte->depth ()
                 && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
@@ -938,7 +938,7 @@ namespace Searcher {
             }
 
             if (   PVNode
-                && 6 < depth
+                && 4 < depth
                 && MOVE_NONE == ss->excluded_move)
             {
                 pv_hit = true;
@@ -988,8 +988,7 @@ namespace Searcher {
                                        VALUE_NONE,
                                        i16(std::min (depth + 6, MaxDepth - 1)),
                                        bound,
-                                       pv_hit,
-                                       TT.generation);
+                                       pv_hit);
 
                             return value;
                         }
@@ -1057,8 +1056,7 @@ namespace Searcher {
                                tt_eval,
                                DepthNone,
                                BOUND_NONE,
-                               pv_hit,
-                               TT.generation);
+                               pv_hit);
                 }
 
                 // Step 7. Razoring. (~2 ELO)
@@ -1090,9 +1088,9 @@ namespace Searcher {
                     && MOVE_NULL != (ss-1)->played_move
                     && MOVE_NONE == ss->excluded_move
                     && VALUE_ZERO != pos.si->non_pawn_material (own)
-                    && (ss-1)->stats < 23200
+                    && 23200 > (ss-1)->stats
                     && eval >= beta
-                    && tt_eval + 36*depth - 225 >= beta
+                    && std::min (tt_eval + 36*depth - 225, +VALUE_INFINITE) >= beta
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != own))
                 {
@@ -1220,16 +1218,11 @@ namespace Searcher {
                 tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-                pv_hit = tt_hit ?
-                            tte->pv_hit () :
-                            false;
+                pv_hit = tt_hit
+                      && tte->pv_hit ();
             }
 
             value = best_value;
-
-            bool pv_exact = PVNode
-                         && tt_hit
-                         && BOUND_EXACT == tte->bound ();
 
             bool ttm_capture = MOVE_NONE != tt_move
                             && pos.capture_or_promotion (tt_move);
@@ -1415,46 +1408,39 @@ namespace Searcher {
                     && (   move_count_pruning
                         || !capture_or_promotion))
                 {
-                    i16 reduce_depth = reduction_depth (PVNode, improving, depth, move_count);
+                    i16 reduct_depth = reduction_depth (PVNode, improving, depth, move_count);
 
                     // Decrease reduction if position is or has been on the PV
-                    if (   !PVNode
-                        && pv_hit)
+                    if (pv_hit)
                     {
-                        reduce_depth -= 1;
+                        reduct_depth -= 1;
                     }
 
                     // Decrease reduction if opponent's move count is high (~10 Elo)
                     if ((ss-1)->move_count >= 16)
                     {
-                        reduce_depth -= 1;
+                        reduct_depth -= 1;
                     }
 
                     if (!capture_or_promotion)
                     {
-                        // Decrease reduction for exact PV nodes (~0 Elo)
-                        if (pv_exact)
-                        {
-                            reduce_depth -= 1;
-                        }
-
                         // Increase reduction if TT move is a capture (~0 Elo)
                         if (ttm_capture)
                         {
-                            reduce_depth += 1;
+                            reduct_depth += 1;
                         }
 
                         // Increase reduction for cut nodes (~5 Elo)
                         if (cut_node)
                         {
-                            reduce_depth += 2;
+                            reduct_depth += 2;
                         }
                         else
                         // Decrease reduction for moves that escape a capture in no-cut nodes (~5 Elo)
                         if (   NORMAL == mtype (move)
                             && !pos.see_ge (mk_move<NORMAL> (dst, org)))
                         {
-                            reduce_depth -= 2;
+                            reduct_depth -= 2;
                         }
 
                         ss->stats = thread->butterfly_history[own][move_pp (move)]
@@ -1467,25 +1453,25 @@ namespace Searcher {
                         if (   ss->stats < 0
                             && (ss-1)->stats >= 0)
                         {
-                            reduce_depth += 1;
+                            reduct_depth += 1;
                         }
                         else
                         if (   ss->stats >= 0
                             && (ss-1)->stats < 0)
                         {
-                            reduce_depth -= 1;
+                            reduct_depth -= 1;
                         }
 
                         // Decrease/Increase reduction for moves with +/-ve stats (~30 Elo)
-                        reduce_depth -= i16(ss->stats / 20000);
+                        reduct_depth -= i16(ss->stats / 20000);
                     }
 
-                    reduce_depth = std::min (std::max (reduce_depth, i16(0)), i16(new_depth - 1));
+                    reduct_depth = std::min (std::max (reduct_depth, i16(0)), i16(new_depth - 1));
 
-                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true);
+                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduct_depth, true);
 
                     search_fd = alfa < value
-                             && 0 != reduce_depth;
+                             && 0 != reduct_depth;
                 }
                 else
                 {
@@ -1687,8 +1673,7 @@ namespace Searcher {
                                && MOVE_NONE != best_move ?
                                    BOUND_EXACT :
                                    BOUND_UPPER,
-                           pv_hit,
-                           TT.generation);
+                           pv_hit);
             }
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -2052,8 +2037,8 @@ void MainThread::search ()
                       bool(Options["Ponder"]));
     }
 
-    TT.generation = u08((root_pos.ply + 1) << 3);
-    assert(0 == (TT.generation & 0x04));
+    TEntry::Generation = u08((root_pos.ply + 1) << 3);
+    assert(0 == (TEntry::Generation & 0x07));
 
     bool think = true;
 
@@ -2277,8 +2262,7 @@ void MainThread::search ()
     }
 
     // Best move could be MOVE_NONE when searching on a stalemate position.
-    sync_cout << "bestmove " << bm
-              << " ponder "  << pm << sync_endl;
+    sync_cout << "bestmove " << bm << " ponder " << pm << sync_endl;
 }
 /// MainThread::set_check_count()
 void MainThread::set_check_count ()

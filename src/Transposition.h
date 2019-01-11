@@ -24,11 +24,13 @@ private:
     i16 v16;
     i16 e16;
     i08 d08;
-    u08 gpb08;
+    u08 g08;
 
     friend class TCluster;
 
 public:
+    // "Generation" variable distinguish transposition table entries from different searches.
+    static u08 Generation;
 
     TEntry () = default;
 
@@ -36,32 +38,34 @@ public:
     Value value      () const { return Value(v16); }
     Value eval       () const { return Value(e16); }
     i16   depth      () const { return i16  (d08); }
-    u08   generation () const { return u08  (gpb08 & 0xF8); }
-    bool  pv_hit     () const { return 0 != (gpb08 & 0x04); }
-    Bound bound      () const { return Bound(gpb08 & 0x03); }
+    u08   generation () const { return u08  (g08 & 0xF8); }
+    bool  pv_hit     () const { return 0 != (g08 & 0x04); }
+    Bound bound      () const { return Bound(g08 & 0x03); }
     bool  empty      () const { return d08 == DepthEmpty; }
     // Due to packed storage format for generation and its cyclic nature
-    // add 0x107 (0x100 + 7 (4 + BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
+    // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
     // to calculate the entry age correctly even after generation overflows into the next cycle.
-    i16 worth (u08 gen) const { return d08 - ((gen - gpb08 + 0x107) & 0xF8) * 2; }
+    i16 worth () const { return d08 - ((Generation - g08 + 0x107) & 0xF8) * 2; }
 
-    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, bool pv_node, u08 g)
+    void refresh () { g08 = u08(Generation + (g08 & 0x07)); }
+
+    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, bool pv_node)
     {
         // Preserve more valuable entries
         if (   MOVE_NONE != m
             || k16 != (k >> 0x30))
         {
-            m16   = u16(m);
+            m16 = u16(m);
         }
         if (   d08 - 4 < d
             || BOUND_EXACT == b
             || k16 != (k >> 0x30))
         {
-            k16   = u16(k >> 0x30);
-            v16   = i16(v);
-            e16   = i16(e);
-            d08   = i08(d);
-            gpb08 = u08(g + (pv_node ? 4 : 0) + b);
+            k16 = u16(k >> 0x30);
+            v16 = i16(v);
+            e16 = i16(e);
+            d08 = i08(d);
+            g08 = u08(Generation + (pv_node ? 4 : 0) + b);
         }
         assert(!empty ());
     }
@@ -88,11 +92,11 @@ public:
 
     TCluster () = default;
 
-    TEntry *probe (u16, bool&, u08);
+    TEntry *probe (u16, bool&);
 
     void clear ();
 
-    size_t fresh_entry_count (u08) const;
+    size_t fresh_entry_count () const;
 
 };
 
@@ -128,8 +132,6 @@ public:
     void *mem;
     TCluster *clusters;
     size_t cluster_count;
-    // "Generation" variable distinguish transposition table entries from different searches.
-    u08 generation;
 
     TTable () = default;
     TTable (const TTable&) = delete;
@@ -177,7 +179,7 @@ public:
         os.write ((const CharT*)(&dummy), sizeof (dummy));
         os.write ((const CharT*)(&dummy), sizeof (dummy));
         os.write ((const CharT*)(&dummy), sizeof (dummy));
-        os.write ((const CharT*)(&tt.generation), sizeof (tt.generation));
+        os.write ((const CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
         os.write ((const CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
         for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
@@ -196,7 +198,7 @@ public:
         is.read ((CharT*)(&dummy), sizeof (dummy));
         is.read ((CharT*)(&dummy), sizeof (dummy));
         is.read ((CharT*)(&dummy), sizeof (dummy));
-        is.read ((CharT*)(&tt.generation), sizeof (tt.generation));
+        is.read ((CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
         is.read ((CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
         tt.resize (mem_size);
         for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)

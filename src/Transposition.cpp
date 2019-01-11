@@ -10,6 +10,8 @@ TTable TT;
 
 using namespace std;
 
+u08 TEntry::Generation;
+
 TCluster TCluster::Empty;
 
 void TCluster::initialize ()
@@ -21,7 +23,7 @@ void TCluster::initialize ()
     }
 }
 
-TEntry* TCluster::probe (u16 key16, bool &tt_hit, u08 gen)
+TEntry* TCluster::probe (u16 key16, bool &tt_hit)
 {
     // Find an entry to be replaced according to the replacement strategy.
     auto *rte = entries; // Default first
@@ -30,13 +32,13 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit, u08 gen)
         if (   ite->empty ()
             || ite->k16 == key16)
         {
-            ite->gpb08 = u08(gen + (ite->pv_hit () ? 4 : 0) + ite->bound ()); // Refresh entry.
+            ite->refresh (); // Refresh entry.
             tt_hit = !ite->empty ();
             return ite;
         }
         // Replacement strategy.
-        if (  rte->worth (gen)
-            > ite->worth (gen))
+        if (  rte->worth ()
+            > ite->worth ())
         {
             rte = ite;
         }
@@ -50,12 +52,12 @@ void TCluster::clear ()
     std::memcpy (this, &Empty, sizeof (*this));
 }
 
-size_t TCluster::fresh_entry_count (u08 gen) const
+size_t TCluster::fresh_entry_count () const
 {
     size_t count = 0;
     for (const auto *ite = entries; ite < entries + EntryCount; ++ite)
     {
-        if (ite->generation () == gen)
+        if (ite->generation () == TEntry::Generation)
         {
             ++count;
         }
@@ -201,7 +203,7 @@ void TTable::clear ()
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
 TEntry* TTable::probe (Key key, bool &tt_hit) const
 {
-    return cluster (key)->probe (u16(key >> 0x30), tt_hit, generation);
+    return cluster (key)->probe (u16(key >> 0x30), tt_hit);
 }
 /// TTable::hash_full() returns an approximation of the per-mille of the 
 /// all transposition entries during a search which have received
@@ -215,12 +217,12 @@ u32 TTable::hash_full () const
     const auto cluster_limit = std::min (size_t(1000 / TCluster::EntryCount), cluster_count);
     for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
     {
-        fresh_entry_count += itc->fresh_entry_count (generation);
+        fresh_entry_count += itc->fresh_entry_count ();
     }
     return u32(fresh_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
 }
 
-/// TTable::extract_pm_from_tt() extracts ponder move from TT.
+/// TTable::extract_pm() extracts ponder move from TT.
 Move TTable::extract_pm (Position &pos, Move bm) const
 {
     Move pm = MOVE_NONE;
