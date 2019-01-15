@@ -1947,15 +1947,10 @@ void Thread::search ()
                     main_thread->best_move_depth = running_depth;
                 }
 
-                // If the best_move is stable over several iterations, reduce time accordingly
-                double time_reduction = 1.00;
-                for (const auto i : { 3, 4, 5 })
-                {
-                    if (main_thread->best_move_depth * i < finished_depth)
-                    {
-                        time_reduction *= 1.25;
-                    }
-                }
+                // Reduce time if the best_move is stable over 10 iterations
+                double time_reduction = (main_thread->best_move_depth + 10) < finished_depth ?
+                                            1.95 :
+                                            1.00;
 
                 // Stop the search
                 // -If there is only one legal move available
@@ -1963,12 +1958,11 @@ void Thread::search ()
                 if (   1 == root_moves.size ()
                     || (main_thread->time_mgr.elapsed_time () >
                         main_thread->time_mgr.optimum_time
-                        // Best Move Instability - Use part of the gained time from a previous stable move for the current move
-                        // Unstable factor
+                        // Best Move Instability factor
                      * (main_thread->best_move_change + 1)
-                        // Time reduction factor
+                        // Time reduction factor - Use part of the gained time from a previous stable move for the current move
                      * std::pow (main_thread->last_time_reduction, 0.528) / time_reduction
-                        // Falling Eval - Improving factor
+                        // Falling Eval factor
                      * std::min (1.5,
                         std::max (0.5,
                                   (306
@@ -2294,9 +2288,12 @@ void MainThread::tick ()
         return;
     }
 
-    if (   (Limits.time_mgr_used () && time_mgr.maximum_time < elapsed_time + 10)
-        || (0 != Limits.movetime && Limits.movetime <= elapsed_time)
-        || (0 != Limits.nodes && Limits.nodes <= Threadpool.nodes ()))
+    if (   (   Limits.time_mgr_used ()
+            && time_mgr.maximum_time < elapsed_time + 10)
+        || (   0 != Limits.movetime
+            && Limits.movetime <= elapsed_time)
+        || (   0 != Limits.nodes
+            && Limits.nodes <= Threadpool.nodes ()))
     {
         Threadpool.stop = true;
     }

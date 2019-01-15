@@ -285,49 +285,50 @@ namespace BitBoard {
     //// Rotate Left  (toward MSB)
     //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQ_NO - k)); }
 
-    inline Bitboard pawn_pushes_bb (Color c, Bitboard b)
+    inline Bitboard pawn_pushes_bb (Color c, Bitboard bb)
     {
         switch (c)
         {
-        case WHITE: return shift<DEL_N> (b);
-        case BLACK: return shift<DEL_S> (b);
-        default: assert(false); return 0;
-        }
-    }
-    inline Bitboard pawn_l_attacks_bb (Color c, Bitboard b)
-    {
-        switch (c)
-        {
-        case WHITE: return shift<DEL_NW> (b);
-        case BLACK: return shift<DEL_SE> (b);
-        default: assert(false); return 0;
-        }
-    }
-    inline Bitboard pawn_r_attacks_bb (Color c, Bitboard b)
-    {
-        switch (c)
-        {
-        case WHITE: return shift<DEL_NE> (b);
-        case BLACK: return shift<DEL_SW> (b);
-        default: assert(false); return 0;
-        }
-    }
-    inline Bitboard pawn_sgl_attacks_bb (Color c, Bitboard b)
-    {
-        switch (c)
-        {
-        case WHITE: return shift<DEL_NE> (b) | shift<DEL_NW> (b);
-        case BLACK: return shift<DEL_SE> (b) | shift<DEL_SW> (b);
+        case WHITE: return shift<DEL_N> (bb);
+        case BLACK: return shift<DEL_S> (bb);
         default: assert(false); return 0;
         }
     }
 
-    inline Bitboard pawn_dbl_attacks_bb (Color c, Bitboard b)
+    inline Bitboard pawn_l_attacks_bb (Color c, Bitboard bb)
     {
         switch (c)
         {
-        case WHITE: return shift<DEL_NE> (b) & shift<DEL_NW> (b);
-        case BLACK: return shift<DEL_SE> (b) & shift<DEL_SW> (b);
+        case WHITE: return shift<DEL_NW> (bb);
+        case BLACK: return shift<DEL_SE> (bb);
+        default: assert(false); return 0;
+        }
+    }
+    inline Bitboard pawn_r_attacks_bb (Color c, Bitboard bb)
+    {
+        switch (c)
+        {
+        case WHITE: return shift<DEL_NE> (bb);
+        case BLACK: return shift<DEL_SW> (bb);
+        default: assert(false); return 0;
+        }
+    }
+
+    inline Bitboard pawn_sgl_attacks_bb (Color c, Bitboard bb)
+    {
+        switch (c)
+        {
+        case WHITE: return shift<DEL_NE> (bb) | shift<DEL_NW> (bb);
+        case BLACK: return shift<DEL_SE> (bb) | shift<DEL_SW> (bb);
+        default: assert(false); return 0;
+        }
+    }
+    inline Bitboard pawn_dbl_attacks_bb (Color c, Bitboard bb)
+    {
+        switch (c)
+        {
+        case WHITE: return shift<DEL_NE> (bb) & shift<DEL_NW> (bb);
+        case BLACK: return shift<DEL_SE> (bb) & shift<DEL_SW> (bb);
         default: assert(false); return 0;
         }
     }
@@ -601,8 +602,24 @@ namespace BitBoard {
 
     // Find the square corresponding to the most/least advanced bit relative to the given color.
 
-    inline Square scan_frntmost_sq (Color c, Bitboard bb) { return WHITE == c ? scan_msq (bb) : scan_lsq (bb); }
-    inline Square scan_backmost_sq (Color c, Bitboard bb) { return WHITE == c ? scan_lsq (bb) : scan_msq (bb); }
+    inline Square scan_frntmost_sq (Color c, Bitboard bb)
+    {
+        switch (c)
+        {
+        case WHITE: return scan_msq (bb);
+        case BLACK: return scan_lsq (bb);
+        default: assert(false); return SQ_NO;
+        }
+    }
+    inline Square scan_backmost_sq (Color c, Bitboard bb)
+    {
+        switch (c)
+        {
+        case WHITE: return scan_lsq (bb);
+        case BLACK: return scan_msq (bb);
+        default: assert(false); return SQ_NO;
+        }
+    }
 
     inline Square pop_lsq (Bitboard &bb)
     {

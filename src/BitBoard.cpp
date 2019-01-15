@@ -153,7 +153,7 @@ namespace BitBoard {
                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
                 
                 auto mask_popcount = pop_count (magic.mask);
-                //magic.Attacks = new Bitboard[pow (2, mask_popcount)];
+                //magic.attacks = new Bitboard[pow (2, mask_popcount)];
 
 #           if !defined(BM2)
                 magic.shift = u08(

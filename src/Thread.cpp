@@ -122,11 +122,13 @@ void TimeManager::set (Color c, i16 ply, u16 nodes_tm, TimePoint minimum_movetim
     // choose the minimum of calculated search time values.
     for (u08 movestogo = 1; movestogo <= max_movestogo; ++movestogo)
     {
-        // Calculate thinking time for hypothetic "moves to go"
+        // Calculate thinking time for hypothetical "moves to go"
         time = std::max (Limits.clock[c].time
                        + Limits.clock[c].inc * (movestogo - 1)
-                       - overhead_movetime * 2                                             // Overhead clock time: Attempt to keep at least this much time at clock, in milli-seconds.
-                       - overhead_movetime * std::min (movestogo, u08(40)), TimePoint(0)); // Be prepared to always play at least this many moves.
+                         // Clock time: Attempt to keep this much time at clock.
+                         // Moves time: Attempt to keep at most this many moves time at clock.
+                       - overhead_movetime * (2 + std::min (movestogo, u08(40)))
+                       , TimePoint(0));
 
         optimum_time = std::min (optimum_time, minimum_movetime + remaining_time<true > (time, movestogo, ply, move_slowness));
         maximum_time = std::min (maximum_time, minimum_movetime + remaining_time<false> (time, movestogo, ply, move_slowness));
@@ -321,15 +323,17 @@ namespace WinProcGroup {
         auto *ptrSysLogicalProcInfoCurr = ptrSysLogicalProcInfoBase;
         while (offset < length)
         {
-            if (ptrSysLogicalProcInfoCurr->Relationship == LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore)
+            switch (ptrSysLogicalProcInfoCurr->Relationship)
             {
+            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
                 ++cores;
                 threads += ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT ? 2 : 1;
-            }
-            else
-            if (ptrSysLogicalProcInfoCurr->Relationship == LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode)
-            {
+                break;
+            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
                 ++nodes;
+                break;
+            default:
+                break;
             }
             assert(0 != ptrSysLogicalProcInfoCurr->Size);
             offset += ptrSysLogicalProcInfoCurr->Size;

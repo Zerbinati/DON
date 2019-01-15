@@ -131,8 +131,8 @@ namespace Pawns {
                                       [rel_rank (Own, s)];
                 }
                 else
-                if (   0 == neighbours
-                    || backward)
+                if (   backward
+                    || 0 == neighbours)
                 {
                     score -= 0 == neighbours ? Isolated : Backward;
                     if (!opposed)
@@ -175,10 +175,10 @@ namespace Pawns {
         for (const auto &f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);
-            Bitboard f_own_front_pawns = own_front_pawns & file_bb (f);
-            auto own_r = 0 != f_own_front_pawns ? rel_rank (Own, scan_backmost_sq (Own, f_own_front_pawns)) : R_1;
-            Bitboard f_opp_front_pawns = opp_front_pawns & file_bb (f);
-            auto opp_r = 0 != f_opp_front_pawns ? rel_rank (Own, scan_frntmost_sq (Opp, f_opp_front_pawns)) : R_1;
+            Bitboard own_front_f_pawns = own_front_pawns & file_bb (f);
+            auto own_r = 0 != own_front_f_pawns ? rel_rank (Own, scan_backmost_sq (Own, own_front_f_pawns)) : R_1;
+            Bitboard opp_front_f_pawns = opp_front_pawns & file_bb (f);
+            auto opp_r = 0 != opp_front_f_pawns ? rel_rank (Own, scan_frntmost_sq (Opp, opp_front_f_pawns)) : R_1;
             assert((R_1 == own_r
                  && R_1 == opp_r)
                 || (own_r != opp_r));
@@ -187,8 +187,7 @@ namespace Pawns {
             assert(ff < 4);
             value += Shelter[ff][own_r];
             value -= R_1 != own_r && (own_r + 1 == opp_r) ?
-                        R_3 == opp_r ?
-                            66 : 0 :
+                        (R_3 == opp_r ? 66 : 0) :
                         Storm[ff][opp_r];
         }
 
