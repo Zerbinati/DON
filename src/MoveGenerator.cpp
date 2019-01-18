@@ -18,23 +18,30 @@ namespace {
                     || BSHP == PT
                     || ROOK == PT
                     || QUEN == PT, "PT incorrect");
-
-        if (   GenType::CHECK == GT
-            || GenType::QUIET_CHECK == GT)
+        switch (GT)
         {
+        case GenType::CHECK:
+        case GenType::QUIET_CHECK:
             targets &= pos.si->checks[PT];
-        }
-        for (const auto &s : pos.squares[pos.active][PT])
-        {
-            if (   (   GenType::CHECK == GT
-                    || GenType::QUIET_CHECK == GT)
-                && contains (pos.si->king_blockers[~pos.active], s))
+            /* No break */
+        case GenType::NATURAL:
+        case GenType::EVASION:
+        case GenType::CAPTURE:
+        case GenType::QUIET:
+            for (const auto &s : pos.squares[pos.active][PT])
             {
-                continue;
+                if (   (   GenType::CHECK == GT
+                        || GenType::QUIET_CHECK == GT)
+                    && contains (pos.si->king_blockers[~pos.active], s))
+                {
+                    continue;
+                }
+                Bitboard attacks = targets
+                                 & attacks_bb<PT> (s, pos.pieces ());
+                while (0 != attacks) { moves += mk_move<NORMAL> (s, pop_lsq (attacks)); }
             }
-            Bitboard attacks = targets
-                             & attacks_bb<PT> (s, pos.pieces ());
-            while (0 != attacks) { moves += mk_move<NORMAL> (s, pop_lsq (attacks)); }
+            break;
+        default: break;
         }
     }
 
@@ -46,38 +53,41 @@ namespace {
         {
             auto dst = pop_lsq (promotion);
 
-            if (   GenType::NATURAL == GT
-                || GenType::EVASION == GT
-                || GenType::CAPTURE == GT
-                || (   GenType::CHECK == GT
-                    && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active))))
+            switch (GT)
             {
+            case GenType::NATURAL:
+            case GenType::EVASION:
                 moves += mk_move (dst - del, dst, QUEN);
-            }
-            if (   GenType::NATURAL == GT
-                || GenType::EVASION == GT
-                || GenType::QUIET == GT
-                || (   GenType::CHECK == GT
-                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active))))
-            {
+                /* No break */
+            case GenType::QUIET:
                 moves += mk_move (dst - del, dst, ROOK);
-            }
-            if (   GenType::NATURAL == GT
-                || GenType::EVASION == GT
-                || GenType::QUIET == GT
-                || (   GenType::CHECK == GT
-                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active))))
-            {
                 moves += mk_move (dst - del, dst, BSHP);
-            }
-            if (   GenType::NATURAL == GT
-                || GenType::EVASION == GT
-                || GenType::QUIET == GT
-                || (   (   GenType::CHECK == GT
-                        || GenType::QUIET_CHECK == GT)
-                    && contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active))))
-            {
                 moves += mk_move (dst - del, dst, NIHT);
+                break;
+            case GenType::CAPTURE:
+                moves += mk_move (dst - del, dst, QUEN);
+                break;
+            case GenType::CHECK:
+                if (contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
+                {
+                    moves += mk_move (dst - del, dst, QUEN);
+                }
+                if (contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
+                {
+                    moves += mk_move (dst - del, dst, ROOK);
+                }
+                if (contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
+                {
+                    moves += mk_move (dst - del, dst, BSHP);
+                }
+                /* No break */
+            case GenType::QUIET_CHECK:
+                if (contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active)))
+                {
+                    moves += mk_move (dst - del, dst, NIHT);
+                }
+                break;
+            default: break;
             }
         }
     }
@@ -91,107 +101,123 @@ namespace {
         // Pawns not on 7th Rank
         Bitboard Rx_pawns = pos.pieces (pos.active, PAWN)
                           & ~rank_bb (rel_rank (pos.active, R_7));
-        if (0 != Rx_pawns)
+        // Pawns on 7th Rank
+        Bitboard R7_pawns = pos.pieces (pos.active, PAWN)
+                          &  rank_bb (rel_rank (pos.active, R_7));
+        switch (GT)
         {
-            // Pawn single-push and double-push, no promotions
-            if (   GenType::NATURAL == GT
-                || GenType::EVASION == GT
-                || GenType::QUIET == GT
-                || GenType::CHECK == GT
-                || GenType::QUIET_CHECK == GT)
-            {
-                Bitboard pushs_1 = empties & pawn_pushes_bb (pos.active, Rx_pawns);
-                Bitboard pushs_2 = empties & pawn_pushes_bb (pos.active, pushs_1 & rank_bb (rel_rank (pos.active, R_3)));
-                if (GenType::EVASION == GT)
-                {
-                    pushs_1 &= targets;
-                    pushs_2 &= targets;
-                }
-                if (   GenType::CHECK == GT
-                    || GenType::QUIET_CHECK == GT)
-                {
-                    pushs_1 &= pos.si->checks[PAWN];
-                    pushs_2 &= pos.si->checks[PAWN];
-                    // Pawns which give discovered check
-                    // Add pawn pushes which give discovered check.
-                    // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
-                    // Note that a possible discovery check promotion has been already generated among captures.
-                    Bitboard dsc_pawns = Rx_pawns
-                                       & pos.si->king_blockers[~pos.active]
-                                       & ~file_bb (pos.square<KING> (~pos.active));
-                    if (0 != dsc_pawns)
-                    {
-                        Bitboard dc_pushs_1 = empties & pawn_pushes_bb (pos.active, dsc_pawns);
-                        Bitboard dc_pushs_2 = empties & pawn_pushes_bb (pos.active, dc_pushs_1 & rank_bb (rel_rank (pos.active, R_3)));
-                        pushs_1 |= dc_pushs_1;
-                        pushs_2 |= dc_pushs_2;
-                    }
-                }
-                while (0 != pushs_1) { auto dst = pop_lsq (pushs_1); moves += mk_move<NORMAL> (dst - pawn_push (pos.active)  , dst); }
-                while (0 != pushs_2) { auto dst = pop_lsq (pushs_2); moves += mk_move<NORMAL> (dst - pawn_push (pos.active)*2, dst); }
-            }
+        case GenType::NATURAL:
+        case GenType::EVASION:
+        case GenType::CAPTURE:
+        case GenType::CHECK:
+        {
             // Pawn normal and en-passant captures, no promotions
-            if (   GenType::NATURAL == GT
-                || GenType::EVASION == GT
-                || GenType::CAPTURE == GT
-                || GenType::CHECK == GT)
+            Bitboard l_attacks = enemies & pawn_l_attacks_bb (pos.active, Rx_pawns);
+            Bitboard r_attacks = enemies & pawn_r_attacks_bb (pos.active, Rx_pawns);
+            if (GenType::CHECK == GT)
             {
-                Bitboard l_attacks = enemies & pawn_l_attacks_bb (pos.active, Rx_pawns);
-                Bitboard r_attacks = enemies & pawn_r_attacks_bb (pos.active, Rx_pawns);
-                if (GenType::CHECK == GT)
+                l_attacks &= pos.si->checks[PAWN];
+                r_attacks &= pos.si->checks[PAWN];
+                // Pawns which give discovered check
+                // Add pawn captures which give discovered check.
+                Bitboard dsc_pawns = Rx_pawns
+                                   & pos.si->king_blockers[~pos.active];
+                if (0 != dsc_pawns)
                 {
-                    l_attacks &= pos.si->checks[PAWN];
-                    r_attacks &= pos.si->checks[PAWN];
-                    // Pawns which give discovered check
-                    // Add pawn captures which give discovered check.
-                    Bitboard dsc_pawns = Rx_pawns
-                                       & pos.si->king_blockers[~pos.active];
-                    if (0 != dsc_pawns)
-                    {
-                        l_attacks |= enemies & pawn_l_attacks_bb (pos.active, dsc_pawns);
-                        r_attacks |= enemies & pawn_r_attacks_bb (pos.active, dsc_pawns);
-                    }
+                    l_attacks |= enemies & pawn_l_attacks_bb (pos.active, dsc_pawns);
+                    r_attacks |= enemies & pawn_r_attacks_bb (pos.active, dsc_pawns);
                 }
-                while (0 != l_attacks) { auto dst = pop_lsq (l_attacks); moves += mk_move<NORMAL> (dst - pawn_latt (pos.active), dst); }
-                while (0 != r_attacks) { auto dst = pop_lsq (r_attacks); moves += mk_move<NORMAL> (dst - pawn_ratt (pos.active), dst); }
+            }
+            while (0 != l_attacks) { auto dst = pop_lsq (l_attacks); moves += mk_move<NORMAL> (dst - pawn_latt (pos.active), dst); }
+            while (0 != r_attacks) { auto dst = pop_lsq (r_attacks); moves += mk_move<NORMAL> (dst - pawn_ratt (pos.active), dst); }
 
-                if (SQ_NO != pos.si->enpassant_sq)
+            if (SQ_NO != pos.si->enpassant_sq)
+            {
+                assert(R_6 == rel_rank (pos.active, pos.si->enpassant_sq));
+                Bitboard ep_captures = Rx_pawns
+                                     & PawnAttacks[~pos.active][pos.si->enpassant_sq];
+                switch (GT)
                 {
-                    assert(R_6 == rel_rank (pos.active, pos.si->enpassant_sq));
-                    Bitboard ep_captures = Rx_pawns
-                                         & PawnAttacks[~pos.active][pos.si->enpassant_sq];
+                case GenType::EVASION:
                     // If the checking piece is the double pushed pawn and also is in the target.
                     // Otherwise this is a discovery check and are forced to do otherwise.
-                    if (   GenType::EVASION == GT
-                        && !contains (enemies & pos.pieces (PAWN), pos.si->enpassant_sq - pawn_push (pos.active)))
+                    if (!contains (enemies & pos.pieces (PAWN), pos.si->enpassant_sq - pawn_push (pos.active)))
                     {
                         ep_captures = 0;
                     }
-                    if (   GenType::CHECK == GT
-                        //&& !contains (PawnAttacks[pos.active][pos.si->enpassant_sq], pos.square<KING> (~pos.active))
-                        && !contains (pos.si->checks[PAWN], pos.si->enpassant_sq))
+                    break;
+                case GenType::CHECK:
+                    if (//!contains (PawnAttacks[pos.active][pos.si->enpassant_sq], pos.square<KING> (~pos.active))
+                        !contains (pos.si->checks[PAWN], pos.si->enpassant_sq))
                     {
                         // En-passant pawns which give discovered check
                         ep_captures &= pos.si->king_blockers[~pos.active];
                     }
-                    assert(2 >= pop_count (ep_captures));
-                    while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->enpassant_sq); }
+                    break;
+                default: break;
                 }
+                assert(2 >= pop_count (ep_captures));
+                while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->enpassant_sq); }
             }
         }
-        // Pawns on 7th Rank
-        Bitboard R7_pawns = pos.pieces (pos.active, PAWN)
-                          &  rank_bb (rel_rank (pos.active, R_7));
-        // Promotions (queening and under-promotions)
-        if (0 != R7_pawns)
+            /* No break */
+        case GenType::QUIET:
+        case GenType::QUIET_CHECK:
         {
-            if (GenType::EVASION == GT)
+            // Promotions (queening and under-promotions)
+            if (0 != R7_pawns)
             {
-                empties &= targets;
+                if (GenType::EVASION == GT)
+                {
+                    empties &= targets;
+                }
+                generate_promotion_moves<GT> (moves, pos, empties & pawn_pushes_bb (pos.active, R7_pawns), pawn_push (pos.active));
+                generate_promotion_moves<GT> (moves, pos, enemies & pawn_l_attacks_bb (pos.active, R7_pawns), pawn_latt (pos.active));
+                generate_promotion_moves<GT> (moves, pos, enemies & pawn_r_attacks_bb (pos.active, R7_pawns), pawn_ratt (pos.active));
             }
-            generate_promotion_moves<GT> (moves, pos, empties & pawn_pushes_bb (pos.active, R7_pawns), pawn_push (pos.active));
-            generate_promotion_moves<GT> (moves, pos, enemies & pawn_l_attacks_bb (pos.active, R7_pawns), pawn_latt (pos.active));
-            generate_promotion_moves<GT> (moves, pos, enemies & pawn_r_attacks_bb (pos.active, R7_pawns), pawn_ratt (pos.active));
+            
+            if (GenType::CAPTURE == GT)
+            {
+                break;
+            }
+
+            // Pawn single-push and double-push, no promotions
+            Bitboard pushs_1 = empties & pawn_pushes_bb (pos.active, Rx_pawns);
+            Bitboard pushs_2 = empties & pawn_pushes_bb (pos.active, pushs_1 & rank_bb (rel_rank (pos.active, R_3)));
+            switch (GT)
+            {
+            case GenType::EVASION:
+                pushs_1 &= targets;
+                pushs_2 &= targets;
+                break;
+            case GenType::CHECK:
+            case GenType::QUIET_CHECK:
+            {
+                pushs_1 &= pos.si->checks[PAWN];
+                pushs_2 &= pos.si->checks[PAWN];
+                // Pawns which give discovered check
+                // Add pawn pushes which give discovered check.
+                // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
+                // Note that a possible discovery check promotion has been already generated among captures.
+                Bitboard dsc_pawns = Rx_pawns
+                                   & pos.si->king_blockers[~pos.active]
+                                   & ~file_bb (pos.square<KING> (~pos.active));
+                if (0 != dsc_pawns)
+                {
+                    Bitboard dc_pushs_1 = empties & pawn_pushes_bb (pos.active, dsc_pawns);
+                    Bitboard dc_pushs_2 = empties & pawn_pushes_bb (pos.active, dc_pushs_1 & rank_bb (rel_rank (pos.active, R_3)));
+                    pushs_1 |= dc_pushs_1;
+                    pushs_2 |= dc_pushs_2;
+                }
+            }
+                break;
+            default: break;
+            }
+            while (0 != pushs_1) { auto dst = pop_lsq (pushs_1); moves += mk_move<NORMAL> (dst - pawn_push (pos.active)  , dst); }
+            while (0 != pushs_2) { auto dst = pop_lsq (pushs_2); moves += mk_move<NORMAL> (dst - pawn_push (pos.active)*2, dst); }
+        }
+            break;
+        default: break;
         }
     }
 
@@ -199,9 +225,11 @@ namespace {
     template<GenType GT>
     void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        if (   GenType::NATURAL == GT
-            || GenType::CAPTURE == GT
-            || GenType::QUIET == GT)
+        switch (GT)
+        {
+        case GenType::NATURAL:
+        case GenType::CAPTURE:
+        case GenType::QUIET:
         {
             Bitboard attacks =  targets
                              &  PieceAttacks[KING][pos.square<KING> ( pos.active)]
@@ -225,6 +253,9 @@ namespace {
                     moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][CS_QUEN]);
                 }
             }
+        }
+            break;
+        default: break;
         }
     }
 

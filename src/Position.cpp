@@ -284,8 +284,8 @@ bool Position::see_ge (Move m, Value threshold) const
         return true;
     }
 
-    auto own = color (piece[org]);
-    auto stm = ~own; // First consider opponent's move
+    auto c = color (piece[org]);
+    auto stm = ~c; // First consider opponent's move
     Bitboard mocc = pieces () ^ org ^ dst;
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
@@ -343,19 +343,20 @@ bool Position::see_ge (Move m, Value threshold) const
         }
         assert(KING != victim);
     }
-    return own != stm; // We break the above loop when stm loses
+    return c != stm; // We break the above loop when stm loses
 }
 
 /// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.
 /// King-attack piece can be either pinner or hidden piece.
-Bitboard Position::slider_blockers (Square s, Color own, Bitboard ex_attackers, Bitboard &pinners, Bitboard &hiddens) const
+Bitboard Position::slider_blockers (Square s, Color c, Bitboard ex_attackers, Bitboard &pinners, Bitboard &hiddens) const
 {
+    Bitboard blockers = 0;
+
     // Sliders are attackers that are aligned on square in x-ray.
-    Bitboard sliders = (  pieces (~own)
+    Bitboard sliders = (  pieces (~c)
                         & ~ex_attackers)
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
-    Bitboard blockers = 0;
     while (0 != sliders)
     {
         auto slide_sq = pop_lsq (sliders);
@@ -364,7 +365,7 @@ Bitboard Position::slider_blockers (Square s, Color own, Bitboard ex_attackers, 
             && !more_than_one (b))
         {
             blockers |= b;
-            if (0 != (b & pieces (own)))
+            if (0 != (b & pieces (c)))
             {
                 pinners |= slide_sq;
             }
