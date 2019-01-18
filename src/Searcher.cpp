@@ -213,7 +213,8 @@ bool MovePicker::pick_move (Pred filter)
             std::swap (*beg, *std::max_element (beg, moves.end ()));
         }
         vm = *beg;
-        if (   (   !(   pos.enpassant (vm)
+        if (   tt_move != vm
+            && (   !(   pos.enpassant (vm)
                      || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
                 || pos.legal (vm))
             && filter ())
@@ -245,11 +246,6 @@ Move MovePicker::next_move ()
     case Stage::PC_INIT:
     case Stage::QS_INIT:
         generate<GenType::CAPTURE> (moves, pos);
-        //filter_illegal (moves, pos);
-        moves.erase (std::remove_if (moves.begin (),
-                                     moves.end (),
-                                     [&](const ValMove &m) { return tt_move == m; }),
-                     moves.end ());
         value<GenType::CAPTURE> ();
         ++stage;
         i = 0;
@@ -289,19 +285,13 @@ Move MovePicker::next_move ()
         }
 
         generate<GenType::QUIET> (moves, pos);
-        //filter_illegal (moves, pos);
-        moves.erase (std::remove_if (moves.begin (),
-                                     moves.end (),
-                                     [&](const ValMove &m) { return tt_move == m
-                                                                 || std::find (refutation_moves.begin (), refutation_moves.end (), m) != refutation_moves.end (); }),
-                     moves.end ());
         value<GenType::QUIET> ();
         ++stage;
         i = 0;
         /* fall through */
     case Stage::NAT_QUIETS:
         if (   pick_quiets
-            && pick_move<BEST> ([]() { return true; }))
+            && pick_move<BEST> ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), vm) == refutation_moves.end (); }))
         {
             return vm;
         }
@@ -316,11 +306,6 @@ Move MovePicker::next_move ()
     case Stage::EVA_INIT:
         assert(0 != pos.si->checkers);
         generate<GenType::EVASION> (moves, pos);
-        //filter_illegal (moves, pos);
-        moves.erase (std::remove_if (moves.begin (),
-                                     moves.end (),
-                                     [&](const ValMove &m) { return tt_move == m; }),
-                     moves.end ());
         value<GenType::EVASION> ();
         ++stage;
         i = 0;
@@ -348,11 +333,6 @@ Move MovePicker::next_move ()
         }
 
         generate<GenType::QUIET_CHECK> (moves, pos);
-        //filter_illegal (moves, pos);
-        moves.erase (std::remove_if (moves.begin (),
-                                     moves.end (),
-                                     [&](const ValMove &m) { return tt_move == m; }),
-                     moves.end ());
         ++stage;
         i = 0;
         /* fall through */

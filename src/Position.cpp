@@ -485,17 +485,17 @@ bool Position::pseudo_legal (Move m) const
             return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
         }
         // Double check? In this case a king move is required
-        if (!more_than_one (si->checkers))
+        if (more_than_one (si->checkers))
         {
-            return ENPASSANT != mtype (m) ?
+            return false;
+        }
+        return ENPASSANT != mtype (m) ?
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
-                   contains (si->checkers | between_bb (scan_lsq (si->checkers), square<KING> (active)), dst_sq (m)) :
+                contains (si->checkers | between_bb (scan_lsq (si->checkers), square<KING> (active)), dst_sq (m)) :
                 // Move must be a capture of the checking Enpassant pawn or a blocking evasion of the checking piece
                    (   0 != (si->checkers & pieces (~active, PAWN))
                     && contains (si->checkers, dst_sq (m) - pawn_push (active)))
                 || contains (between_bb (scan_lsq (si->checkers), square<KING> (active)), dst_sq (m));
-        }
-        return false;
     }
     return true;
 }

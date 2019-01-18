@@ -22,7 +22,7 @@ namespace Pawns {
             { V(-39), V(-13), V(-29), V(-52), V(-48), V(-67), V(-166), V(0) }
         };
 
-        constexpr Value Storm[F_NO/2+1][R_NO] =
+        constexpr Value Storm[F_NO/2][R_NO] =
         {
             { V( 89), V(107), V(123), V( 93), V( 57), V( 45), V(  51), V(0) },
             { V( 44), V(-18), V(123), V( 46), V( 39), V( -7), V(  23), V(0) },

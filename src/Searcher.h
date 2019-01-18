@@ -172,7 +172,7 @@ private:
     template<GenType>
     void value ();
 
-    template<PickType, typename Pred>
+    template<PickType, class Pred>
     bool pick_move (Pred);
 
 public:

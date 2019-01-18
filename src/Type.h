@@ -527,14 +527,14 @@ inline CastleRight castle_right (Color c, CastleSide cs)
     }
 }
 
-constexpr bool _ok (PieceType pt)
+constexpr bool      _ok   (PieceType pt)
 {
     return PAWN <= pt && pt <= KING;
 }
 
 constexpr Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
 
-constexpr bool _ok (Piece p)
+constexpr bool      _ok   (Piece p)
 {
     return (W_PAWN <= p && p <= W_KING)
         || (B_PAWN <= p && p <= B_KING);
@@ -552,7 +552,7 @@ constexpr u16       move_pp (Move m) { return u16(m & 0x0FFF); }
 inline    void      promote (Move &m, PieceType pt) { m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF)); }
 constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 {
-    return mtype (m) != CASTLE
+    return CASTLE != mtype (m)
         || chess960 ?
         dst_sq (m) :
         (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m));
@@ -657,8 +657,7 @@ inline void to_upper (std::string &str)
 }
 inline void toggle (std::string &str)
 {
-    std::transform (str.begin (), str.end (), str.begin (),
-        [](i32 c) { return char (islower (c) ? ::toupper (c) : ::tolower (c)); });
+    std::transform (str.begin (), str.end (), str.begin (), [](i32 c) { return char (islower (c) ? ::toupper (c) : ::tolower (c)); });
 }
 
 inline std::string& trim_beg (std::string &str)
