@@ -229,7 +229,12 @@ namespace BitBoard {
     inline Bitboard rank_bb (Rank r) { assert(_ok (r)); return Rank_bb[r]; }
     inline Bitboard rank_bb (Square s) { assert(_ok (s)); return Rank_bb[_rank (s)]; }
 
-    inline Bitboard adj_file_bb (File f) { assert(_ok (f)); return AdjFile_bb[f]; }
+    inline Bitboard adj_file_bb (File f)
+    {
+        assert(_ok (f));
+        return AdjFile_bb[f];
+        //return shift<DEL_E> (File_bb[f]) | shift<DEL_W> (File_bb[f]);
+    }
     inline Bitboard adj_rank_bb (Rank r) { assert(_ok (r)); return AdjRank_bb[r]; }
 
     inline Bitboard front_rank_bb (Color c, Square s) { assert(_ok (s)); return FrontRank_bb[c][_rank (s)]; }

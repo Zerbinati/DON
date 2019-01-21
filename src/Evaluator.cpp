@@ -944,21 +944,21 @@ namespace {
     Score Evaluator<Trace>::initiative (Value eg) const
     {
         // Compute the initiative bonus for the attacking side
-        i32 complexity =   8 * pe->asymmetry
-                       +  12 * pos.count (PAWN)
+        i32 complexity =   9 * pe->asymmetry
+                       +  11 * pos.count (PAWN)
                         // Outflanking
-                       +  12 * (  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
+                       +   9 * (  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
                                 - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK)))
-                       - 118;
+                       - 121;
         // Pawn on both flanks
         if (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
             && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]))
         {
-            complexity += 16;
+            complexity += 18;
         }
         if (VALUE_ZERO == pos.si->non_pawn_material ())
         {
-            complexity += 48;
+            complexity += 49;
         }
 
         auto score = mk_score (0, sign (eg) * std::max (complexity, -abs (eg)));

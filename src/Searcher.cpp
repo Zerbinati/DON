@@ -861,8 +861,10 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            auto pv_hit = tt_hit
-                       && tte->pv_hit ();
+            auto pv_hit = (  tt_hit
+                           && tte->pv_hit ())
+                       || (   PVNode
+                           && 4 < depth);
 
             bool improving;
 
@@ -906,13 +908,6 @@ namespace Searcher {
                     }
                 }
                 return tt_value;
-            }
-
-            if (   PVNode
-                && 4 < depth
-                && MOVE_NONE == ss->excluded_move)
-            {
-                pv_hit = true;
             }
 
             // Step 5. Tablebases probe.

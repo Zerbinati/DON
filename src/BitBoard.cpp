@@ -295,8 +295,8 @@ namespace BitBoard {
         {
             for (const auto &s : SQ)
             {
-                FrontLine_bb  [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
-                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (s)] & AdjFile_bb[_file (s)];
+                FrontLine_bb  [c][s] = front_rank_bb (c, s) & file_bb (_file (s));
+                PawnAttackSpan[c][s] = front_rank_bb (c, s) & adj_file_bb (_file (s));
                 PawnPassSpan  [c][s] = FrontLine_bb[c][s] | PawnAttackSpan[c][s];
             }
         }
