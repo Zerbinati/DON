@@ -260,14 +260,13 @@ namespace {
                 iss >> depth;
                 if (DepthZero != depth)
                 {
-                    auto nodes = perft<true> (pos, depth);
-                    sync_cout << "\nTotal:    "
+                    sync_cout << "\nTotal:  "
                               << std::right
                               << std::setfill ('.')
-                              << std::setw (16)
-                              << nodes
+                              << std::setw (18)
+                              << perft<true> (pos, depth)
                               << std::setfill (' ')
-                              << std::left 
+                              << std::left
                               << sync_endl;
                 }
                 return;
@@ -490,9 +489,9 @@ namespace {
                 Threadpool.stop = true;
             }
             else
-            // GUI sends 'ponderhit' to tell that to ponder on the same move the opponent has played.
+            // GUI sends 'ponderhit' to tell that the opponent has played the expected move.
             // So 'ponderhit' will be sent if told to ponder on the same move the opponent has played.
-            // We should continue searching but switch from pondering to normal search.
+            // Now should continue searching but switch from pondering to normal search.
             if (token == "ponderhit")
             {
                 Threadpool.main_thread ()->ponder = false; // Switch to normal search

@@ -541,17 +541,3 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
 
     main_thread ()->start ();
 }
-/// ThreadPool::stop_thinking()
-void ThreadPool::stop_thinking ()
-{
-    // If allowed to ponder do not stop the search now but
-    // keep pondering until GUI sends "stop"/"ponderhit".
-    if (main_thread ()->ponder)
-    {
-        main_thread ()->stop_on_ponderhit = true;
-    }
-    else
-    {
-        stop = true;
-    }
-}

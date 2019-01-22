@@ -80,11 +80,11 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 
     if (0 != pos.si->checkers)
     {
-        stage = Stage::EVA_TT;
+        stage = Stage::EV_TT;
     }
     else
     {
-        stage = Stage::NAT_TT;
+        stage = Stage::NT_TT;
     }
 
     if (MOVE_NONE == tt_move)
@@ -111,7 +111,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 
     if (0 != pos.si->checkers)
     {
-        stage = Stage::EVA_TT;
+        stage = Stage::EV_TT;
     }
     else
     {
@@ -235,14 +235,14 @@ Move MovePicker::next_move ()
     switch (stage)
     {
 
-    case Stage::NAT_TT:
-    case Stage::EVA_TT:
+    case Stage::NT_TT:
+    case Stage::EV_TT:
     case Stage::PC_TT:
     case Stage::QS_TT:
         ++stage;
         return tt_move;
 
-    case Stage::NAT_INIT:
+    case Stage::NT_INIT:
     case Stage::PC_INIT:
     case Stage::QS_INIT:
         generate<GenType::CAPTURE> (moves, pos);
@@ -252,7 +252,7 @@ Move MovePicker::next_move ()
         // Re-branch at the top of the switch
         goto restage;
 
-    case Stage::NAT_GOOD_CAPTURES:
+    case Stage::NT_GOOD_CAPTURES:
         if (pick_move<BEST> ([&]() { return pos.see_ge (vm, Value(-vm.value * 55 / 1024)) ?
                                                 true :
                                                 // Put losing capture to bad_capture_moves to be tried later
@@ -277,7 +277,7 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fall through */
-    case NAT_REFUTATIONS:
+    case NT_REFUTATIONS:
         // Refutation moves: Killers, Counter moves
         if (i < refutation_moves.size ())
         {
@@ -289,7 +289,7 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fall through */
-    case Stage::NAT_QUIETS:
+    case Stage::NT_QUIETS:
         if (   pick_quiets
             && pick_move<BEST> ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), vm.move) == refutation_moves.end (); }))
         {
@@ -298,19 +298,19 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fall through */
-    case Stage::NAT_BAD_CAPTURES:
+    case Stage::NT_BAD_CAPTURES:
         return i < bad_capture_moves.size () ?
                 bad_capture_moves[i++] :
                 MOVE_NONE;
         /* end */
-    case Stage::EVA_INIT:
+    case Stage::EV_INIT:
         assert(0 != pos.si->checkers);
         generate<GenType::EVASION> (moves, pos);
         value<GenType::EVASION> ();
         ++stage;
         i = 0;
         /* fall through */
-    case Stage::EVA_EVASIONS:
+    case Stage::EV_MOVES:
         return pick_move<BEST> ([]() { return true; }) ?
                 vm :
                 MOVE_NONE;
@@ -1894,17 +1894,17 @@ void Thread::search ()
             finished_depth = running_depth;
         }
 
+        // Has any of the threads found a "mate in <x>"?
+        if (   0 != Limits.mate
+            && !Limits.time_mgr_used ()
+            && !Threadpool.stop
+            && best_value >= +VALUE_MATE - 2 * Limits.mate)
+        {
+            Threadpool.stop = true;
+        }
+
         if (nullptr != main_thread)
         {
-            // Has any of the threads found a "mate in <x>"?
-            if (   0 != Limits.mate
-                && !Threadpool.stop
-                && !main_thread->stop_on_ponderhit
-                && best_value >= +VALUE_MATE - 2 * Limits.mate)
-            {
-                Threadpool.stop_thinking ();
-            }
-
             // If skill level is enabled and can pick move, pick a sub-optimal best move.
             if (   skill_mgr_enabled ()
                 && running_depth == i16(i32(Options["Skill Level"])) + 1)
@@ -1924,7 +1924,7 @@ void Thread::search ()
                 }
 
                 // Reduce time if the best_move is stable over 10 iterations
-                double time_reduction = (main_thread->best_move_depth + 10) < finished_depth ?
+                double time_reduction = main_thread->best_move_depth + 10 < finished_depth ?
                                             1.95 :
                                             1.00;
 
@@ -1945,7 +1945,16 @@ void Thread::search ()
                                  + 119 * (main_thread->failed_low ? 1 : 0)
                                  +   6 * (VALUE_NONE != main_thread->last_value ? main_thread->last_value - best_value: 0)) / 581.0))))
                 {
-                    Threadpool.stop_thinking ();
+                    // If allowed to ponder do not stop the search now but
+                    // keep pondering until GUI sends "stop"/"ponderhit".
+                    if (main_thread->ponder)
+                    {
+                        main_thread->stop_on_ponderhit = true;
+                    }
+                    else
+                    {
+                        Threadpool.stop = true;
+                    }
                 }
 
                 main_thread->last_time_reduction = time_reduction;
