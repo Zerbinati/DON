@@ -1851,7 +1851,7 @@ void Thread::search ()
                         {
                             main_thread->failed_low = true;
                         }
-                        Threadpool.stop_on_ponderhit = false;
+                        main_thread->stop_on_ponderhit = false;
                     }
                 }
                 else
@@ -1894,17 +1894,17 @@ void Thread::search ()
             finished_depth = running_depth;
         }
 
-        // Has any of the threads found a "mate in <x>"?
-        if (   !Threadpool.stop
-            && !Threadpool.stop_on_ponderhit
-            && 0 != Limits.mate
-            && best_value >= +VALUE_MATE - 2*Limits.mate)
-        {
-            Threadpool.stop_thinking ();
-        }
-
         if (nullptr != main_thread)
         {
+            // Has any of the threads found a "mate in <x>"?
+            if (   0 != Limits.mate
+                && !Threadpool.stop
+                && !main_thread->stop_on_ponderhit
+                && best_value >= +VALUE_MATE - 2 * Limits.mate)
+            {
+                Threadpool.stop_thinking ();
+            }
+
             // If skill level is enabled and can pick move, pick a sub-optimal best move.
             if (   skill_mgr_enabled ()
                 && running_depth == i16(i32(Options["Skill Level"])) + 1)
@@ -1915,7 +1915,7 @@ void Thread::search ()
 
             if (   Limits.time_mgr_used ()
                 && !Threadpool.stop
-                && !Threadpool.stop_on_ponderhit)
+                && !main_thread->stop_on_ponderhit)
             {
                 if (main_thread->best_move != root_moves[0][0])
                 {
@@ -1981,7 +1981,7 @@ void MainThread::search ()
                          << "MoveTime : " << Limits.movetime << " ms\n"
                          << "Depth    : " << Limits.depth << "\n"
                          << "Infinite : " << Limits.infinite << "\n"
-                         << "Ponder   : " << Threadpool.ponder << "\n"
+                         << "Ponder   : " << ponder << "\n"
                          << " Depth Score    Time       Nodes PV\n"
                          << "-----------------------------------------------------------"
                          << std::noboolalpha << std::endl;
@@ -2111,22 +2111,16 @@ void MainThread::search ()
     // However, if in an infinite search or pondering, shouldn't print the best move
     // before receiving a "stop"/"ponderhit" command. Therefore simply wait here until
     // receives one of those commands (which also raises Threads.stop).
-    if (Threadpool.ponder)
-    {
-        Threadpool.stop_on_ponderhit = true;
-    }
-
     // Busy wait for a "stop"/"ponderhit" command.
-    while (   (   Limits.infinite
-               || Threadpool.ponder)
+    while (   (   ponder
+               || Limits.infinite)
            && !Threadpool.stop)
-    {}
+    {} // Busy wait for a stop or a ponder reset
 
     Thread *best_thread = this;
     if (think)
     {
-        // Stop the threads if not already stopped.
-        // Also raise the stop if "ponderhit" just reset Threads.ponder
+        // Stop the threads if not already stopped (Also raise the stop if "ponderhit" just reset Threads.ponder).
         Threadpool.stop = true;
         // Wait until all threads have finished.
         for (auto *th : Threadpool)
@@ -2232,11 +2226,9 @@ void MainThread::set_check_count ()
 {
     //assert(0 == check_count);
     // At low node count increase the checking rate otherwise use a default value.
-    check_count = 1024;
-    if (0 != Limits.nodes)
-    {
-        check_count = std::min (std::max (Limits.nodes / 1024, u64(1)), check_count);
-    }
+    check_count = 0 != Limits.nodes ? 
+                    std::min ((i32)std::max (Limits.nodes / 1024, u64(1)), 1024) :
+                    1024;
     assert(0 != check_count);
 }
 /// MainThread::tick() is used as timer function.
@@ -2259,13 +2251,14 @@ void MainThread::tick ()
     }
 
     // Do not stop until told so by the GUI.
-    if (Threadpool.ponder)
+    if (ponder)
     {
         return;
     }
 
     if (   (   Limits.time_mgr_used ()
-            && time_mgr.maximum_time < elapsed_time + 10)
+            && (   stop_on_ponderhit
+                || time_mgr.maximum_time < elapsed_time + 10))
         || (   0 != Limits.movetime
             && Limits.movetime <= elapsed_time)
         || (   0 != Limits.nodes

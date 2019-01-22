@@ -484,22 +484,18 @@ namespace {
                 continue;
             }
 
-            // GUI sends 'ponderhit' to tell that to ponder on the same move the opponent has played.
-            // So 'ponderhit' will be sent if told to ponder on the same move the opponent has played.
-            // We should continue searching but switch from pondering to normal search.
-            // In case Threadpool.stop_on_ponderhit is set wait for 'ponderhit' to stop the search
-            // (for instance because already ran out of time, max depth is reached),
-            // otherwise should continue searching but switching from pondering to normal search.
-            if (    token == "quit"
-                ||  token == "stop"
-                || (token == "ponderhit" && Threadpool.stop_on_ponderhit))
+            if (token == "quit"
+             || token == "stop")
             {
                 Threadpool.stop = true;
             }
             else
+            // GUI sends 'ponderhit' to tell that to ponder on the same move the opponent has played.
+            // So 'ponderhit' will be sent if told to ponder on the same move the opponent has played.
+            // We should continue searching but switch from pondering to normal search.
             if (token == "ponderhit")
             {
-                Threadpool.ponder = false;
+                Threadpool.main_thread ()->ponder = false; // Switch to normal search
             }
             else
             if (token == "isready")
@@ -571,7 +567,7 @@ namespace {
                               << "Posi key: " << std::setw (16) << pos.si->posi_key << "\n"
                               << "Matl key: " << std::setw (16) << pos.si->matl_key << "\n"
                               << "Pawn key: " << std::setw (16) << pos.si->pawn_key << "\n"
-                              << "PG key: " << std::setw (16) << pos.pg_key ()
+                              << "PG key: "   << std::setw (16) << pos.pg_key ()
                               << std::setfill (' ') << std::nouppercase << std::dec << sync_endl;
                 }
                 else

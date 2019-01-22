@@ -444,11 +444,11 @@ void ThreadPool::configure (u32 thread_count)
 }
 /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.
 /// Main thread will wake up other threads and start the search.
-void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limit, const vector<Move> &search_moves, bool ponde)
+void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limit, const vector<Move> &search_moves, bool ponder)
 {
     stop = false;
-    stop_on_ponderhit = false;
-    ponder = ponde;
+    main_thread ()->stop_on_ponderhit = false;
+    main_thread ()->ponder = ponder;
 
     Limits = limit;
 
@@ -546,9 +546,9 @@ void ThreadPool::stop_thinking ()
 {
     // If allowed to ponder do not stop the search now but
     // keep pondering until GUI sends "stop"/"ponderhit".
-    if (ponder)
+    if (main_thread ()->ponder)
     {
-        stop_on_ponderhit = true;
+        main_thread ()->stop_on_ponderhit = true;
     }
     else
     {

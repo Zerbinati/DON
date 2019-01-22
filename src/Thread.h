@@ -131,6 +131,9 @@ public:
     
     u64    check_count;
 
+    bool   stop_on_ponderhit; // Stop search on ponderhit
+    std::atomic<bool> ponder; // Search on ponder move until the "stop"/"ponderhit" command
+
     Value  last_value;
     double last_time_reduction;
 
@@ -186,9 +189,7 @@ public:
 
     size_t pv_limit;
 
-    std::atomic<bool> stop              // Stop search forcefully
-        ,             stop_on_ponderhit // Stop search on ponderhit
-        ,             ponder;           // Search on ponder move until the "stop"/"ponderhit" command
+    std::atomic<bool> stop; // Stop search forcefully
 
     ThreadPool () = default;
     ThreadPool (const ThreadPool&) = delete;
