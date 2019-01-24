@@ -127,7 +127,7 @@ namespace {
     constexpr Score BishopPawns =       S(  3,  7);
     constexpr Score BishopTrapped =     S( 50, 50);
     constexpr Score RookOnPawns =       S( 10, 32);
-    constexpr Score RookTrapped =       S( 96,  4);
+    constexpr Score RookTrapped =       S( 47,  4);
     constexpr Score QueenWeaken =       S( 49, 15);
     constexpr Score PawnLessFlank =     S( 17, 95);
     constexpr Score KingTropism =       S(  8,  0);
@@ -458,8 +458,7 @@ namespace {
                     auto kf = _file (pos.square<KING> (Own));
                     if ((kf < F_E) == (_file (s) < kf))
                     {
-                        score -= (RookTrapped - mk_score (22 * mob, 0))
-                               * (pos.si->can_castle (Own) ? 1 : 2);
+                        score -= RookTrapped * (pos.si->can_castle (Own) ? 1 : 2);
                     }
                 }
             }
