@@ -891,7 +891,7 @@ namespace Searcher {
 
                         // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted.
                         if (   NONE == pos.si->capture
-                            && !pos.si->promotion
+                            && NONE == pos.si->promote
                             && (   1 == (ss-1)->move_count
                                 || (ss-1)->played_move == (ss-1)->killer_moves[0]))
                         {
@@ -1604,7 +1604,7 @@ namespace Searcher {
 
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
                 if (   NONE == pos.si->capture
-                    && !pos.si->promotion
+                    && NONE == pos.si->promote
                     && (   1 == (ss-1)->move_count
                         || (ss-1)->played_move == (ss-1)->killer_moves[0]))
                 {
@@ -1616,7 +1616,7 @@ namespace Searcher {
             if (   (   2 < depth
                     || PVNode)
                 && NONE == pos.si->capture
-                && !pos.si->promotion)
+                && NONE == pos.si->promote)
             {
                 update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), stat_bonus (depth));
             }
@@ -1925,9 +1925,8 @@ void Thread::search ()
 
                 // Reduce time if the best_move is stable over 10 iterations
                 double time_reduction = main_thread->best_move_depth + 10 < finished_depth ?
-                                            1.95 :
+                                            1.953125 :
                                             1.00;
-
                 // Stop the search
                 // -If there is only one legal move available
                 // -If all of the available time has been used

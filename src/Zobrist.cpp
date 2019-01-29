@@ -11,8 +11,7 @@ Key Zobrist::compute_matl_key (const Position &pos) const
     Key matl_key = 0;
     for (const auto &c : { WHITE, BLACK })
     {
-        matl_key ^= piece_square[c][KING][0]; // Zero Matl key
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
+        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             for (u08 pc = 0; pc < pos.count (c, pt); ++pc)
             {
@@ -28,7 +27,7 @@ Key Zobrist::compute_pawn_key (const Position &pos) const
     Key pawn_key = 0;
     for (const auto &c : { WHITE, BLACK })
     {
-        pawn_key ^= piece_square[c][KING][0]; // Zero Pawn key
+        pawn_key ^= piece_square[c][KING][0]; // Include King Key for zero pawns
         for (const auto &s : pos.squares[c][PAWN])
         {
             pawn_key ^= piece_square[c][PAWN][s];

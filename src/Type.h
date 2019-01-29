@@ -477,7 +477,7 @@ inline Delta pawn_push (Color c)
     default: assert(false); return DEL_O;
     }
 }
-inline Delta pawn_latt (Color c)
+inline Delta pawn_l_att (Color c)
 {
     switch (c)
     {
@@ -486,7 +486,7 @@ inline Delta pawn_latt (Color c)
     default: assert(false); return DEL_O;
     }
 }
-inline Delta pawn_ratt (Color c)
+inline Delta pawn_r_att (Color c)
 {
     switch (c)
     {
@@ -539,17 +539,16 @@ constexpr bool      _ok   (Piece p)
     return (W_PAWN <= p && p <= W_KING)
         || (B_PAWN <= p && p <= B_KING);
 }
-constexpr PieceType ptype (Piece p) { return PieceType(p & 7); }
-constexpr Color     color (Piece p) { return Color(p >> 3); }
+constexpr PieceType ptype (Piece p) { return PieceType(p & PT_NO); }
+constexpr Color     color (Piece p) { return Color((p >> 3) & BLACK); }
 constexpr Piece operator~ (Piece p) { return Piece(p ^ 8); }
 
 constexpr Square    org_sq  (Move m) { return Square((m >> 6) & SQ_H8); }
 constexpr Square    dst_sq  (Move m) { return Square((m >> 0) & SQ_H8); }
 constexpr bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
-constexpr PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + 1); }
+constexpr PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 constexpr MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
 constexpr u16       move_pp (Move m) { return u16(m & 0x0FFF); }
-inline    void      promote (Move &m, PieceType pt) { m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF)); }
 constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 {
     return CASTLE != mtype (m)
@@ -559,8 +558,7 @@ constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 }
 
 template<MoveType MT>
-constexpr Move mk_move (Square org, Square dst)               { return Move(MT                         + (org << 6) + dst); }
-constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((pt - 1) << 12) + (org << 6) + dst); }
+constexpr Move mk_move (Square org, Square dst, PieceType pt = NIHT) { return Move(MT + ((pt - NIHT) << 12) + (org << 6) + dst); }
 
 constexpr i16   value_to_cp (Value v) { return i16((v*100)/VALUE_EG_PAWN); }
 constexpr Value cp_to_value (i16  cp) { return Value((cp*VALUE_EG_PAWN)/100); }
@@ -611,7 +609,7 @@ class ValMoves
 {
 public:
     void operator+= (Move move) { emplace_back (move); }
-    //void operator-= (Move move) { erase (std::remove (begin (), end (), move), end ()); }
+    void operator-= (Move move) { erase (std::remove (begin (), end (), move), end ()); }
 };
 
 template<class T, u32 Size>

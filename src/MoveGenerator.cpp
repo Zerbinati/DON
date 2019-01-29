@@ -23,7 +23,7 @@ namespace {
         case GenType::CHECK:
         case GenType::QUIET_CHECK:
             targets &= pos.si->checks[PT];
-            /* No break */
+            /* no break */
         case GenType::NATURAL:
         case GenType::EVASION:
         case GenType::CAPTURE:
@@ -57,37 +57,37 @@ namespace {
             {
             case GenType::NATURAL:
             case GenType::EVASION:
-                moves += mk_move (dst - del, dst, QUEN);
-                /* No break */
+                moves += mk_move<PROMOTE> (dst - del, dst, QUEN);
+                /* no break */
             case GenType::QUIET:
-                moves += mk_move (dst - del, dst, ROOK);
-                moves += mk_move (dst - del, dst, BSHP);
-                moves += mk_move (dst - del, dst, NIHT);
+                moves += mk_move<PROMOTE> (dst - del, dst, ROOK);
+                moves += mk_move<PROMOTE> (dst - del, dst, BSHP);
+                moves += mk_move<PROMOTE> (dst - del, dst, NIHT);
                 break;
             case GenType::CAPTURE:
-                moves += mk_move (dst - del, dst, QUEN);
+                moves += mk_move<PROMOTE> (dst - del, dst, QUEN);
                 break;
             case GenType::CHECK:
                 if (contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move (dst - del, dst, QUEN);
+                    moves += mk_move<PROMOTE> (dst - del, dst, QUEN);
                 }
                 if (contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move (dst - del, dst, ROOK);
+                    moves += mk_move<PROMOTE> (dst - del, dst, ROOK);
                 }
                 if (contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move (dst - del, dst, BSHP);
+                    moves += mk_move<PROMOTE> (dst - del, dst, BSHP);
                 }
-                /* No break */
+                /* no break */
             case GenType::QUIET_CHECK:
                 if (contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move (dst - del, dst, NIHT);
+                    moves += mk_move<PROMOTE> (dst - del, dst, NIHT);
                 }
                 break;
-            default: break;
+            default: assert(false); break;
             }
         }
     }
@@ -128,8 +128,8 @@ namespace {
                     r_attacks |= enemies & pawn_r_attacks_bb (pos.active, dsc_pawns);
                 }
             }
-            while (0 != l_attacks) { auto dst = pop_lsq (l_attacks); moves += mk_move<NORMAL> (dst - pawn_latt (pos.active), dst); }
-            while (0 != r_attacks) { auto dst = pop_lsq (r_attacks); moves += mk_move<NORMAL> (dst - pawn_ratt (pos.active), dst); }
+            while (0 != l_attacks) { auto dst = pop_lsq (l_attacks); moves += mk_move<NORMAL> (dst - pawn_l_att (pos.active), dst); }
+            while (0 != r_attacks) { auto dst = pop_lsq (r_attacks); moves += mk_move<NORMAL> (dst - pawn_r_att (pos.active), dst); }
 
             if (SQ_NO != pos.si->enpassant_sq)
             {
@@ -160,20 +160,25 @@ namespace {
                 while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->enpassant_sq); }
             }
         }
-            /* No break */
+            /* no break */
         case GenType::QUIET:
         case GenType::QUIET_CHECK:
         {
             // Promotions (queening and under-promotions)
             if (0 != R7_pawns)
             {
+                Bitboard b;
+
+                b = enemies & pawn_l_attacks_bb (pos.active, R7_pawns);
+                generate_promotion_moves<GT> (moves, pos, b, pawn_l_att (pos.active));
+                b = enemies & pawn_r_attacks_bb (pos.active, R7_pawns);
+                generate_promotion_moves<GT> (moves, pos, b, pawn_r_att (pos.active));
+                b = empties & pawn_pushes_bb (pos.active, R7_pawns);
                 if (GenType::EVASION == GT)
                 {
-                    empties &= targets;
+                    b &= targets;
                 }
-                generate_promotion_moves<GT> (moves, pos, empties & pawn_pushes_bb (pos.active, R7_pawns), pawn_push (pos.active));
-                generate_promotion_moves<GT> (moves, pos, enemies & pawn_l_attacks_bb (pos.active, R7_pawns), pawn_latt (pos.active));
-                generate_promotion_moves<GT> (moves, pos, enemies & pawn_r_attacks_bb (pos.active, R7_pawns), pawn_ratt (pos.active));
+                generate_promotion_moves<GT> (moves, pos, b, pawn_push (pos.active));
             }
             
             if (GenType::CAPTURE == GT)
@@ -217,7 +222,7 @@ namespace {
             while (0 != pushs_2) { auto dst = pop_lsq (pushs_2); moves += mk_move<NORMAL> (dst - pawn_push (pos.active)*2, dst); }
         }
             break;
-        default: break;
+        default: assert(false); break;
         }
     }
 
@@ -225,37 +230,27 @@ namespace {
     template<GenType GT>
     void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        switch (GT)
-        {
-        case GenType::NATURAL:
-        case GenType::CAPTURE:
-        case GenType::QUIET:
-        {
-            Bitboard attacks =  targets
-                             &  PieceAttacks[KING][pos.square<KING> ( pos.active)]
-                             & ~PieceAttacks[KING][pos.square<KING> (~pos.active)];
-            while (0 != attacks) { moves += mk_move<NORMAL> (pos.square<KING> (pos.active), pop_lsq (attacks)); }
+        Bitboard attacks =  targets
+                         &  PieceAttacks[KING][pos.square<KING> ( pos.active)]
+                         & ~PieceAttacks[KING][pos.square<KING> (~pos.active)];
+        while (0 != attacks) { moves += mk_move<NORMAL> (pos.square<KING> (pos.active), pop_lsq (attacks)); }
 
-            if (   (   GenType::NATURAL == GT
-                    || GenType::QUIET == GT)
-                && 0 == pos.si->checkers
-                //&& R_1 == rel_rank (pos.active, pos.square<KING> (pos.active))
-                && pos.si->can_castle (pos.active))
+        if (   (   GenType::NATURAL == GT
+                || GenType::QUIET == GT)
+            //&& 0 == pos.si->checkers
+            //&& R_1 == rel_rank (pos.active, pos.square<KING> (pos.active))
+            && pos.si->can_castle (pos.active))
+        {
+            if (   pos.expeded_castle (pos.active, CS_KING)
+                && pos.si->can_castle (pos.active, CS_KING))
             {
-                if (   pos.expeded_castle (pos.active, CS_KING)
-                    && pos.si->can_castle (pos.active, CS_KING))
-                {
-                    moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][CS_KING]);
-                }
-                if (   pos.expeded_castle (pos.active, CS_QUEN)
-                    && pos.si->can_castle (pos.active, CS_QUEN))
-                {
-                    moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][CS_QUEN]);
-                }
+                moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][CS_KING]);
             }
-        }
-            break;
-        default: break;
+            if (   pos.expeded_castle (pos.active, CS_QUEN)
+                && pos.si->can_castle (pos.active, CS_QUEN))
+            {
+                moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][CS_QUEN]);
+            }
         }
     }
 
@@ -269,7 +264,6 @@ namespace {
         generate_piece_moves<GT, BSHP> (moves, pos, targets);
         generate_piece_moves<GT, ROOK> (moves, pos, targets);
         generate_piece_moves<GT, QUEN> (moves, pos, targets);
-        generate_king_moves<GT> (moves, pos, targets);
     }
 }
 
@@ -290,6 +284,7 @@ void generate (ValMoves &moves, const Position &pos)
     default: assert(false);targets = 0;
     }
     generate_moves<GT> (moves, pos, targets);
+    generate_king_moves<GT> (moves, pos, targets);
 }
 
 /// Explicit template instantiations
@@ -327,11 +322,13 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
         }
     }
 
+    Bitboard targets;
+    targets = ~check_attacks
+            & ~pos.pieces (pos.active);
     // Generate evasions for king, capture and non capture moves
-    Bitboard attacks = PieceAttacks[KING][pos.square<KING> (pos.active)]
-                     & ~(  check_attacks
-                         | pos.pieces (pos.active)
-                         | PieceAttacks[KING][pos.square<KING> (~pos.active)]);
+    Bitboard attacks =  targets
+                     &  PieceAttacks[KING][pos.square<KING> ( pos.active)]
+                     & ~PieceAttacks[KING][pos.square<KING> (~pos.active)];
     while (0 != attacks) { moves += mk_move<NORMAL> (pos.square<KING> (pos.active), pop_lsq (attacks)); }
 
     // If double-check or only king, then only king move can save the day
@@ -342,9 +339,9 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
     }
 
     // Generates blocking or captures of the checking piece
-    Bitboard targets = SQ_NO == check_sq ?
-                        square_bb (scan_lsq (pos.si->checkers)) :
-                        between_bb (check_sq, pos.square<KING> (pos.active)) | check_sq;
+    targets = SQ_NO == check_sq ?
+                square_bb (scan_lsq (pos.si->checkers)) :
+                between_bb (check_sq, pos.square<KING> (pos.active)) | check_sq;
 
     generate_moves<GenType::EVASION> (moves, pos, targets);
 }
@@ -355,13 +352,13 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
     moves.clear ();
     Bitboard targets = ~pos.pieces (pos.active);
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dsc_blockers_ex =  pos.si->king_blockers[~pos.active]
+    Bitboard ex_dsc_blockers =  pos.si->king_blockers[~pos.active]
                              &  pos.pieces (pos.active)
                              & ~pos.pieces (PAWN);
-    assert(0 == (dsc_blockers_ex & pos.pieces (pos.active, QUEN)));
-    while (0 != dsc_blockers_ex)
+    assert(0 == (ex_dsc_blockers & pos.pieces (pos.active, QUEN)));
+    while (0 != ex_dsc_blockers)
     {
-        auto org = pop_lsq (dsc_blockers_ex);
+        auto org = pop_lsq (ex_dsc_blockers);
         Bitboard attacks;
         switch (ptype (pos[org]))
         {
@@ -385,13 +382,13 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
     moves.clear ();
     Bitboard targets = ~pos.pieces ();
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dsc_blockers_ex =  pos.si->king_blockers[~pos.active]
+    Bitboard ex_dsc_blockers =  pos.si->king_blockers[~pos.active]
                              &  pos.pieces (pos.active)
                              & ~pos.pieces (PAWN);
-    assert(0 == (dsc_blockers_ex & pos.pieces (pos.active, QUEN)));
-    while (0 != dsc_blockers_ex)
+    assert(0 == (ex_dsc_blockers & pos.pieces (pos.active, QUEN)));
+    while (0 != ex_dsc_blockers)
     {
-        auto org = pop_lsq (dsc_blockers_ex);
+        auto org = pop_lsq (ex_dsc_blockers);
         Bitboard attacks;
         switch (ptype (pos[org]))
         {
@@ -435,29 +432,97 @@ void filter_illegal (ValMoves &moves, const Position &pos)
 /// perft() is utility to verify move generation.
 /// All the leaf nodes up to the given depth are generated, and the sum is returned.
 template<bool RootNode>
-u64 perft (Position &pos, i16 depth)
+Perft perft (Position &pos, i16 depth)
 {
-    u64 total_nodes = 0;
-    i16 move_count = 0;
-
-    bool LeafNode = 2 >= depth;
+    Perft total;
+    if (RootNode)
+    {
+        sync_cout << std::left
+                  << std::setw (3)
+                  << "N"
+                  << std::setw (16)
+                  << "Move"
+                  << std::setw (19)
+                  << "All"
+                  << std::setw (19)
+                  << "Capture"
+                  << std::setw (19)
+                  << "EP"
+                  << std::setw (19)
+                  << "Check"
+                  << std::setw (19)
+                  << "Castle"
+                  << std::setw (19)
+                  << "Promote"
+                  << sync_endl;
+    }
 
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     {
-        u64 inter_nodes;
+        Perft inter;
         if (   RootNode
             && 1 >= depth)
         {
-            inter_nodes = 1;
+            inter.all = 1;
+            if (contains (pos.pieces (~pos.active), dst_sq (vm)))
+            {
+                inter.capture = 1;
+            }
+            if (ENPASSANT == mtype (vm))
+            {
+                inter.capture = 1;
+                inter.enpassant = 1;
+            }
+            if (pos.gives_check (vm))
+            {
+                inter.check = 1;
+            }
+            if (CASTLE == mtype (vm))
+            {
+                inter.castle = 1;
+            }
+            if (PROMOTE == mtype (vm))
+            {
+                inter.promote = 1;
+            }
         }
         else
         {
             StateInfo si;
             pos.do_move (vm, si);
 
-            inter_nodes = LeafNode ?
-                            MoveList<GenType::LEGAL> (pos).size () :
-                            perft<false> (pos, depth - 1);
+            if (2 >= depth)
+            {
+                for (const auto &ivm : MoveList<GenType::LEGAL> (pos))
+                {
+                    ++inter.all;
+                    if (contains (pos.pieces (~pos.active), dst_sq (ivm)))
+                    {
+                        ++inter.capture;
+                    }
+                    if (ENPASSANT == mtype (ivm))
+                    {
+                        ++inter.capture;
+                        ++inter.enpassant;
+                    }
+                    if (pos.gives_check (ivm))
+                    {
+                        ++inter.check;
+                    }
+                    if (CASTLE == mtype (ivm))
+                    {
+                        ++inter.castle;
+                    }
+                    if (PROMOTE == mtype (ivm))
+                    {
+                        ++inter.promote;
+                    }
+                }
+            }
+            else
+            {
+                inter = perft<false> (pos, depth - 1);
+            }
 
             pos.undo_move (vm);
         }
@@ -467,7 +532,7 @@ u64 perft (Position &pos, i16 depth)
             sync_cout << std::right
                       << std::setfill ('0')
                       << std::setw (2)
-                      << ++move_count
+                      << ++total.moves
                       << " "
                       << std::left
                       << std::setfill (' ')
@@ -478,16 +543,58 @@ u64 perft (Position &pos, i16 depth)
                       << std::right
                       << std::setfill ('.')
                       << std::setw (16)
-                      << inter_nodes
+                      << inter.all
+                      << "   "
+                      << std::setw (16)
+                      << inter.capture
+                      << "   "
+                      << std::setw (16)
+                      << inter.enpassant
+                      << "   "
+                      << std::setw (16)
+                      << inter.check
+                      << "   "
+                      << std::setw (16)
+                      << inter.castle
+                      << "   "
+                      << std::setw (16)
+                      << inter.promote
                       << std::setfill (' ')
                       << std::left << sync_endl;
         }
-
-        total_nodes += inter_nodes;
+        total += inter;
     }
-    return total_nodes;
+
+    if (RootNode)
+    {
+        sync_cout << std::endl
+                  << "Total:  "
+                  << std::right
+                  << std::setfill ('.')
+                  << std::setw (18)
+                  << total.all
+                  << " "
+                  << std::setw (18)
+                  << total.capture
+                  << " "
+                  << std::setw (18)
+                  << total.enpassant
+                  << " "
+                  << std::setw (18)
+                  << total.check
+                  << " "
+                  << std::setw (18)
+                  << total.castle
+                  << " "
+                  << std::setw (18)
+                  << total.promote
+                  << std::setfill (' ')
+                  << std::left
+                  << sync_endl;
+    }
+    return total;
 }
 /// Explicit template instantiations
 /// --------------------------------
-template u64 perft<true > (Position&, i16);
-template u64 perft<false> (Position&, i16);
+template Perft perft<true > (Position&, i16);
+template Perft perft<false> (Position&, i16);

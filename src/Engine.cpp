@@ -260,14 +260,7 @@ namespace {
                 iss >> depth;
                 if (DepthZero != depth)
                 {
-                    sync_cout << "\nTotal:  "
-                              << std::right
-                              << std::setfill ('.')
-                              << std::setw (18)
-                              << perft<true> (pos, depth)
-                              << std::setfill (' ')
-                              << std::left
-                              << sync_endl;
+                    perft<true> (pos, depth);
                 }
                 return;
             }

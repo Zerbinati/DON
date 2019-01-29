@@ -54,25 +54,24 @@ namespace {
     {
         // Polyglot book move is encoded as follows:
         //
-        // bit 00-05: destiny square    (0...63)
-        // bit 06-11: origin square     (0...63)
-        // bit 12-14: promotion piece   (None = 0, Knight = 1 ... Queen = 4)
+        // bit 00-05: destiny square  (0...63)
+        // bit 06-11: origin square   (0...63)
+        // bit 12-14: promotion piece (None = 0, Knight = 1 ... Queen = 4)
         // bit    15: empty
-        // Move is "0" (a1a1) then it should simply be ignored.
-        // It seems to me that in that case one might as well delete the entry from the book.
+        // Move is "0" then it should simply be ignored.
+        // It seems that in that case one might as well delete the entry from the book.
 
         // Castling moves follow "king captures rook" representation.
         // Promotion moves have promotion piece different then our structure of move
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-        // Polyglot use 3 bits while engine use 2 bits.
         u08 pt = (m >> 12) & PT_NO;
-        // Set new type for promotion piece
         if (0 != pt)
         {
             assert(NIHT <= pt && pt <= QUEN);
-            promote (m, PieceType(pt));
+            // Set new type for promotion piece
+            m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF));
         }
         // Add special move flags and verify it is legal
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))

@@ -32,16 +32,16 @@ public:
     explicit MoveList (const Position &pos)
     {
         generate<GT> (*this, pos);
-        if (NONE != PT)
-        {
-            erase (std::remove_if (begin (),
-                                   end (),
-                                   [&pos] (const ValMove &vm)
-                                   {
-                                       return PT != ptype (pos[org_sq (vm)]);
-                                   }),
-                    end ());
-        }
+        //if (NONE != PT)
+        //{
+        //    erase (std::remove_if (begin (),
+        //                           end (),
+        //                           [&pos] (const ValMove &vm)
+        //                           {
+        //                               return PT != ptype (pos[org_sq (vm)]);
+        //                           }),
+        //            end ());
+        //}
     }
 
     bool contains (Move move) const
@@ -50,7 +50,48 @@ public:
     }
 };
 
+struct Perft
+{
+    i16 moves;
+    u64 all;
+    u64 capture;
+    u64 enpassant;
+    u64 check;
+    u64 castle;
+    u64 promote;
+
+    Perft ()
+    {
+        moves = 0;
+        all = 0;
+        capture = 0;
+        enpassant = 0;
+        check = 0;
+        castle = 0;
+        promote = 0;
+    }
+
+    void operator+= (Perft &p)
+    {
+        all       += p.all;
+        capture   += p.capture;
+        enpassant += p.enpassant;
+        check     += p.check;
+        castle    += p.castle;
+        promote   += p.promote;
+    }
+    void operator-= (Perft &p)
+    {
+        all       -= p.all;
+        capture   -= p.capture;
+        enpassant -= p.enpassant;
+        check     -= p.check;
+        castle    -= p.castle;
+        promote   -= p.promote;
+    }
+};
+
 template<bool RootNode>
-extern u64 perft (Position&, i16);
+extern Perft perft (Position&, i16);
 
 #endif // _MOVE_GENERATOR_H_INC_

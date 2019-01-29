@@ -44,7 +44,7 @@ public:
 
     // ---Not copied when making a move---
     PieceType   capture;        // Piece type captured
-    bool        promotion;      // Promotion
+    PieceType   promote;        // Piece type promoted
     Bitboard    checkers;       // Checkers
     // Check info
     Bitboard    king_blockers[CLR_NO];// Absolute and Discover Blockers
@@ -113,9 +113,6 @@ private:
     void set_castle (Color, Square);
 
     bool can_enpassant (Color, Square, bool = true) const;
-
-    void do_castling (Square, Square&, Square&, Square&);
-    void undo_castling (Square, Square&, Square&, Square&);
 
     PieceType pick_least_val_att (PieceType, Square, Bitboard, Bitboard&, Bitboard&) const;
 
@@ -314,14 +311,11 @@ inline Key Position::pg_key () const
 /// Needed for speculative prefetch.
 inline Key Position::posi_move_key (Move m) const
 {
-    const auto org = org_sq (m);
-    const auto dst = dst_sq (m);
+    auto org = org_sq (m);
+    auto dst = dst_sq (m);
     assert(contains (pieces (active), org));
 
     auto key = si->posi_key;
-    auto ppt = PROMOTE != mtype (m) ?
-                ptype (piece[org]) :
-                promote (m);
     if (CASTLE == mtype (m))
     {
         key ^= RandZob.piece_square[active][ROOK][dst]
@@ -329,9 +323,13 @@ inline Key Position::posi_move_key (Move m) const
     }
     else
     {
-        if (   NORMAL == mtype (m)
-            && PAWN == ptype (piece[org])
-            && 16 == (u08(dst) ^ u08(org)))
+        auto cpt = ENPASSANT != mtype (m) ? ptype (piece[dst]) : PAWN;
+        if (NONE != cpt)
+        {
+            key ^= RandZob.piece_square[~active][cpt][ENPASSANT != mtype (m) ? dst : dst - pawn_push (active)];
+        }
+        if (   PAWN == ptype (piece[org])
+            && dst == org + pawn_push (active) * 2)
         {
             const auto ep_sq = org + (dst - org) / 2;
             if (can_enpassant (~active, ep_sq, false))
@@ -339,15 +337,10 @@ inline Key Position::posi_move_key (Move m) const
                 key ^= RandZob.enpassant[_file (ep_sq)];
             }
         }
-        auto cpt = ENPASSANT != mtype (m) ?
-                    ptype (piece[dst]) :
-                    PAWN;
-        if (NONE != cpt)
-        {
-            key ^= RandZob.piece_square[~active][cpt][ENPASSANT != mtype (m) ?
-                                                        dst :
-                                                        dst - pawn_push (active)];
-        }
+    }
+    if (SQ_NO != si->enpassant_sq)
+    {
+        key ^= RandZob.enpassant[_file (si->enpassant_sq)];
     }
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
     if (CR_NONE != b)
@@ -359,9 +352,8 @@ inline Key Position::posi_move_key (Move m) const
     }
     return key
          ^ RandZob.color
-         ^ RandZob.piece_square[active][ppt][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
-         ^ RandZob.piece_square[active][ptype (piece[org])][org]
-         ^ (SQ_NO != si->enpassant_sq ? RandZob.enpassant[_file (si->enpassant_sq)] : 0);
+         ^ RandZob.piece_square[active][PROMOTE != mtype (m) ? ptype (piece[org]) : promote (m)][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
+         ^ RandZob.piece_square[active][ptype (piece[org])][org];
 }
 
 inline bool Position::expeded_castle (Color c, CastleSide cs) const
@@ -467,7 +459,6 @@ inline void Position::do_move (Move m, StateInfo &nsi)
 
 inline void Position::place_piece_on (Square s, Piece pc)
 {
-    //assert(empty (s)); // Not needed, in case of remove_piece_on()
     assert(_ok (pc));
     color_bb[color (pc)] |= s;
     type_bb[ptype (pc)] |= s;
@@ -505,34 +496,6 @@ inline void Position::move_piece_on_to (Square s1, Square s2)
     piece[s1] = NO_PIECE;
 }
 
-/// do_castling()
-inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
-{
-    rook_org = king_dst; // Castling is always encoded as "King captures friendly Rook"
-    king_dst = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
-    rook_dst = rel_sq (active, rook_org > king_org ? SQ_F1 : SQ_D1);
-    // Remove both pieces first since squares could overlap in chess960
-    remove_piece_on (king_org);
-    remove_piece_on (rook_org);
-    piece[king_org] = piece[rook_org] = NO_PIECE; // Not done by remove_piece_on()
-    place_piece_on (king_dst, active | KING);
-    place_piece_on (rook_dst, active | ROOK);
-}
-/// undo_castling()
-inline void Position::undo_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
-{
-    rook_org = king_dst; // Castling is always encoded as "King captures friendly Rook"
-    king_dst = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
-    rook_dst = rel_sq (active, rook_org > king_org ? SQ_F1 : SQ_D1);
-    // Remove both pieces first since squares could overlap in chess960
-    remove_piece_on (king_dst);
-    remove_piece_on (rook_dst);
-    piece[king_dst] = piece[rook_dst] = NO_PIECE; // Not done by remove_piece_on()
-    place_piece_on (king_org, active | KING);
-    place_piece_on (rook_org, active | ROOK);
-}
-
-
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
 operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
@@ -546,8 +509,8 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), WHITE, 0, king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), BLACK, 0, king_checkers[BLACK], king_checkers[WHITE]);
+    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), WHITE, pos.pieces (BLACK), king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), BLACK, pos.pieces (WHITE), king_checkers[BLACK], king_checkers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (WHITE), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (BLACK), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
 
