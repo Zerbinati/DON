@@ -1560,10 +1560,10 @@ bool Position::ok () const
         return false;
     }
 
-    //if (Fast)
-    //{
-    //    return true;
-    //}
+    if (Fast)
+    {
+        return true;
+    }
 
     // SQUARE_LIST
     for (const auto &c : { WHITE, BLACK })
