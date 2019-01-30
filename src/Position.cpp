@@ -6,6 +6,7 @@
 #include "Polyglot.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
+#include "Transposition.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -347,28 +348,36 @@ bool Position::see_ge (Move m, Value threshold) const
 
 /// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.
 /// King-attack piece can be either pinner or hidden piece.
-Bitboard Position::slider_blockers (Square s, Color c, Bitboard opp_sliders, Bitboard &pinners, Bitboard &hiddens) const
+Bitboard Position::slider_blockers (Square s, Color c, Bitboard sliders, Bitboard &pinners, Bitboard &hiddens) const
 {
     Bitboard blockers = 0;
-    // Sliders are attackers that are aligned on square in x-ray.
-    Bitboard snipers = opp_sliders
+    // Snipers are sliders that attacks on the square 's'
+    Bitboard snipers = sliders
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
-    while (0 != snipers)
+    if (0 != snipers)
     {
-        auto sniper_sq = pop_lsq (snipers);
-        Bitboard b = between_bb (s, sniper_sq) & pieces ();
-        if (   0 != b
-            && !more_than_one (b))
+        // Remove direct attackers to 's'
+        snipers &= ~attackers_to (s, c);
+        // Occupancy are pieces but removed snipers
+        Bitboard mocc = pieces () & ~snipers;
+        while (0 != snipers)
         {
-            blockers |= b;
-            if (0 != (b & pieces (c)))
+            auto sniper_sq = pop_lsq (snipers);
+
+            Bitboard b = mocc & between_bb (s, sniper_sq);
+            if (   0 != b
+                && !more_than_one (b))
             {
-                pinners |= sniper_sq;
-            }
-            else
-            {
-                hiddens |= sniper_sq;
+                blockers |= b;
+                if (0 != (b & pieces (c)))
+                {
+                    hiddens |= sniper_sq;
+                }
+                else
+                {
+                    pinners |= sniper_sq;
+                }
             }
         }
     }
@@ -412,7 +421,8 @@ bool Position::pseudo_legal (Move m) const
                         || R_7 < rel_rank (active, dst_sq (m)))
                     && (   PROMOTE != mtype (m)
                         || R_7 != rel_rank (active, org_sq (m))
-                        || R_8 != rel_rank (active, dst_sq (m))))
+                        || R_8 != rel_rank (active, dst_sq (m))
+                        /*|| (NIHT > promote (m) || promote (m) > QUEN)*/))
                 || !empty (dst_sq (m))
                 || dst_sq (m) != org_sq (m) + pawn_push (active))
                 // Normal capture
@@ -421,7 +431,8 @@ bool Position::pseudo_legal (Move m) const
                         || R_7 < rel_rank (active, dst_sq (m)))
                     && (   PROMOTE != mtype (m)
                         || R_7 != rel_rank (active, org_sq (m))
-                        || R_8 != rel_rank (active, dst_sq (m))))
+                        || R_8 != rel_rank (active, dst_sq (m))
+                        /*|| (NIHT > promote (m) || promote (m) > QUEN)*/))
                 || !contains (pieces (~active) & PawnAttacks[active][org_sq (m)], dst_sq (m)))
                 // Enpassant capture
             && (   ENPASSANT != mtype (m)
@@ -514,12 +525,18 @@ bool Position::legal (Move m) const
         {
             return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
         }
-        break;
+        /* no break */
     case PROMOTE:
-        assert(contains (pieces (active, PAWN), org_sq (m))
-            && R_7 == rel_rank (active, org_sq (m))
-            && R_8 == rel_rank (active, dst_sq (m))
-            && NIHT <= promote (m) && promote (m) <= QUEN);
+        //assert(contains (pieces (active, PAWN), org_sq (m))
+        //    && R_7 == rel_rank (active, org_sq (m))
+        //    && R_8 == rel_rank (active, dst_sq (m))
+        //    && NIHT <= promote (m) && promote (m) <= QUEN);
+
+        // A non-king move is legal if and only if
+        // - not pinned
+        // - moving along the ray from the king
+        return !contains (si->king_blockers[active], org_sq (m))
+            || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
         break;
     case CASTLE:
     {
@@ -531,7 +548,7 @@ bool Position::legal (Move m) const
             && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN));
         // Castle is always encoded as "King captures friendly Rook".
         assert(dst_sq (m) == castle_rook_sq[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN]);
-        Bitboard b = king_path_bb[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN];
+        Bitboard b = castle_king_path_bb[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN];
         // Check king's path for attackers.
         while (0 != b)
         {
@@ -565,12 +582,6 @@ bool Position::legal (Move m) const
     }
     default: assert(false); return false;
     }
-
-    // A non-king move is legal if and only if
-    // - not pinned
-    // - moving along the ray from the king
-    return !contains (si->king_blockers[active], org_sq (m))
-        || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
 }
 /// Position::gives_check() tests whether a pseudo-legal move gives a check.
 bool Position::gives_check (Move m) const
@@ -625,7 +636,7 @@ bool Position::gives_check (Move m) const
         assert(contains (pieces (active, PAWN), org_sq (m))
             && R_7 == rel_rank (active, org_sq (m))
             && R_8 == rel_rank (active, dst_sq (m))
-            && NIHT <= promote (m) && promote (m) <= QUEN);
+            /*&& NIHT <= promote (m) && promote (m) <= QUEN*/);
         // Promotion with check?
         switch (promote (m))
         {
@@ -664,8 +675,8 @@ void Position::clear ()
         for (auto &cs : { CS_KING, CS_QUEN })
         {
             castle_rook_sq[c][cs] = SQ_NO;
-            castle_path_bb[c][cs] = 0;
-            king_path_bb  [c][cs] = 0;
+            castle_rook_path_bb[c][cs] = 0;
+            castle_king_path_bb[c][cs] = 0;
         }
     }
     psq = SCORE_ZERO;
@@ -691,12 +702,12 @@ void Position::set_castle (Color c, Square rook_org)
     {
         if (s != king_org)
         {
-            king_path_bb[c][cs] |= s;
+            castle_king_path_bb[c][cs] |= s;
         }
         if (   s != king_org
             && s != rook_org)
         {
-            castle_path_bb[c][cs] |= s;
+            castle_rook_path_bb[c][cs] |= s;
         }
     }
     for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
@@ -704,7 +715,7 @@ void Position::set_castle (Color c, Square rook_org)
         if (   s != king_org
             && s != rook_org)
         {
-            castle_path_bb[c][cs] |= s;
+            castle_rook_path_bb[c][cs] |= s;
         }
     }
 }
@@ -844,13 +855,15 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             continue;
         }
 
-        auto rook_org = SQ_NO;
         Color c = isupper (token) ? WHITE : BLACK;
+        assert(R_1 == rel_rank (c, square<KING> (c)));
+
         token = char(tolower (token));
 
-        assert(R_1 == rel_rank (c, square<KING> (c)));
-        if (token == 'k')
+        auto rook_org = SQ_NO;
+        switch (token)
         {
+        case 'k':
             for (rook_org = rel_sq (c, SQ_H1); rook_org > square<KING> (c); --rook_org)
             {
                 assert(!contains (pieces (c, KING), rook_org));
@@ -859,10 +872,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
                     break;
                 }
             }
-        }
-        else
-        if (token == 'q')
-        {
+            break;
+        case 'q':
             for (rook_org = rel_sq (c, SQ_A1); rook_org < square<KING> (c); ++rook_org)
             {
                 assert(!contains (pieces (c, KING), rook_org));
@@ -871,16 +882,21 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
                     break;
                 }
             }
-        }
-        else
+            break;
         // Chess960
-        if ('a' <= token && token <= 'h')
-        {
-            rook_org = to_file (token)|_rank (square<KING> (c));
-        }
-        else
-        {
+        case 'a':
+        case 'b':
+        case 'c':
+        case 'd':
+        case 'e':
+        case 'f':
+        case 'g':
+        case 'h':
+            rook_org = to_file (token) | _rank (square<KING> (c));
+            break;
+        default:
             assert(false);
+            break;
         }
         set_castle (c, rook_org);
     }
@@ -1110,7 +1126,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             assert(PAWN == mpt
                 && R_7 == rel_rank (active, org)
                 && R_8 == rel_rank (active, dst)
-                && NIHT <= promote (m) && promote (m) <= QUEN);
+                /*&& NIHT <= promote (m) && promote (m) <= QUEN*/);
 
             si->promote = promote (m);
             // Replace the pawn with the promoted piece
@@ -1238,6 +1254,8 @@ void Position::do_null_move (StateInfo &nsi)
 
     si->posi_key ^= RandZob.color;
     active = ~active;
+
+    prefetch (TT.cluster (si->posi_key)->entries);
 
     si->set_check_info (*this);
 

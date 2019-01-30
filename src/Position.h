@@ -125,8 +125,8 @@ public:
     CastleRight castle_mask[SQ_NO];
 
     Square   castle_rook_sq[CLR_NO][CS_NO];
-    Bitboard castle_path_bb[CLR_NO][CS_NO];
-    Bitboard king_path_bb  [CLR_NO][CS_NO];
+    Bitboard castle_rook_path_bb[CLR_NO][CS_NO];
+    Bitboard castle_king_path_bb[CLR_NO][CS_NO];
 
     Score psq;
     i16   ply;
@@ -358,7 +358,7 @@ inline Key Position::posi_move_key (Move m) const
 
 inline bool Position::expeded_castle (Color c, CastleSide cs) const
 {
-    return 0 == (castle_path_bb[c][cs] & pieces ());
+    return 0 == (castle_rook_path_bb[c][cs] & pieces ());
 }
 /// Position::move_num() starts at 1, and is incremented after BLACK's move.
 inline i16  Position::move_num () const
@@ -509,8 +509,8 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), WHITE, pos.pieces (BLACK), king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), BLACK, pos.pieces (WHITE), king_checkers[BLACK], king_checkers[WHITE]);
+    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), BLACK, pos.pieces (BLACK), king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), WHITE, pos.pieces (WHITE), king_checkers[BLACK], king_checkers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (WHITE), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (BLACK), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
 

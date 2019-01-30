@@ -354,7 +354,7 @@ namespace {
             {
                 ++king_attackers_count[Own];
                 king_attackers_weight[Own] += KingAttack[PT];
-                king_attacks_count[Own] += pop_count (sgl_attacks[Opp][KING] & attacks);
+                king_attacks_count[Own] += u08(pop_count (sgl_attacks[Opp][KING] & attacks));
             }
 
             auto mob = pop_count (mob_area[Own] & attacks);
@@ -467,7 +467,7 @@ namespace {
             {
                 // Penalty for pin or discover attack on the queen
                 b = 0;
-                if (0 != (  pos.slider_blockers (s, Own, pos.pieces (Opp, BSHP, ROOK), b, b)
+                if (0 != (  pos.slider_blockers (s, Opp, pos.pieces (Opp, BSHP, ROOK), b, b)
                           & ~(  (  pos.pieces (Opp, PAWN)
                                  & file_bb (s)
                                  & ~pawn_sgl_attacks_bb (Own, pos.pieces (Own)))
@@ -502,18 +502,17 @@ namespace {
         // King Safety: friend pawns shelter and enemy pawns storm
         u08 index = pe->king_safety_on<Own> (pos, fk_sq);
         Value safety = pe->king_safety[Own][index];
-        if (   R_1 == rel_rank (Own, fk_sq)
-            && pos.si->can_castle (Own))
+        if (pos.si->can_castle (Own))
         {
             if (   pos.si->can_castle (Own, CS_KING)
                 && pos.expeded_castle (Own, CS_KING)
-                && 0 == (pos.king_path_bb[Own][CS_KING] & ful_attacks[Opp]))
+                && 0 == (pos.castle_king_path_bb[Own][CS_KING] & ful_attacks[Opp]))
             {
                 safety = std::max (pe->king_safety[Own][0], safety);
             }
             if (   pos.si->can_castle (Own, CS_QUEN)
                 && pos.expeded_castle (Own, CS_QUEN)
-                && 0 == (pos.king_path_bb[Own][CS_QUEN] & ful_attacks[Opp]))
+                && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & ful_attacks[Opp]))
             {
                 safety = std::max (pe->king_safety[Own][1], safety);
             }
@@ -617,8 +616,8 @@ namespace {
                         +  185 * pop_count (king_ring[Own] & weak_area)
                         +  150 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
                         +    1 * mg_value (mobility[Opp] - mobility[Own])
-                        + 0.25 * tropism * tropism
-                        - 0.75 * safety
+                        +    1 * tropism * tropism / 4
+                        -    3 * safety / 4
                         -   30;
             if (0 == pos.count (Opp, QUEN))
             {

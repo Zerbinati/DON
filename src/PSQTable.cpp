@@ -105,10 +105,10 @@ void psq_initialize ()
 {
     for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        const auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
+        const auto score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
         for (const auto &s : SQ)
         {
-            const auto psq = p
+            const auto psq = score
                            + (PAWN == pt ?
                                 PawnFullSQ[_rank (s)][_file (s)] :
                                 PieceHalfSQ[pt][_rank (s)][std::min (_file (s), ~_file (s))]);

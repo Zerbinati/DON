@@ -100,26 +100,9 @@ namespace BitBoard {
         /// Magic bitboards are used to look up attacks of sliding pieces.
         /// In particular, here we use the so called "fancy" approach.
         template<PieceType PT>
-        void initialize_magic ()
+        void initialize_magic (Bitboard *attacks, Magic *magics)
         {
             static_assert (BSHP <= PT && PT <= ROOK, "PT incorrect");
-
-            Bitboard *attacks;
-            Magic *magics;
-            switch (PT)
-            {
-            case BSHP:
-                attacks = BAttacks;
-                magics = BMagics;
-                break;
-            case ROOK:
-                attacks = RAttacks;
-                magics = RMagics;
-                break;
-            default:
-                assert(false);
-                break;
-            }
 
 #       if !defined(BM2)
             constexpr i16 MaxIndex = 0x1000;
@@ -228,8 +211,8 @@ namespace BitBoard {
         }
         /// Explicit template instantiations
         /// --------------------------------
-        template void initialize_magic<BSHP> ();
-        template void initialize_magic<ROOK> ();
+        template void initialize_magic<BSHP> (Bitboard*, Magic*);
+        template void initialize_magic<ROOK> (Bitboard*, Magic*);
     }
 
     template<PieceType PT>
@@ -344,8 +327,8 @@ namespace BitBoard {
         }
 
         // Initialize Magic Table
-        initialize_magic<BSHP> ();
-        initialize_magic<ROOK> ();
+        initialize_magic<BSHP> (BAttacks, BMagics);
+        initialize_magic<ROOK> (RAttacks, RMagics);
 
         // NOTE:: must be after initialize Bishop & Rook Table
         for (const auto &s1 : SQ)

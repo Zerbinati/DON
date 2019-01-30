@@ -1063,11 +1063,6 @@ namespace Searcher {
                     // Null move dynamic reduction based on depth and static evaluation.
                     auto R = i16((67*depth + 823) / 256 + std::min (i32(eval - beta)/200, 3));
 
-                    // Speculative prefetch as early as possible
-                    prefetch (TT.cluster (  pos.si->posi_key
-                                          ^ RandZob.color
-                                          ^ (SQ_NO != pos.si->enpassant_sq ? RandZob.enpassant[_file (pos.si->enpassant_sq)] : 0))->entries);
-
                     ss->played_move = MOVE_NULL;
                     ss->pd_history = &thread->continuation_history[NO_PIECE][0];
 
@@ -1169,8 +1164,7 @@ namespace Searcher {
 
             // Step 11. Internal iterative deepening (IID). (~2 ELO)
             if (   7 < depth
-                && MOVE_NONE == tt_move
-                && MOVE_NONE == ss->excluded_move)
+                && MOVE_NONE == tt_move)
             {
                 depth_search<PVNode> (pos, ss, alfa, beta, depth - 7, cut_node);
 
@@ -1184,8 +1178,6 @@ namespace Searcher {
                 tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-                pv_hit = tt_hit
-                      && tte->pv_hit ();
             }
 
             value = best_value;
@@ -1811,7 +1803,7 @@ void Thread::search ()
             i16 failed_high_count = 0;
             do
             {
-                i16 adjusted_depth = std::max (running_depth - failed_high_count, 1);
+                i16 adjusted_depth = i16(std::max (running_depth - failed_high_count, 1));
                 best_value = depth_search<true> (root_pos, stacks+5, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -2162,7 +2154,7 @@ void MainThread::search ()
                 votes[th->root_moves[0][0]] += 200 + square (th->root_moves[0].new_value - min_value + 1) * th->finished_depth;
             }
             // Select best thread
-            auto best_vote = 0;
+            i64 best_vote = 0;
             for (auto *th : Threadpool)
             {
                 if (best_vote < votes[th->root_moves[0][0]])

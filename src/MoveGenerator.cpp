@@ -98,12 +98,12 @@ namespace {
         Bitboard empties = ~pos.pieces ();
         Bitboard enemies =  pos.pieces (~pos.active) & targets;
 
+        Bitboard pawns = pos.pieces (pos.active, PAWN);
+        Bitboard Rank7 = rank_bb (rel_rank (pos.active, R_7));
         // Pawns not on 7th Rank
-        Bitboard Rx_pawns = pos.pieces (pos.active, PAWN)
-                          & ~rank_bb (rel_rank (pos.active, R_7));
+        Bitboard Rx_pawns = pawns & ~Rank7;
         // Pawns on 7th Rank
-        Bitboard R7_pawns = pos.pieces (pos.active, PAWN)
-                          &  rank_bb (rel_rank (pos.active, R_7));
+        Bitboard R7_pawns = pawns &  Rank7;
         switch (GT)
         {
         case GenType::NATURAL:
