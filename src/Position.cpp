@@ -348,16 +348,16 @@ bool Position::see_ge (Move m, Value threshold) const
 
 /// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.
 /// King-attack piece can be either pinner or hidden piece.
-Bitboard Position::slider_blockers (Square s, Color c, Bitboard sliders, Bitboard &pinners, Bitboard &hiddens) const
+Bitboard Position::slider_blockers (Square s, Color c, Bitboard excluded, Bitboard &pinners, Bitboard &hiddens) const
 {
     Bitboard blockers = 0;
-    // Snipers are sliders that attacks on the square 's'
-    Bitboard snipers = sliders
+    // Snipers are attackers to the square 's'
+    Bitboard snipers = (pieces (c) ^ excluded)
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     if (0 != snipers)
     {
-        // Remove direct attackers to 's'
+        // Remove direct attackers to the square 's'
         snipers &= ~attackers_to (s, c);
         // Occupancy are pieces but removed snipers
         Bitboard mocc = pieces () & ~snipers;

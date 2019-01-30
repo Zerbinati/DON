@@ -467,7 +467,7 @@ namespace {
             {
                 // Penalty for pin or discover attack on the queen
                 b = 0;
-                if (0 != (  pos.slider_blockers (s, Opp, pos.pieces (Opp, BSHP, ROOK), b, b)
+                if (0 != (  pos.slider_blockers (s, Opp, pos.pieces (Opp, QUEN), b, b)
                           & ~(  (  pos.pieces (Opp, PAWN)
                                  & file_bb (s)
                                  & ~pawn_sgl_attacks_bb (Own, pos.pieces (Own)))

@@ -509,8 +509,8 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), BLACK, pos.pieces (BLACK), king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), WHITE, pos.pieces (WHITE), king_checkers[BLACK], king_checkers[WHITE]);
+    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), BLACK, 0, king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), WHITE, 0, king_checkers[BLACK], king_checkers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (WHITE), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (BLACK), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
 
