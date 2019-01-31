@@ -297,9 +297,9 @@ namespace {
             switch (PT)
             {
             case NIHT: attacks = PieceAttacks[NIHT][s]; break;
-            case BSHP: attacks = attacks_bb<BSHP> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN, BSHP) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN))); break;
-            case ROOK: attacks = attacks_bb<ROOK> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN, ROOK) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN))); break;
-            case QUEN: attacks = attacks_bb<QUEN> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN)       & ~pos.si->king_blockers[Own]))); break;
+            case BSHP: attacks = attacks_bb<BSHP> (s, pos.pieces () ^ (pos.pieces (Own, QUEN, BSHP) & ~pos.si->king_blockers[Own]) ^ pos.pieces (Opp, QUEN)); break;
+            case ROOK: attacks = attacks_bb<ROOK> (s, pos.pieces () ^ (pos.pieces (Own, QUEN, ROOK) & ~pos.si->king_blockers[Own]) ^ pos.pieces (Opp, QUEN)); break;
+            case QUEN: attacks = attacks_bb<QUEN> (s, pos.pieces () ^ (pos.pieces (Own, QUEN)       & ~pos.si->king_blockers[Own])); break;
             default: assert(false); attacks = 0; break;
             }
             

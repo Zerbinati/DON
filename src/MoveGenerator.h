@@ -56,7 +56,9 @@ struct Perft
     u64 all;
     u64 capture;
     u64 enpassant;
-    u64 check;
+    u64 any_check;
+    u64 dsc_check;
+    //u64 dbl_check;
     u64 castle;
     u64 promote;
 
@@ -66,7 +68,9 @@ struct Perft
         all = 0;
         capture = 0;
         enpassant = 0;
-        check = 0;
+        any_check = 0;
+        dsc_check = 0;
+        //dbl_check = 0;
         castle = 0;
         promote = 0;
     }
@@ -76,7 +80,9 @@ struct Perft
         all       += p.all;
         capture   += p.capture;
         enpassant += p.enpassant;
-        check     += p.check;
+        any_check += p.any_check;
+        dsc_check += p.dsc_check;
+        //dbl_check += p.dbl_check;
         castle    += p.castle;
         promote   += p.promote;
     }
@@ -85,7 +91,9 @@ struct Perft
         all       -= p.all;
         capture   -= p.capture;
         enpassant -= p.enpassant;
-        check     -= p.check;
+        any_check -= p.any_check;
+        dsc_check -= p.dsc_check;
+        //dbl_check -= p.dbl_check;
         castle    -= p.castle;
         promote   -= p.promote;
     }

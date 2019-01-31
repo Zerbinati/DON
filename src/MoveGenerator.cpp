@@ -449,8 +449,12 @@ Perft perft (Position &pos, i16 depth)
                   << std::setw (19)
                   << "EP"
                   << std::setw (19)
-                  << "Check"
+                  << "AnyCheck"
                   << std::setw (19)
+                  << "DscCheck"
+                  << std::setw (19)
+                  //<< "DblCheck"
+                  //<< std::setw (19)
                   << "Castle"
                   << std::setw (19)
                   << "Promote"
@@ -459,31 +463,51 @@ Perft perft (Position &pos, i16 depth)
 
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     {
-        Perft inter;
+        Perft leaf;
         if (   RootNode
             && 1 >= depth)
         {
-            inter.all = 1;
+            leaf.all = 1;
             if (contains (pos.pieces (~pos.active), dst_sq (vm)))
             {
-                inter.capture = 1;
+                leaf.capture = 1;
             }
             if (ENPASSANT == mtype (vm))
             {
-                inter.capture = 1;
-                inter.enpassant = 1;
+                leaf.capture = 1;
+                leaf.enpassant = 1;
             }
             if (pos.gives_check (vm))
             {
-                inter.check = 1;
+                leaf.any_check = 1;
+                if (!contains (pos.si->checks[ptype (pos[org_sq (vm)])], dst_sq (vm)))
+                {
+                    Bitboard mocc;
+                    if (   (   contains (pos.si->king_blockers[~pos.active], org_sq (vm))
+                            && !sqrs_aligned (org_sq (vm), dst_sq (vm), pos.square<KING> (~pos.active)))
+                        || (   ENPASSANT == mtype (vm)
+                            && 0 != (mocc = (pos.pieces () ^ org_sq (vm) ^ (_file (dst_sq (vm)) | _rank (org_sq (vm)))) | dst_sq (vm))
+                            && (   (   0 != (pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][pos.square<KING> (~pos.active)])
+                                    && 0 != (pos.pieces (pos.active, BSHP, QUEN) & attacks_bb<BSHP> (pos.square<KING> (~pos.active), mocc)))
+                                || (   0 != (pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][pos.square<KING> (~pos.active)])
+                                    && 0 != (pos.pieces (pos.active, ROOK, QUEN) & attacks_bb<ROOK> (pos.square<KING> (~pos.active), mocc))))))
+                    {
+                        leaf.dsc_check = 1;
+                    }
+                }
+                //Bitboard mocc = (pos.pieces () ^ org_sq (vm)) | dst_sq (vm);
+                //if (more_than_one (pos.attackers_to (pos.square<KING> (~pos.active), pos.active, mocc)))
+                //{
+                //    leaf.dbl_check = 1;
+                //}
             }
             if (CASTLE == mtype (vm))
             {
-                inter.castle = 1;
+                leaf.castle = 1;
             }
             if (PROMOTE == mtype (vm))
             {
-                inter.promote = 1;
+                leaf.promote = 1;
             }
         }
         else
@@ -495,33 +519,53 @@ Perft perft (Position &pos, i16 depth)
             {
                 for (const auto &ivm : MoveList<GenType::LEGAL> (pos))
                 {
-                    ++inter.all;
+                    ++leaf.all;
                     if (contains (pos.pieces (~pos.active), dst_sq (ivm)))
                     {
-                        ++inter.capture;
+                        ++leaf.capture;
                     }
                     if (ENPASSANT == mtype (ivm))
                     {
-                        ++inter.capture;
-                        ++inter.enpassant;
+                        ++leaf.capture;
+                        ++leaf.enpassant;
                     }
                     if (pos.gives_check (ivm))
                     {
-                        ++inter.check;
+                        ++leaf.any_check;
+                        if (!contains (pos.si->checks[ptype (pos[org_sq (ivm)])], dst_sq (ivm)))
+                        {
+                            Bitboard mocc;
+                            if (   (   contains (pos.si->king_blockers[~pos.active], org_sq (ivm))
+                                    && !sqrs_aligned (org_sq (ivm), dst_sq (ivm), pos.square<KING> (~pos.active)))
+                                || (   ENPASSANT == mtype (ivm)
+                                    && 0 != (mocc = (pos.pieces () ^ org_sq (ivm) ^ (_file (dst_sq (ivm)) | _rank (org_sq (ivm)))) | dst_sq (ivm))
+                                    && (   (   0 != (pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][pos.square<KING> (~pos.active)])
+                                            && 0 != (pos.pieces (pos.active, BSHP, QUEN) & attacks_bb<BSHP> (pos.square<KING> (~pos.active), mocc)))
+                                        || (   0 != (pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][pos.square<KING> (~pos.active)])
+                                            && 0 != (pos.pieces (pos.active, ROOK, QUEN) & attacks_bb<ROOK> (pos.square<KING> (~pos.active), mocc))))))
+                            {
+                                ++leaf.dsc_check;
+                            }
+                        }
+                        //Bitboard mocc = (pos.pieces () ^ org_sq (ivm)) | dst_sq (ivm);
+                        //if (more_than_one (pos.attackers_to (pos.square<KING> (~pos.active), pos.active, mocc)))
+                        //{
+                        //    ++leaf.dbl_check;
+                        //}
                     }
                     if (CASTLE == mtype (ivm))
                     {
-                        ++inter.castle;
+                        ++leaf.castle;
                     }
                     if (PROMOTE == mtype (ivm))
                     {
-                        ++inter.promote;
+                        ++leaf.promote;
                     }
                 }
             }
             else
             {
-                inter = perft<false> (pos, depth - 1);
+                leaf = perft<false> (pos, depth - 1);
             }
 
             pos.undo_move (vm);
@@ -543,26 +587,32 @@ Perft perft (Position &pos, i16 depth)
                       << std::right
                       << std::setfill ('.')
                       << std::setw (16)
-                      << inter.all
+                      << leaf.all
                       << "   "
                       << std::setw (16)
-                      << inter.capture
+                      << leaf.capture
                       << "   "
                       << std::setw (16)
-                      << inter.enpassant
+                      << leaf.enpassant
                       << "   "
                       << std::setw (16)
-                      << inter.check
+                      << leaf.any_check
                       << "   "
                       << std::setw (16)
-                      << inter.castle
+                      << leaf.dsc_check
+                      //<< "   "
+                      //<< std::setw (16)
+                      //<< leaf.dbl_check
                       << "   "
                       << std::setw (16)
-                      << inter.promote
+                      << leaf.castle
+                      << "   "
+                      << std::setw (16)
+                      << leaf.promote
                       << std::setfill (' ')
                       << std::left << sync_endl;
         }
-        total += inter;
+        total += leaf;
     }
 
     if (RootNode)
@@ -581,7 +631,13 @@ Perft perft (Position &pos, i16 depth)
                   << total.enpassant
                   << " "
                   << std::setw (18)
-                  << total.check
+                  << total.any_check
+                  << " "
+                  << std::setw (18)
+                  << total.dsc_check
+                  //<< " "
+                  //<< std::setw (18)
+                  //<< total.dbl_check
                   << " "
                   << std::setw (18)
                   << total.castle
@@ -590,6 +646,7 @@ Perft perft (Position &pos, i16 depth)
                   << total.promote
                   << std::setfill (' ')
                   << std::left
+                  << std::endl
                   << sync_endl;
     }
     return total;
