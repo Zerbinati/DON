@@ -1635,6 +1635,7 @@ bool Position::ok () const
         || si->npm[WHITE] != compute_npm<WHITE> (*this)
         || si->npm[BLACK] != compute_npm<BLACK> (*this)
         || si->checkers != attackers_to (square<KING> (active), ~active)
+        || 2 < pop_count (si->checkers)
         || si->clock_ply > 2*i32(Options["Draw MoveCount"])
         || (   NONE != si->capture
             && 0 != si->clock_ply)

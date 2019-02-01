@@ -256,7 +256,7 @@ namespace {
             else
             if (token == "perft")
             {
-                i16 depth;
+                i16 depth = 1;
                 iss >> depth;
                 bool detail = false;
                 iss >> std::boolalpha >> detail;

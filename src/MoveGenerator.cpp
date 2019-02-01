@@ -465,7 +465,8 @@ void Perft::classify (Position &pos, Move m, bool detail)
         }
         StateInfo si;
         pos.do_move (m, si, true);
-        assert(0 != pos.si->checkers);
+        assert(0 != pos.si->checkers
+            && 2 >= pop_count (pos.si->checkers));
         if (more_than_one (pos.si->checkers))
         {
             ++dbl_check;
@@ -491,7 +492,7 @@ void Perft::classify (Position &pos, Move m, bool detail)
 template<bool RootNode>
 Perft perft (Position &pos, i16 depth, bool detail)
 {
-    Perft sum_leaf;
+    Perft total_leaf;
     if (RootNode)
     {
         sync_cout << std::left
@@ -549,14 +550,14 @@ Perft perft (Position &pos, i16 depth, bool detail)
 
             pos.undo_move (vm);
         }
-        sum_leaf += leaf;
+        total_leaf += leaf;
 
         if (RootNode)
         {
             sync_cout << std::right
                       << std::setfill ('0')
                       << std::setw (2)
-                      << ++sum_leaf.moves
+                      << ++total_leaf.moves
                       << " "
                       << std::left
                       << std::setfill (' ')
@@ -606,40 +607,40 @@ Perft perft (Position &pos, i16 depth, bool detail)
                   << std::right
                   << std::setfill ('.')
                   << std::setw (18)
-                  << sum_leaf.any;
+                  << total_leaf.any;
         if (detail)
         {
         std::cout << " "
                   << std::setw (16)
-                  << sum_leaf.capture
+                  << total_leaf.capture
                   << " "
                   << std::setw (14)
-                  << sum_leaf.enpassant
+                  << total_leaf.enpassant
                   << " "
                   << std::setw (16)
-                  << sum_leaf.any_check
+                  << total_leaf.any_check
                   << " "
                   << std::setw (14)
-                  << sum_leaf.dsc_check
+                  << total_leaf.dsc_check
                   << " "
                   << std::setw (14)
-                  << sum_leaf.dbl_check
+                  << total_leaf.dbl_check
                   << " "
                   << std::setw (14)
-                  << sum_leaf.castle
+                  << total_leaf.castle
                   << " "
                   << std::setw (14)
-                  << sum_leaf.promote
+                  << total_leaf.promote
                   << " "
                   << std::setw (14)
-                  << sum_leaf.checkmate;
+                  << total_leaf.checkmate;
         }
         std::cout << std::setfill (' ')
                   << std::left
                   << std::endl
                   << sync_endl;
     }
-    return sum_leaf;
+    return total_leaf;
 }
 /// Explicit template instantiations
 /// --------------------------------
