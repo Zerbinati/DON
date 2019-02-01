@@ -1008,8 +1008,9 @@ namespace Searcher {
                 {
                     if (MOVE_NULL != (ss-1)->played_move)
                     {
+                        i32 bonus = -(ss-1)->stats / 512;
                         tt_eval = evaluate (pos);
-                        ss->static_eval = eval = tt_eval - ((ss-1)->stats + sign ((ss-1)->stats) * 2500) / 512;
+                        ss->static_eval = eval = tt_eval + bonus;
                     }
                     else
                     {

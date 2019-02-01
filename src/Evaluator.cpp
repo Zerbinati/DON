@@ -502,21 +502,19 @@ namespace {
         // King Safety: friend pawns shelter and enemy pawns storm
         u08 index = pe->king_safety_on<Own> (pos, fk_sq);
         Value safety = pe->king_safety[Own][index];
-        if (pos.si->can_castle (Own))
+        if (   pos.si->can_castle (Own, CS_KING)
+            && pos.expeded_castle (Own, CS_KING)
+            && 0 == (pos.castle_king_path_bb[Own][CS_KING] & ful_attacks[Opp]))
         {
-            if (   pos.si->can_castle (Own, CS_KING)
-                && pos.expeded_castle (Own, CS_KING)
-                && 0 == (pos.castle_king_path_bb[Own][CS_KING] & ful_attacks[Opp]))
-            {
-                safety = std::max (pe->king_safety[Own][0], safety);
-            }
-            if (   pos.si->can_castle (Own, CS_QUEN)
-                && pos.expeded_castle (Own, CS_QUEN)
-                && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & ful_attacks[Opp]))
-            {
-                safety = std::max (pe->king_safety[Own][1], safety);
-            }
+            safety = std::max (pe->king_safety[Own][0], safety);
         }
+        if (   pos.si->can_castle (Own, CS_QUEN)
+            && pos.expeded_castle (Own, CS_QUEN)
+            && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & ful_attacks[Opp]))
+        {
+            safety = std::max (pe->king_safety[Own][1], safety);
+        }
+
 
         auto score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
 

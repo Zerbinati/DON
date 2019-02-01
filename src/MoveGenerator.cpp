@@ -429,86 +429,106 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                  moves.end ());
 }
 
+void Perft::classify (Position &pos, Move m, bool detail)
+{
+    ++any;
+    if (!detail)
+    {
+        return;
+    }
+    if (contains (pos.pieces (~pos.active), dst_sq (m)))
+    {
+        ++capture;
+    }
+    if (ENPASSANT == mtype (m))
+    {
+        ++capture;
+        ++enpassant;
+    }
+    if (pos.gives_check (m))
+    {
+        ++any_check;
+        if (!contains (pos.si->checks[ptype (pos[org_sq (m)])], dst_sq (m)))
+        {
+            Bitboard mocc;
+            if (   (   contains (pos.si->king_blockers[~pos.active], org_sq (m))
+                    && !sqrs_aligned (org_sq (m), dst_sq (m), pos.square<KING> (~pos.active)))
+                || (   ENPASSANT == mtype (m)
+                    && 0 != (mocc = (pos.pieces () ^ org_sq (m) ^ (_file (dst_sq (m)) | _rank (org_sq (m)))) | dst_sq (m))
+                    && (   (   0 != (pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][pos.square<KING> (~pos.active)])
+                            && 0 != (pos.pieces (pos.active, BSHP, QUEN) & attacks_bb<BSHP> (pos.square<KING> (~pos.active), mocc)))
+                        || (   0 != (pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][pos.square<KING> (~pos.active)])
+                            && 0 != (pos.pieces (pos.active, ROOK, QUEN) & attacks_bb<ROOK> (pos.square<KING> (~pos.active), mocc))))))
+            {
+                ++dsc_check;
+            }
+        }
+        StateInfo si;
+        pos.do_move (m, si, true);
+        assert(0 != pos.si->checkers);
+        if (more_than_one (pos.si->checkers))
+        {
+            ++dbl_check;
+        }
+        if (0 == MoveList<GenType::LEGAL> (pos).size ())
+        {
+            ++checkmate;
+        }
+        pos.undo_move (m);
+    }
+    if (CASTLE == mtype (m))
+    {
+        ++castle;
+    }
+    if (PROMOTE == mtype (m))
+    {
+        ++promote;
+    }
+}
+
 /// perft() is utility to verify move generation.
 /// All the leaf nodes up to the given depth are generated, and the sum is returned.
 template<bool RootNode>
-Perft perft (Position &pos, i16 depth)
+Perft perft (Position &pos, i16 depth, bool detail)
 {
-    Perft total;
+    Perft sum_leaf;
     if (RootNode)
     {
         sync_cout << std::left
                   << std::setw (3)
                   << "N"
-                  << std::setw (16)
+                  << std::setw (10)
                   << "Move"
                   << std::setw (19)
-                  << "All"
-                  << std::setw (19)
+                  << "Any";
+        if (detail)
+        {
+        std::cout << std::setw (17)
                   << "Capture"
-                  << std::setw (19)
-                  << "EP"
-                  << std::setw (19)
+                  << std::setw (15)
+                  << "Enpassant"
+                  << std::setw (17)
                   << "AnyCheck"
-                  << std::setw (19)
+                  << std::setw (15)
                   << "DscCheck"
-                  << std::setw (19)
-                  //<< "DblCheck"
-                  //<< std::setw (19)
+                  << std::setw (15)
+                  << "DblCheck"
+                  << std::setw (15)
                   << "Castle"
-                  << std::setw (19)
+                  << std::setw (15)
                   << "Promote"
-                  << sync_endl;
+                  << std::setw (15)
+                  << "Checkmate";
+        }
+        std::cout << sync_endl;
     }
-
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     {
         Perft leaf;
         if (   RootNode
             && 1 >= depth)
         {
-            leaf.all = 1;
-            if (contains (pos.pieces (~pos.active), dst_sq (vm)))
-            {
-                leaf.capture = 1;
-            }
-            if (ENPASSANT == mtype (vm))
-            {
-                leaf.capture = 1;
-                leaf.enpassant = 1;
-            }
-            if (pos.gives_check (vm))
-            {
-                leaf.any_check = 1;
-                if (!contains (pos.si->checks[ptype (pos[org_sq (vm)])], dst_sq (vm)))
-                {
-                    Bitboard mocc;
-                    if (   (   contains (pos.si->king_blockers[~pos.active], org_sq (vm))
-                            && !sqrs_aligned (org_sq (vm), dst_sq (vm), pos.square<KING> (~pos.active)))
-                        || (   ENPASSANT == mtype (vm)
-                            && 0 != (mocc = (pos.pieces () ^ org_sq (vm) ^ (_file (dst_sq (vm)) | _rank (org_sq (vm)))) | dst_sq (vm))
-                            && (   (   0 != (pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][pos.square<KING> (~pos.active)])
-                                    && 0 != (pos.pieces (pos.active, BSHP, QUEN) & attacks_bb<BSHP> (pos.square<KING> (~pos.active), mocc)))
-                                || (   0 != (pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][pos.square<KING> (~pos.active)])
-                                    && 0 != (pos.pieces (pos.active, ROOK, QUEN) & attacks_bb<ROOK> (pos.square<KING> (~pos.active), mocc))))))
-                    {
-                        leaf.dsc_check = 1;
-                    }
-                }
-                //Bitboard mocc = (pos.pieces () ^ org_sq (vm)) | dst_sq (vm);
-                //if (more_than_one (pos.attackers_to (pos.square<KING> (~pos.active), pos.active, mocc)))
-                //{
-                //    leaf.dbl_check = 1;
-                //}
-            }
-            if (CASTLE == mtype (vm))
-            {
-                leaf.castle = 1;
-            }
-            if (PROMOTE == mtype (vm))
-            {
-                leaf.promote = 1;
-            }
+            leaf.classify (pos, vm, detail);
         }
         else
         {
@@ -519,64 +539,24 @@ Perft perft (Position &pos, i16 depth)
             {
                 for (const auto &ivm : MoveList<GenType::LEGAL> (pos))
                 {
-                    ++leaf.all;
-                    if (contains (pos.pieces (~pos.active), dst_sq (ivm)))
-                    {
-                        ++leaf.capture;
-                    }
-                    if (ENPASSANT == mtype (ivm))
-                    {
-                        ++leaf.capture;
-                        ++leaf.enpassant;
-                    }
-                    if (pos.gives_check (ivm))
-                    {
-                        ++leaf.any_check;
-                        if (!contains (pos.si->checks[ptype (pos[org_sq (ivm)])], dst_sq (ivm)))
-                        {
-                            Bitboard mocc;
-                            if (   (   contains (pos.si->king_blockers[~pos.active], org_sq (ivm))
-                                    && !sqrs_aligned (org_sq (ivm), dst_sq (ivm), pos.square<KING> (~pos.active)))
-                                || (   ENPASSANT == mtype (ivm)
-                                    && 0 != (mocc = (pos.pieces () ^ org_sq (ivm) ^ (_file (dst_sq (ivm)) | _rank (org_sq (ivm)))) | dst_sq (ivm))
-                                    && (   (   0 != (pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][pos.square<KING> (~pos.active)])
-                                            && 0 != (pos.pieces (pos.active, BSHP, QUEN) & attacks_bb<BSHP> (pos.square<KING> (~pos.active), mocc)))
-                                        || (   0 != (pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][pos.square<KING> (~pos.active)])
-                                            && 0 != (pos.pieces (pos.active, ROOK, QUEN) & attacks_bb<ROOK> (pos.square<KING> (~pos.active), mocc))))))
-                            {
-                                ++leaf.dsc_check;
-                            }
-                        }
-                        //Bitboard mocc = (pos.pieces () ^ org_sq (ivm)) | dst_sq (ivm);
-                        //if (more_than_one (pos.attackers_to (pos.square<KING> (~pos.active), pos.active, mocc)))
-                        //{
-                        //    ++leaf.dbl_check;
-                        //}
-                    }
-                    if (CASTLE == mtype (ivm))
-                    {
-                        ++leaf.castle;
-                    }
-                    if (PROMOTE == mtype (ivm))
-                    {
-                        ++leaf.promote;
-                    }
+                    leaf.classify (pos, ivm, detail);
                 }
             }
             else
             {
-                leaf = perft<false> (pos, depth - 1);
+                leaf = perft<false> (pos, depth - 1, detail);
             }
 
             pos.undo_move (vm);
         }
+        sum_leaf += leaf;
 
         if (RootNode)
         {
             sync_cout << std::right
                       << std::setfill ('0')
                       << std::setw (2)
-                      << ++total.moves
+                      << ++sum_leaf.moves
                       << " "
                       << std::left
                       << std::setfill (' ')
@@ -587,34 +567,38 @@ Perft perft (Position &pos, i16 depth)
                       << std::right
                       << std::setfill ('.')
                       << std::setw (16)
-                      << leaf.all
-                      << "   "
-                      << std::setw (16)
+                      << leaf.any;
+            if (detail)
+            {
+            std::cout << "   "
+                      << std::setw (14)
                       << leaf.capture
                       << "   "
-                      << std::setw (16)
+                      << std::setw (12)
                       << leaf.enpassant
                       << "   "
-                      << std::setw (16)
+                      << std::setw (14)
                       << leaf.any_check
                       << "   "
-                      << std::setw (16)
+                      << std::setw (12)
                       << leaf.dsc_check
-                      //<< "   "
-                      //<< std::setw (16)
-                      //<< leaf.dbl_check
                       << "   "
-                      << std::setw (16)
+                      << std::setw (12)
+                      << leaf.dbl_check
+                      << "   "
+                      << std::setw (12)
                       << leaf.castle
                       << "   "
-                      << std::setw (16)
+                      << std::setw (12)
                       << leaf.promote
-                      << std::setfill (' ')
+                      << "   "
+                      << std::setw (12)
+                      << leaf.checkmate;
+            }
+            std::cout << std::setfill (' ')
                       << std::left << sync_endl;
         }
-        total += leaf;
     }
-
     if (RootNode)
     {
         sync_cout << std::endl
@@ -622,36 +606,42 @@ Perft perft (Position &pos, i16 depth)
                   << std::right
                   << std::setfill ('.')
                   << std::setw (18)
-                  << total.all
+                  << sum_leaf.any;
+        if (detail)
+        {
+        std::cout << " "
+                  << std::setw (16)
+                  << sum_leaf.capture
                   << " "
-                  << std::setw (18)
-                  << total.capture
+                  << std::setw (14)
+                  << sum_leaf.enpassant
                   << " "
-                  << std::setw (18)
-                  << total.enpassant
+                  << std::setw (16)
+                  << sum_leaf.any_check
                   << " "
-                  << std::setw (18)
-                  << total.any_check
+                  << std::setw (14)
+                  << sum_leaf.dsc_check
                   << " "
-                  << std::setw (18)
-                  << total.dsc_check
-                  //<< " "
-                  //<< std::setw (18)
-                  //<< total.dbl_check
+                  << std::setw (14)
+                  << sum_leaf.dbl_check
                   << " "
-                  << std::setw (18)
-                  << total.castle
+                  << std::setw (14)
+                  << sum_leaf.castle
                   << " "
-                  << std::setw (18)
-                  << total.promote
-                  << std::setfill (' ')
+                  << std::setw (14)
+                  << sum_leaf.promote
+                  << " "
+                  << std::setw (14)
+                  << sum_leaf.checkmate;
+        }
+        std::cout << std::setfill (' ')
                   << std::left
                   << std::endl
                   << sync_endl;
     }
-    return total;
+    return sum_leaf;
 }
 /// Explicit template instantiations
 /// --------------------------------
-template Perft perft<true > (Position&, i16);
-template Perft perft<false> (Position&, i16);
+template Perft perft<true > (Position&, i16, bool);
+template Perft perft<false> (Position&, i16, bool);

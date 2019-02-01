@@ -53,53 +53,59 @@ public:
 struct Perft
 {
     i16 moves;
-    u64 all;
+    u64 any;
     u64 capture;
     u64 enpassant;
     u64 any_check;
     u64 dsc_check;
-    //u64 dbl_check;
+    u64 dbl_check;
     u64 castle;
     u64 promote;
+    u64 checkmate;
 
     Perft ()
     {
         moves = 0;
-        all = 0;
+        any = 0;
         capture = 0;
         enpassant = 0;
         any_check = 0;
         dsc_check = 0;
-        //dbl_check = 0;
+        dbl_check = 0;
         castle = 0;
         promote = 0;
+        checkmate = 0;
     }
 
     void operator+= (Perft &p)
     {
-        all       += p.all;
+        any       += p.any;
         capture   += p.capture;
         enpassant += p.enpassant;
         any_check += p.any_check;
         dsc_check += p.dsc_check;
-        //dbl_check += p.dbl_check;
+        dbl_check += p.dbl_check;
         castle    += p.castle;
         promote   += p.promote;
+        checkmate += p.checkmate;
     }
     void operator-= (Perft &p)
     {
-        all       -= p.all;
+        any       -= p.any;
         capture   -= p.capture;
         enpassant -= p.enpassant;
         any_check -= p.any_check;
         dsc_check -= p.dsc_check;
-        //dbl_check -= p.dbl_check;
+        dbl_check -= p.dbl_check;
         castle    -= p.castle;
         promote   -= p.promote;
+        checkmate -= p.checkmate;
     }
+
+    void classify (Position&, Move, bool);
 };
 
 template<bool RootNode>
-extern Perft perft (Position&, i16);
+extern Perft perft (Position&, i16, bool = false);
 
 #endif // _MOVE_GENERATOR_H_INC_
