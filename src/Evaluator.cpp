@@ -145,7 +145,7 @@ namespace {
 
     constexpr i32 KingSafeCheck[NONE] =
     {
-        0, 790, 435, 880, 780, 0
+        0, 790, 635, 880, 980, 0
     };
 
     constexpr i32 KingAttack[NONE] =
@@ -561,48 +561,62 @@ namespace {
             Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
             Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
 
-            Bitboard b;
-            // Enemy queens safe checks
-            b = (  rook_attack
-                 | bshp_attack)
-              &  sgl_attacks[Opp][QUEN]
-              & ~sgl_attacks[Own][QUEN];
-            if (0 != (b & safe_area))
+            // Enemy queen checks
+            Bitboard quen_check = (rook_attack | bshp_attack)
+                                &  sgl_attacks[Opp][QUEN];
+            // Enemy queen safe checks
+            Bitboard quen_safe_check = safe_area
+                                     & quen_check;
+            if (0 != (quen_safe_check & ~sgl_attacks[Own][QUEN]))
             {
                 king_danger += KingSafeCheck[QUEN];
             }
 
-            b = rook_attack
-              & sgl_attacks[Opp][ROOK];
-            if (0 != (b & safe_area))
+            // Enemy rook checks
+            Bitboard rook_check = rook_attack
+                                & sgl_attacks[Opp][ROOK];
+            // Enemy rook safe checks
+            Bitboard rook_safe_check = safe_area
+                                     & rook_check
+                                     & ~quen_safe_check;
+            if (0 != rook_safe_check)
             {
                 king_danger += KingSafeCheck[ROOK];
             }
             else
             {
-                unsafe_check |= b;
+                unsafe_check |= rook_check;
             }
 
-            b = bshp_attack
-              & sgl_attacks[Opp][BSHP];
-            if (0 != (b & safe_area))
+            // Enemy bishop checks
+            Bitboard bshp_check = bshp_attack
+                                & sgl_attacks[Opp][BSHP];
+            // Enemy bishop safe checks
+            Bitboard bshp_safe_check = safe_area
+                                     & bshp_check
+                                     & ~quen_safe_check;
+            if (0 != bshp_safe_check)
             {
                 king_danger += KingSafeCheck[BSHP];
             }
             else
             {
-                unsafe_check |= b;
+                unsafe_check |= bshp_check;
             }
 
-            b = PieceAttacks[NIHT][fk_sq]
-              & sgl_attacks[Opp][NIHT];
-            if (0 != (b & safe_area))
+            // Enemy knight checks
+            Bitboard niht_check = PieceAttacks[NIHT][fk_sq]
+                                & sgl_attacks[Opp][NIHT];
+            // Enemy knight safe checks
+            Bitboard niht_safe_check = safe_area
+                                     & niht_check;
+            if (0 != niht_safe_check)
             {
                 king_danger += KingSafeCheck[NIHT];
             }
             else
             {
-                unsafe_check |= b;
+                unsafe_check |= niht_check;
             }
 
             // Initialize the king danger, which will be transformed later into a score.
@@ -614,9 +628,15 @@ namespace {
                         +  185 * pop_count (king_ring[Own] & weak_area)
                         +  150 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
                         +    1 * mg_value (mobility[Opp] - mobility[Own])
-                        +    1 * tropism * tropism / 4
+                        +    5 * tropism * tropism / 16
                         -    3 * safety / 4
-                        -   30;
+                        -   25;
+            // If friendly knight is near by to defend king
+            if (0 != (sgl_attacks[Own][NIHT] & (PieceAttacks[KING][fk_sq] | fk_sq)))
+            {
+                king_danger -= 100;
+            }
+            // If enemy has no queen
             if (0 == pos.count (Opp, QUEN))
             {
                 king_danger -= 873;

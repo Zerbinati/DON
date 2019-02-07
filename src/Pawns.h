@@ -45,7 +45,7 @@ namespace Pawns {
             assert(0 <= idx);
             if (idx <= index[Own])
             {
-                return idx;
+                return u08(idx);
             }
             
             idx = index[Own];
@@ -64,7 +64,7 @@ namespace Pawns {
             king_square[Own][idx] = fk_sq;
             king_pawn_dist[Own][idx] = kp_dist;
             king_safety[Own][idx] = evaluate_safety<Own> (pos, fk_sq);
-            return idx;
+            return u08(idx);
         }
 
     };

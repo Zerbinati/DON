@@ -114,7 +114,8 @@ private:
 
     bool can_enpassant (Color, Square, bool = true) const;
 
-    PieceType pick_least_val_att (PieceType, Square, Bitboard, Bitboard&, Bitboard&) const;
+    template<PieceType>
+    PieceType pick_least_val_att (Bitboard, Square, Square&, Bitboard&, Bitboard&) const;
 
 public:
     Piece    piece[SQ_NO];
