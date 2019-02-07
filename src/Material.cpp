@@ -74,7 +74,7 @@ namespace Material {
             i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
-            for (auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN })
+            for (auto &pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN })
             {
                 if (0 != count[Own][pt1])
                 {

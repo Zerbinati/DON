@@ -60,8 +60,7 @@ namespace Pawns {
             e->passers[Own] = 0;
             e->weak_unopposed[Own] = 0;
             e->semiopens[Own] = u08(0xFF);
-            e->color_count[Own][WHITE] = pop_count (own_pawns & Color_bb[WHITE]);
-            e->color_count[Own][BLACK] = pop_count (own_pawns & Color_bb[BLACK]);
+
             e->index[Own] = 0;
             std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
             std::fill_n (e->king_safety[Own], MaxCache, VALUE_ZERO);
@@ -78,7 +77,7 @@ namespace Pawns {
                 assert(pos[s] == (Own|PAWN));
 
                 auto f = _file (s);
-                e->semiopens[Own] &= u08(~(1 << f));
+                e->semiopens[Own] &= ~(u08(1) << f);
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 Bitboard neighbours = own_pawns & adj_file_bb (f);

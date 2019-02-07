@@ -486,8 +486,8 @@ namespace TBSyzygy {
                            || (   pos.count (WHITE, PAWN) != 0
                                && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
 
-            pawn_count[0] = pos.count ( lead_color, PAWN);
-            pawn_count[1] = pos.count (~lead_color, PAWN);
+            pawn_count[0] = u08(pos.count ( lead_color, PAWN));
+            pawn_count[1] = u08(pos.count (~lead_color, PAWN));
 
             key2 = pos.setup (code, BLACK, si).si->matl_key;
         }

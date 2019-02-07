@@ -30,7 +30,6 @@ struct StateInfo
 {
 public:
     // ---Copied when making a move---
-    Key         posi_key;       // Hash key of position
     Key         matl_key;       // Hash key of materials
     Key         pawn_key;       // Hash key of pawns
 
@@ -43,6 +42,7 @@ public:
     u08         null_ply;
 
     // ---Not copied when making a move---
+    Key         posi_key;       // Hash key of position
     PieceType   capture;        // Piece type captured
     PieceType   promote;        // Piece type promoted
     Bitboard    checkers;       // Checkers

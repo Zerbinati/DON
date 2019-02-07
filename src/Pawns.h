@@ -12,22 +12,20 @@ namespace Pawns {
     {
     public:
         Key key;
-        u08 asymmetry;
 
-        Score scores[CLR_NO];
+        u08      asymmetry;
+        Score    scores[CLR_NO];
         Bitboard any_attacks[CLR_NO];
         Bitboard dbl_attacks[CLR_NO];
         Bitboard attack_span[CLR_NO];
         Bitboard passers[CLR_NO];
         Bitboard weak_unopposed[CLR_NO];
+        u08      semiopens[CLR_NO];
 
-        u08 semiopens[CLR_NO];
-        i32 color_count[CLR_NO][CLR_NO];
-
-        u08    index[CLR_NO];
-        Square king_square[CLR_NO][MaxCache];
-        Value  king_safety[CLR_NO][MaxCache];
-        u08    king_pawn_dist[CLR_NO][MaxCache];
+        u08      index[CLR_NO];
+        Square   king_square[CLR_NO][MaxCache];
+        Value    king_safety[CLR_NO][MaxCache];
+        u08      king_pawn_dist[CLR_NO][MaxCache];
 
         template<Color Own>
         bool file_semiopen (File f) const

@@ -150,13 +150,13 @@ bool Position::cycled (i16 pp) const
         return false;
     }
 
-    Key original_key = si->posi_key;
+    Key posi_key = si->posi_key;
     const auto *psi = si->ptr;
 
     for (u08 p = 3; p <= end; p += 2)
     {
         psi = psi->ptr->ptr;
-        Key key = original_key ^ psi->posi_key;
+        Key key = posi_key ^ psi->posi_key;
 
         u16 j;
         if (   (j = H1 (key), key == Cuckoos[j].key)
@@ -1019,8 +1019,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         && &nsi != si);
 
     thread->nodes.fetch_add (1, std::memory_order::memory_order_relaxed);
+    Key key = si->posi_key;
+
     // Copy some fields of old state info to new state info object
-    std::memcpy (&nsi, si, offsetof(StateInfo, capture));
+    std::memcpy (&nsi, si, offsetof(StateInfo, posi_key));
     nsi.ptr = si;
     si = &nsi;
 
@@ -1063,8 +1065,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         place_piece_on (dst, active|KING);
         place_piece_on (rook_dst, active|ROOK);
 
-        si->posi_key ^= RandZob.piece_square[active][ROOK][rook_dst]
-                      ^ RandZob.piece_square[active][ROOK][rook_org];
+        key ^= RandZob.piece_square[active][ROOK][rook_dst]
+             ^ RandZob.piece_square[active][ROOK][rook_org];
     }
     else
     {
@@ -1107,7 +1109,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             }
 
             si->clock_ply = 0;
-            si->posi_key ^= RandZob.piece_square[pasive][si->capture][cap];
+            key ^= RandZob.piece_square[pasive][si->capture][cap];
             si->matl_key ^= RandZob.piece_square[pasive][si->capture][count (pasive, si->capture)];
             prefetch (thread->matl_table[si->matl_key]);
         }
@@ -1115,14 +1117,14 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         // Move the piece
         move_piece_on_to (org, dst);
     }
-    si->posi_key ^= RandZob.piece_square[active][mpt][dst]
-                  ^ RandZob.piece_square[active][mpt][org];
+    key ^= RandZob.piece_square[active][mpt][dst]
+         ^ RandZob.piece_square[active][mpt][org];
 
     // Reset enpassant square
     if (SQ_NO != si->enpassant_sq)
     {
         assert(1 >= si->clock_ply);
-        si->posi_key ^= RandZob.enpassant[_file (si->enpassant_sq)];
+        key ^= RandZob.enpassant[_file (si->enpassant_sq)];
         si->enpassant_sq = SQ_NO;
     }
 
@@ -1130,10 +1132,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
     if (CR_NONE != b)
     {
-        if (CR_NONE != (b & CR_WKING)) si->posi_key ^= RandZob.castle_right[WHITE][CS_KING];
-        if (CR_NONE != (b & CR_WQUEN)) si->posi_key ^= RandZob.castle_right[WHITE][CS_QUEN];
-        if (CR_NONE != (b & CR_BKING)) si->posi_key ^= RandZob.castle_right[BLACK][CS_KING];
-        if (CR_NONE != (b & CR_BQUEN)) si->posi_key ^= RandZob.castle_right[BLACK][CS_QUEN];
+        if (CR_NONE != (b & CR_WKING)) key ^= RandZob.castle_right[WHITE][CS_KING];
+        if (CR_NONE != (b & CR_WQUEN)) key ^= RandZob.castle_right[WHITE][CS_QUEN];
+        if (CR_NONE != (b & CR_BKING)) key ^= RandZob.castle_right[BLACK][CS_KING];
+        if (CR_NONE != (b & CR_BQUEN)) key ^= RandZob.castle_right[BLACK][CS_QUEN];
         si->castle_rights &= ~b;
     }
 
@@ -1151,7 +1153,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             if (can_enpassant (pasive, ep_sq))
             {
                 si->enpassant_sq = ep_sq;
-                si->posi_key ^= RandZob.enpassant[_file (ep_sq)];
+                key ^= RandZob.enpassant[_file (ep_sq)];
             }
         }
         else
@@ -1167,8 +1169,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             remove_piece_on (dst);
             place_piece_on (dst, active|si->promote);
             si->npm[active] += PieceValues[MG][si->promote];
-            si->posi_key ^= RandZob.piece_square[active][mpt][dst]
-                          ^ RandZob.piece_square[active][si->promote][dst];
+            key ^= RandZob.piece_square[active][mpt][dst]
+                 ^ RandZob.piece_square[active][si->promote][dst];
             si->pawn_key ^= RandZob.piece_square[active][PAWN][dst];
             si->matl_key ^= RandZob.piece_square[active][PAWN][count (active, mpt)]
                           ^ RandZob.piece_square[active][si->promote][count (active, si->promote) - 1];
@@ -1187,7 +1189,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     // Switch sides
     active = pasive;
-    si->posi_key ^= RandZob.color;
+    key ^= RandZob.color;
+    // Update the key with the final value
+    si->posi_key = key;
 
     si->set_check_info (*this);
 
@@ -1273,7 +1277,7 @@ void Position::do_null_move (StateInfo &nsi)
     assert(&nsi != si
         && 0 == si->checkers);
 
-    std::memcpy (&nsi, si, sizeof (nsi));
+    std::memcpy (&nsi, si, sizeof (StateInfo));
     nsi.ptr = si;
     si = &nsi;
 
@@ -1377,8 +1381,8 @@ void Position::mirror ()
         {
             if (bool(Options["UCI_Chess960"]))
             {
-                assert(isalpha (ch));
-                ch = to_char (~to_file (char(tolower (ch))), islower (ch));
+                assert(isalpha (int(ch)));
+                ch = to_char (~to_file (char(tolower (int(ch)))), islower (int(ch)));
             }
             else
             {

@@ -30,11 +30,13 @@ namespace {
         case GenType::QUIET:
             for (const auto &s : pos.squares[pos.active][PT])
             {
-                if (   (   GenType::CHECK == GT
-                        || GenType::QUIET_CHECK == GT)
-                    && contains (pos.si->king_blockers[~pos.active], s))
+                if (   GenType::CHECK == GT
+                    || GenType::QUIET_CHECK == GT)
                 {
-                    continue;
+                    if (contains (pos.si->king_blockers[~pos.active], s))
+                    {
+                        continue;
+                    }
                 }
                 Bitboard attacks = targets
                                  & attacks_bb<PT> (s, pos.pieces ());
@@ -57,34 +59,34 @@ namespace {
             {
             case GenType::NATURAL:
             case GenType::EVASION:
-                moves += mk_move<PROMOTE> (dst - del, dst, QUEN);
+                moves += mk_move_promote (dst - del, dst, QUEN);
                 /* no break */
             case GenType::QUIET:
-                moves += mk_move<PROMOTE> (dst - del, dst, ROOK);
-                moves += mk_move<PROMOTE> (dst - del, dst, BSHP);
-                moves += mk_move<PROMOTE> (dst - del, dst, NIHT);
+                moves += mk_move_promote (dst - del, dst, ROOK);
+                moves += mk_move_promote (dst - del, dst, BSHP);
+                moves += mk_move_promote (dst - del, dst, NIHT);
                 break;
             case GenType::CAPTURE:
-                moves += mk_move<PROMOTE> (dst - del, dst, QUEN);
+                moves += mk_move_promote (dst - del, dst, QUEN);
                 break;
             case GenType::CHECK:
                 if (contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move<PROMOTE> (dst - del, dst, QUEN);
+                    moves += mk_move_promote (dst - del, dst, QUEN);
                 }
                 if (contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move<PROMOTE> (dst - del, dst, ROOK);
+                    moves += mk_move_promote (dst - del, dst, ROOK);
                 }
                 if (contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move<PROMOTE> (dst - del, dst, BSHP);
+                    moves += mk_move_promote (dst - del, dst, BSHP);
                 }
                 /* no break */
             case GenType::QUIET_CHECK:
                 if (contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move<PROMOTE> (dst - del, dst, NIHT);
+                    moves += mk_move_promote (dst - del, dst, NIHT);
                 }
                 break;
             default: assert(false); break;
@@ -235,21 +237,16 @@ namespace {
                          & ~PieceAttacks[KING][pos.square<KING> (~pos.active)];
         while (0 != attacks) { moves += mk_move<NORMAL> (pos.square<KING> (pos.active), pop_lsq (attacks)); }
 
-        if (   (   GenType::NATURAL == GT
-                || GenType::QUIET == GT)
-            //&& 0 == pos.si->checkers
-            //&& R_1 == rel_rank (pos.active, pos.square<KING> (pos.active))
-            && pos.si->can_castle (pos.active))
+        if (   GenType::NATURAL == GT
+            || GenType::QUIET == GT)
         {
-            if (   pos.expeded_castle (pos.active, CS_KING)
-                && pos.si->can_castle (pos.active, CS_KING))
+            for (auto &cs : { CS_KING, CS_QUEN })
             {
-                moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][CS_KING]);
-            }
-            if (   pos.expeded_castle (pos.active, CS_QUEN)
-                && pos.si->can_castle (pos.active, CS_QUEN))
-            {
-                moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][CS_QUEN]);
+                if (   pos.expeded_castle (pos.active, cs)
+                    && pos.si->can_castle (pos.active, cs))
+                {
+                    moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][cs]);
+                }
             }
         }
     }

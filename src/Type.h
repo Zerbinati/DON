@@ -557,8 +557,21 @@ constexpr Square fix_dst_sq (Move m, bool chess960 = false)
         (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m));
 }
 
+constexpr Move mk_move_promote (Square org, Square dst, PieceType pt)
+{
+    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst);
+}
+
 template<MoveType MT>
-constexpr Move mk_move (Square org, Square dst, PieceType pt = NIHT) { return Move(MT + ((pt - NIHT) << 12) + (org << 6) + dst); }
+constexpr Move mk_move (Square org, Square dst)
+{
+    return Move(MT + (org << 6) + dst);
+}
+template<>
+constexpr Move mk_move<PROMOTE> (Square org, Square dst)
+{
+    return mk_move_promote (org, dst, QUEN);
+}
 
 constexpr i16   value_to_cp (Value v) { return i16((v*100)/VALUE_EG_PAWN); }
 constexpr Value cp_to_value (i16  cp) { return Value((cp*VALUE_EG_PAWN)/100); }

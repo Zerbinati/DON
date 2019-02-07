@@ -1647,7 +1647,7 @@ namespace Searcher {
     /// initialize() initializes some lookup tables.
     void initialize ()
     {
-        srand (time (NULL));
+        srand ((unsigned int)(time (NULL)));
 
         for (i08 d = 0; d < 16; ++d)
         {

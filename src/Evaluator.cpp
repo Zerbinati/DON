@@ -270,7 +270,7 @@ namespace {
             king_ring[Opp] |= shift<DEL_E> (king_ring[Opp]);
         }
 
-        king_attackers_count[Own] = pop_count (king_ring[Opp] & sgl_attacks[Own][PAWN]);
+        king_attackers_count[Own] = u08(pop_count (king_ring[Opp] & sgl_attacks[Own][PAWN]));
         king_ring[Opp] &= ~pawn_dbl_attacks_bb (Opp, pos.pieces (Opp, PAWN));
         king_attackers_weight[Own] = 0;
         king_attacks_count[Own] = 0;
@@ -405,7 +405,7 @@ namespace {
                       & pawn_pushes_bb (Opp, pos.pieces ());
                     score -= BishopPawns
                            * (1 + pop_count (b))
-                           * pe->color_count[Own][color (s)];
+                           * pop_count (pos.pieces (Own, PAWN) & Color_bb[color (s)]);
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     if (   contains (Diagonals_bb, s)

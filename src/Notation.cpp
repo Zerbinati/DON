@@ -129,12 +129,12 @@ Move move_from_can (const string &can, const Position &pos)
 {
     //// If promotion piece in uppercase, convert to lowercase
     //if (   5 == can.length ()
-    //    && isupper (can[4]))
+    //    && isupper (int(can[4])))
     //{
-    //    can[4] = char(tolower (can[4]));
+    //    can[4] = char(tolower (int(can[4])));
     //}
     assert(5 > can.length ()
-        || islower (can[4]));
+        || islower (int(can[4])));
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     {
         if (can == move_to_can (vm))
