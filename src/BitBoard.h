@@ -102,31 +102,6 @@ namespace BitBoard {
 #   undef S_04
 #   undef S_02
 
-    constexpr Bitboard File_bb[F_NO] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
-    constexpr Bitboard Rank_bb[R_NO] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
-
-    constexpr Bitboard AdjFile_bb[F_NO] =
-    {
-        FB_bb,
-        FA_bb|FC_bb,
-        FB_bb|FD_bb,
-        FC_bb|FE_bb,
-        FD_bb|FF_bb,
-        FE_bb|FG_bb,
-        FF_bb|FH_bb,
-        FG_bb
-    };
-    constexpr Bitboard AdjRank_bb[R_NO] =
-    {
-        R2_bb,
-        R1_bb|R3_bb,
-        R2_bb|R4_bb,
-        R3_bb|R5_bb,
-        R4_bb|R6_bb,
-        R5_bb|R7_bb,
-        R6_bb|R8_bb,
-        R7_bb
-    };
     constexpr Bitboard FrontRank_bb[CLR_NO][R_NO] =
     {
         {
@@ -152,19 +127,13 @@ namespace BitBoard {
     };
 
     extern u08      SquareDist[SQ_NO][SQ_NO];
-
-    extern Bitboard FrontLine_bb[CLR_NO][SQ_NO];
-
-    extern Bitboard Between_bb[SQ_NO][SQ_NO];
-    extern Bitboard StrLine_bb[SQ_NO][SQ_NO];
-
     extern Bitboard DistRings_bb[SQ_NO][8];
-
-    extern Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
-    extern Bitboard PawnPassSpan[CLR_NO][SQ_NO];
 
     extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
     extern Bitboard PieceAttacks[NONE][SQ_NO];
+
+    extern Bitboard Between_bb[SQ_NO][SQ_NO];
+    extern Bitboard StrLine_bb[SQ_NO][SQ_NO];
 
     // Magic holds all magic relevant data for a single square
     struct Magic
@@ -204,15 +173,6 @@ namespace BitBoard {
     extern u08 PopCount16[1 << 16];
 #endif
 
-    template<typename T>
-    inline i32 dist (T t1, T t2) { return t1 != t2 ? t1 < t2 ? t2 - t1 : t1 - t2 : 0; }
-    template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
-
-    template<typename T1, typename T2>
-    inline i32 dist (T2, T2) { return 0; }
-    template<> inline i32 dist<File> (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return dist (_file (s1), _file (s2)); }
-    template<> inline i32 dist<Rank> (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return dist (_rank (s1), _rank (s2)); }
-
     /// Shift the bitboard using delta
     template<Delta DEL>
     constexpr Bitboard shift (Bitboard bb) { return 0; }
@@ -243,32 +203,46 @@ namespace BitBoard {
 
     constexpr Bitboard square_bb (Square s) { return Square_bb[s]; }
 
-    constexpr Bitboard file_bb (File f) { return File_bb[f]; }
-    constexpr Bitboard file_bb (Square s) { return File_bb[_file (s)]; }
+    constexpr Bitboard file_bb (File f) { return FA_bb << f; }
+    constexpr Bitboard file_bb (Square s) { return file_bb (_file (s)); }
 
-    constexpr Bitboard rank_bb (Rank r) { return Rank_bb[r]; }
-    constexpr Bitboard rank_bb (Square s) { return Rank_bb[_rank (s)]; }
+    constexpr Bitboard rank_bb (Rank r) { return R1_bb << (8 * r); }
+    constexpr Bitboard rank_bb (Square s) { return rank_bb (_rank (s)); }
 
     constexpr Bitboard adj_file_bb (File f)
     {
-        return AdjFile_bb[f];
-        //return shift<DEL_E> (File_bb[f]) | shift<DEL_W> (File_bb[f]);
+        return shift<DEL_E> (file_bb (f))
+             | shift<DEL_W> (file_bb (f));
     }
-    constexpr Bitboard adj_rank_bb (Rank r) { return AdjRank_bb[r]; }
+    constexpr Bitboard adj_rank_bb (Rank r)
+    {
+        return shift<DEL_N> (rank_bb (r))
+             | shift<DEL_S> (rank_bb (r));
+    }
 
     constexpr Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[c][_rank (s)]; }
 
-    inline Bitboard front_line_bb (Color c, Square s) { assert(_ok (s)); return FrontLine_bb[c][s]; }
+    constexpr Bitboard front_line_bb (Color c, Square s) { return front_rank_bb (c, s) & file_bb (s); }
+    
+    constexpr Bitboard pawn_attack_span (Color c, Square s) { return front_rank_bb (c, s) & adj_file_bb (_file (s)); }
+    constexpr Bitboard pawn_pass_span   (Color c, Square s) { return front_line_bb (c, s) | pawn_attack_span (c, s); }
+
+    template<typename T>
+    inline i32 dist (T t1, T t2) { return t1 != t2 ? t1 < t2 ? t2 - t1 : t1 - t2 : 0; }
+    template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
+
+    template<typename T1, typename T2>
+    inline i32 dist (T2, T2) { return 0; }
+    template<> inline i32 dist<File> (Square s1, Square s2) { assert (_ok (s1) && _ok (s2)); return dist (_file (s1), _file (s2)); }
+    template<> inline i32 dist<Rank> (Square s1, Square s2) { assert (_ok (s1) && _ok (s2)); return dist (_rank (s1), _rank (s2)); }
+
+    inline Bitboard dist_rings_bb (Square s, u08 d) { assert(_ok (s)); return DistRings_bb[s][d]; }
 
     inline Bitboard between_bb (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return Between_bb[s1][s2]; }
     inline Bitboard strline_bb (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return StrLine_bb[s1][s2]; }
     /// Check the squares s1, s2 and s3 are aligned on a straight line.
     inline bool sqrs_aligned (Square s1, Square s2, Square s3) { assert(_ok (s1) && _ok (s2) && _ok (s3)); return contains (StrLine_bb[s1][s2], s3); }
 
-    inline Bitboard dist_rings_bb (Square s, u08 d) { assert(_ok (s)); return DistRings_bb[s][d]; }
-
-    inline Bitboard pawn_attack_span (Color c, Square s) { assert(_ok (s)); return PawnAttackSpan[c][s]; }
-    inline Bitboard pawn_pass_span (Color c, Square s) { assert(_ok (s)); return PawnPassSpan[c][s]; }
 
     constexpr bool more_than_one (Bitboard bb)
     {
@@ -287,7 +261,6 @@ namespace BitBoard {
         return (contains (Color_bb[WHITE], s1) && contains (Color_bb[BLACK], s2))
             || (contains (Color_bb[BLACK], s1) && contains (Color_bb[WHITE], s2));
     }
-
 
     constexpr Bitboard pawn_pushes_bb (Color c, Bitboard bb)
     {
@@ -308,13 +281,17 @@ namespace BitBoard {
                 shift<DEL_SW> (bb);
     }
 
-    constexpr Bitboard pawn_sgl_attacks_bb (Color c, Bitboard bb)
+    /// pawn_sgl_attacks_bb() returns the single attackes by pawns of the given color
+    template<Color C>
+    constexpr Bitboard pawn_sgl_attacks_bb (Bitboard bb)
     {
-        return pawn_l_attacks_bb (c, bb) | pawn_r_attacks_bb (c, bb);
+        return pawn_l_attacks_bb (C, bb) | pawn_r_attacks_bb (C, bb);
     }
-    constexpr Bitboard pawn_dbl_attacks_bb (Color c, Bitboard bb)
+    /// pawn_dbl_attacks_bb() returns the double attackes by pawns of the given color
+    template<Color C>
+    constexpr Bitboard pawn_dbl_attacks_bb (Bitboard bb)
     {
-        return pawn_l_attacks_bb (c, bb) & pawn_r_attacks_bb (c, bb);
+        return pawn_l_attacks_bb (C, bb) & pawn_r_attacks_bb (C, bb);
     }
 
     /// attacks_bb(s, occ) takes a square and a bitboard of occupied squares,

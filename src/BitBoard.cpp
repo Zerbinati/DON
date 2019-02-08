@@ -9,19 +9,13 @@ namespace BitBoard {
     using namespace std;
 
     u08      SquareDist[SQ_NO][SQ_NO];
-
-    Bitboard FrontLine_bb[CLR_NO][SQ_NO];
-
-    Bitboard Between_bb[SQ_NO][SQ_NO];
-    Bitboard StrLine_bb[SQ_NO][SQ_NO];
-
     Bitboard DistRings_bb[SQ_NO][8];
-
-    Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
-    Bitboard PawnPassSpan[CLR_NO][SQ_NO];
 
     Bitboard PawnAttacks[CLR_NO][SQ_NO];
     Bitboard PieceAttacks[NONE][SQ_NO];
+
+    Bitboard Between_bb[SQ_NO][SQ_NO];
+    Bitboard StrLine_bb[SQ_NO][SQ_NO];
 
     Magic BMagics[SQ_NO]
         , RMagics[SQ_NO];
@@ -271,16 +265,6 @@ namespace BitBoard {
                     SquareDist[s1][s2] = u08(std::max (dist<File> (s1, s2), dist<Rank> (s1, s2)));
                     DistRings_bb[s1][SquareDist[s1][s2]] |= s2;
                 }
-            }
-        }
-
-        for (const auto &c : { WHITE, BLACK })
-        {
-            for (const auto &s : SQ)
-            {
-                FrontLine_bb  [c][s] = front_rank_bb (c, s) & file_bb (_file (s));
-                PawnAttackSpan[c][s] = front_rank_bb (c, s) & adj_file_bb (_file (s));
-                PawnPassSpan  [c][s] = FrontLine_bb[c][s] | PawnAttackSpan[c][s];
             }
         }
 

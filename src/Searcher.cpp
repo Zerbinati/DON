@@ -510,8 +510,8 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            auto pv_hit = tt_hit
-                       && tte->pv_hit ();
+            auto tt_pv = tt_hit
+                      && tte->is_pv ();
 
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
@@ -586,7 +586,7 @@ namespace Searcher {
                                        ss->static_eval,
                                        DepthNone,
                                        BOUND_LOWER,
-                                       pv_hit);
+                                       tt_pv);
                         }
 
                         assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -613,7 +613,7 @@ namespace Searcher {
                 (ss-3)->pd_history,
                 (ss-4)->pd_history
             };
-            auto recap_sq = _ok((ss-1)->played_move) ?
+            auto recap_sq = _ok ((ss-1)->played_move) ?
                                 dst_sq ((ss-1)->played_move) :
                                 SQ_NO;
             // Initialize movepicker (2) for the current position
@@ -733,7 +733,7 @@ namespace Searcher {
                             && best_value > prev_alfa ?
                                 BOUND_EXACT :
                                 BOUND_UPPER,
-                       pv_hit);
+                       tt_pv);
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -861,10 +861,10 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            auto pv_hit = (  tt_hit
-                           && tte->pv_hit ())
-                       || (   PVNode
-                           && 4 < depth);
+            auto tt_pv = (  tt_hit
+                          && tte->is_pv ())
+                      || (   PVNode
+                          && 4 < depth);
 
             bool improving;
 
@@ -954,7 +954,7 @@ namespace Searcher {
                                        VALUE_NONE,
                                        i16(std::min (depth + 6, MaxDepth - 1)),
                                        bound,
-                                       pv_hit);
+                                       tt_pv);
 
                             return value;
                         }
@@ -1023,7 +1023,7 @@ namespace Searcher {
                                tt_eval,
                                DepthNone,
                                BOUND_NONE,
-                               pv_hit);
+                               tt_pv);
                 }
 
                 // Step 7. Razoring. (~2 ELO)
@@ -1373,7 +1373,7 @@ namespace Searcher {
                     i16 reduct_depth = reduction_depth (PVNode, improving, depth, move_count);
 
                     // Decrease reduction if position is or has been on the PV
-                    if (pv_hit)
+                    if (tt_pv)
                     {
                         reduct_depth -= 1;
                     }
@@ -1635,7 +1635,7 @@ namespace Searcher {
                                && MOVE_NONE != best_move ?
                                    BOUND_EXACT :
                                    BOUND_UPPER,
-                           pv_hit);
+                           tt_pv);
             }
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -2138,24 +2138,21 @@ void MainThread::search ()
             && !skill_mgr_enabled ())
         {
             std::map<Move, i64> votes;
-            i32 min_value = INT_MAX;
+
+            auto min_value = root_moves[0].new_value;
             // Find out minimum value and reset votes for moves which can be voted
             for (auto *th : Threadpool)
             {
-                votes[th->root_moves[0][0]] = 0;
-                if (min_value > th->root_moves[0].new_value)
-                {
-                    min_value = th->root_moves[0].new_value;
-                }
+                min_value = std::min (th->root_moves[0].new_value, min_value);
             }
             // Vote according to value and depth
-            auto square = [](i64 x) { return (u64)(x * x); };
             for (auto *th : Threadpool)
             {
-                votes[th->root_moves[0][0]] += 200 + square (th->root_moves[0].new_value - min_value + 1) * th->finished_depth;
+                i64 s = th->root_moves[0].new_value - min_value + 1;
+                votes[th->root_moves[0][0]] += 200 + s * s * th->finished_depth;
             }
             // Select best thread
-            i64 best_vote = 0;
+            auto best_vote = votes[root_moves[0][0]];
             for (auto *th : Threadpool)
             {
                 if (best_vote < votes[th->root_moves[0][0]])

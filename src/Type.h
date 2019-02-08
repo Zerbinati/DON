@@ -226,14 +226,14 @@ enum CastleRight : u08
 
 enum PieceType : i08
 {
-    PAWN , // 000
-    NIHT , // 001
-    BSHP , // 010
-    ROOK , // 011
-    QUEN , // 100
-    KING , // 101
-    NONE , // 110
-    PT_NO, // 111
+    PAWN , // 0
+    NIHT , // 1
+    BSHP , // 2
+    ROOK , // 3
+    QUEN , // 4
+    KING , // 5
+    NONE , // 6
+    PT_NO, // 7
 };
 /// Piece needs 4-bits to be stored
 /// bit 0-2: Type of piece

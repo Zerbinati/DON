@@ -92,12 +92,6 @@ namespace {
         }
     };
 
-    constexpr Score Outpost[2][2] =
-    {
-        { S(22, 6), S(36,12) },
-        { S( 9, 2), S(15, 5) }
-    };
-
     constexpr Score RookOnFile[2] =
     {
         S(18, 7), S(44,20)
@@ -122,6 +116,7 @@ namespace {
     };
 
     constexpr Score MinorBehindPawn =   S( 18,  3);
+    constexpr Score Outpost =           S(  9,  3);
     constexpr Score MinorKingProtect =  S(  7,  8);
     constexpr Score BishopOnDiagonal =  S( 45,  0);
     constexpr Score BishopPawns =       S(  3,  7);
@@ -221,20 +216,22 @@ namespace {
         std::fill_n (sgl_attacks[Own], 5, 0);
         std::fill_n (queen_attacks[Own], 3, 0);
 
+        auto fk_sq = pos.square<KING> (Own);
+
         Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
         if (0 != pinned_pawns)
         {
             Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
-            sgl_attacks[Own][PAWN] = pawn_sgl_attacks_bb (Own, loosed_pawns)
-                                   | (  pawn_sgl_attacks_bb (Own, pinned_pawns)
-                                      & PieceAttacks[BSHP][pos.square<KING> (Own)]);
+            sgl_attacks[Own][PAWN] = pawn_sgl_attacks_bb<Own> (loosed_pawns)
+                                   | (  pawn_sgl_attacks_bb<Own> (pinned_pawns)
+                                      & PieceAttacks[BSHP][fk_sq]);
         }
         else
         {
             sgl_attacks[Own][PAWN] = pe->any_attacks[Own];
         }
 
-        sgl_attacks[Own][KING] = PieceAttacks[KING][pos.square<KING> (Own)];
+        sgl_attacks[Own][KING] = PieceAttacks[KING][fk_sq];
 
         ful_attacks[Own] = sgl_attacks[Own][KING]
                          | pe->any_attacks[Own];
@@ -255,23 +252,24 @@ namespace {
                                 | pawn_pushes_bb (Own, pos.pieces ()))));
         mobility[Opp] = SCORE_ZERO;
 
-        king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
-        if (contains (Rank_bb[rel_rank (Opp, R_1)], pos.square<KING> (Opp)))
+        auto ek_sq = pos.square<KING> (Opp);
+        king_ring[Opp] = PieceAttacks[KING][ek_sq];
+        if (R_1 == rel_rank (Opp, ek_sq))
         {
             king_ring[Opp] |= pawn_pushes_bb (Opp, king_ring[Opp]);
         }
-        if (contains (FH_bb, pos.square<KING> (Opp)))
+        if (F_H == _file (ek_sq))
         {
             king_ring[Opp] |= shift<DEL_W> (king_ring[Opp]);
         }
         else
-        if (contains (FA_bb, pos.square<KING> (Opp)))
+        if (F_A == _file (ek_sq))
         {
             king_ring[Opp] |= shift<DEL_E> (king_ring[Opp]);
         }
 
         king_attackers_count[Own] = u08(pop_count (king_ring[Opp] & sgl_attacks[Own][PAWN]));
-        king_ring[Opp] &= ~pawn_dbl_attacks_bb (Opp, pos.pieces (Opp, PAWN));
+        king_ring[Opp] &= ~pawn_dbl_attacks_bb<Opp> (pos.pieces (Opp, PAWN));
         king_attackers_weight[Own] = 0;
         king_attacks_count[Own] = 0;
     }
@@ -325,7 +323,7 @@ namespace {
                 Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != bp ? pawn_sgl_attacks_bb (Own, bp) & PieceAttacks[BSHP][s] : 0));
+                                     | (0 != bp ? pawn_sgl_attacks_bb<Own> (bp) & PieceAttacks[BSHP][s] : 0));
             }
                 break;
             case QUEN:
@@ -336,7 +334,7 @@ namespace {
                 Bitboard qr = att & PieceAttacks[ROOK][s]  & pos.pieces (ROOK);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != qp ? pawn_sgl_attacks_bb (Own, qp) & PieceAttacks[BSHP][s] : 0)
+                                     | (0 != qp ? pawn_sgl_attacks_bb<Own> (qp) & PieceAttacks[BSHP][s] : 0)
                                      | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                      | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
             }
@@ -384,12 +382,14 @@ namespace {
                 // Bonus for knight outpost squares
                 if (contains (b, s))
                 {
-                    score += Outpost[PT - 1][contains (sgl_attacks[Own][PAWN], s) ? 1 : 0] * 2;
+                    score += Outpost * (4 / PT)
+                           * (1 + (contains (sgl_attacks[Own][PAWN], s) ? 1 : 0));
                 }
                 else
                 if (0 != (b &= attacks & ~pos.pieces (Own)))
                 {
-                    score += Outpost[PT - 1][0 != (sgl_attacks[Own][PAWN] & b) ? 1 : 0] * 1;
+                    score += Outpost * (2 / PT)
+                           * (1 + (0 != (sgl_attacks[Own][PAWN] & b) ? 1 : 0));
                 }
 
                 if (BSHP == PT)
@@ -465,7 +465,7 @@ namespace {
                 if (0 != (  pos.slider_blockers (s, Opp, pos.pieces (Opp, QUEN), b, b)
                           & ~(  (  pos.pieces (Opp, PAWN)
                                  & file_bb (s)
-                                 & ~pawn_sgl_attacks_bb (Own, pos.pieces (Own)))
+                                 & ~pawn_sgl_attacks_bb<Own> (pos.pieces (Own)))
                               | (  pos.si->king_blockers[Opp]
                                  & pos.pieces (Opp)))))
                 {
@@ -512,21 +512,20 @@ namespace {
 
         auto score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
 
-        Bitboard king_flank = KingFlank_bb[_file (fk_sq)];
         // Penalty for king on a pawn less flank
-        if (0 == (pos.pieces (PAWN) & king_flank))
+        if (0 == (pos.pieces (PAWN) & KingFlank_bb[_file (fk_sq)]))
         {
             score -= PawnLessFlank;
         }
 
         // Squares attacked by enemy in friend king flank
-        Bitboard b1 = king_flank
+        Bitboard b1 = KingFlank_bb[_file (fk_sq)]
                     & Camp_bb[Own]
                     & sgl_attacks[Opp][NONE];
         // Squares attacked by enemy twice in friend king flank.
         Bitboard b2 = b1
                     & dbl_attacks[Opp];
-
+        // Friend king flank attacks count
         i32 tropism = pop_count (b1)
                     + pop_count (b2);
 
@@ -753,7 +752,7 @@ namespace {
           &  pos.pieces (Own, PAWN);
         // Safe friend pawns attacks on nonpawn enemies
         b =  nonpawns_enemies
-          &  pawn_sgl_attacks_bb (Own, b)
+          &  pawn_sgl_attacks_bb<Own> (b)
           &  sgl_attacks[Own][PAWN];
         score += PawnThreat * pop_count (b);
 
@@ -769,7 +768,7 @@ namespace {
         b &= safe_area
           & ~sgl_attacks[Opp][PAWN];
         // Friend pawns push safe attacks an enemies
-        b =  pawn_sgl_attacks_bb (Own, b)
+        b =  pawn_sgl_attacks_bb<Own> (b)
           &  pos.pieces (Opp);
         score += PawnPushThreat * pop_count (b);
 

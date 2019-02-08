@@ -39,7 +39,7 @@ public:
     Value eval       () const { return Value(e16); }
     i16   depth      () const { return i16  (d08); }
     u08   generation () const { return u08  (g08 & 0xF8); }
-    bool  pv_hit     () const { return 0 != (g08 & 0x04); }
+    bool  is_pv      () const { return 0 != (g08 & 0x04); }
     Bound bound      () const { return Bound(g08 & 0x03); }
     bool  empty      () const { return d08 == DepthEmpty; }
     // Due to packed storage format for generation and its cyclic nature
@@ -49,7 +49,7 @@ public:
 
     void refresh () { g08 = u08(Generation + (g08 & 0x07)); }
 
-    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, bool pv_node)
+    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, bool pv)
     {
         // Preserve more valuable entries
         if (   MOVE_NONE != m
@@ -65,7 +65,7 @@ public:
             v16 = i16(v);
             e16 = i16(e);
             d08 = i08(d);
-            g08 = u08(Generation + (pv_node ? 4 : 0) + b);
+            g08 = u08(Generation | (u08(pv) << 2) | b);
         }
         assert(!empty ());
     }

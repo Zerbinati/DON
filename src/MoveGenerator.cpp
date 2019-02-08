@@ -54,39 +54,43 @@ namespace {
         while (0 != promotion)
         {
             auto dst = pop_lsq (promotion);
+            auto org = dst - del;
 
             switch (GT)
             {
             case GenType::NATURAL:
             case GenType::EVASION:
-                moves += mk_move_promote (dst - del, dst, QUEN);
+                moves += mk_move_promote (org, dst, QUEN);
                 /* no break */
             case GenType::QUIET:
-                moves += mk_move_promote (dst - del, dst, ROOK);
-                moves += mk_move_promote (dst - del, dst, BSHP);
-                moves += mk_move_promote (dst - del, dst, NIHT);
+                moves += mk_move_promote (org, dst, ROOK);
+                moves += mk_move_promote (org, dst, BSHP);
+                moves += mk_move_promote (org, dst, NIHT);
                 break;
             case GenType::CAPTURE:
-                moves += mk_move_promote (dst - del, dst, QUEN);
+                moves += mk_move_promote (org, dst, QUEN);
                 break;
             case GenType::CHECK:
-                if (contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
+                if (   contains (PieceAttacks[QUEN][dst], pos.square<KING> (~pos.active))
+                    && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ org), pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move_promote (dst - del, dst, QUEN);
+                    moves += mk_move_promote (org, dst, QUEN);
                 }
-                if (contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
+                if (   contains (PieceAttacks[ROOK][dst], pos.square<KING> (~pos.active))
+                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ org), pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move_promote (dst - del, dst, ROOK);
+                    moves += mk_move_promote (org, dst, ROOK);
                 }
-                if (contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (~pos.active)))
+                if (   contains (PieceAttacks[BSHP][dst], pos.square<KING> (~pos.active))
+                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ org), pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move_promote (dst - del, dst, BSHP);
+                    moves += mk_move_promote (org, dst, BSHP);
                 }
                 /* no break */
             case GenType::QUIET_CHECK:
                 if (contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active)))
                 {
-                    moves += mk_move_promote (dst - del, dst, NIHT);
+                    moves += mk_move_promote (org, dst, NIHT);
                 }
                 break;
             default: assert(false); break;
@@ -104,7 +108,7 @@ namespace {
         Bitboard Rank7 = rank_bb (rel_rank (pos.active, R_7));
         // Pawns not on 7th Rank
         Bitboard Rx_pawns = pawns & ~Rank7;
-        // Pawns on 7th Rank
+        // Pawns only on 7th Rank
         Bitboard R7_pawns = pawns &  Rank7;
         switch (GT)
         {

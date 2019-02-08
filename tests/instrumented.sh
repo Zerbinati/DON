@@ -45,7 +45,7 @@ cat << EOF > tsan.supp
  race:TEntry::eval
  race:TEntry::depth
  race:TEntry::generation
- race:TEntry::pv_hit
+ race:TEntry::is_pv
  race:TEntry::bound
  race:TEntry::empty
  race:TEntry::save
