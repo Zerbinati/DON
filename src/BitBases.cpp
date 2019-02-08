@@ -74,9 +74,10 @@ namespace BitBases {
                 Bitboard b = PieceAttacks[KING][k_sq[Own]];
                 while (0 != b)
                 {
+                    auto ksq = pop_lsq (b);
                     r |= WHITE == Own ?
-                            db[index (Opp, pop_lsq (b), k_sq[Opp], p_sq)].result :
-                            db[index (Opp, k_sq[Opp], pop_lsq (b), p_sq)].result;
+                            db[index (Opp, ksq, k_sq[Opp], p_sq)].result :
+                            db[index (Opp, k_sq[Opp], ksq, p_sq)].result;
                 }
 
                 if (WHITE == Own)

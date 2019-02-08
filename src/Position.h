@@ -63,22 +63,13 @@ public:
         return npm[c];
     }
 
-    CastleRight castle_right (Color c)
-    {
-        return castle_rights & ::castle_right (c);
-    }
-
     bool can_castle (CastleRight cr) const
     {
         return CR_NONE != (castle_rights & cr);
     }
-    bool can_castle (Color c) const
+    CastleRight castle_right (Color c) const
     {
-        return can_castle (::castle_right (c));
-    }
-    bool can_castle (Color c, CastleSide cs) const
-    {
-        return can_castle (::castle_right (c, cs));
+        return castle_rights & (WHITE == c ? CR_WHITE : CR_BLACK);
     }
 
     void set_check_info (const Position &pos);
@@ -123,7 +114,7 @@ public:
     Bitboard type_bb[PT_NO];
     std::list<Square> squares[CLR_NO][NONE];
 
-    CastleRight castle_mask[SQ_NO];
+    CastleRight castle_right[SQ_NO];
 
     Square   castle_rook_sq[CLR_NO][CS_NO];
     Bitboard castle_rook_path_bb[CLR_NO][CS_NO];
@@ -314,8 +305,6 @@ inline Key Position::posi_move_key (Move m) const
 {
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    assert(contains (pieces (active), org));
-
     auto key = si->posi_key;
     if (CASTLE == mtype (m))
     {
@@ -329,10 +318,11 @@ inline Key Position::posi_move_key (Move m) const
         {
             key ^= RandZob.piece_square[~active][cpt][ENPASSANT != mtype (m) ? dst : dst - pawn_push (active)];
         }
+        else
         if (   PAWN == ptype (piece[org])
             && dst == org + pawn_push (active) * 2)
         {
-            const auto ep_sq = org + (dst - org) / 2;
+            auto ep_sq = org + (dst - org) / 2;
             if (can_enpassant (~active, ep_sq, false))
             {
                 key ^= RandZob.enpassant[_file (ep_sq)];
@@ -343,18 +333,11 @@ inline Key Position::posi_move_key (Move m) const
     {
         key ^= RandZob.enpassant[_file (si->enpassant_sq)];
     }
-    auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
-    if (CR_NONE != b)
-    {
-        if (CR_NONE != (b & CR_WKING)) key ^= RandZob.castle_right[WHITE][CS_KING];
-        if (CR_NONE != (b & CR_WQUEN)) key ^= RandZob.castle_right[WHITE][CS_QUEN];
-        if (CR_NONE != (b & CR_BKING)) key ^= RandZob.castle_right[BLACK][CS_KING];
-        if (CR_NONE != (b & CR_BQUEN)) key ^= RandZob.castle_right[BLACK][CS_QUEN];
-    }
     return key
          ^ RandZob.color
          ^ RandZob.piece_square[active][PROMOTE != mtype (m) ? ptype (piece[org]) : promote (m)][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
-         ^ RandZob.piece_square[active][ptype (piece[org])][org];
+         ^ RandZob.piece_square[active][ptype (piece[org])][org]
+         ^ RandZob.castle_right[si->castle_rights & (castle_right[org] | castle_right[dst])];
 }
 
 inline bool Position::expeded_castle (Color c, CastleSide cs) const

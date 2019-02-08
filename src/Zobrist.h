@@ -13,7 +13,7 @@ public:
     //    768 +   4 + 8 + 1
     //                  781
     Key piece_square[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
-    Key castle_right[CLR_NO][CS_NO];        // [color][castle-side]
+    Key castle_right[CR_NO];                // [castle-right]
     Key enpassant   [F_NO];                 // [enpassant file]
     Key color;                              // color
 
@@ -30,6 +30,6 @@ public:
 extern void zobrist_initialize ();
 
 extern Zobrist RandZob;
-extern const Zobrist PolyZob;
+extern Zobrist const PolyZob;
 
 #endif // _ZOBRIST_H_INC_

@@ -302,7 +302,7 @@ namespace {
             case QUEN: attacks = attacks_bb<QUEN> (s, pos.pieces () ^ (pos.pieces (Own, QUEN)       & ~pos.si->king_blockers[Own])); break;
             default: assert(false); attacks = 0; break;
             }
-            
+
             ful_attacks[Own] |= attacks;
 
             if (QUEN == PT)
@@ -387,13 +387,9 @@ namespace {
                     score += Outpost[PT - 1][contains (sgl_attacks[Own][PAWN], s) ? 1 : 0] * 2;
                 }
                 else
+                if (0 != (b &= attacks & ~pos.pieces (Own)))
                 {
-                    b &= attacks
-                      & ~pos.pieces (Own);
-                    if (0 != b)
-                    {
-                        score += Outpost[PT - 1][0 != (sgl_attacks[Own][PAWN] & b) ? 1 : 0] * 1;
-                    }
+                    score += Outpost[PT - 1][0 != (sgl_attacks[Own][PAWN] & b) ? 1 : 0] * 1;
                 }
 
                 if (BSHP == PT)
@@ -439,10 +435,9 @@ namespace {
             case ROOK:
             {
                 // Bonus for rook aligning with enemy pawns on the same rank/file
-                if (   R_4 < rel_rank (Own, s)
-                    && 0 != (b = pos.pieces (Opp, PAWN) & PieceAttacks[ROOK][s]))
+                if (R_4 < rel_rank (Own, s))
                 {
-                    score += RookOnPawns * pop_count (b);
+                    score += RookOnPawns * pop_count (pos.pieces (Opp, PAWN) & PieceAttacks[ROOK][s]);
                 }
 
                 // Bonus for rook when on an open or semi-open file
@@ -458,7 +453,7 @@ namespace {
                     auto kf = _file (pos.square<KING> (Own));
                     if ((kf < F_E) == (_file (s) < kf))
                     {
-                        score -= RookTrapped * (pos.si->can_castle (Own) ? 1 : 2);
+                        score -= RookTrapped * (CR_NONE != pos.si->castle_right (Own) ? 1 : 2);
                     }
                 }
             }
@@ -502,19 +497,18 @@ namespace {
         // King Safety: friend pawns shelter and enemy pawns storm
         u08 index = pe->king_safety_on<Own> (pos, fk_sq);
         Value safety = pe->king_safety[Own][index];
-        if (   pos.si->can_castle (Own, CS_KING)
+        if (   pos.si->can_castle (Own|CS_KING)
             && pos.expeded_castle (Own, CS_KING)
             && 0 == (pos.castle_king_path_bb[Own][CS_KING] & ful_attacks[Opp]))
         {
             safety = std::max (pe->king_safety[Own][0], safety);
         }
-        if (   pos.si->can_castle (Own, CS_QUEN)
+        if (   pos.si->can_castle (Own|CS_QUEN)
             && pos.expeded_castle (Own, CS_QUEN)
             && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & ful_attacks[Opp]))
         {
             safety = std::max (pe->king_safety[Own][1], safety);
         }
-
 
         auto score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
 

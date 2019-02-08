@@ -261,10 +261,10 @@ enum Piece : u08
 
 enum MoveType : u16
 {
-    NORMAL    = 0x0000, // [00] 00
-    CASTLE    = 0x4000, // [01] 00
-    ENPASSANT = 0x8000, // [10] 00
-    PROMOTE   = 0xC000, // [11] xx
+    NORMAL    = 0 << 14, // [00] 00
+    CASTLE    = 1 << 14, // [01] 00
+    ENPASSANT = 2 << 14, // [10] 00
+    PROMOTE   = 3 << 14, // [11] xx
 };
 /// Move needs 16-bits to be stored
 ///
@@ -468,70 +468,28 @@ constexpr Square rel_sq (Color c, Square s) { return Square(s ^ (c*SQ_A8)); }
 constexpr Rank rel_rank (Color c, Rank r)   { return Rank(r ^ (c*R_8)); }
 constexpr Rank rel_rank (Color c, Square s) { return rel_rank (c, _rank (s)); }
 
-inline Delta pawn_push (Color c)
+constexpr Delta pawn_push (Color c)
 {
-    switch (c)
-    {
-    case WHITE: return DEL_N;
-    case BLACK: return DEL_S;
-    default: assert(false); return DEL_O;
-    }
+    return WHITE == c ? DEL_N : DEL_S;
 }
-inline Delta pawn_l_att (Color c)
+constexpr Delta pawn_l_att (Color c)
 {
-    switch (c)
-    {
-    case WHITE: return DEL_NW;
-    case BLACK: return DEL_SE;
-    default: assert(false); return DEL_O;
-    }
+    return WHITE == c ? DEL_NW : DEL_SE;
 }
-inline Delta pawn_r_att (Color c)
+constexpr Delta pawn_r_att (Color c)
 {
-    switch (c)
-    {
-    case WHITE: return DEL_NE;
-    case BLACK: return DEL_SW;
-    default: assert(false); return DEL_O;
-    }
+    return WHITE == c ? DEL_NE : DEL_SW;
 }
 
-inline CastleRight castle_right (Color c)
+constexpr CastleRight operator| (Color c, CastleSide cs)
 {
-    switch (c)
-    {
-    case WHITE: return CR_WHITE;
-    case BLACK: return CR_BLACK;
-    default: assert(false); return CR_NONE;
-    }
-}
-inline CastleRight castle_right (Color c, CastleSide cs)
-{
-    switch (c)
-    {
-    case WHITE:
-        switch (cs)
-        {
-        case CS_KING: return CR_WKING;
-        case CS_QUEN: return CR_WQUEN;
-        default: assert(false); return CR_NONE;
-        }
-    case BLACK:
-        switch (cs)
-        {
-        case CS_KING: return CR_BKING;
-        case CS_QUEN: return CR_BQUEN;
-        default: assert(false); return CR_NONE;
-        }
-    default: assert(false); return CR_NONE;
-    }
+    return CastleRight(CR_WKING << (2 * c + (cs == CS_KING ? 0 : 1)));
 }
 
 constexpr bool      _ok   (PieceType pt)
 {
     return PAWN <= pt && pt <= KING;
 }
-
 constexpr Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
 
 constexpr bool      _ok   (Piece p)
@@ -553,8 +511,8 @@ constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 {
     return CASTLE != mtype (m)
         || chess960 ?
-        dst_sq (m) :
-        (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m));
+            dst_sq (m) :
+            (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m));
 }
 
 constexpr Move mk_move_promote (Square org, Square dst, PieceType pt)

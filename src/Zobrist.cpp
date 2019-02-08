@@ -53,13 +53,7 @@ Key Zobrist::compute_posi_key (const Position &pos) const
     {
         posi_key ^= color;
     }
-    if (pos.si->can_castle (CR_ANY))
-    {
-        if (pos.si->can_castle (CR_WKING)) posi_key ^= castle_right[WHITE][CS_KING];
-        if (pos.si->can_castle (CR_WQUEN)) posi_key ^= castle_right[WHITE][CS_QUEN];
-        if (pos.si->can_castle (CR_BKING)) posi_key ^= castle_right[BLACK][CS_KING];
-        if (pos.si->can_castle (CR_BQUEN)) posi_key ^= castle_right[BLACK][CS_QUEN];
-    }
+    posi_key ^= castle_right[pos.si->castle_rights];
     if (SQ_NO != pos.si->enpassant_sq)
     {
         posi_key ^= enpassant[_file (pos.si->enpassant_sq)];
@@ -140,18 +134,18 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //        token = char(tolower (token));
 //        if ('k' == token)
 //        {
-//            fen_key ^= castle_right[c][CS_KING];
+//            fen_key ^= castle_right[c|CS_KING];
 //        }
 //        else
 //        if ('q' == token)
 //        {
-//            fen_key ^= castle_right[c][CS_QUEN];
+//            fen_key ^= castle_right[c|CS_QUEN];
 //        }
 //        else
 //        // Chess960
 //        if ('a' <= token && token <= 'h')
 //        {
-//            fen_key ^= castle_right[c][kf[c] < to_file (token) ? CS_KING : CS_QUEN];
+//            fen_key ^= castle_right[c|(kf[c] < to_file (token) ? CS_KING : CS_QUEN)];
 //        }
 //        else
 //        {
@@ -186,11 +180,14 @@ void zobrist_initialize ()
             }
         }
     }
-    for (const auto &c : { WHITE, BLACK })
+    for (i16 cr = CR_NONE; cr <= CR_ANY; ++cr)
     {
-        for (const auto &cs : { CS_KING, CS_QUEN })
+        RandZob.castle_right[cr] = 0;
+        Bitboard b = cr;
+        while (0 != b)
         {
-            RandZob.castle_right[c][cs] = prng.rand<Key> ();
+            auto k = RandZob.castle_right[1ULL << pop_lsq (b)];
+            RandZob.castle_right[cr] ^= 0 != k ? k : prng.rand<Key> ();
         }
     }
     for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
@@ -203,7 +200,7 @@ void zobrist_initialize ()
 // Random numbers from PRNG, used to compute position key
 Zobrist RandZob;
 // Constant numbers from Polyglot, used to compute polyglot book hash key
-const Zobrist PolyZob =
+Zobrist const PolyZob =
 {
     // PieceSquare
     {
@@ -444,14 +441,22 @@ const Zobrist PolyZob =
     },
     // CastleRights
     {
-        // White
-        {
-    U64(0x31D71DCE64B2C310), U64(0xF165B587DF898190)
-        },
-        // Black
-        {
-    U64(0xA57E6339DD2CF3A0), U64(0x1EF6E6DBB1961EC9)
-        }
+    U64(0x0000000000000000),
+    U64(0x31D71DCE64B2C310), // White King
+    U64(0xF165B587DF898190), // White Queen
+    U64(0xC0B2A849BB3B4280),
+    U64(0xA57E6339DD2CF3A0), // Black King
+    U64(0x94A97EF7B99E30B0),
+    U64(0x541BD6BE02A57230),
+    U64(0x65CCCB706617B120),
+    U64(0x1EF6E6DBB1961EC9), // Black Queen
+    U64(0x2F21FB15D524DDD9),
+    U64(0xEF93535C6E1F9F59),
+    U64(0xDE444E920AAD5C49),
+    U64(0xBB8885E26CBAED69),
+    U64(0x8A5F982C08082E79),
+    U64(0x4AED3065B3336CF9),
+    U64(0x7B3A2DABD781AFE9)
     },
     {
     // EnpasantFile

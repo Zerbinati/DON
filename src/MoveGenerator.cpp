@@ -242,8 +242,8 @@ namespace {
         {
             for (auto &cs : { CS_KING, CS_QUEN })
             {
-                if (   pos.expeded_castle (pos.active, cs)
-                    && pos.si->can_castle (pos.active, cs))
+                if (   pos.si->can_castle (pos.active|cs)
+                    && pos.expeded_castle (pos.active, cs))
                 {
                     moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][cs]);
                 }
@@ -296,19 +296,18 @@ template void generate<GenType::QUIET  > (ValMoves&, const Position&);
 /// Generates all pseudo-legal check evasions moves when the side to move is in check.
 template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position &pos)
 {
-    assert(0 != pos.si->checkers);
+    assert(0 != pos.si->checkers
+        && 0 == (pos.si->checkers & ~pos.pieces (~pos.active)));
     moves.clear ();
     auto check_sq = SQ_NO;
     Bitboard check_attacks = 0;
-
     Bitboard mocc = pos.pieces () ^ pos.square<KING> (pos.active);
-    Bitboard checkers = pos.si->checkers & ~pos.pieces (PAWN);
+    Bitboard ex_checkers = pos.si->checkers & ~pos.pieces (PAWN);
     // Squares attacked by checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
-    while (0 != checkers)
+    while (0 != ex_checkers)
     {
-        check_sq = pop_lsq (checkers);
-        assert(color (pos[check_sq]) == ~pos.active);
+        check_sq = pop_lsq (ex_checkers);
         switch (ptype (pos[check_sq]))
         {
         case NIHT: check_attacks |= PieceAttacks[NIHT][check_sq]; break;
