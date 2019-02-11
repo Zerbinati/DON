@@ -49,7 +49,7 @@ public:
 
     void refresh () { g08 = u08(Generation + (g08 & 0x07)); }
 
-    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, bool pv)
+    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, u08 pv)
     {
         // Preserve more valuable entries
         if (   MOVE_NONE != m
@@ -57,15 +57,15 @@ public:
         {
             m16 = u16(m);
         }
-        if (   d08 - 4 < d
-            || BOUND_EXACT == b
-            || k16 != (k >> 0x30))
+        if (   k16 != (k >> 0x30)
+            || d08 - 4 < d
+            || BOUND_EXACT == b)
         {
             k16 = u16(k >> 0x30);
             v16 = i16(v);
             e16 = i16(e);
             d08 = i08(d);
-            g08 = u08(Generation | (u08(pv) << 2) | b);
+            g08 = u08(Generation | pv | b);
         }
         assert(!empty ());
     }

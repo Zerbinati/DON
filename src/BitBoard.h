@@ -24,6 +24,8 @@ namespace BitBoard {
     //    return U64(0x00000000000000FF) << (r * 8) | make_bitboard (ranks...);
     //}
 
+    constexpr Bitboard Full = U64(0xFFFFFFFFFFFFFFFF);
+
     constexpr Bitboard FA_bb = U64(0x0101010101010101);
     constexpr Bitboard FB_bb = FA_bb << 1;
     constexpr Bitboard FC_bb = FA_bb << 2;
@@ -50,7 +52,11 @@ namespace BitBoard {
         U64(0x55AA55AA55AA55AA),
         U64(0xAA55AA55AA55AA55)
     };
-
+    constexpr Bitboard ExRank1[CLR_NO] =
+    {
+        Full ^ R1_bb,
+        Full ^ R8_bb
+    };
     constexpr Bitboard Side_bb[3] =
     {
         FE_bb|FF_bb|FG_bb|FH_bb,
@@ -89,7 +95,7 @@ namespace BitBoard {
         R7_bb|R6_bb|R5_bb
     };
 
-#   define S_02(n)  u64(1)<<(2*(n)),  u64(1)<<(2*(n)+1)
+#   define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
 #   define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
 #   define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
 #   define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
@@ -101,30 +107,6 @@ namespace BitBoard {
 #   undef S_08
 #   undef S_04
 #   undef S_02
-
-    constexpr Bitboard FrontRank_bb[CLR_NO][R_NO] =
-    {
-        {
-            R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
-            R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
-            R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
-            R5_bb|R6_bb|R7_bb|R8_bb,
-            R6_bb|R7_bb|R8_bb,
-            R7_bb|R8_bb,
-            R8_bb,
-            0
-        },
-        {
-            0,
-            R1_bb,
-            R2_bb|R1_bb,
-            R3_bb|R2_bb|R1_bb,
-            R4_bb|R3_bb|R2_bb|R1_bb,
-            R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
-            R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
-            R7_bb|R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb
-        }
-    };
 
     extern u08      SquareDist[SQ_NO][SQ_NO];
     extern Bitboard DistRings_bb[SQ_NO][8];
@@ -198,8 +180,8 @@ namespace BitBoard {
     constexpr Bitboard operator| (Bitboard  bb, Square s) { return bb | Square_bb[s]; }
     constexpr Bitboard operator^ (Bitboard  bb, Square s) { return bb ^ Square_bb[s]; }
 
-    inline Bitboard& operator|= (Bitboard &bb, Square s) { assert(_ok (s)); return bb |= Square_bb[s]; }
-    inline Bitboard& operator^= (Bitboard &bb, Square s) { assert(_ok (s)); return bb ^= Square_bb[s]; }
+    inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
+    inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= Square_bb[s]; }
 
     constexpr Bitboard square_bb (Square s) { return Square_bb[s]; }
 
@@ -208,6 +190,14 @@ namespace BitBoard {
 
     constexpr Bitboard rank_bb (Rank r) { return R1_bb << (8 * r); }
     constexpr Bitboard rank_bb (Square s) { return rank_bb (_rank (s)); }
+
+    constexpr Bitboard front_rank_bb (Color c, Rank r)
+    {
+        return WHITE == c ?
+                ExRank1[WHITE] << (8 *  r) :
+                ExRank1[BLACK] >> (8 * ~r);
+    }
+    constexpr Bitboard front_rank_bb (Color c, Square s) { return front_rank_bb (c, _rank (s)); }
 
     constexpr Bitboard adj_file_bb (File f)
     {
@@ -220,8 +210,6 @@ namespace BitBoard {
              | shift<DEL_S> (rank_bb (r));
     }
 
-    constexpr Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[c][_rank (s)]; }
-
     constexpr Bitboard front_line_bb (Color c, Square s) { return front_rank_bb (c, s) & file_bb (s); }
     
     constexpr Bitboard pawn_attack_span (Color c, Square s) { return front_rank_bb (c, s) & adj_file_bb (_file (s)); }
@@ -233,15 +221,15 @@ namespace BitBoard {
 
     template<typename T1, typename T2>
     inline i32 dist (T2, T2) { return 0; }
-    template<> inline i32 dist<File> (Square s1, Square s2) { assert (_ok (s1) && _ok (s2)); return dist (_file (s1), _file (s2)); }
-    template<> inline i32 dist<Rank> (Square s1, Square s2) { assert (_ok (s1) && _ok (s2)); return dist (_rank (s1), _rank (s2)); }
+    template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
+    template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
-    inline Bitboard dist_rings_bb (Square s, u08 d) { assert(_ok (s)); return DistRings_bb[s][d]; }
+    inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
 
-    inline Bitboard between_bb (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return Between_bb[s1][s2]; }
-    inline Bitboard strline_bb (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return StrLine_bb[s1][s2]; }
+    inline Bitboard between_bb (Square s1, Square s2) { return Between_bb[s1][s2]; }
+    inline Bitboard strline_bb (Square s1, Square s2) { return StrLine_bb[s1][s2]; }
     /// Check the squares s1, s2 and s3 are aligned on a straight line.
-    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { assert(_ok (s1) && _ok (s2) && _ok (s3)); return contains (StrLine_bb[s1][s2], s3); }
+    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[s1][s2], s3); }
 
 
     constexpr bool more_than_one (Bitboard bb)
@@ -282,16 +270,14 @@ namespace BitBoard {
     }
 
     /// pawn_sgl_attacks_bb() returns the single attackes by pawns of the given color
-    template<Color C>
-    constexpr Bitboard pawn_sgl_attacks_bb (Bitboard bb)
+    constexpr Bitboard pawn_sgl_attacks_bb (Color c, Bitboard bb)
     {
-        return pawn_l_attacks_bb (C, bb) | pawn_r_attacks_bb (C, bb);
+        return pawn_l_attacks_bb (c, bb) | pawn_r_attacks_bb (c, bb);
     }
     /// pawn_dbl_attacks_bb() returns the double attackes by pawns of the given color
-    template<Color C>
-    constexpr Bitboard pawn_dbl_attacks_bb (Bitboard bb)
+    constexpr Bitboard pawn_dbl_attacks_bb (Color c, Bitboard bb)
     {
-        return pawn_l_attacks_bb (C, bb) & pawn_r_attacks_bb (C, bb);
+        return pawn_l_attacks_bb (c, bb) & pawn_r_attacks_bb (c, bb);
     }
 
     /// attacks_bb(s, occ) takes a square and a bitboard of occupied squares,

@@ -47,6 +47,7 @@ namespace Pawns {
         Score evaluate (const Position &pos, Entry *e)
         {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+            constexpr auto Push = pawn_push (Own);
 
             Bitboard own_pawns = pos.pieces (Own, PAWN);
             Bitboard opp_pawns = pos.pieces (Opp, PAWN);
@@ -58,8 +59,10 @@ namespace Pawns {
             e->dbl_attacks[Own] = latt & ratt;
             e->attack_span[Own] = 0;
             e->passers[Own] = 0;
-            e->weak_unopposed[Own] = 0;
+            
             e->semiopens[Own] = u08(0xFF);
+            std::fill_n (e->color_count[Own], CLR_NO, 0);
+            e->weak_unopposed_count[Own] = 0;
 
             e->index[Own] = 0;
             std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
@@ -76,26 +79,27 @@ namespace Pawns {
             {
                 assert(pos[s] == (Own|PAWN));
 
+                e->color_count[Own][color (s)]++;
                 auto f = _file (s);
-                e->semiopens[Own] &= ~(u08(1) << f);
+                e->semiopens[Own] &= ~(1 << f);
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 Bitboard neighbours = own_pawns & adj_file_bb (f);
-                Bitboard supporters = neighbours & rank_bb (s-pawn_push (Own));
+                Bitboard supporters = neighbours & rank_bb (s-Push);
                 Bitboard phalanxes  = neighbours & rank_bb (s);
                 Bitboard stoppers   = opp_pawns & pawn_pass_span (Own, s);
                 Bitboard levers     = opp_pawns & PawnAttacks[Own][s];
-                Bitboard escapes    = opp_pawns & PawnAttacks[Own][s+pawn_push (Own)];
+                Bitboard escapes    = opp_pawns & PawnAttacks[Own][s+Push];
 
-                bool blocked = contains (own_pawns, s-pawn_push (Own));
+                bool blocked = contains (own_pawns, s-Push);
                 bool opposed = 0 != (opp_pawns & front_line_bb (Own, s));
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
-                bool backward = 0 == (own_pawns & pawn_attack_span (Opp, s+pawn_push (Own)))
-                             && 0 != (stoppers & (escapes | (s+pawn_push (Own))));
+                bool backward = 0 == (own_pawns & pawn_attack_span (Opp, s+Push))
+                             && 0 != (stoppers & (escapes | (s+Push)));
 
                 assert(!backward
-                    || 0 == (pawn_attack_span (Opp, s+pawn_push (Own)) & neighbours));
+                    || 0 == (pawn_attack_span (Opp, s+Push) & neighbours));
 
                 // Include also not passed pawns which could become passed
                 // after one or two pawn pushes when are not attacked more times than defended.
@@ -107,7 +111,7 @@ namespace Pawns {
                     e->passers[Own] |= s;
                 }
                 else
-                if (   stoppers == square_bb (s+pawn_push (Own))
+                if (   stoppers == square_bb (s+Push)
                     && R_4 < rel_rank (Own, s))
                 {
                     b = pawn_pushes_bb (Own, supporters) & ~opp_pawns;
@@ -121,8 +125,7 @@ namespace Pawns {
                     }
                 }
 
-                if (   0 != supporters
-                    || 0 != phalanxes)
+                if (0 != (supporters | phalanxes))
                 {
                     score += Connected[opposed ? 1 : 0]
                                       [0 != phalanxes ? 1 : 0]
@@ -130,13 +133,21 @@ namespace Pawns {
                                       [rel_rank (Own, s)];
                 }
                 else
-                if (   backward
-                    || 0 == neighbours)
+                if (0 == neighbours)
                 {
-                    score -= 0 == neighbours ? Isolated : Backward;
+                    score -= Isolated;
                     if (!opposed)
                     {
-                        e->weak_unopposed[Own] |= s;
+                        e->weak_unopposed_count[Own]++;
+                    }
+                }
+                else
+                if (backward)
+                {
+                    score -= Backward;
+                    if (!opposed)
+                    {
+                        e->weak_unopposed_count[Own]++;
                     }
                 }
 
@@ -162,9 +173,9 @@ namespace Pawns {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr Bitboard BlockSquares = (WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb) & (FA_bb | FH_bb);
 
-        Bitboard front_ranks = ~front_rank_bb (Opp, fk_sq);
-        Bitboard own_front_pawns = pos.pieces (Own, PAWN) & front_ranks;
-        Bitboard opp_front_pawns = pos.pieces (Opp, PAWN) & front_ranks;
+        Bitboard front_pawns = pos.pieces (PAWN) & ~front_rank_bb (Opp, fk_sq);
+        Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
+        Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         auto value = contains (pawn_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq) ?
                         Value(374) :

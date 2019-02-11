@@ -420,10 +420,10 @@ bool Position::pseudo_legal (Move m) const
         return contains (pieces (active, KING), org_sq (m))
             //&& contains (pieces (active, ROOK), dst_sq (m))
             && castle_rook_sq[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN] == dst_sq (m)
+            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
             //&& R_1 == rel_rank (active, org_sq (m))
             //&& R_1 == rel_rank (active, dst_sq (m))
             && si->can_castle (active|(dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN))
-            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
             && 0 == si->checkers;
     }
     // The captured square cannot be occupied by a friendly piece
@@ -567,10 +567,10 @@ bool Position::legal (Move m) const
         assert(contains (pieces (active, KING), org_sq (m))
             //&& contains (pieces (active, ROOK), dst_sq (m))
             && castle_rook_sq[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN] == dst_sq (m)
+            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
             //&& R_1 == rel_rank (active, org_sq (m))
             //&& R_1 == rel_rank (active, dst_sq (m))
             && si->can_castle (active|(dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN))
-            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
             && 0 == si->checkers);
         // Castle is always encoded as "King captures friendly Rook".
         Bitboard b = castle_king_path_bb[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN];
@@ -634,10 +634,10 @@ bool Position::gives_check (Move m) const
         assert(contains (pieces (active, KING), org_sq (m))
             //&& contains (pieces (active, ROOK), dst_sq (m))
             && castle_rook_sq[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN] == dst_sq (m)
+            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
             //&& R_1 == rel_rank (active, org_sq (m))
             //&& R_1 == rel_rank (active, dst_sq (m))
             && si->can_castle (active|(dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN))
-            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
             && 0 == si->checkers);
         // Castling with check?
         auto king_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_G1 : SQ_C1);
@@ -1047,10 +1047,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             && contains (pieces (active, KING), org)
             //&& contains (pieces (active, ROOK), dst)
             && castle_rook_sq[active][dst > org ? CS_KING : CS_QUEN] == dst
+            && expeded_castle (active, dst > org ? CS_KING : CS_QUEN)
             //&& R_1 == rel_rank (active, org)
             //&& R_1 == rel_rank (active, dst)
             && si->can_castle (active|(dst > org ? CS_KING : CS_QUEN))
-            && expeded_castle (active, dst > org ? CS_KING : CS_QUEN)
             //&& 0 == si->checkers // Not set rightly so can't be used
             && 0 == attackers_to (org, pasive));
 

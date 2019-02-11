@@ -586,7 +586,7 @@ namespace Searcher {
                                        ss->static_eval,
                                        DepthNone,
                                        BOUND_LOWER,
-                                       tt_pv);
+                                       tt_pv ? 4 : 0);
                         }
 
                         assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -733,7 +733,7 @@ namespace Searcher {
                             && best_value > prev_alfa ?
                                 BOUND_EXACT :
                                 BOUND_UPPER,
-                       tt_pv);
+                       tt_pv ? 4 : 0);
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -954,7 +954,7 @@ namespace Searcher {
                                        VALUE_NONE,
                                        i16(std::min (depth + 6, MaxDepth - 1)),
                                        bound,
-                                       tt_pv);
+                                       tt_pv ? 4 : 0);
 
                             return value;
                         }
@@ -1023,7 +1023,7 @@ namespace Searcher {
                                tt_eval,
                                DepthNone,
                                BOUND_NONE,
-                               tt_pv);
+                               tt_pv ? 4 : 0);
                 }
 
                 // Step 7. Razoring. (~2 ELO)
@@ -1635,7 +1635,7 @@ namespace Searcher {
                                && MOVE_NONE != best_move ?
                                    BOUND_EXACT :
                                    BOUND_UPPER,
-                           tt_pv);
+                           tt_pv ? 4 : 0);
             }
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);

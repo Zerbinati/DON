@@ -186,7 +186,7 @@ void zobrist_initialize ()
         Bitboard b = cr;
         while (0 != b)
         {
-            auto k = RandZob.castle_right[1ULL << pop_lsq (b)];
+            auto k = RandZob.castle_right[1U << pop_lsq (b)];
             RandZob.castle_right[cr] ^= 0 != k ? k : prng.rand<Key> ();
         }
     }

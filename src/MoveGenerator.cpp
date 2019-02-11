@@ -244,12 +244,15 @@ namespace {
         if (   GenType::NATURAL == GT
             || GenType::QUIET == GT)
         {
-            for (auto &cs : { CS_KING, CS_QUEN })
+            if (CR_NONE != pos.si->castle_right (pos.active))
             {
-                if (   pos.si->can_castle (pos.active|cs)
-                    && pos.expeded_castle (pos.active, cs))
+                for (auto &cs : { CS_KING, CS_QUEN })
                 {
-                    moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][cs]);
+                    if (   pos.expeded_castle (pos.active, cs)
+                        && pos.si->can_castle (pos.active | cs))
+                    {
+                        moves += mk_move<CASTLE> (pos.square<KING> (pos.active), pos.castle_rook_sq[pos.active][cs]);
+                    }
                 }
             }
         }

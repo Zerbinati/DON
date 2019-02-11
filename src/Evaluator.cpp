@@ -222,8 +222,8 @@ namespace {
         if (0 != pinned_pawns)
         {
             Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
-            sgl_attacks[Own][PAWN] = pawn_sgl_attacks_bb<Own> (loosed_pawns)
-                                   | (  pawn_sgl_attacks_bb<Own> (pinned_pawns)
+            sgl_attacks[Own][PAWN] = pawn_sgl_attacks_bb (Own, loosed_pawns)
+                                   | (  pawn_sgl_attacks_bb (Own, pinned_pawns)
                                       & PieceAttacks[BSHP][fk_sq]);
         }
         else
@@ -269,7 +269,7 @@ namespace {
         }
 
         king_attackers_count[Own] = u08(pop_count (king_ring[Opp] & sgl_attacks[Own][PAWN]));
-        king_ring[Opp] &= ~pawn_dbl_attacks_bb<Opp> (pos.pieces (Opp, PAWN));
+        king_ring[Opp] &= ~pawn_dbl_attacks_bb (Opp, pos.pieces (Opp, PAWN));
         king_attackers_weight[Own] = 0;
         king_attacks_count[Own] = 0;
     }
@@ -323,7 +323,7 @@ namespace {
                 Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != bp ? pawn_sgl_attacks_bb<Own> (bp) & PieceAttacks[BSHP][s] : 0));
+                                     | (0 != bp ? pawn_sgl_attacks_bb (Own, bp) & PieceAttacks[BSHP][s] : 0));
             }
                 break;
             case QUEN:
@@ -334,7 +334,7 @@ namespace {
                 Bitboard qr = att & PieceAttacks[ROOK][s]  & pos.pieces (ROOK);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != qp ? pawn_sgl_attacks_bb<Own> (qp) & PieceAttacks[BSHP][s] : 0)
+                                     | (0 != qp ? pawn_sgl_attacks_bb (Own, qp) & PieceAttacks[BSHP][s] : 0)
                                      | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                      | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
             }
@@ -382,14 +382,12 @@ namespace {
                 // Bonus for knight outpost squares
                 if (contains (b, s))
                 {
-                    score += Outpost * (4 / PT)
-                           * (1 + (contains (sgl_attacks[Own][PAWN], s) ? 1 : 0));
+                    score += Outpost * (4 * (1 + (contains (sgl_attacks[Own][PAWN], s) ? 1 : 0)) / PT);
                 }
                 else
                 if (0 != (b &= attacks & ~pos.pieces (Own)))
                 {
-                    score += Outpost * (2 / PT)
-                           * (1 + (0 != (sgl_attacks[Own][PAWN] & b) ? 1 : 0));
+                    score += Outpost * (2 * (1 + (0 != (sgl_attacks[Own][PAWN] & b) ? 1 : 0)) / PT);
                 }
 
                 if (BSHP == PT)
@@ -401,7 +399,7 @@ namespace {
                       & pawn_pushes_bb (Opp, pos.pieces ());
                     score -= BishopPawns
                            * (1 + pop_count (b))
-                           * pop_count (pos.pieces (Own, PAWN) & Color_bb[color (s)]);
+                           * pe->color_count[Own][color (s)];
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     if (   contains (Diagonals_bb, s)
@@ -465,7 +463,7 @@ namespace {
                 if (0 != (  pos.slider_blockers (s, Opp, pos.pieces (Opp, QUEN), b, b)
                           & ~(  (  pos.pieces (Opp, PAWN)
                                  & file_bb (s)
-                                 & ~pawn_sgl_attacks_bb<Own> (pos.pieces (Own)))
+                                 & ~pawn_sgl_attacks_bb (Own, pos.pieces (Own)))
                               | (  pos.si->king_blockers[Opp]
                                  & pos.pieces (Opp)))))
                 {
@@ -740,7 +738,7 @@ namespace {
         // Bonus for opponent unopposed weak pawns
         if (0 != pos.pieces (Own, ROOK, QUEN))
         {
-            score += PawnWeakUnopposed * pop_count (pe->weak_unopposed[Opp]);
+            score += PawnWeakUnopposed * pe->weak_unopposed_count[Opp];
         }
 
         Bitboard safe_area;
@@ -752,7 +750,7 @@ namespace {
           &  pos.pieces (Own, PAWN);
         // Safe friend pawns attacks on nonpawn enemies
         b =  nonpawns_enemies
-          &  pawn_sgl_attacks_bb<Own> (b)
+          &  pawn_sgl_attacks_bb (Own, b)
           &  sgl_attacks[Own][PAWN];
         score += PawnThreat * pop_count (b);
 
@@ -768,7 +766,7 @@ namespace {
         b &= safe_area
           & ~sgl_attacks[Opp][PAWN];
         // Friend pawns push safe attacks an enemies
-        b =  pawn_sgl_attacks_bb<Own> (b)
+        b =  pawn_sgl_attacks_bb (Own, b)
           &  pos.pieces (Opp);
         score += PawnPushThreat * pop_count (b);
 

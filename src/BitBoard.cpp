@@ -236,9 +236,6 @@ namespace BitBoard {
 
     void initialize ()
     {
-        assert((Color_bb[WHITE] & Color_bb[BLACK]) == 0
-            && (Color_bb[WHITE] | Color_bb[BLACK]) == (Color_bb[WHITE] ^ Color_bb[BLACK]));
-
         //for (const auto &s : SQ)
         //{
         //    //Square_bb[s] = U64(1) << s;
