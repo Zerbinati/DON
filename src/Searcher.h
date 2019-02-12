@@ -173,7 +173,7 @@ private:
     void value ();
 
     template<PickType, class Pred>
-    bool pick_move (Pred);
+    bool pick (Pred);
 
 public:
     bool pick_quiets;

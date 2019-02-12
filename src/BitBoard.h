@@ -52,11 +52,6 @@ namespace BitBoard {
         U64(0x55AA55AA55AA55AA),
         U64(0xAA55AA55AA55AA55)
     };
-    constexpr Bitboard ExRank1[CLR_NO] =
-    {
-        Full ^ R1_bb,
-        Full ^ R8_bb
-    };
     constexpr Bitboard Side_bb[3] =
     {
         FE_bb|FF_bb|FG_bb|FH_bb,
@@ -159,16 +154,16 @@ namespace BitBoard {
     template<Delta DEL>
     constexpr Bitboard shift (Bitboard bb) { return 0; }
 
-    template<> constexpr Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) << 8; }
-    template<> constexpr Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >> 8; }
+    template<> constexpr Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) <<  8; }
+    template<> constexpr Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >>  8; }
     template<> constexpr Bitboard shift<DEL_NN> (Bitboard bb) { return (bb         ) << 16; }
     template<> constexpr Bitboard shift<DEL_SS> (Bitboard bb) { return (bb         ) >> 16; }
-    template<> constexpr Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << 1; }
-    template<> constexpr Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> 1; }
-    template<> constexpr Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << 9; }
-    template<> constexpr Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> 7; }
-    template<> constexpr Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << 7; }
-    template<> constexpr Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 9; }
+    template<> constexpr Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) <<  1; }
+    template<> constexpr Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >>  1; }
+    template<> constexpr Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) <<  9; }
+    template<> constexpr Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >>  7; }
+    template<> constexpr Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) <<  7; }
+    template<> constexpr Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >>  9; }
 
     //// Rotate Right (toward LSB)
     //constexpr Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQ_NO - k)); }
@@ -194,8 +189,8 @@ namespace BitBoard {
     constexpr Bitboard front_rank_bb (Color c, Rank r)
     {
         return WHITE == c ?
-                ExRank1[WHITE] << (8 *  r) :
-                ExRank1[BLACK] >> (8 * ~r);
+                Full << (8 * ( r + 1)) :
+                Full >> (8 * (~r + 1));
     }
     constexpr Bitboard front_rank_bb (Color c, Square s) { return front_rank_bb (c, _rank (s)); }
 
@@ -211,16 +206,14 @@ namespace BitBoard {
     }
 
     constexpr Bitboard front_line_bb (Color c, Square s) { return front_rank_bb (c, s) & file_bb (s); }
-    
+
     constexpr Bitboard pawn_attack_span (Color c, Square s) { return front_rank_bb (c, s) & adj_file_bb (_file (s)); }
     constexpr Bitboard pawn_pass_span   (Color c, Square s) { return front_line_bb (c, s) | pawn_attack_span (c, s); }
 
-    template<typename T>
-    inline i32 dist (T t1, T t2) { return t1 != t2 ? t1 < t2 ? t2 - t1 : t1 - t2 : 0; }
+    template<typename T> inline i32 dist (T t1, T t2) { return t1 != t2 ? t1 < t2 ? t2 - t1 : t1 - t2 : 0; }
     template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
 
-    template<typename T1, typename T2>
-    inline i32 dist (T2, T2) { return 0; }
+    template<typename T1, typename T2> inline i32 dist (T2, T2);
     template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
     template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
@@ -230,7 +223,6 @@ namespace BitBoard {
     inline Bitboard strline_bb (Square s1, Square s2) { return StrLine_bb[s1][s2]; }
     /// Check the squares s1, s2 and s3 are aligned on a straight line.
     inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[s1][s2], s3); }
-
 
     constexpr bool more_than_one (Bitboard bb)
     {

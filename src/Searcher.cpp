@@ -201,9 +201,9 @@ void MovePicker::value ()
     }
 }
 
-/// MovePicker::pick_move() returns the next move satisfying a predicate function
+/// MovePicker::pick() returns the next move satisfying a predicate function
 template<MovePicker::PickType PT, class Pred>
-bool MovePicker::pick_move (Pred filter)
+bool MovePicker::pick (Pred filter)
 {
     while (i < moves.size ())
     {
@@ -253,16 +253,17 @@ Move MovePicker::next_move ()
         goto restage;
 
     case Stage::NT_GOOD_CAPTURES:
-        if (pick_move<BEST> ([&]() { return pos.see_ge (vm, Value(-vm.value * 55 / 1024)) ?
-                                                true :
-                                                // Put losing capture to bad_capture_moves to be tried later
-                                                (bad_capture_moves.push_back (vm), false); }))
+        if (pick<BEST> ([&]() { return pos.see_ge (vm, Value(-vm.value * 55 / 1024)) ?
+                                        true :
+                                        // Put losing capture to bad_capture_moves to be tried later
+                                        (bad_capture_moves.push_back (vm), false); }))
         {
             return vm;
         }
         // If the countermove is the same as a killers, skip it
-        if (   refutation_moves[0] == refutation_moves[2]
-            || refutation_moves[1] == refutation_moves[2])
+        if (   MOVE_NONE != refutation_moves[2]
+            && (   refutation_moves[0] == refutation_moves[2]
+                || refutation_moves[1] == refutation_moves[2]))
         {
             refutation_moves.erase (refutation_moves.begin () + 2);
         }
@@ -291,7 +292,7 @@ Move MovePicker::next_move ()
         /* fall through */
     case Stage::NT_QUIETS:
         if (   pick_quiets
-            && pick_move<BEST> ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), vm.move) == refutation_moves.end (); }))
+            && pick<BEST> ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), vm.move) == refutation_moves.end (); }))
         {
             return vm;
         }
@@ -311,18 +312,18 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::EV_MOVES:
-        return pick_move<BEST> ([]() { return true; }) ?
+        return pick<BEST> ([]() { return true; }) ?
                 vm :
                 MOVE_NONE;
         /* end */
     case Stage::PC_CAPTURES:
-        return pick_move<BEST> ([&]() { return pos.see_ge (vm, threshold); }) ?
+        return pick<BEST> ([&]() { return pos.see_ge (vm, threshold); }) ?
                 vm :
                 MOVE_NONE;
         /* end */
     case Stage::QS_CAPTURES:
-        if (pick_move<BEST> ([&]() { return DepthQSRecapture < depth
-                                         || dst_sq (vm) == recap_sq; }))
+        if (pick<BEST> ([&]() { return DepthQSRecapture < depth
+                                    || dst_sq (vm) == recap_sq; }))
         {
             return vm;
         }
@@ -337,7 +338,7 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::QS_CHECKS:
-        return pick_move<NEXT> ([]() { return true; }) ?
+        return pick<NEXT> ([]() { return true; }) ?
                 vm :
                 MOVE_NONE;
         /* end */

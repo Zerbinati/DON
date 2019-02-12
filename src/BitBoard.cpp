@@ -36,9 +36,9 @@ namespace BitBoard {
             { },
             { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
             { DEL_SW, DEL_SE, DEL_NW, DEL_NE },
-            { DEL_S, DEL_W, DEL_E, DEL_N },
-            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
-            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
+            { DEL_S , DEL_W , DEL_E , DEL_N  },
+            { DEL_SW, DEL_S , DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
+            { DEL_SW, DEL_S , DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
         };
 
 //        // De Bruijn sequences.
@@ -77,17 +77,15 @@ namespace BitBoard {
 #   endif
 
         // Max Bishop Table Size
-        // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
-        // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32 = 4 * 0x200 + 4 * 0x40 + 12 * 0x80 + 32 * 0x20
-        //    2048 +     256 +     1536 +     1408 =     0x800 +    0x100 +     0x600 +     0x580
-        //                                    5248 =                                       0x1480
+        // 4 * 2^6 + 12 * 2^7 + 44 * 2^5 + 4 * 2^9
+        // 4 *  64 + 12 * 128 + 44 *  32 + 4 * 512
+        //     256 +     1536 +     1408 +    2048 = 5248
         Bitboard BAttacks[0x1480];
 
         // Max Rook Table Size
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
-        // 4 * 4096 + 24 * 2048 + 36 * 1024 = 4 * 0x1000 + 24 * 0x800 + 36 * 0x400
-        //    16384 +     49152 +     36864 =     0x4000 +     0xC000 +     0x9000
-        //                           102400 =                              0x19000
+        // 4 * 4096 + 24 * 2048 + 36 * 1024
+        //    16384 +     49152 +     36864 = 102400
         Bitboard RAttacks[0x19000];
 
         /// Initialize all bishop and rook attacks at startup.
