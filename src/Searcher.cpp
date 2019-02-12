@@ -384,6 +384,8 @@ namespace Searcher {
             return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][std::min (d, i16(63))][std::min (mc, u08(63))];
         }
 
+        TimePoint DebugTime;
+
         i32 BasicContempt = 0;
 
         ofstream OutputStream;
@@ -420,7 +422,7 @@ namespace Searcher {
                 ss->killer_moves[1] = ss->killer_moves[0];
                 ss->killer_moves[0] = move;
             }
-            assert(1 == std::count (ss->killer_moves, ss->killer_moves + MaxKillers, move));
+            assert(1 == std::count (ss->killer_moves, ss->killer_moves + 2, move));
 
             if (_ok ((ss-1)->played_move))
             {
@@ -431,9 +433,8 @@ namespace Searcher {
         /// update_pv() appends the move and child pv
         void update_pv (vector<Move> &pv, Move move, const vector<Move> &child_pv)
         {
-            pv.clear ();
-            pv.emplace_back (move);
-            pv.insert (pv.end (), child_pv.begin (), child_pv.end ());
+            pv.assign (child_pv.begin (), child_pv.end ());
+            pv.insert (pv.begin (), move);
         }
 
         /// It adjusts a mate score from "plies to mate from the root" to
@@ -833,7 +834,7 @@ namespace Searcher {
             ss->pd_history = &thread->continuation_history[NO_PIECE][0];
 
             assert(MOVE_NONE == (ss+1)->excluded_move);
-            std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
+            std::fill_n ((ss+2)->killer_moves, 2, MOVE_NONE);
 
             // Initialize stats to zero for the grandchildren of the current position.
             // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
@@ -1707,7 +1708,7 @@ void Thread::search ()
         ss->ply = i16(ss - (stacks+5));
         ss->played_move = MOVE_NONE;
         ss->excluded_move = MOVE_NONE;
-        std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
+        std::fill_n (ss->killer_moves, 2, MOVE_NONE);
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
         ss->stats = 0;
@@ -1967,6 +1968,9 @@ void MainThread::search ()
 {
     assert(Threadpool.main_thread () == this
         && 0 == index);
+
+    DebugTime = 0;
+    StartTime = now ();
 
     auto output_fn = string(Options["Output File"]);
     if (!white_spaces (output_fn))

@@ -92,7 +92,6 @@ public:
 
 // Global Logger
 extern Logger Log;
-extern TimePoint DebugTime;
 
 // Debug functions used mainly to collect run-time statistics
 extern void debug_init ();

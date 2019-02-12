@@ -10,8 +10,6 @@
 #include "Position.h"
 #include "Type.h"
 
-const u08 MaxKillers = 2;
-
 /// Limit stores information sent by GUI about available time to search the current move.
 ///  - Maximum time and increment
 ///  - Maximum depth
@@ -196,7 +194,7 @@ public:
     i16   ply;
     Move  played_move;
     Move  excluded_move;
-    Move  killer_moves[MaxKillers];
+    Move  killer_moves[2];
     u08   move_count;
     Value static_eval;
     i32   stats;

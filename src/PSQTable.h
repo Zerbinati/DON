@@ -5,7 +5,7 @@
 
 class Position;
 
-extern Score PSQ[CLR_NO][NONE][SQ_NO];
+extern Score PSQ[MAX_PIECE][SQ_NO];
 
 extern Score compute_psq (const Position&);
 

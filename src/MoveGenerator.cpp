@@ -28,7 +28,7 @@ namespace {
         case GenType::EVASION:
         case GenType::CAPTURE:
         case GenType::QUIET:
-            for (const auto &s : pos.squares[pos.active][PT])
+            for (const auto &s : pos.squares[pos.active|PT])
             {
                 if (   GenType::CHECK == GT
                     || GenType::QUIET_CHECK == GT)

@@ -75,7 +75,7 @@ namespace Pawns {
             auto score = SCORE_ZERO;
 
             Bitboard b;
-            for (const auto &s : pos.squares[Own][PAWN])
+            for (const auto &s : pos.squares[Own|PAWN])
             {
                 assert(pos[s] == (Own|PAWN));
 

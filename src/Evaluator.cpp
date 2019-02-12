@@ -287,7 +287,7 @@ namespace {
 
         auto score = SCORE_ZERO;
 
-        for (const auto &s : pos.squares[Own][PT])
+        for (const auto &s : pos.squares[Own|PT])
         {
             assert(pos[s] == (Own|PT));
             Bitboard attacks;
@@ -846,7 +846,7 @@ namespace {
                         ,  unsafe_front_line = front_line;
                     // If there is a rook or queen attacking/defending the pawn from behind, consider front squares.
                     // Otherwise consider only the squares in the pawn's path attacked or occupied by the enemy.
-                    Bitboard behind_major = front_line_bb (Opp, s) & pos.pieces (ROOK, QUEN);
+                    Bitboard behind_major = pos.pieces (ROOK, QUEN) & front_line_bb (Opp, s);
                     if (0 != behind_major)
                     {
                         behind_major &= attacks_bb<ROOK> (s, pos.pieces ());

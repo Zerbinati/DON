@@ -467,15 +467,13 @@ namespace TBSyzygy {
             piece_count = pos.count ();
             has_pawns = 0 != pos.count (PAWN);
             has_unique_pieces = false;
-            for (const auto &c : { WHITE, BLACK })
+            for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN,
+                                    B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, })
             {    
-                for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
+                if (1 == pos.count (pc))
                 {
-                    if (1 == pos.count (c, pt))
-                    {
-                        has_unique_pieces = true;
-                        goto break_unique_pieces;
-                    }
+                    has_unique_pieces = true;
+                    goto break_unique_pieces;
                 }
             }
             break_unique_pieces:
@@ -827,7 +825,7 @@ namespace TBSyzygy {
 
                 assert(PAWN == ptype (pc));
 
-                lead_pawns = pos.pieces (color (pc), PAWN);
+                lead_pawns = pos.pieces (pc);
 
                 b = lead_pawns;
                 do

@@ -3,7 +3,6 @@
 #include "Thread.h"
 
 Logger Log;
-TimePoint DebugTime;
 
 using namespace std;
 

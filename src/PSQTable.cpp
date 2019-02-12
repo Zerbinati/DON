@@ -79,7 +79,7 @@ namespace {
 #   undef S
 }
 
-Score PSQ[CLR_NO][NONE][SQ_NO];
+Score PSQ[MAX_PIECE][SQ_NO];
 
 /// Computes the scores for the middle game and the endgame.
 /// These functions are used to initialize the scores when a new position is set up,
@@ -87,14 +87,12 @@ Score PSQ[CLR_NO][NONE][SQ_NO];
 Score compute_psq (const Position &pos)
 {
     auto psq = SCORE_ZERO;
-    for (const auto &c : { WHITE, BLACK })
+    for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
     {
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &s : pos.squares[pc])
         {
-            for (const auto &s : pos.squares[c][pt])
-            {
-                psq += PSQ[c][pt][s];
-            }
+            psq += PSQ[pc][s];
         }
     }
     return psq;
@@ -112,8 +110,8 @@ void psq_initialize ()
                            + (PAWN == pt ?
                                 PawnFullSQ[_rank (s)][_file (s)] :
                                 PieceHalfSQ[pt][_rank (s)][std::min (_file (s), ~_file (s))]);
-            PSQ[WHITE][pt][ s] = +psq;
-            PSQ[BLACK][pt][~s] = -psq;
+            PSQ[WHITE|pt][ s] = +psq;
+            PSQ[BLACK|pt][~s] = -psq;
         }
     }
 }

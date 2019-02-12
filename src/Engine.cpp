@@ -190,8 +190,6 @@ namespace {
         Threadpool.stop = true;
         Threadpool.main_thread ()->wait_while_busy ();
 
-        DebugTime = 0;
-        StartTime = now ();
         Limit limit;
         vector<Move> search_moves; // Restrict search to these root moves only
         bool ponder = false;

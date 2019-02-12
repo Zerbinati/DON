@@ -112,7 +112,7 @@ public:
     Piece    piece[SQ_NO];
     Bitboard color_bb[CLR_NO];
     Bitboard type_bb[PT_NO];
-    std::list<Square> squares[CLR_NO][NONE];
+    std::list<Square> squares[MAX_PIECE];
 
     CastleRight castle_right[SQ_NO];
 
@@ -135,10 +135,11 @@ public:
     Position (const Position&) = delete;
     Position& operator= (const Position&) = delete;
 
-    Piece operator[] (Square s) const;
-    bool empty (Square s)  const;
+    Piece operator[] (Square) const;
+    bool empty (Square)  const;
 
     Bitboard pieces () const;
+    Bitboard pieces (Piece) const;
     Bitboard pieces (Color) const;
     Bitboard pieces (PieceType) const;
     template<typename ...PieceTypes>
@@ -147,11 +148,12 @@ public:
     Bitboard pieces (Color, PieceTypes...) const;
 
     i32 count () const;
+    i32 count (Piece) const;
     i32 count (Color) const;
     i32 count (PieceType) const;
     i32 count (Color, PieceType) const;
 
-    i32 diff (PieceType) const;
+    //i32 diff (PieceType) const;
 
     template<PieceType>
     Square square (Color, u08 = 0) const;
@@ -228,6 +230,10 @@ inline Bitboard Position::pieces () const
 {
     return type_bb[NONE];
 }
+inline Bitboard Position::pieces (Piece pc) const
+{
+    return color_bb[color (pc)] & type_bb[ptype (pc)];
+}
 inline Bitboard Position::pieces (Color c) const
 {
     return color_bb[c];
@@ -251,48 +257,52 @@ inline Bitboard Position::pieces (Color c, PieceTypes... pts) const
 /// Position::count() counts all
 inline i32 Position::count () const
 {
-    return i32(squares[WHITE][PAWN].size () + squares[BLACK][PAWN].size ()
-             + squares[WHITE][NIHT].size () + squares[BLACK][NIHT].size ()
-             + squares[WHITE][BSHP].size () + squares[BLACK][BSHP].size ()
-             + squares[WHITE][ROOK].size () + squares[BLACK][ROOK].size ()
-             + squares[WHITE][QUEN].size () + squares[BLACK][QUEN].size ()
-             + squares[WHITE][KING].size () + squares[BLACK][KING].size ());
+    return i32(squares[W_PAWN].size () + squares[B_PAWN].size ()
+             + squares[W_NIHT].size () + squares[B_NIHT].size ()
+             + squares[W_BSHP].size () + squares[B_BSHP].size ()
+             + squares[W_ROOK].size () + squares[B_ROOK].size ()
+             + squares[W_QUEN].size () + squares[B_QUEN].size ()
+             + squares[W_KING].size () + squares[B_KING].size ());
+}
+inline i32 Position::count (Piece pc) const
+{
+    return i32(squares[pc].size ());
 }
 /// Position::count() counts specific color
 inline i32 Position::count (Color c) const
 {
-    return i32(squares[c][PAWN].size ()
-             + squares[c][NIHT].size ()
-             + squares[c][BSHP].size ()
-             + squares[c][ROOK].size ()
-             + squares[c][QUEN].size ()
-             + squares[c][KING].size ());
+    return i32(squares[c|PAWN].size ()
+             + squares[c|NIHT].size ()
+             + squares[c|BSHP].size ()
+             + squares[c|ROOK].size ()
+             + squares[c|QUEN].size ()
+             + squares[c|KING].size ());
 }
 /// Position::count() counts specific type
 inline i32 Position::count (PieceType pt) const
 {
     assert(_ok (pt));
-    return i32(squares[WHITE][pt].size () + squares[BLACK][pt].size ());
+    return i32(squares[WHITE|pt].size () + squares[BLACK|pt].size ());
 }
 /// Position::count() counts specific color and type
 inline i32 Position::count (Color c, PieceType pt) const
 {
     assert(_ok (pt));
-    return i32(squares[c][pt].size ());
+    return i32(squares[c|pt].size ());
 }
 
-inline i32 Position::diff (PieceType pt) const
-{
-    return count (WHITE, pt)
-         - count (BLACK, pt);
-}
+//inline i32 Position::diff (PieceType pt) const
+//{
+//    return count (WHITE, pt)
+//         - count (BLACK, pt);
+//}
 
 template<PieceType PT>
 inline Square Position::square (Color c, u08 index) const
 {
     static_assert (_ok (PT), "PT incorrect");
-    assert(squares[c][PT].size () > index);
-    return *std::next (squares[c][PT].begin (), index);
+    assert(squares[c|PT].size () > index);
+    return *std::next (squares[c|PT].begin (), index);
 }
 
 inline Key Position::pg_key () const
@@ -447,8 +457,8 @@ inline void Position::place_piece_on (Square s, Piece pc)
     color_bb[color (pc)] |= s;
     type_bb[ptype (pc)] |= s;
     type_bb[NONE] |= s;
-    squares[color (pc)][ptype (pc)].emplace_back (s);
-    psq += PSQ[color (pc)][ptype (pc)][s];
+    squares[pc].emplace_back (s);
+    psq += PSQ[pc][s];
     piece[s] = pc;
 }
 inline void Position::remove_piece_on (Square s)
@@ -458,24 +468,24 @@ inline void Position::remove_piece_on (Square s)
     color_bb[color (pc)] ^= s;
     type_bb[ptype (pc)] ^= s;
     type_bb[NONE] ^= s;
-    squares[color (pc)][ptype (pc)].remove (s);
-    psq -= PSQ[color (pc)][ptype (pc)][s];
+    squares[pc].remove (s);
+    psq -= PSQ[pc][s];
     //piece[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
 inline void Position::move_piece_on_to (Square s1, Square s2)
 {
     Piece pc = piece[s1];
     assert(!empty (s1)
-        && std::count (squares[color (pc)][ptype (pc)].begin (),
-                       squares[color (pc)][ptype (pc)].end (), s1) == 1);
+        && std::count (squares[pc].begin (),
+                       squares[pc].end (), s1) == 1);
     Bitboard bb = square_bb (s1) ^ square_bb (s2);
     color_bb[color (pc)] ^= bb;
     type_bb[ptype (pc)] ^= bb;
     type_bb[NONE] ^= bb;
-    std::replace (squares[color (pc)][ptype (pc)].begin (),
-                  squares[color (pc)][ptype (pc)].end (), s1, s2);
-    psq += PSQ[color (pc)][ptype (pc)][s2]
-         - PSQ[color (pc)][ptype (pc)][s1];
+    std::replace (squares[pc].begin (),
+                  squares[pc].end (), s1, s2);
+    psq += PSQ[pc][s2]
+         - PSQ[pc][s1];
     piece[s2] = pc;
     piece[s1] = NO_PIECE;
 }

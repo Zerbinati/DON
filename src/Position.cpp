@@ -703,7 +703,7 @@ void Position::clear ()
         color_bb[c] = 0;
         for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            squares[c][pt].clear ();
+            squares[c|pt].clear ();
         }
         for (auto &cs : { CS_KING, CS_QUEN })
         {
@@ -1605,26 +1605,25 @@ bool Position::ok () const
     }
 
     // SQUARE_LIST
-    for (const auto &c : { WHITE, BLACK })
+    for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
     {
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        if (count (pc) != pop_count (pieces (pc)))
         {
-            if (count (c, pt) != pop_count (pieces (c, pt)))
+            assert(false && "Position OK: SQUARELIST");
+            return false;
+        }
+        for (auto s : squares[pc])
+        {
+            if (   !_ok (s)
+                || piece[s] != pc)
             {
                 assert(false && "Position OK: SQUARELIST");
                 return false;
             }
-            for (auto s : squares[c][pt])
-            {
-                if (   !_ok (s)
-                    || piece[s] != (c|pt))
-                {
-                    assert(false && "Position OK: SQUARELIST");
-                    return false;
-                }
-            }
         }
     }
+
     // CASTLING
     for (const auto &c : { WHITE, BLACK })
     {
