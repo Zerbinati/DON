@@ -175,7 +175,7 @@ void SkillManager::pick_best_move (i16 level)
             if (best_value <= value)
             {
                 best_value = value;
-                best_move = rm[0];
+                best_move = rm.front ();
             }
         }
     }

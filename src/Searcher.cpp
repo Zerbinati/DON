@@ -383,11 +383,11 @@ namespace Searcher {
             return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][std::min (d, i16(63))][std::min (mc, u08(63))];
         }
 
-        TimePoint DebugTime;
-
         i32 BasicContempt = 0;
 
-        ofstream OutputStream;
+        TimePoint DebugTime;
+        bool      Output = false;
+        ofstream  OutputStream;
 
         /// stat_bonus() is the bonus, based on depth
         i32 stat_bonus (i16 depth)
@@ -430,10 +430,10 @@ namespace Searcher {
         }
 
         /// update_pv() appends the move and child pv
-        void update_pv (vector<Move> &pv, Move move, const vector<Move> &child_pv)
+        void update_pv (list<Move> &pv, Move move, const list<Move> &child_pv)
         {
-            pv.assign (child_pv.begin (), child_pv.end ());
-            pv.insert (pv.begin (), move);
+            pv.assign ({ move });
+            pv.insert (pv.end (), child_pv.begin (), child_pv.end ());
         }
 
         /// It adjusts a mate score from "plies to mate from the root" to
@@ -849,7 +849,7 @@ namespace Searcher {
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = root_node ?
-                            thread->root_moves[thread->pv_cur][0] :
+                            thread->root_moves[thread->pv_cur].front () :
                                tt_hit
                             && MOVE_NONE != (move = tte->move ())
                             && pos.pseudo_legal (move)
@@ -1891,7 +1891,6 @@ void Thread::search ()
         // Has any of the threads found a "mate in <x>"?
         if (   0 != Limits.mate
             && !Limits.time_mgr_used ()
-            && !Threadpool.stop
             && best_value >= +VALUE_MATE - 2 * Limits.mate)
         {
             Threadpool.stop = true;
@@ -1911,9 +1910,9 @@ void Thread::search ()
                 && !Threadpool.stop
                 && !main_thread->stop_on_ponderhit)
             {
-                if (main_thread->best_move != root_moves[0][0])
+                if (main_thread->best_move != root_moves[0].front())
                 {
-                    main_thread->best_move = root_moves[0][0];
+                    main_thread->best_move = root_moves[0].front ();
                     main_thread->best_move_depth = running_depth;
                 }
 
@@ -1953,7 +1952,7 @@ void Thread::search ()
                 main_thread->last_time_reduction = time_reduction;
             }
 
-            if (OutputStream.is_open ())
+            if (Output)
             {
                 OutputStream << pretty_pv_info (main_thread) << std::endl;
             }
@@ -1992,6 +1991,8 @@ void MainThread::search ()
                          << std::noboolalpha << std::endl;
         }
     }
+
+    Output = OutputStream.is_open ();
 
     if (Limits.time_mgr_used ())
     {
@@ -2138,7 +2139,7 @@ void MainThread::search ()
         // Check if there is better thread than main thread.
         if (   1 == Threadpool.pv_limit
             && DepthZero == Limits.depth // Depth limit search don't use deeper thread
-            && MOVE_NONE != root_moves[0][0]
+            && MOVE_NONE != root_moves[0].front ()
             && !skill_mgr_enabled ())
         {
             std::map<Move, i64> votes;
@@ -2153,15 +2154,15 @@ void MainThread::search ()
             for (auto *th : Threadpool)
             {
                 i64 s = th->root_moves[0].new_value - min_value + 1;
-                votes[th->root_moves[0][0]] += 200 + s * s * th->finished_depth;
+                votes[th->root_moves[0].front ()] += 200 + s * s * th->finished_depth;
             }
             // Select best thread
-            auto best_vote = votes[root_moves[0][0]];
+            auto best_vote = votes[root_moves[0].front ()];
             for (auto *th : Threadpool)
             {
-                if (best_vote < votes[th->root_moves[0][0]])
+                if (best_vote < votes[th->root_moves[0].front ()])
                 {
-                    best_vote = votes[th->root_moves[0][0]];
+                    best_vote = votes[th->root_moves[0].front ()];
                     best_thread = th;
                 }
             }
@@ -2185,17 +2186,17 @@ void MainThread::search ()
         last_value = rm.new_value;
     }
 
-    auto bm = rm[0];
+    auto bm = rm.front ();
     auto pm = MOVE_NONE != bm ?
                 1 < rm.size () ?
-                    rm[1] :
+                    *std::next (rm.begin(), 1) :
                     TT.extract_pm (root_pos, bm) :
                 MOVE_NONE;
     assert(MOVE_NONE != bm
         || (MOVE_NONE == bm
          && MOVE_NONE == pm));
 
-    if (OutputStream.is_open ())
+    if (Output)
     {
         auto total_nodes = Threadpool.nodes ();
         auto elapsed_time = std::max (time_mgr.elapsed_time (), TimePoint(1));
@@ -2216,7 +2217,7 @@ void MainThread::search ()
         {
             OutputStream << "(none)";
         }
-        OutputStream << std::endl;
+        OutputStream << "\n" << std::endl;
         OutputStream.close ();
     }
 

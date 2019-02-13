@@ -2,7 +2,7 @@
 #define _SEARCHER_H_INC_
 
 #include <array>
-#include <vector>
+#include <list>
 #include <limits>
 #include <type_traits>
 
@@ -200,7 +200,7 @@ public:
     i32   stats;
     PieceDestinyHistory *pd_history;
 
-    std::vector<Move> pv;
+    std::list<Move> pv;
 };
 
 /// The root of the tree is a PV node.
@@ -219,7 +219,7 @@ public:
 ///  - PV (really a refutation table in the case of moves which fail low)
 /// Value is normally set at -VALUE_INFINITE for all non-pv moves.
 class RootMove
-    : public std::vector<Move>
+    : public std::list<Move>
 {
 public:
     Value old_value
@@ -230,7 +230,7 @@ public:
     Value tb_value;
 
     explicit RootMove (Move m = MOVE_NONE)
-        : std::vector<Move> (1, m)
+        : std::list<Move> (1, m)
         , old_value (-VALUE_INFINITE)
         , new_value (-VALUE_INFINITE)
         , sel_depth (0)

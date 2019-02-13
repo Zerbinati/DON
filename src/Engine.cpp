@@ -111,7 +111,7 @@ namespace {
         //if (token != "name") return;
         string name;
         // Read option-name (can contain spaces)
-        while (   iss >> token
+        while (   (iss >> token)
                && token != "value") // Consume "value" token if any
         {
             name += (white_spaces (name) ? "" : " ") + token;

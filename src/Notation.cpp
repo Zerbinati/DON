@@ -322,7 +322,6 @@ string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
 /// Returns formated human-readable search information.
 string pretty_pv_info (Thread *const &th)
 {
-    constexpr double K = 1000.0;
     u64 nodes = Threadpool.nodes ();
 
     ostringstream oss;
@@ -330,38 +329,38 @@ string pretty_pv_info (Thread *const &th)
         << std::setw ( 8) << pretty_value (th->root_moves[0].new_value)
         << std::setw (12) << pretty_time (Threadpool.main_thread ()->time_mgr.elapsed_time ());
 
-    if (nodes < 10*(K))
+    if (nodes < 10ULL*1000)
     {
         oss << std::setw (8) << u16(nodes);
     }
     else
-    if (nodes < 10*(K*K))
+    if (nodes < 10ULL*1000*1000)
     {
-        oss << std::setw (7) << u16(std::round (nodes / (K))) << "K";
+        oss << std::setw (7) << u16(std::round (nodes / 1000.0)) << "K";
     }
     else
-    if (nodes < 10*(K*K*K))
+    if (nodes < 10ULL*1000*1000*1000)
     {
-        oss << std::setw (7) << u16(std::round (nodes / (K*K))) << "M";
+        oss << std::setw (7) << u16(std::round (nodes / 1000.0*1000.0)) << "M";
     }
     else
     {
-        oss << std::setw (7) << u16(std::round (nodes / (K*K*K))) << "G";
+        oss << std::setw (7) << u16(std::round (nodes / 1000.0*1000.0*1000.0)) << "G";
     }
     oss << " ";
 
+    vector<Move> moves;
     StateListPtr states (new deque<StateInfo> (0));
-    for (size_t i = 0; i < th->root_moves[0].size (); ++i)
+    for (const auto &m : th->root_moves[0])
     {
-        oss << //move_to_can (th->root_moves[0][i])
-               move_to_san (th->root_moves[0][i], th->root_pos)
-            << " ";
+        oss << move_to_san (m, th->root_pos) << " ";
+        moves.emplace_back (m);
         states->emplace_back ();
-        th->root_pos.do_move (th->root_moves[0][i], states->back ());
+        th->root_pos.do_move (m, states->back ());
     }
-    for (size_t i = th->root_moves[0].size (); i > 0; --i)
+    for (size_t i = moves.size (); i > 0; --i)
     {
-        th->root_pos.undo_move (th->root_moves[0][i-1]);
+        th->root_pos.undo_move (moves[i-1]);
         states->pop_back ();
     }
 

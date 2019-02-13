@@ -1631,7 +1631,7 @@ namespace TBSyzygy {
         // Probe and rank each move
         for (auto &rm : root_moves)
         {
-            const auto move = rm[0];
+            auto move = rm.front ();
             root_pos.do_move (move, si);
 
             WDLScore wdl = -probe_wdl (root_pos, state);
@@ -1675,7 +1675,7 @@ namespace TBSyzygy {
         // Probe and rank each move
         for (auto &rm : root_moves)
         {
-            const auto move = rm[0];
+            auto move = rm.front ();
             root_pos.do_move (move, si);
 
             // Calculate dtz for the current move counting from the root position

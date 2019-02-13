@@ -689,39 +689,30 @@ bool Position::gives_check (Move m) const
 /// Position::clear() clear the position.
 void Position::clear ()
 {
-    for (const auto &s : SQ)
+    std::fill_n (piece, SQ_NO, NO_PIECE);
+    std::fill_n (color_bb, CLR_NO, 0);
+    std::fill_n (type_bb, PT_NO, 0);
+    std::fill_n (castle_right, SQ_NO, CR_NONE);
+    std::fill (castle_rook_sq[0], castle_rook_sq[0] + CLR_NO*CS_NO, SQ_NO);
+    std::fill (castle_rook_path_bb[0], castle_rook_path_bb[0] + CLR_NO*CS_NO, 0);
+    std::fill (castle_king_path_bb[0], castle_king_path_bb[0] + CLR_NO*CS_NO, 0);
+    for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
     {
-        piece[s] = NO_PIECE;
-        castle_right[s] = CR_NONE;
-    }
-    for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING, NONE })
-    {
-        type_bb[pt] = 0;
-    }
-    for (const auto &c : { WHITE, BLACK })
-    {
-        color_bb[c] = 0;
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
-        {
-            squares[c|pt].clear ();
-        }
-        for (auto &cs : { CS_KING, CS_QUEN })
-        {
-            castle_rook_sq[c][cs] = SQ_NO;
-            castle_rook_path_bb[c][cs] = 0;
-            castle_king_path_bb[c][cs] = 0;
-        }
+        squares[pc].clear ();
     }
     psq = SCORE_ZERO;
 }
 /// Position::set_castle() set the castling right.
 void Position::set_castle (Color c, Square rook_org)
 {
+    assert(SQ_NO != rook_org
+        && contains (pieces (c, ROOK), rook_org)
+        && R_1 == rel_rank (c, rook_org));
+
     auto king_org = square<KING> (c);
     assert(R_1 == rel_rank (c, king_org));
     auto cs = rook_org > king_org ? CS_KING : CS_QUEN;
-    assert(contains (pieces (c, ROOK), rook_org)
-        && R_1 == rel_rank (c, rook_org));
     castle_rook_sq[c][cs] = rook_org;
 
     auto king_dst = rel_sq (c, rook_org > king_org ? SQ_G1 : SQ_C1);
@@ -857,8 +848,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             assert(false);
         }
     }
-    assert(1 == count (WHITE, KING) && SQ_NO != square<KING> (WHITE)
-        && 1 == count (BLACK, KING) && SQ_NO != square<KING> (BLACK));
+    assert(1 == count (WHITE, KING)
+        && 1 == count (BLACK, KING));
 
     // 2. Active color
     iss >> token;
@@ -878,9 +869,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         Color c = isupper (token) ? WHITE : BLACK;
         assert(R_1 == rel_rank (c, square<KING> (c)));
 
-        token = char(tolower (token));
-
         auto rook_org = SQ_NO;
+        token = char(tolower (token));
         switch (token)
         {
         case 'k':
@@ -978,17 +968,17 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
 /// It is mainly an helper to get the material key out of an endgame code.
 Position& Position::setup (const string &code, Color c, StateInfo &nsi)
 {
-    assert(0 < code.length () && code.length () <= 8);
-    assert(code[0] == 'K');
-    assert(code.find ('K', 1) != string::npos);
+    assert(0 < code.length () && code.length () <= 8
+        && code[0] == 'K'
+        && code.find ('K', 1) != string::npos);
 
     string sides[CLR_NO] =
     {
         code.substr (   code.find ('K', 1)), // Weak
         code.substr (0, code.find ('K', 1))  // Strong
     };
-    assert(sides[WHITE].length () <= 8
-        && sides[BLACK].length () <= 8);
+    assert(8 >= sides[WHITE].length ()
+        && 8 >= sides[BLACK].length ());
 
     to_lower (sides[c]);
     string fen = "8/" + sides[WHITE] + char('0' + 8 - sides[WHITE].length ()) + "/8/8/8/8/"
