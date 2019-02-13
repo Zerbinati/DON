@@ -737,16 +737,16 @@ void Position::set_castle (Color c, Square rook_org)
         {
             castle_king_path_bb[c][cs] |= s;
         }
-        if (   s != king_org
-            && s != rook_org)
+        if (s != king_org
+         && s != rook_org)
         {
             castle_rook_path_bb[c][cs] |= s;
         }
     }
     for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
     {
-        if (   s != king_org
-            && s != rook_org)
+        if (s != king_org
+         && s != rook_org)
         {
             castle_rook_path_bb[c][cs] |= s;
         }
@@ -833,33 +833,24 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     u08 token;
     // 1. Piece placement on Board
     size_t idx;
-    i08 f = F_A;
-    i08 r = R_8;
-    while (   iss >> token
-           && F_NO >= f
-           && R_1 <= r)
+    Square sq = SQ_A8;
+    while (   (iss >> token)
+           && !isspace (token))
     {
-        if (isspace (token))
-        {
-            break;
-        }
-
         if (isdigit (token))
         {
-            f += token - '0';
-        }
-        else
-        if (   isalpha (token)
-            && (idx = PieceChar.find (token)) != string::npos)
-        {
-            place_piece_on (File(f)|Rank(r), Piece(idx));
-            ++f;
+            sq += Delta(token - '0');
         }
         else
         if (token == '/')
         {
-            f = F_A;
-            --r;
+            sq += DEL_S * 2;
+        }
+        else
+        if ((idx = PieceChar.find (token)) != string::npos)
+        {
+            place_piece_on (sq, Piece(idx));
+            ++sq;
         }
         else
         {
@@ -876,12 +867,9 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->castle_rights = CR_NONE;
     // 3. Castling availability
     iss >> token;
-    while (iss >> token)
+    while (   (iss >> token)
+           && !isspace (token))
     {
-        if (isspace (token))
-        {
-            break;
-        }
         if (token == '-')
         {
             continue;

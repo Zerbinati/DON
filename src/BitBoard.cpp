@@ -94,7 +94,8 @@ namespace BitBoard {
         template<PieceType PT>
         void initialize_magic (Bitboard *attacks, Magic *magics)
         {
-            static_assert (BSHP <= PT && PT <= ROOK, "PT incorrect");
+            static_assert (BSHP == PT
+                        || ROOK == PT, "PT incorrect");
 
 #       if !defined(BM2)
             constexpr i16 MaxIndex = 0x1000;

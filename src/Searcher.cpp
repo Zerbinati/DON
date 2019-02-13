@@ -351,7 +351,6 @@ Move MovePicker::next_move ()
 
 namespace Searcher {
 
-    TimePoint StartTime;
     Limit Limits;
 
     i16 TBProbeDepth = 1;
@@ -1969,8 +1968,8 @@ void MainThread::search ()
     assert(Threadpool.main_thread () == this
         && 0 == index);
 
+    time_mgr.start_time = now ();
     DebugTime = 0;
-    StartTime = now ();
 
     auto output_fn = string(Options["Output File"]);
     if (!white_spaces (output_fn))

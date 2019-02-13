@@ -294,7 +294,6 @@ namespace Searcher {
     // Threshold for counter moves based pruning
     constexpr i32 CounterMovePruneThreshold = 0;
     
-    extern TimePoint StartTime;
     extern Limit Limits;
 
     extern i16 TBProbeDepth;

@@ -76,7 +76,7 @@ TimePoint TimeManager::elapsed_time () const
 {
     return TimePoint(0 != nodes_time ?
                         Threadpool.nodes () :
-                        now () - StartTime);
+                        now () - start_time);
 }
 void TimeManager::initialize ()
 {
@@ -160,7 +160,7 @@ void SkillManager::pick_best_move (i16 level)
     if (MOVE_NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
-        i32  weakness = MaxDepth - 8 * level;
+        i32  weakness = MaxDepth - 4 * level;
         i32  deviance = std::min (root_moves[0].new_value - root_moves[Threadpool.pv_limit - 1].new_value, VALUE_MG_PAWN);
         auto best_value = -VALUE_INFINITE;
         for (u08 i = 0; i < Threadpool.pv_limit; ++i)

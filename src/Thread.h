@@ -20,6 +20,7 @@ private:
     u16 nodes_time;
 
 public:
+    TimePoint start_time;
     TimePoint optimum_time;
     TimePoint maximum_time;
 
@@ -39,8 +40,8 @@ public:
     void update (Color);
 };
 
-// MaxLevel should be <= MaxDepth/8
-const i16 MaxLevel = 12;
+// MaxLevel should be <= MaxDepth/4
+const i16 MaxLevel = 24;
 
 inline bool skill_mgr_enabled ()
 {

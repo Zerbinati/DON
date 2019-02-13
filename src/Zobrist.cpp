@@ -68,41 +68,33 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //    Key fen_key = 0;
 //    istringstream iss (fen);
 //    iss >> std::noskipws;
-//    File kf[CLR_NO] = { F_NO, F_NO };
 //    u08 token;
-//    size_t idx;
-//    i08 f = F_A;
-//    i08 r = R_8;
-//    while (   iss >> token
-//           && F_NO >= f
-//           && R_1 <= r)
-//    {
-//        if (isspace (token))
-//        {
-//            break;
-//        }
 //
+//    File kf[CLR_NO] = { F_NO, F_NO };
+//    size_t idx;
+//    Square sq = SQ_A8;
+//    while (   (iss >> token)
+//           && !isspace (token))
+//    {
 //        if (isdigit (token))
 //        {
-//            f += token - '0';
-//        }
-//        else
-//        if (   isalpha (token)
-//            && (idx = PieceChar.find (token)) != string::npos)
-//        {
-//            auto p = Piece(idx);
-//            if (KING == ptype (p))
-//            {
-//                kf[color (p)] = File(f);
-//            }
-//            fen_key ^= piece_square[color (p)][ptype (p)][File(f)|Rank(r)];
-//            ++f;
+//            sq += Delta(token - '0');
 //        }
 //        else
 //        if (token == '/')
 //        {
-//            f = F_A;
-//           --r;
+//            sq += DEL_S * 2;
+//        }
+//        else
+//        if ((idx = PieceChar.find (token)) != string::npos)
+//        {
+//            auto p = Piece(idx);
+//            if (KING == ptype (p))
+//            {
+//                kf[color (p)] = _file (sq);
+//            }
+//            fen_key ^= piece_square[color (p)][ptype (p)][sq];
+//            ++sq;
 //        }
 //        else
 //        {
@@ -119,12 +111,9 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //    }
 //
 //    iss >> token;
-//    while (iss >> token)
+//    while (   (iss >> token)
+//           && !isspace (token))
 //    {
-//        if (isspace (token))
-//        {
-//            break;
-//        }
 //        if (token == '-')
 //        {
 //            continue;
