@@ -1029,7 +1029,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             //&& R_1 == rel_rank (active, org)
             //&& R_1 == rel_rank (active, dst)
             && si->can_castle (active|(dst > org ? CS_KING : CS_QUEN))
-            //&& 0 == si->checkers // Not set rightly so can't be used
+            && 0 == si->ptr->checkers
             && 0 == attackers_to (org, pasive));
 
         si->capture = NONE;
