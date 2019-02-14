@@ -66,8 +66,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     : pos (p)
     , tt_move (ttm)
     , depth (d)
-    , threshold (Value(-4000*d))
-    , recap_sq (SQ_NO)
     , pd_histories (pdhs)
     , refutation_moves {km[0], km[1], cm}
     , pick_quiets (true)
@@ -76,7 +74,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
     assert(DepthZero < depth);
-    assert(VALUE_ZERO > threshold);
 
     if (0 != pos.si->checkers)
     {
@@ -94,14 +91,13 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 }
 /// MovePicker constructor for quiescence search
 /// Because the depth <= DepthZero here, only captures, queen promotions
-/// and checks (only if depth >= DepthQSCheck) will be generated.
+/// and quiet checks (only if depth >= DepthQSCheck) will be generated.
 MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pdhs, Square rs)
     : pos (p)
     , tt_move (ttm)
     , depth (d)
-    , threshold (VALUE_ZERO)
-    , recap_sq (rs)
     , pd_histories (pdhs)
+    , recap_sq (rs)
 {
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
@@ -134,9 +130,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     : pos (p)
     , tt_move (ttm)
-    , depth (DepthZero)
     , threshold (thr)
-    , recap_sq (SQ_NO)
 {
     assert(0 == pos.si->checkers);
     assert(MOVE_NONE == tt_move
@@ -199,16 +193,13 @@ void MovePicker::value ()
 }
 
 /// MovePicker::pick() returns the next move satisfying a predicate function
-template<MovePicker::PickType PT, class Pred>
+template<typename Pred>
 bool MovePicker::pick (Pred filter)
 {
     while (i < moves.size ())
     {
         auto beg = moves.begin () + i++;
-        if (BEST == PT)
-        {
-            std::swap (*beg, *std::max_element (beg, moves.end ()));
-        }
+        std::swap (*beg, *std::max_element (beg, moves.end ()));
         vm = *beg;
         if (   tt_move != vm
             && (   !(   pos.enpassant (vm)
@@ -250,10 +241,10 @@ Move MovePicker::next_move ()
         goto restage;
 
     case Stage::NT_GOOD_CAPTURES:
-        if (pick<BEST> ([&]() { return pos.see_ge (vm, Value(-vm.value * 55 / 1024)) ?
-                                        true :
+        if (pick ([&]() { return pos.see_ge (vm, Value(-vm.value * 55 / 1024)) ?
+                                    true :
                                         // Put losing capture to bad_capture_moves to be tried later
-                                        (bad_capture_moves.push_back (vm), false); }))
+                                    (bad_capture_moves.push_back (vm), false); }))
         {
             return vm;
         }
@@ -289,7 +280,7 @@ Move MovePicker::next_move ()
         /* fall through */
     case Stage::NT_QUIETS:
         if (   pick_quiets
-            && pick<BEST> ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), vm.move) == refutation_moves.end (); }))
+            && pick ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), vm.move) == refutation_moves.end (); }))
         {
             return vm;
         }
@@ -309,18 +300,18 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::EV_MOVES:
-        return pick<BEST> ([]() { return true; }) ?
+        return pick ([]() { return true; }) ?
                 vm :
                 MOVE_NONE;
         /* end */
     case Stage::PC_CAPTURES:
-        return pick<BEST> ([&]() { return pos.see_ge (vm, threshold); }) ?
+        return pick ([&]() { return pos.see_ge (vm, threshold); }) ?
                 vm :
                 MOVE_NONE;
         /* end */
     case Stage::QS_CAPTURES:
-        if (pick<BEST> ([&]() { return DepthQSRecapture < depth
-                                    || dst_sq (vm) == recap_sq; }))
+        if (pick ([&]() { return DepthQSRecapture < depth
+                              || dst_sq (vm) == recap_sq; }))
         {
             return vm;
         }
@@ -331,11 +322,12 @@ Move MovePicker::next_move ()
         }
 
         generate<GenType::QUIET_CHECK> (moves, pos);
+        value<GenType::QUIET> ();
         ++stage;
         i = 0;
         /* fall through */
     case Stage::QS_CHECKS:
-        return pick<NEXT> ([]() { return true; }) ?
+        return pick ([]() { return true; }) ?
                 vm :
                 MOVE_NONE;
         /* end */

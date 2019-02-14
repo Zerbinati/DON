@@ -144,22 +144,18 @@ private:
         QS_TT, QS_INIT, QS_CAPTURES, QS_CHECKS,
     };
 
-    enum PickType : u08
-    {
-        NEXT,
-        BEST
-    };
-
     const Position &pos;
 
     Move tt_move;
     i16 depth;
-    Value threshold;
-    Square recap_sq;
 
     const PieceDestinyHistory **pd_histories;
 
+    Value threshold;
+    Square recap_sq;
+
     ValMoves moves;
+
     std::vector<Move> refutation_moves
         ,             bad_capture_moves;
 
@@ -170,7 +166,7 @@ private:
     template<GenType>
     void value ();
 
-    template<PickType, class Pred>
+    template<typename Pred>
     bool pick (Pred);
 
 public:
