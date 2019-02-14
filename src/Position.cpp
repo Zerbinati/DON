@@ -62,18 +62,18 @@ void Position::initialize ()
     {
         for (const auto &pt : { NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (const auto &s1 : SQ)
+            for (const auto &org : SQ)
             {
-                for (const auto &s2 : SQ)
+                for (const auto &dst : SQ)
                 {
-                    if (   s1 < s2
-                        && contains (PieceAttacks[pt][s1], s2))
+                    if (   org < dst
+                        && contains (PieceAttacks[pt][org], dst))
                     {
                         Cuckoo cuckoo;
-                        cuckoo.key = RandZob.piece_square[c][pt][s1]
-                                   ^ RandZob.piece_square[c][pt][s2]
+                        cuckoo.key = RandZob.piece_square[c][pt][org]
+                                   ^ RandZob.piece_square[c][pt][dst]
                                    ^ RandZob.color;
-                        cuckoo.move = mk_move<NORMAL> (s1, s2);
+                        cuckoo.move = mk_move<NORMAL> (org, dst);
 
                         u16 i = H1 (cuckoo.key);
                         do
@@ -120,8 +120,7 @@ bool Position::draw (i16 pp) const
         return false;
     }
     const auto *psi = si->ptr->ptr;
-    bool rep = false;
-    for (u08 p = 4; p <= end; p += 2)
+    for (u08 cnt = 0, p = 4; p <= end; p += 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == si->posi_key)
@@ -129,12 +128,10 @@ bool Position::draw (i16 pp) const
             // Draw on
             // - Repeats once earlier but strictly after the root,
             // - Repeats twice before or at the root.
-            if (   rep
-                || pp > p)
+            if (2 == ++cnt + (pp > p ? 1 : 0))
             {
                 return true;
             }
-            rep = true;
         }
     }
     return false;
@@ -163,15 +160,16 @@ bool Position::cycled (i16 pp) const
             || (j = H2 (key), key == Cuckoos[j].key))
         {
             Move move = Cuckoos[j].move;
+            auto org = org_sq (move);
+            auto dst = dst_sq (move);
 
-            if (0 == (between_bb (org_sq (move), dst_sq (move)) & pieces()))
+            if (0 == (between_bb (org, dst) & pieces()))
             {
                 // Take care to reverse the move in the no-progress case (opponent to move)
-                if (empty (org_sq (move)))
+                if (empty (org))
                 {
-                    move = mk_move<NORMAL> (dst_sq (move), org_sq (move));
+                    move = mk_move<NORMAL> (dst, org);
                 }
-                assert(empty (dst_sq (move)));
 
                 if (pp > p)
                 {

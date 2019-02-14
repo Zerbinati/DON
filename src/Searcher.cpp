@@ -67,6 +67,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , tt_move (ttm)
     , depth (d)
     , pd_histories (pdhs)
+    , threshold (Value(-4000*d))
     , refutation_moves {km[0], km[1], cm}
     , pick_quiets (true)
 {
@@ -275,6 +276,13 @@ Move MovePicker::next_move ()
 
         generate<GenType::QUIET> (moves, pos);
         value<GenType::QUIET> ();
+        for (auto &m : moves)
+        {
+            if (m.value < threshold)
+            {
+                m.value = threshold - 4000;
+            }
+        }
         ++stage;
         i = 0;
         /* fall through */
@@ -293,7 +301,6 @@ Move MovePicker::next_move ()
                 MOVE_NONE;
         /* end */
     case Stage::EV_INIT:
-        assert(0 != pos.si->checkers);
         generate<GenType::EVASION> (moves, pos);
         value<GenType::EVASION> ();
         ++stage;
@@ -385,9 +392,8 @@ namespace Searcher {
         }
 
         // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
-        Value value_draw (i16 depth /*, Thread* thread*/)
+        Value value_draw (i16 depth)
         {
-            //return VALUE_DRAW + (depth < 4 ? 0 : 2 * i32(thread->nodes.load (std::memory_order_relaxed) % 2) - 1);
             return VALUE_DRAW + (depth < 4 ? 0 : rand () % 3 - 1);
         }
 
@@ -745,7 +751,7 @@ namespace Searcher {
                 && pos.si->clock_ply >= 3
                 && pos.cycled (ss->ply))
             {
-                alfa = value_draw (depth/*, pos.thread*/);
+                alfa = value_draw (depth);
                 if (alfa >= beta)
                 {
                     return alfa;
@@ -800,7 +806,7 @@ namespace Searcher {
                     return ss->ply >= MaxDepth
                         && !in_check ?
                                 evaluate (pos) :
-                                value_draw (depth/*, pos.thread*/);
+                                value_draw (depth);
                 }
 
                 // Step 3. Mate distance pruning.
