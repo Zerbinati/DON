@@ -23,7 +23,7 @@ namespace {
         case GenType::CHECK:
         case GenType::QUIET_CHECK:
             targets &= pos.si->checks[PT];
-            /* no break */
+            /* fall through */
         case GenType::NATURAL:
         case GenType::EVASION:
         case GenType::CAPTURE:
@@ -61,7 +61,7 @@ namespace {
             case GenType::NATURAL:
             case GenType::EVASION:
                 moves += mk_move_promote (org, dst, QUEN);
-                /* no break */
+                /* fall through */
             case GenType::QUIET:
                 moves += mk_move_promote (org, dst, ROOK);
                 moves += mk_move_promote (org, dst, BSHP);
@@ -86,7 +86,7 @@ namespace {
                 {
                     moves += mk_move_promote (org, dst, BSHP);
                 }
-                /* no break */
+                /* fall through */
             case GenType::QUIET_CHECK:
                 if (contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active)))
                 {
@@ -166,7 +166,7 @@ namespace {
                 while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->enpassant_sq); }
             }
         }
-            /* no break */
+            /* fall through */
         case GenType::QUIET:
         case GenType::QUIET_CHECK:
         {
@@ -293,14 +293,14 @@ void generate (ValMoves &moves, const Position &pos)
 
 /// Explicit template instantiations
 /// --------------------------------
-/// generate<NATURAL> generates all pseudo-legal captures and non-captures.
+/// generate<NATURAL>     Generates all pseudo-legal captures and non-captures.
 template void generate<GenType::NATURAL> (ValMoves&, const Position&);
-/// generate<CAPTURE> generates all pseudo-legal captures and queen promotions.
+/// generate<CAPTURE>     Generates all pseudo-legal captures and queen promotions.
 template void generate<GenType::CAPTURE> (ValMoves&, const Position&);
-/// generate<QUIET> generates all pseudo-legal non-captures and underpromotions.
+/// generate<QUIET>       Generates all pseudo-legal non-captures and underpromotions.
 template void generate<GenType::QUIET  > (ValMoves&, const Position&);
 
-/// Generates all pseudo-legal check evasions moves when the side to move is in check.
+/// generate<EVASION>     Generates all pseudo-legal check evasions moves.
 template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position &pos)
 {
     assert(0 != pos.si->checkers
@@ -348,7 +348,7 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
 
     generate_moves<GenType::EVASION> (moves, pos, targets);
 }
-/// Generates all pseudo-legal check giving moves.
+/// generate<CHECK>       Generates all pseudo-legal check giving moves.
 template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position &pos)
 {
     assert(0 == pos.si->checkers);
@@ -378,7 +378,7 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
 
     generate_moves<GenType::CHECK> (moves, pos, targets);
 }
-/// Generates all pseudo-legal non-captures and knight under promotions moves that give check.
+/// generate<QUIET_CHECK> Generates all pseudo-legal non-captures and knight under promotions check giving moves.
 template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position &pos)
 {
     assert(0 == pos.si->checkers);
@@ -409,7 +409,7 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
     generate_moves<GenType::QUIET_CHECK> (moves, pos, targets);
 }
 
-/// Generates all legal moves.
+/// generate<LEGAL>       Generates all legal moves.
 template<> void generate<GenType::LEGAL      > (ValMoves &moves, const Position &pos)
 {
     0 == pos.si->checkers ?

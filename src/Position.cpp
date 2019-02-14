@@ -548,7 +548,7 @@ bool Position::legal (Move m) const
         {
             return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
         }
-        /* no break */
+        /* fall through */
     case PROMOTE:
         assert(NORMAL == mtype (m)
             || (   contains (pieces (active, PAWN), org_sq (m))
@@ -1029,8 +1029,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             //&& R_1 == rel_rank (active, org)
             //&& R_1 == rel_rank (active, dst)
             && si->can_castle (active|(dst > org ? CS_KING : CS_QUEN))
-            && 0 == si->ptr->checkers
-            && 0 == attackers_to (org, pasive));
+            && 0 == si->ptr->checkers); // attackers_to (org, pasive)
 
         si->capture = NONE;
         auto rook_org = dst; // Castling is encoded as "King captures friendly Rook"

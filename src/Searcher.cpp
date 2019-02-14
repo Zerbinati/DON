@@ -75,8 +75,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
-    assert(depth > 0);
-    assert(threshold < VALUE_ZERO);
+    assert(DepthZero < depth);
+    assert(VALUE_ZERO > threshold);
 
     if (0 != pos.si->checkers)
     {
@@ -102,12 +102,11 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , threshold (VALUE_ZERO)
     , recap_sq (rs)
     , pd_histories (pdhs)
-    , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
-    assert(depth <= 0);
+    assert(DepthZero >= depth);
 
     if (0 != pos.si->checkers)
     {
@@ -135,11 +134,9 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     : pos (p)
     , tt_move (ttm)
-    , depth (0)
+    , depth (DepthZero)
     , threshold (thr)
     , recap_sq (SQ_NO)
-    , pd_histories (nullptr)
-    , pick_quiets (true)
 {
     assert(0 == pos.si->checkers);
     assert(MOVE_NONE == tt_move
@@ -265,7 +262,7 @@ Move MovePicker::next_move ()
             && (   refutation_moves[0] == refutation_moves[2]
                 || refutation_moves[1] == refutation_moves[2]))
         {
-            refutation_moves.erase (refutation_moves.begin () + 2);
+            refutation_moves.erase (std::next (refutation_moves.begin (), 2));
         }
         refutation_moves.erase (std::remove_if (refutation_moves.begin (),
                                                 refutation_moves.end (),
@@ -425,15 +422,18 @@ namespace Searcher {
 
             if (_ok ((ss-1)->played_move))
             {
-                pos.thread->move_history[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] = move;
+                pos.thread->move_history[pos[dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] = move;
             }
         }
 
         /// update_pv() appends the move and child pv
         void update_pv (list<Move> &pv, Move move, const list<Move> &child_pv)
         {
-            pv.assign ({ move });
-            pv.insert (pv.end (), child_pv.begin (), child_pv.end ());
+            pv.assign (child_pv.begin (), child_pv.end ());
+            pv.push_front (move);
+            assert(pv.front () == move
+                && (pv.size () == 1
+                 || pv.back () == child_pv.back ()));
         }
 
         /// It adjusts a mate score from "plies to mate from the root" to
@@ -896,7 +896,7 @@ namespace Searcher {
                             && (   1 == (ss-1)->move_count
                                 || (ss-1)->played_move == (ss-1)->killer_moves[0]))
                         {
-                            update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
+                            update_continuation_histories (ss-1, pos[dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                         }
                     }
                     else
@@ -1187,11 +1187,6 @@ namespace Searcher {
             bool ttm_capture = MOVE_NONE != tt_move
                             && pos.capture_or_promotion (tt_move);
 
-            u08 move_count = 0;
-
-            vector<Move> quiet_moves
-                ,        capture_moves;
-
             const PieceDestinyHistory *pd_histories[4] =
             {
                 (ss-1)->pd_history,
@@ -1200,8 +1195,12 @@ namespace Searcher {
                 (ss-4)->pd_history
             };
             auto counter_move = _ok ((ss-1)->played_move) ?
-                                    thread->move_history[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
+                                    thread->move_history[pos[dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
                                     MOVE_NONE;
+            u08 move_count = 0;
+
+            vector<Move> quiet_moves
+                ,        capture_moves;
             // Initialize movepicker (1) for the current position
             MovePicker move_picker (pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
@@ -1602,7 +1601,7 @@ namespace Searcher {
                     && (   1 == (ss-1)->move_count
                         || (ss-1)->played_move == (ss-1)->killer_moves[0]))
                 {
-                    update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
+                    update_continuation_histories (ss-1, pos[dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                 }
             }
             else
@@ -1612,7 +1611,7 @@ namespace Searcher {
                 && NONE == pos.si->capture
                 && NONE == pos.si->promote)
             {
-                update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), stat_bonus (depth));
+                update_continuation_histories (ss-1, pos[dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), stat_bonus (depth));
             }
 
             if (PVNode)
@@ -1745,7 +1744,7 @@ void Thread::search ()
         }
         else
         {
-            // Thread Redistribution Scheme: distribute search depths across the threads.
+            // Thread Redistribution Scheme: Distribute search depths across the threads.
             assert(0 != index);
             i32 i = (index - 1) % SkipIndex;
             if (0 != ((running_depth + SkipPhase[i]) / SkipSize[i]) % 2)

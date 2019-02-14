@@ -18,11 +18,11 @@ namespace {
         // The first 6 entries are for PieceType
         MATERIAL = NONE,
         IMBALANCE,
-        INITIATIVE,
         MOBILITY,
         THREAT,
         PASSER,
         SPACE,
+        INITIATIVE,
         TOTAL,
     };
 
@@ -1129,7 +1129,6 @@ string trace (const Position &pos)
         << "----------------+-------------+-------------+--------------\n"
         << "       Material" << Term::MATERIAL
         << "      Imbalance" << Term::IMBALANCE
-        << "     Initiative" << Term::INITIATIVE
         << "           Pawn" << Term (PAWN)
         << "         Knight" << Term (NIHT)
         << "         Bishop" << Term (BSHP)
@@ -1140,6 +1139,7 @@ string trace (const Position &pos)
         << "         Threat" << Term::THREAT
         << "         Passer" << Term::PASSER
         << "          Space" << Term::SPACE
+        << "     Initiative" << Term::INITIATIVE
         << "----------------+-------------+-------------+--------------\n"
         << "          Total" << Term::TOTAL
         << std::endl
