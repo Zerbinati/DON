@@ -1,6 +1,5 @@
+#include <stdlib.h>
 #include "Engine.h"
-
-using namespace std;
 
 int main (int argc, const char *const *argv)
 {

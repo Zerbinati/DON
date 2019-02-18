@@ -168,8 +168,6 @@ public:
     bool cycled (i16) const;
     bool repeated () const;
 
-    bool see_ge (Move, Value = VALUE_ZERO) const;
-
     Bitboard attackers_to (Square, Color, Bitboard) const;
     Bitboard attackers_to (Square, Color) const;
     Bitboard attackers_to (Square, Bitboard) const;
@@ -186,6 +184,9 @@ public:
     bool gives_check (Move) const;
 
     PieceType cap_type (Move) const;
+
+    Value exchange (Move) const;
+    bool see_ge (Move, Value = VALUE_ZERO) const;
 
     bool pawn_passed_at (Color, Square) const;
     bool paired_bishop  (Color) const;
@@ -355,7 +356,7 @@ inline bool Position::expeded_castle (Color c, CastleSide cs) const
     return 0 == (castle_rook_path_bb[c][cs] & pieces ());
 }
 /// Position::move_num() starts at 1, and is incremented after BLACK's move.
-inline i16  Position::move_num () const
+inline i16 Position::move_num () const
 {
     return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1);
 }
@@ -421,9 +422,9 @@ inline bool Position::capture (Move m) const
 {
     // Castling is encoded as "king captures the rook"
     return (   (   NORMAL == mtype (m)
-                || promotion (m))
+                || PROMOTE == mtype (m))
             && contains (pieces (~active), dst_sq (m)))
-        || enpassant (m);
+        || ENPASSANT == mtype (m);
 }
 inline bool Position::promotion (Move m) const
 {
@@ -435,8 +436,8 @@ inline bool Position::capture_or_promotion (Move m) const
 {
     return (   NORMAL == mtype (m)
             && contains (pieces (~active), dst_sq (m)))
-        || enpassant (m)
-        || promotion (m);
+        || ENPASSANT == mtype (m)
+        || PROMOTE == mtype (m);
 }
 
 inline PieceType Position::cap_type (Move m) const
@@ -444,6 +445,14 @@ inline PieceType Position::cap_type (Move m) const
     return ENPASSANT != mtype (m) ?
             ptype (piece[dst_sq (m)]) :
             PAWN;
+}
+
+inline Value Position::exchange (Move m) const
+{
+    return NORMAL == mtype (m) ?
+            PieceValues[MG][ptype (piece[dst_sq (m)])]
+          - PieceValues[MG][ptype (piece[org_sq (m)])] :
+            VALUE_ZERO;
 }
 
 inline void Position::do_move (Move m, StateInfo &nsi)

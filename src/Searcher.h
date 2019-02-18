@@ -170,7 +170,7 @@ private:
     bool pick (Pred);
 
 public:
-    bool pick_quiets;
+    bool skip_quiets;
 
     MovePicker () = delete;
     MovePicker (const MovePicker&) = delete;

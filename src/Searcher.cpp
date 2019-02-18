@@ -69,7 +69,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , pd_histories (pdhs)
     , threshold (Value(-4000*d))
     , refutation_moves {km[0], km[1], cm}
-    , pick_quiets (true)
+    , skip_quiets (false)
 {
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
@@ -142,7 +142,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
 
     if (   MOVE_NONE != tt_move
         && !(   pos.capture (tt_move)
-             && pos.see_ge (tt_move, threshold)))
+             && (   pos.exchange (tt_move) >= threshold
+                 || pos.see_ge (tt_move, threshold))))
     {
         tt_move = MOVE_NONE;
     }
@@ -242,9 +243,11 @@ Move MovePicker::next_move ()
         goto restage;
 
     case Stage::NT_GOOD_CAPTURES:
-        if (pick ([&]() { return pos.see_ge (vm, Value(-vm.value * 55 / 1024)) ?
+        if (pick ([&]() { auto thr = Value(-vm.value * 55 / 1024);
+                          return pos.exchange (vm) >= thr
+                              || pos.see_ge (vm, thr) ?
                                     true :
-                                        // Put losing capture to bad_capture_moves to be tried later
+                                    // Put losing capture to bad_capture_moves to be tried later
                                     (bad_capture_moves.push_back (vm), false); }))
         {
             return vm;
@@ -258,11 +261,11 @@ Move MovePicker::next_move ()
         }
         refutation_moves.erase (std::remove_if (refutation_moves.begin (),
                                                 refutation_moves.end (),
-                                                [&](const Move m) { return MOVE_NONE == m
-                                                                        || tt_move == m
-                                                                        ||  pos.capture (m)
-                                                                        || !pos.pseudo_legal (m)
-                                                                        || !pos.legal (m); }),
+                                                [&](Move m) { return MOVE_NONE == m
+                                                                  || tt_move == m
+                                                                  || pos.capture (m)
+                                                                  || !pos.pseudo_legal (m)
+                                                                  || !pos.legal (m); }),
                                 refutation_moves.end ());
         ++stage;
         i = 0;
@@ -276,18 +279,15 @@ Move MovePicker::next_move ()
 
         generate<GenType::QUIET> (moves, pos);
         value<GenType::QUIET> ();
-        for (auto &m : moves)
-        {
-            if (m.value < threshold)
-            {
-                m.value = threshold - 4000;
-            }
-        }
+        std::for_each (moves.begin (),
+                       moves.end (),
+                       [&](ValMove &m) { if (m.value < threshold)
+                                             m.value = threshold - 1; });
         ++stage;
         i = 0;
         /* fall through */
     case Stage::NT_QUIETS:
-        if (   pick_quiets
+        if (   !skip_quiets
             && pick ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), vm.move) == refutation_moves.end (); }))
         {
             return vm;
@@ -312,7 +312,8 @@ Move MovePicker::next_move ()
                 MOVE_NONE;
         /* end */
     case Stage::PC_CAPTURES:
-        return pick ([&]() { return pos.see_ge (vm, threshold); }) ?
+        return pick ([&]() { return pos.exchange (vm) >= threshold
+                                 || pos.see_ge (vm, threshold); }) ?
                 vm :
                 MOVE_NONE;
         /* end */
@@ -484,8 +485,8 @@ namespace Searcher {
             {
                 return ss->ply >= MaxDepth
                     && !in_check ?
-                            evaluate (pos) :
-                            VALUE_DRAW;
+                           evaluate (pos) :
+                           VALUE_DRAW;
             }
 
             assert(ss->ply >= 1
@@ -654,6 +655,7 @@ namespace Searcher {
                     }
                     // Prune moves with negative or zero SEE
                     if (   futility_base <= alfa
+                        && pos.exchange (move) < Value(1)
                         && !pos.see_ge (move, Value(1)))
                     {
                         best_value = std::max (futility_base, best_value);
@@ -669,6 +671,7 @@ namespace Searcher {
                             && best_value > -VALUE_MATE_MAX_PLY
                             && !pos.capture (move)))
                     && !Limits.mate_search ()
+                    && pos.exchange (move) < VALUE_ZERO
                     && !pos.see_ge (move))
                 {
                     continue;
@@ -805,8 +808,8 @@ namespace Searcher {
                 {
                     return ss->ply >= MaxDepth
                         && !in_check ?
-                                evaluate (pos) :
-                                value_draw (depth);
+                               evaluate (pos) :
+                               value_draw (depth);
                 }
 
                 // Step 3. Mate distance pruning.
@@ -1182,6 +1185,11 @@ namespace Searcher {
 
             value = best_value;
 
+            u08 move_count = 0;
+
+            vector<Move> quiet_moves
+                ,        capture_moves;
+
             bool ttm_capture = MOVE_NONE != tt_move
                             && pos.capture_or_promotion (tt_move);
 
@@ -1195,10 +1203,6 @@ namespace Searcher {
             auto counter_move = _ok ((ss-1)->played_move) ?
                                     thread->move_history[pos[dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
                                     MOVE_NONE;
-            u08 move_count = 0;
-
-            vector<Move> quiet_moves
-                ,        capture_moves;
             // Initialize movepicker (1) for the current position
             MovePicker move_picker (pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
@@ -1221,7 +1225,8 @@ namespace Searcher {
 
                 ss->move_count = ++move_count;
 
-                bool move_count_pruning = 16 > depth
+                // Skip quiet moves if move count exceeds our FutilityMoveCounts threshold
+                move_picker.skip_quiets = 16 > depth
                                        && FutilityMoveCounts[improving ? 1 : 0][depth] <= move_count;
 
                 auto org = org_sq (move);
@@ -1298,7 +1303,10 @@ namespace Searcher {
                        CASTLE == mtype (move)
                     // Check extension (~2 ELO)
                     || (   gives_check
-                        && pos.see_ge (move)))
+                        && (   pos.exchange (move) >= VALUE_ZERO
+                            || (   contains (pos.si->king_blockers[~active] & pos.pieces (active), org)
+                                && !contains (PieceAttacks[KING][pos.square<KING> (~active)], dst))
+                            || pos.see_ge (move))))
                 {
                     extension = 1;
                 }
@@ -1319,34 +1327,45 @@ namespace Searcher {
                              && R_4 < rel_rank (active, org)))
                     {
                         // Move count based pruning. (~30 ELO)
-                        if (move_count_pruning)
+                        if (move_picker.skip_quiets)
                         {
-                            move_picker.pick_quiets = false;
                             continue;
                         }
 
                         // Reduced depth of the next LMR search.
                         i16 lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
-                        if (    // Countermoves based pruning. (~20 ELO)
-                               (   ((ss-1)->stats > 0 || (ss-1)->move_count == 1 ? 4 : 3) > lmr_depth
-                                && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
-                                && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
-                                // Futility pruning: parent node. (~2 ELO)
-                            || (   7 > lmr_depth
-                                && !in_check
-                                && ss->static_eval + 200*lmr_depth + 256 <= alfa)
-                                // SEE based pruning: -ve SEE (~10 ELO)
-                            || (!pos.see_ge (move, Value(-29*lmr_depth*lmr_depth))))
+                        // Countermoves based pruning. (~20 ELO)
+                        if (   ((ss - 1)->stats > 0 || (ss - 1)->move_count == 1 ? 4 : 3) > lmr_depth
+                            && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
+                            && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
+                        {
+                            continue;
+                        }
+                        // Futility pruning: parent node. (~2 ELO)
+                        if (   7 > lmr_depth
+                            && !in_check
+                            && ss->static_eval + 200 * lmr_depth + 256 <= alfa)
+                        {
+                            continue;
+                        }
+                        // SEE based pruning: -ve SEE (~10 ELO)
+                        auto thr = Value(-29*lmr_depth*lmr_depth);
+                        if (   pos.exchange (move) < thr
+                            && !pos.see_ge (move, thr))
                         {
                             continue;
                         }
                     }
                     else
                     // SEE based pruning. (~20 ELO)
-                    if (   DepthZero == extension
-                        && !pos.see_ge (move, -VALUE_EG_PAWN*i32(depth)))
+                    if (DepthZero == extension)
                     {
-                        continue;
+                        auto thr = -VALUE_EG_PAWN*i32(depth);
+                        if (   pos.exchange (move) < thr
+                            && !pos.see_ge (move, thr))
+                        {
+                            continue;
+                        }
                     }
                 }
 
@@ -1365,7 +1384,7 @@ namespace Searcher {
                 // If the move fails high will be re-searched at full depth.
                 if (   2 < depth
                     && 1 < move_count
-                    && (   move_count_pruning
+                    && (   move_picker.skip_quiets
                         || !capture_or_promotion))
                 {
                     i16 reduct_depth = reduction_depth (PVNode, improving, depth, move_count);
@@ -1915,7 +1934,7 @@ void Thread::search ()
 
                 // Reduce time if the best_move is stable over 10 iterations
                 double time_reduction = main_thread->best_move_depth + 10 < finished_depth ?
-                                            1.953125 :
+                                            1.95 :
                                             1.00;
                 // Stop the search
                 // -If there is only one legal move available

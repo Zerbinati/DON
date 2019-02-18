@@ -216,152 +216,6 @@ bool Position::repeated () const
     return false;
 }
 
-/// Position::pick_least_val_att() helper function used by see_ge()
-/// Used to locate the least valuable attacker on square 'dst' for the side to move,
-/// remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
-template<PieceType PT>
-PieceType Position::pick_least_val_att (Bitboard stm_attackers, Square dst, Square &org, Bitboard &mocc, Bitboard &attackers) const
-{
-    Bitboard b = stm_attackers & pieces (PT);
-    if (0 == b)
-    {
-        return pick_least_val_att<PieceType(PT+1)> (stm_attackers, dst, org, mocc, attackers);
-    }
-
-    org = scan_lsq (b);
-    mocc ^= org; // Remove the attacker from occupied
-
-    // Add any X-ray attack behind the just removed piece.
-    // For instance with rooks in a8 and a7 attacking a1, after removing a7 now add rook in a8.
-    // Note that new added attackers can be of any color.
-    if (   (   PAWN == PT
-            || BSHP == PT
-            || QUEN == PT)
-        && 0 != (b = /*mocc &*/ pieces (BSHP, QUEN) & PieceAttacks[BSHP][dst]))
-    {
-        attackers |= b & attacks_bb<BSHP> (dst, mocc);
-    }
-    if (   (   ROOK == PT
-            || QUEN == PT)
-        && 0 != (b = /*mocc &*/ pieces (ROOK, QUEN) & PieceAttacks[ROOK][dst]))
-    {
-        attackers |= b & attacks_bb<ROOK> (dst, mocc);
-    }
-    // X-ray may add already processed pieces because type_bb[] is constant:
-    // in the rook example, now attackers contains rook in a7 again, so remove it.
-    attackers &= mocc;
-    return PT;
-}
-
-template<>
-PieceType Position::pick_least_val_att<KING> (Bitboard, Square, Square&, Bitboard&, Bitboard&) const
-{
-    return KING;
-}
-
-/// Position::see_ge() (Static Exchange Evaluator [SEE] Greater or Equal):
-/// Checks the SEE value of move is greater or equal to the given threshold.
-/// An algorithm similar to alpha-beta pruning with a null window is used.
-bool Position::see_ge (Move m, Value threshold) const
-{
-    assert(_ok (m)
-        && contains (pieces (), org_sq (m)));
-
-    // Only deal with normal moves, assume others pass a simple see
-    if (NORMAL != mtype (m))
-    {
-        return VALUE_ZERO >= threshold;
-    }
-
-    auto org = org_sq (m);
-    auto dst = dst_sq (m);
-
-    // The opponent may be able to recapture so this is the best result we can hope for.
-    auto balance = PieceValues[MG][ptype (piece[dst])] - threshold;
-    if (VALUE_ZERO > balance)
-    {
-        return false;
-    }
-
-    auto victim = ptype (piece[org]);
-
-    // Now assume the worst possible result: that the opponent can capture our piece for free.
-    balance -= PieceValues[MG][victim];
-    // If it is enough (like in PxQ) then return immediately.
-    // Note that if victim == KING we always return here, this is ok if the given move is legal.
-    if (VALUE_ZERO <= balance)
-    {
-        return true;
-    }
-
-    auto act = color (piece[org]);
-    auto stm = ~act; // First consider opponent's move
-    Bitboard mocc = pieces () ^ org ^ dst;
-    // Find all attackers to the destination square, with the moving piece
-    // removed, but possibly an X-ray attacker added behind it.
-    Bitboard attackers = attackers_to (dst, mocc) & mocc;
-    while (0 != attackers)
-    {
-        Bitboard stm_attackers = attackers & pieces (stm);
-
-        Bitboard b;
-        // Don't allow pinned pieces for defensive capture,
-        // as long respective pinners are on their original square.
-        if (   0 != (stm_attackers & si->king_blockers[stm])
-            && 0 != (b = si->king_checkers[stm] & pieces (~stm) & mocc)
-            && 0 != (b &= attacks_bb<QUEN> (square<KING> (stm), mocc & ~(stm_attackers & si->king_blockers[stm]))))
-        {
-            while (0 != b)
-            {
-                stm_attackers &= ~(mocc & between_bb (pop_lsq (b), square<KING> (stm)));
-            }
-        }
-        // Only allow king for defensive capture to evade the discovered check,
-        // as long any discoverers are on their original square.
-        if (   contains (si->king_blockers[stm] & pieces (~stm), org)
-            && 0 != (b = si->king_checkers[~stm] & pieces (~stm) & mocc)
-            && 0 != (b &= attacks_bb<QUEN> (square<KING> (stm), mocc | dst)))
-        {
-            stm_attackers &= pieces (stm, KING);
-        }
-
-        // If stm has no more attackers then give up: stm loses
-        if (0 == stm_attackers)
-        {
-            break;
-        }
-
-        // Locate and remove the next least valuable attacker, and add to
-        // the bitboard 'attackers' the possibly X-ray attackers behind it.
-        victim = pick_least_val_att<PAWN> (stm_attackers, dst, org, mocc, attackers);
-
-        stm = ~stm;
-
-        // Negamax the balance with alpha = balance, beta = balance+1 and add victim's value.
-        //
-        //      (balance, balance+1) -> (-balance-1, -balance)
-        //
-        assert(VALUE_ZERO > balance);
-
-        balance = -balance - 1 - PieceValues[MG][victim];
-
-        // If balance is still non-negative after giving away victim then we win.
-        // The only thing to be careful about it is that we should revert stm
-        // if we captured with the king when the opponent still has attackers.
-        if (VALUE_ZERO <= balance)
-        {
-            if (   KING == victim
-                && 0 != (attackers & pieces (stm)))
-            {
-                stm = ~stm;
-            }
-            break;
-        }
-        assert(KING != victim);
-    }
-    return act != stm; // We break the above loop when stm loses
-}
-
 /// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.
 /// King-attack piece can be either pinner or hidden piece.
 Bitboard Position::slider_blockers (Square s, Color c, Bitboard excluds, Bitboard &pinners, Bitboard &hiddens) const
@@ -684,23 +538,7 @@ bool Position::gives_check (Move m) const
     default: assert(false); return false;
     }
 }
-/// Position::clear() clear the position.
-void Position::clear ()
-{
-    std::fill_n (piece, SQ_NO, NO_PIECE);
-    std::fill_n (color_bb, CLR_NO, 0);
-    std::fill_n (type_bb, PT_NO, 0);
-    std::fill_n (castle_right, SQ_NO, CR_NONE);
-    std::fill (castle_rook_sq[0], castle_rook_sq[0] + CLR_NO*CS_NO, SQ_NO);
-    std::fill (castle_rook_path_bb[0], castle_rook_path_bb[0] + CLR_NO*CS_NO, 0);
-    std::fill (castle_king_path_bb[0], castle_king_path_bb[0] + CLR_NO*CS_NO, 0);
-    for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
-    {
-        squares[pc].clear ();
-    }
-    psq = SCORE_ZERO;
-}
+
 /// Position::set_castle() set the castling right.
 void Position::set_castle (Color c, Square rook_org)
 {
@@ -779,6 +617,172 @@ bool Position::can_enpassant (Color c, Square ep_sq, bool move_done) const
     return false;
 }
 
+/// Position::pick_least_val_att() helper function used by see_ge()
+/// Used to locate the least valuable attacker on square 'dst' for the side to move,
+/// remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
+template<PieceType PT>
+PieceType Position::pick_least_val_att (Bitboard stm_attackers, Square dst, Square &org, Bitboard &mocc, Bitboard &attackers) const
+{
+    Bitboard b = stm_attackers & pieces (PT);
+    if (0 == b)
+    {
+        return pick_least_val_att<PieceType(PT + 1)> (stm_attackers, dst, org, mocc, attackers);
+    }
+
+    org = scan_lsq (b);
+    mocc ^= org; // Remove the attacker from occupied
+
+                 // Add any X-ray attack behind the just removed piece.
+                 // For instance with rooks in a8 and a7 attacking a1, after removing a7 now add rook in a8.
+                 // Note that new added attackers can be of any color.
+    if (   (   PAWN == PT
+            || BSHP == PT
+            || QUEN == PT)
+        && 0 != (b = /*mocc &*/ pieces (BSHP, QUEN) & PieceAttacks[BSHP][dst]))
+    {
+        attackers |= b & attacks_bb<BSHP> (dst, mocc);
+    }
+    if (   (   ROOK == PT
+            || QUEN == PT)
+        && 0 != (b = /*mocc &*/ pieces (ROOK, QUEN) & PieceAttacks[ROOK][dst]))
+    {
+        attackers |= b & attacks_bb<ROOK> (dst, mocc);
+    }
+    // X-ray may add already processed pieces because type_bb[] is constant:
+    // in the rook example, now attackers contains rook in a7 again, so remove it.
+    attackers &= mocc;
+    return PT;
+}
+template<>
+PieceType Position::pick_least_val_att<KING> (Bitboard, Square, Square&, Bitboard&, Bitboard&) const
+{
+    return KING;
+}
+/// Position::see_ge() (Static Exchange Evaluator [SEE] Greater or Equal):
+/// Checks the SEE value of move is greater or equal to the given threshold.
+/// An algorithm similar to alpha-beta pruning with a null window is used.
+bool Position::see_ge (Move m, Value threshold) const
+{
+    assert(_ok (m)
+        && contains (pieces (), org_sq (m)));
+
+    // Only deal with normal and enpassant moves, assume others pass a simple see
+    if (   CASTLE == mtype (m)
+        || PROMOTE == mtype (m))
+    {
+        return VALUE_ZERO >= threshold;
+    }
+
+    auto org = org_sq (m);
+    auto dst = dst_sq (m);
+
+    // The opponent may be able to recapture so this is the best result we can hope for.
+    auto balance = PieceValues[MG][ENPASSANT != mtype (m) ? ptype (piece[dst]) : PAWN] - threshold;
+    if (VALUE_ZERO > balance)
+    {
+        return false;
+    }
+
+    auto victim = ptype (piece[org]);
+
+    // Now assume the worst possible result: that the opponent can capture our piece for free.
+    balance -= PieceValues[MG][victim];
+    // If it is enough (like in PxQ) then return immediately.
+    // Note that if victim == KING we always return here, this is ok if the given move is legal.
+    if (VALUE_ZERO <= balance)
+    {
+        return true;
+    }
+
+    auto act = color (piece[org]);
+    auto stm = ~act; // First consider opponent's move
+    Bitboard mocc = pieces () ^ org ^ dst;
+    if (ENPASSANT == mtype (m))
+    {
+        mocc ^= dst - pawn_push (active);
+    }
+    // Find all attackers to the destination square, with the moving piece
+    // removed, but possibly an X-ray attacker added behind it.
+    Bitboard attackers = attackers_to (dst, mocc) & mocc;
+    while (0 != attackers)
+    {
+        Bitboard stm_attackers = attackers & pieces (stm);
+
+        Bitboard b;
+        // Don't allow pinned pieces for defensive capture,
+        // as long respective pinners are on their original square.
+        if (   0 != (stm_attackers & si->king_blockers[ stm])
+            && 0 != (b = si->king_checkers[ stm] & pieces (~stm) & mocc)
+            && 0 != (b &= attacks_bb<QUEN> (square<KING> (stm), mocc & ~(stm_attackers & si->king_blockers[ stm]))))
+        {
+            while (0 != b)
+            {
+                stm_attackers &= ~(mocc & between_bb (pop_lsq (b), square<KING> (stm)));
+            }
+        }
+        // Only allow king for defensive capture to evade the discovered check,
+        // as long any discoverers are on their original square.
+        if (   contains (si->king_blockers[ stm] & pieces (~stm), org)
+            && 0 != (b = si->king_checkers[~stm] & pieces (~stm) & mocc)
+            && 0 != (b &= attacks_bb<QUEN> (square<KING> (stm), mocc)))
+        {
+            stm_attackers &= pieces (stm, KING);
+        }
+
+        // If stm has no more attackers then give up: stm loses
+        if (0 == stm_attackers)
+        {
+            break;
+        }
+
+        // Locate and remove the next least valuable attacker, and add to
+        // the bitboard 'attackers' the possibly X-ray attackers behind it.
+        victim = pick_least_val_att<PAWN> (stm_attackers, dst, org, mocc, attackers);
+
+        stm = ~stm;
+
+        // Negamax the balance with alpha = balance, beta = balance+1 and add victim's value.
+        //
+        //      (balance, balance+1) -> (-balance-1, -balance)
+        //
+        assert(VALUE_ZERO > balance);
+
+        balance = -balance - 1 - PieceValues[MG][victim];
+
+        // If balance is still non-negative after giving away victim then we win.
+        // The only thing to be careful about it is that we should revert stm
+        // if we captured with the king when the opponent still has attackers.
+        if (VALUE_ZERO <= balance)
+        {
+            if (   KING == victim
+                && 0 != (attackers & pieces (stm)))
+            {
+                stm = ~stm;
+            }
+            break;
+        }
+        assert(KING != victim);
+    }
+    return act != stm; // We break the above loop when stm loses
+}
+
+/// Position::clear() clear the position.
+void Position::clear ()
+{
+    std::fill_n (piece, SQ_NO, NO_PIECE);
+    std::fill_n (color_bb, CLR_NO, 0);
+    std::fill_n (type_bb, PT_NO, 0);
+    std::fill_n (castle_right, SQ_NO, CR_NONE);
+    std::fill (castle_rook_sq[0], castle_rook_sq[0] + CLR_NO*CS_NO, SQ_NO);
+    std::fill (castle_rook_path_bb[0], castle_rook_path_bb[0] + CLR_NO*CS_NO, 0);
+    std::fill (castle_king_path_bb[0], castle_king_path_bb[0] + CLR_NO*CS_NO, 0);
+    for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+         B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
+    {
+        squares[pc].clear ();
+    }
+    psq = SCORE_ZERO;
+}
 /// Position::setup() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
@@ -1442,7 +1446,7 @@ string Position::fen (bool full) const
     return oss.str ();
 }
 /// Position::operator string () returns an ASCII representation of the position.
-Position::operator string () const
+Position::operator std::string () const
 {
     ostringstream oss;
     oss << " +---+---+---+---+---+---+---+---+\n";
