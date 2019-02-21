@@ -168,8 +168,6 @@ public:
     bool cycled (i16) const;
     bool repeated () const;
 
-    Bitboard attackers_to (Square, Color, Bitboard) const;
-    Bitboard attackers_to (Square, Color) const;
     Bitboard attackers_to (Square, Bitboard) const;
     Bitboard attackers_to (Square) const;
 
@@ -359,20 +357,6 @@ inline bool Position::expeded_castle (Color c, CastleSide cs) const
 inline i16 Position::move_num () const
 {
     return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1);
-}
-/// Position::attackers_to() finds attackers to the square by color on occupancy.
-inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
-{
-    return (pieces (c, PAWN) & PawnAttacks[~c][s])
-         | (pieces (c, NIHT) & PieceAttacks[NIHT][s])
-         | (0 != (pieces (c, BSHP, QUEN) & PieceAttacks[BSHP][s]) ? pieces (c, BSHP, QUEN) & attacks_bb<BSHP> (s, occ) : 0)
-         | (0 != (pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (c, ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
-         | (pieces (c, KING) & PieceAttacks[KING][s]);
-}
-/// Position::attackers_to() finds attackers to the square by color.
-inline Bitboard Position::attackers_to (Square s, Color c) const
-{
-    return attackers_to (s, c, pieces ());
 }
 /// Position::attackers_to() finds attackers to the square on occupancy.
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const

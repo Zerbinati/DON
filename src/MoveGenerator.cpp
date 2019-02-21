@@ -451,7 +451,7 @@ void Perft::classify (Position &pos, Move m, bool detail)
     if (pos.gives_check (m))
     {
         ++any_check;
-        if (!contains (pos.si->checks[ptype (pos[org_sq (m)])], dst_sq (m)))
+        if (!contains (pos.si->checks[PROMOTE != mtype (m) ? ptype (pos[org_sq (m)]) : ::promote (m)], dst_sq (m)))
         {
             Bitboard mocc;
             if (   (   contains (pos.si->king_blockers[~pos.active], org_sq (m))

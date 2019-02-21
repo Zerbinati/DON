@@ -228,7 +228,7 @@ Bitboard Position::slider_blockers (Square s, Color c, Bitboard excluds, Bitboar
     if (0 != snipers)
     {
         // Remove direct attackers to the square 's'
-        snipers &= ~attackers_to (s, c);
+        snipers &= ~(attackers_to (s) & pieces (c));
         // Occupancy are pieces but removed snipers
         Bitboard mocc = pieces () & ~snipers;
         while (0 != snipers)
@@ -366,7 +366,7 @@ bool Position::pseudo_legal (Move m) const
         // as invalid moves like B1A1 when opposite queen is on C1.
         if (contains (pieces (active, KING), org_sq (m)))
         {
-            return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
+            return 0 == (attackers_to (dst_sq (m), pieces () ^ org_sq (m)) & pieces (~active));
         }
         // Double check? In this case a king move is required
         if (more_than_one (si->checkers))
@@ -398,7 +398,7 @@ bool Position::legal (Move m) const
         // check whether the destination square is attacked by the opponent.
         if (contains (pieces (active, KING), org_sq (m)))
         {
-            return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
+            return 0 == (attackers_to (dst_sq (m), pieces () ^ org_sq (m)) & pieces (~active));
         }
         /* fall through */
     case PROMOTE:
@@ -429,7 +429,7 @@ bool Position::legal (Move m) const
         // Check king's path for attackers.
         while (0 != b)
         {
-            if (0 != attackers_to (pop_lsq (b), ~active))
+            if (0 != (attackers_to (pop_lsq (b)) & pieces (~active)))
             {
                 return false;
             }
@@ -469,7 +469,7 @@ bool Position::gives_check (Move m) const
         && contains (pieces (active), org_sq (m)));
 
     if (    // Direct check ?
-           contains (si->checks[ptype (piece[org_sq (m)])], dst_sq (m))
+           contains (si->checks[PROMOTE != mtype (m) ? ptype (piece[org_sq (m)]) : promote (m)], dst_sq (m))
             // Discovered check ?
         || (   contains (si->king_blockers[~active], org_sq (m))
             && !sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (~active))))
@@ -683,8 +683,8 @@ bool Position::see_ge (Move m, Value threshold) const
         return false;
     }
 
-    auto victim = ptype (piece[org]);
-
+    auto pc = piece[org];
+    auto victim = ptype (pc);
     // Now assume the worst possible result: that the opponent can capture our piece for free.
     balance -= PieceValues[MG][victim];
     // If it is enough (like in PxQ) then return immediately.
@@ -694,12 +694,12 @@ bool Position::see_ge (Move m, Value threshold) const
         return true;
     }
 
-    auto act = color (piece[org]);
+    auto act = color (pc);
     auto stm = ~act; // First consider opponent's move
     Bitboard mocc = pieces () ^ org ^ dst;
     if (ENPASSANT == mtype (m))
     {
-        mocc ^= dst - pawn_push (active);
+        mocc ^= dst - pawn_push (act);
     }
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
@@ -961,7 +961,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->null_ply = 0;
     si->capture = NONE;
     si->promote = NONE;
-    si->checkers = attackers_to (square<KING> (active), ~active);
+    si->checkers = attackers_to (square<KING> (active)) & pieces (~active);
     si->set_check_info (*this);
     thread = th;
     return *this;
@@ -1031,7 +1031,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             //&& R_1 == rel_rank (active, org)
             //&& R_1 == rel_rank (active, dst)
             && si->can_castle (active|(dst > org ? CS_KING : CS_QUEN))
-            && 0 == si->ptr->checkers); // attackers_to (org, pasive)
+            && 0 == si->ptr->checkers); // (attackers_to (org) & pieces (pasive))
 
         si->capture = NONE;
         auto rook_org = dst; // Castling is encoded as "King captures friendly Rook"
@@ -1156,10 +1156,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         prefetch (thread->pawn_table[si->pawn_key]);
     }
 
-    assert(0 == attackers_to (square<KING> (active), pasive));
+    assert(0 == (attackers_to (square<KING> (active)) & pieces (pasive)));
 
     // Calculate checkers
-    si->checkers = is_check ? attackers_to (square<KING> (pasive), active) : 0;
+    si->checkers = is_check ? attackers_to (square<KING> (pasive)) & pieces (active) : 0;
     assert(!is_check
         || (   0 != si->checkers
             && 0 == (si->checkers & ~pieces (active))));
@@ -1536,8 +1536,8 @@ bool Position::ok () const
         || (pieces (PAWN)|pieces (NIHT)|pieces (BSHP)|pieces (ROOK)|pieces (QUEN)|pieces (KING))
         != (pieces (PAWN)^pieces (NIHT)^pieces (BSHP)^pieces (ROOK)^pieces (QUEN)^pieces (KING))
         || 0 != (pieces (PAWN) & (R1_bb|R8_bb))
-        || 0 != pop_count (attackers_to (square<KING> (~active),  active))
-        || 2 <  pop_count (attackers_to (square<KING> ( active), ~active)))
+        || 0 != pop_count (attackers_to (square<KING> (~active)) & pieces ( active))
+        || 2 <  pop_count (attackers_to (square<KING> ( active)) & pieces (~active)))
     {
         assert(false && "Position OK: BITBOARD");
         return false;
@@ -1625,7 +1625,7 @@ bool Position::ok () const
         || si->posi_key != RandZob.compute_posi_key (*this)
         || si->npm[WHITE] != compute_npm<WHITE> (*this)
         || si->npm[BLACK] != compute_npm<BLACK> (*this)
-        || si->checkers != attackers_to (square<KING> (active), ~active)
+        || si->checkers != (attackers_to (square<KING> (active)) & pieces (~active))
         || 2 < pop_count (si->checkers)
         || si->clock_ply > 2*i32(Options["Draw MoveCount"])
         || (   NONE != si->capture

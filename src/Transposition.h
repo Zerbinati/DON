@@ -58,7 +58,7 @@ public:
             m16 = u16(m);
         }
         if (   k16 != (k >> 0x30)
-            || d08 - 4 < d
+            || (d08 - 4) < d
             || BOUND_EXACT == b)
         {
             k16 = u16(k >> 0x30);

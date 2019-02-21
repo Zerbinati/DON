@@ -74,9 +74,9 @@ private:
 public:
 
     void operator= (const T &v) { entry = v; }
-    T* operator&() { return &entry; }
-    T* operator->() { return &entry; }
-    operator const T&() const { return entry; }
+    T* operator& () { return &entry; }
+    T* operator-> () { return &entry; }
+    operator const T& () const { return entry; }
 
     void operator<< (i32 bonus)
     {
@@ -116,21 +116,16 @@ struct Stats<T, D, Size>
 
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 /// during the current search, and is used for reduction and move ordering decisions, indexed by [color][move].
-typedef Stats<i16, 10692, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
-
+typedef Stats<i16, 10692, CLR_NO, SQ_NO*SQ_NO>              ButterflyHistory;
 /// CaptureHistory stores capture history, indexed by [piece][move][captured piece type]
-typedef Stats<i16, 10692, MAX_PIECE, SQ_NO*SQ_NO, PT_NO> CaptureHistory;
-
+typedef Stats<i16, 10692, MAX_PIECE, SQ_NO*SQ_NO, PT_NO>    CaptureHistory;
 /// PieceDestinyHistory is like ButterflyHistory, indexed by [piece][destiny]
-typedef Stats<i16, 29952, MAX_PIECE, SQ_NO> PieceDestinyHistory;
-
+typedef Stats<i16, 29952, MAX_PIECE, SQ_NO>                 PieceDestinyHistory;
 /// ContinuationHistory is the combined history of a given pair of moves, usually the current one given a previous one.
 /// The nested history table is based on PieceDestinyHistory, indexed by [piece][destiny]
-typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO> ContinuationHistory;
-
+typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO>     ContinuationHistory;
 /// MoveHistory stores moves, indexed by [piece][move]
-typedef Stats<Move, 0, MAX_PIECE, SQ_NO*SQ_NO> MoveHistory;
-
+typedef Stats<Move, 0, MAX_PIECE, SQ_NO*SQ_NO>              MoveHistory;
 
 /// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
