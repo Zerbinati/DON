@@ -19,6 +19,7 @@ namespace EndGame {
         KPK,   // KP vs K
         KBNK,  // KBN vs K
         KNNK,  // KNN vs K
+        KNNKP, // KNN vs KP
         KRKP,  // KR vs KP
         KRKB,  // KR vs KB
         KRKN,  // KR vs KN
@@ -97,10 +98,9 @@ namespace EndGame {
         template<EndgameCode EC, typename ET = EndgameType<EC>>
         void add (const std::string &code)
         {
-            StateInfo si[CLR_NO];
-            std::memset (si, 0, sizeof (si));
-            map<ET> ()[Position ().setup (code, WHITE, si[WHITE]).si->matl_key] = Ptr<ET> (new Endgame<EC> (WHITE));
-            map<ET> ()[Position ().setup (code, BLACK, si[BLACK]).si->matl_key] = Ptr<ET> (new Endgame<EC> (BLACK));
+            StateInfo si;
+            map<ET> ()[Position ().setup (code, WHITE, si).si->matl_key] = Ptr<ET> (new Endgame<EC> (WHITE));
+            map<ET> ()[Position ().setup (code, BLACK, si).si->matl_key] = Ptr<ET> (new Endgame<EC> (BLACK));
         }
 
     public:
@@ -109,6 +109,7 @@ namespace EndGame {
             // EVALUATION_FUNCTIONS
             add<KPK>     ("KPK");
             add<KNNK>    ("KNNK");
+            add<KNNKP>   ("KNNKP");
             add<KBNK>    ("KBNK");
             add<KRKP>    ("KRKP");
             add<KRKB>    ("KRKB");

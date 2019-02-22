@@ -348,6 +348,7 @@ enum Scale : u08
     constexpr T operator+ (T t, i32 i) { return T(i32(t) + i); } \
     constexpr T operator- (T t, i32 i) { return T(i32(t) - i); } \
     constexpr T operator* (T t, i32 i) { return T(i32(t) * i); } \
+    constexpr T operator* (i32 i, T t) { return T(i32(t) * i); } \
     constexpr T operator/ (T t, i32 i) { return T(i32(t) / i); } \
     inline T& operator+= (T &t, i32 i) { return t = t + i; }     \
     inline T& operator-= (T &t, i32 i) { return t = t - i; }     \
@@ -532,7 +533,7 @@ constexpr Move mk_move<PROMOTE> (Square org, Square dst)
 }
 
 constexpr i16   value_to_cp (Value v) { return i16((v*100)/VALUE_EG_PAWN); }
-constexpr Value cp_to_value (i16  cp) { return Value((cp*VALUE_EG_PAWN)/100); }
+constexpr Value cp_to_value (i16  cp) { return Value((i32(cp)*VALUE_EG_PAWN)/100); }
 
 constexpr Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 constexpr Value mated_in (i32 ply) { return -VALUE_MATE + ply; }

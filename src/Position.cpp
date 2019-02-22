@@ -318,7 +318,7 @@ bool Position::pseudo_legal (Move m) const
             && (   NORMAL != mtype (m)
                 || R_2 != rel_rank (active, org_sq (m))
                 || R_4 != rel_rank (active, dst_sq (m))
-                || dst_sq (m) != org_sq (m) + pawn_push (active) * 2
+                || dst_sq (m) != org_sq (m) + 2*pawn_push (active)
                 //|| contains (pieces (), dst_sq (m) - pawn_push (active))
                 || !empty (dst_sq (m) - pawn_push (active))
                 //|| contains (pieces (), dst_sq (m))
@@ -777,7 +777,7 @@ void Position::clear ()
     std::fill (castle_rook_path_bb[0], castle_rook_path_bb[0] + CLR_NO*CS_NO, 0);
     std::fill (castle_king_path_bb[0], castle_king_path_bb[0] + CLR_NO*CS_NO, 0);
     for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-         B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
+                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
     {
         squares[pc].clear ();
     }
@@ -837,7 +837,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         else
         if (token == '/')
         {
-            sq += DEL_S * 2;
+            sq += 2*DEL_S;
         }
         else
         if ((idx = PieceChar.find (token)) != string::npos)
@@ -1138,7 +1138,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         }
         else
         // Double push pawn
-        if (dst == org + pawn_push (active) * 2)
+        if (dst == org + 2*pawn_push (active))
         {
             // Set enpassant square if the moved pawn can be captured
             auto ep_sq = org + pawn_push (active);
@@ -1161,8 +1161,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     // Calculate checkers
     si->checkers = is_check ? attackers_to (square<KING> (pasive)) & pieces (active) : 0;
     assert(!is_check
-        || (   0 != si->checkers
-            && 0 == (si->checkers & ~pieces (active))));
+        || (0 != si->checkers
+         && 0 == (si->checkers & ~pieces (active))));
 
     // Switch sides
     active = pasive;
