@@ -213,9 +213,6 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        std::fill_n (sgl_attacks[Own], 5, 0);
-        std::fill_n (queen_attacks[Own], 3, 0);
-
         auto fk_sq = pos.square<KING> (Own);
 
         Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
@@ -287,6 +284,11 @@ namespace {
 
         auto score = SCORE_ZERO;
 
+        sgl_attacks[Own][PT] = 0;
+        if (QUEN == PT)
+        {
+            std::fill_n (queen_attacks[Own], 3, 0);
+        }
         for (const auto &s : pos.squares[Own|PT])
         {
             assert(pos[s] == (Own|PT));

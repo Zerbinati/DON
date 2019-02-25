@@ -33,8 +33,7 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit)
             || ite->k16 == key16)
         {
             ite->refresh (); // Refresh entry.
-            tt_hit = !ite->empty ();
-            return ite;
+            return tt_hit = !ite->empty (), ite;
         }
         // Replacement strategy.
         if (  rte->worth ()
@@ -43,8 +42,7 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit)
             rte = ite;
         }
     }
-    tt_hit = false;
-    return rte;
+    return tt_hit = false, rte;
 }
 
 void TCluster::clear ()

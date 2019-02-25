@@ -1101,12 +1101,14 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     }
 
     // Update castling rights
-    auto cr = castle_right[org] | castle_right[dst];
-    if (   CR_NONE != cr
-        && CR_NONE != si->castle_rights)
+    if (CR_NONE != si->castle_rights)
     {
-        key ^= RandZob.castle_right[si->castle_rights & cr];
-        si->castle_rights &= ~cr;
+        auto cr = (castle_right[org] | castle_right[dst]);
+        if (CR_NONE != cr)
+        {
+            key ^= RandZob.castle_right[si->castle_rights & cr];
+            si->castle_rights &= ~cr;
+        }
     }
 
     if (PAWN == mpt)
