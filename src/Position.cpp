@@ -64,10 +64,9 @@ void Position::initialize ()
         {
             for (const auto &org : SQ)
             {
-                for (const auto &dst : SQ)
+                for (auto dst = org + DEL_E; dst <= SQ_H8; ++dst)
                 {
-                    if (   org < dst
-                        && contains (PieceAttacks[pt][org], dst))
+                    if (contains (PieceAttacks[pt][org], dst))
                     {
                         Cuckoo cuckoo;
                         cuckoo.key = RandZob.piece_square[c][pt][org]
@@ -80,8 +79,7 @@ void Position::initialize ()
                         {
                             std::swap (Cuckoos[i], cuckoo);
                             // Arrived at empty slot ?
-                            if (   0 == cuckoo.key
-                                || MOVE_NONE == cuckoo.move)
+                            if (/*0 == cuckoo.key ||*/ MOVE_NONE == cuckoo.move)
                             {
                                 break;
                             }
@@ -159,17 +157,14 @@ bool Position::cycled (i16 pp) const
         if (   (j = H1 (key), key == Cuckoos[j].key)
             || (j = H2 (key), key == Cuckoos[j].key))
         {
-            Move move = Cuckoos[j].move;
-            auto org = org_sq (move);
-            auto dst = dst_sq (move);
-
-            if (0 == (between_bb (org, dst) & pieces()))
+            if (0 == (between_bb (org_sq (Cuckoos[j].move), dst_sq (Cuckoos[j].move)) & pieces()))
             {
-                // Take care to reverse the move in the no-progress case (opponent to move)
-                if (empty (org))
-                {
-                    move = mk_move<NORMAL> (dst, org);
-                }
+                //// In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
+                //// Select the legal one by reversing the move variable if necessary.
+                //if (empty (org))
+                //{
+                //    std::swap (org, dst);
+                //}
 
                 if (pp > p)
                 {
@@ -994,6 +989,7 @@ Position& Position::setup (const string &code, Color c, StateInfo &nsi)
 void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 {
     assert(_ok (m)
+        && contains (pieces (), org_sq (m))
         && &nsi != si);
 
     thread->nodes.fetch_add (1, std::memory_order::memory_order_relaxed);
@@ -1151,7 +1147,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->clock_ply = 0;
         si->pawn_key ^= RandZob.piece_square[active][PAWN][org]
                       ^ RandZob.piece_square[active][PAWN][dst];
-        prefetch (thread->pawn_table[si->pawn_key]);
+        prefetch2 (thread->pawn_table[si->pawn_key]);
     }
 
     assert(0 == (attackers_to (square<KING> (active)) & pieces (pasive)));

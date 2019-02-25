@@ -121,7 +121,7 @@ inline void prefetch (const void *addr)
     // Intel compiler. Both MSVC and gcc seem not be affected by this.
     __asm__ ("");
 #   endif
-    _mm_prefetch (reinterpret_cast<const char*> (addr), _MM_HINT_T0);
+    _mm_prefetch ((const char*)(addr), _MM_HINT_T0);
 }
 
 #   else
@@ -132,9 +132,19 @@ inline void prefetch (const void *addr)
 }
 
 #   endif
+
+inline void prefetch2 (const void *addr)
+{
+    prefetch (addr);
+    prefetch ((const u08*)(addr)+64);
+}
+
 #else
 
-inline void prefetch (const void *)
+inline void prefetch (const void*)
+{}
+
+inline void prefetch2 (const void*)
 {}
 
 #endif
