@@ -238,8 +238,7 @@ namespace BitBoard {
     {
         //i08 s = i08(s1) ^ i08(s2);
         //return 0 != (((s >> 3) ^ s) & 1);
-        return (contains (Color_bb[WHITE], s1) && contains (Color_bb[BLACK], s2))
-            || (contains (Color_bb[BLACK], s1) && contains (Color_bb[WHITE], s2));
+        return (contains (Color_bb[WHITE], s1) == contains (Color_bb[BLACK], s2));
     }
 
     constexpr Bitboard pawn_pushes_bb (Color c, Bitboard bb)

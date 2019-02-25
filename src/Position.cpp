@@ -222,35 +222,34 @@ Bitboard Position::slider_blockers (Square s, Color c, Bitboard excluds, Bitboar
 {
     Bitboard blockers = 0;
     // Snipers are attackers to the square 's'
-    Bitboard snipers = (pieces (c) ^ excluds)
+    Bitboard snipers = (  pieces (c) 
+                        ^ excluds)
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
-    if (0 != snipers)
+    // Remove direct attackers to the square 's'
+    snipers &= ~(attackers_to (s) & pieces (c));
+    // Occupancy are pieces but removed snipers
+    Bitboard mocc = pieces () & ~snipers;
+    while (0 != snipers)
     {
-        // Remove direct attackers to the square 's'
-        snipers &= ~(attackers_to (s) & pieces (c));
-        // Occupancy are pieces but removed snipers
-        Bitboard mocc = pieces () & ~snipers;
-        while (0 != snipers)
-        {
-            auto sniper_sq = pop_lsq (snipers);
+        auto sniper_sq = pop_lsq (snipers);
 
-            Bitboard b = mocc & between_bb (s, sniper_sq);
-            if (   0 != b
-                && !more_than_one (b))
+        Bitboard b = mocc & between_bb (s, sniper_sq);
+        if (   0 != b
+            && !more_than_one (b))
+        {
+            blockers |= b;
+            if (0 != (b & pieces (c)))
             {
-                blockers |= b;
-                if (0 != (b & pieces (c)))
-                {
-                    hiddens |= sniper_sq;
-                }
-                else
-                {
-                    pinners |= sniper_sq;
-                }
+                hiddens |= sniper_sq;
+            }
+            else
+            {
+                pinners |= sniper_sq;
             }
         }
     }
+
     return blockers;
 }
 
@@ -279,7 +278,7 @@ bool Position::pseudo_legal (Move m) const
             && 0 == si->checkers;
     }
     // The captured square cannot be occupied by a friendly piece
-    if (contains (pieces (active), ENPASSANT != mtype (m) ? dst_sq (m) : dst_sq (m) - pawn_push (active)))
+    if (contains (pieces (active), dst_sq (m)))
     {
         return false;
     }
@@ -632,9 +631,9 @@ PieceType Position::pick_least_val_att (Bitboard stm_attackers, Square dst, Squa
     org = scan_lsq (b);
     mocc ^= org; // Remove the attacker from occupied
 
-                 // Add any X-ray attack behind the just removed piece.
-                 // For instance with rooks in a8 and a7 attacking a1, after removing a7 now add rook in a8.
-                 // Note that new added attackers can be of any color.
+    // Add any X-ray attack behind the just removed piece.
+    // For instance with rooks in a8 and a7 attacking a1, after removing a7 now add rook in a8.
+    // Note that new added attackers can be of any color.
     if (   (   PAWN == PT
             || BSHP == PT
             || QUEN == PT)
@@ -683,8 +682,7 @@ bool Position::see_ge (Move m, Value threshold) const
         return false;
     }
 
-    auto pc = piece[org];
-    auto victim = ptype (pc);
+    auto victim = ptype (piece[org]);
     // Now assume the worst possible result: that the opponent can capture our piece for free.
     balance -= PieceValues[MG][victim];
     // If it is enough (like in PxQ) then return immediately.
@@ -694,7 +692,7 @@ bool Position::see_ge (Move m, Value threshold) const
         return true;
     }
 
-    auto act = color (pc);
+    auto act = color (piece[org]);
     auto stm = ~act; // First consider opponent's move
     Bitboard mocc = pieces () ^ org ^ dst;
     if (ENPASSANT == mtype (m))

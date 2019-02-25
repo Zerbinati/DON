@@ -506,9 +506,6 @@ namespace Searcher {
                         && pos.legal (move) ?
                             move :
                             MOVE_NONE;
-            assert(MOVE_NONE == tt_move
-                || (pos.pseudo_legal (tt_move)
-                 && pos.legal (tt_move)));
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
@@ -856,9 +853,6 @@ namespace Searcher {
                             && pos.legal (move) ?
                                 move :
                                 MOVE_NONE;
-            assert(MOVE_NONE == tt_move
-                || (pos.pseudo_legal (tt_move)
-                 && pos.legal (tt_move)));
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
@@ -1030,7 +1024,7 @@ namespace Searcher {
                 // Step 7. Razoring. (~2 ELO)
                 if (   !root_node // The required RootNode PV handling is not available in qsearch
                     && 2 > depth
-                    && eval <= std::max (alfa - RazorMargin, -VALUE_INFINITE))
+                    && eval <= alfa - RazorMargin)
                 {
                     return quien_search<PVNode> (pos, ss, alfa, beta);
                 }
@@ -1058,7 +1052,7 @@ namespace Searcher {
                     && VALUE_ZERO != pos.si->non_pawn_material (pos.active)
                     && 23200 > (ss-1)->stats
                     && eval >= beta
-                    && std::min (tt_eval + 36*depth - 225, +VALUE_INFINITE) >= beta
+                    && tt_eval + 36*depth - 225 >= beta
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != pos.active))
                 {

@@ -116,9 +116,6 @@ namespace BitBoard {
             {
                 auto &magic = magics[s];
 
-                // magics[s].attacks is a pointer to the beginning of the attacks table for square
-                magic.attacks = &attacks[offset];
-
                 // Given a square, the mask is the bitboard of sliding attacks from
                 // computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
@@ -127,9 +124,12 @@ namespace BitBoard {
                 magic.mask = PieceAttacks[PT][s]
                             // Board edges are not considered in the relevant occupancies
                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
-                
+
                 auto mask_popcount = pop_count (magic.mask);
+
+                // magics[s].attacks is a pointer to the beginning of the attacks table for square
                 //magic.attacks = new Bitboard[pow (2, mask_popcount)];
+                magic.attacks = &attacks[offset];
 
 #           if !defined(BM2)
                 magic.shift = u08(

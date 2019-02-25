@@ -38,8 +38,8 @@ namespace EndGame {
             130, 140, 150, 160, 170, 180, 190, 200
         };
         // Tables used to drive a piece towards or away from another piece.
-        constexpr i32 PushClose[8] = { 0, 100,  90,  80,  60,  40,  20,   0 };
-        constexpr i32 PushAway [8] = { 0,   0,  20,  40,  60,  80,  90, 100 };
+        constexpr i32 PushClose[8] = { 0, 100,  70,  50,  35,  20,  10,   0 };
+        constexpr i32 PushAway [8] = { 0,   0,  30,  50,  65,  80,  90, 100 };
 
         // Pawn Rank based scaling.
         constexpr Scale RankScale[R_NO] =
@@ -678,8 +678,8 @@ namespace EndGame {
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        Bitboard b = front_line_bb (strong_color, sp_sq) & PieceAttacks[BSHP][sb_sq];
-        if (   0 != b
+        Bitboard b;
+        if (   0 != (b = front_line_bb (strong_color, sp_sq) & PieceAttacks[BSHP][sb_sq])
             && 0 != (b & attacks_bb<BSHP> (sb_sq, pos.pieces ())))
         {
             return Scale(dist (wk_sq, sp_sq));

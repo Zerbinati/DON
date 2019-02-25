@@ -10,27 +10,24 @@ namespace Pawns {
 
     namespace {
 
-        constexpr i32 Seeds[R_NO] = { 0, 13, 24, 18, 65, 100, 175, 330 };
-
-#   define V(v) Value(v)
-
-        constexpr Value Shelter[F_NO/2][R_NO] =
+        // Safety of friend pawns shelter for our king by [distance from edge][rank].
+        // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
+        constexpr i32 Shelter[F_NO/2][R_NO] =
         {
-            { V( -6), V( 81), V( 93), V( 58), V( 39), V( 18), V(  25), V(0) },
-            { V(-43), V( 61), V( 35), V(-49), V(-29), V(-11), V( -63), V(0) },
-            { V(-10), V( 75), V( 23), V( -2), V( 32), V(  3), V( -45), V(0) },
-            { V(-39), V(-13), V(-29), V(-52), V(-48), V(-67), V(-166), V(0) }
+            {  -6,  81,  93,  58,  39,  18,   25, 0 },
+            { -43,  61,  35, -49, -29, -11,  -63, 0 },
+            { -10,  75,  23,  -2,  32,   3,  -45, 0 },
+            { -39, -13, -29, -52, -48, -67, -166, 0 }
         };
-
-        constexpr Value Storm[F_NO/2][R_NO] =
+        // Danger of unblocked enemy pawns strom toward our king by [distance from edge][rank].
+        // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
+        constexpr i32 Storm[F_NO/2][R_NO] =
         {
-            { V( 89), V(107), V(123), V( 93), V( 57), V( 45), V(  51), V(0) },
-            { V( 44), V(-18), V(123), V( 46), V( 39), V( -7), V(  23), V(0) },
-            { V(  4), V( 52), V(162), V( 37), V(  7), V(-14), V(  -2), V(0) },
-            { V(-10), V(-14), V( 90), V( 15), V(  2), V( -7), V( -16), V(0) }
+            {  89, 107, 123,  93,  57,  45,   51, 0 },
+            {  44, -18, 123,  46,  39,  -7,   23, 0 },
+            {   4,  52, 162,  37,   7, -14,   -2, 0 },
+            { -10, -14,  90,  15,   2,  -7,  -16, 0 }
         };
-
-#   undef V
 
 #   define S(mg, eg) mk_score(mg, eg)
 
@@ -89,7 +86,7 @@ namespace Pawns {
                 Bitboard phalanxes  = neighbours & rank_bb (s);
                 Bitboard stoppers   = opp_pawns & pawn_pass_span (Own, s);
                 Bitboard levers     = opp_pawns & PawnAttacks[Own][s];
-                Bitboard escapes    = opp_pawns & PawnAttacks[Own][s+Push];
+                Bitboard escapes    = opp_pawns & PawnAttacks[Own][s+Push]; // Push levers
 
                 bool blocked = contains (own_pawns, s-Push);
                 bool opposed = 0 != (opp_pawns & front_line_bb (Own, s));
@@ -177,9 +174,11 @@ namespace Pawns {
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        auto value = contains (pawn_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq) ?
-                        Value(374) :
-                        Value(5);
+        i32 value = 5;
+        if (contains (pawn_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq))
+        {
+            value += 369;
+        }
 
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
         for (const auto &f : { kf - File(1), kf, kf + File(1) })
@@ -201,7 +200,7 @@ namespace Pawns {
                         Storm[ff][opp_r];
         }
 
-        return value;
+        return Value(value);
     }
     // Explicit template instantiations
     template Value Entry::evaluate_safety<WHITE> (const Position&, Square) const;
@@ -229,6 +228,8 @@ namespace Pawns {
     /// Pawns::initialize() initializes pawn lookup tables.
     void initialize ()
     {
+        constexpr i32 Seeds[R_NO] ={ 0, 13, 24, 18, 65, 100, 175, 330 };
+
         for (i08 opposed = 0; opposed < 2; ++opposed)
         {
             for (i08 phalanx = 0; phalanx < 2; ++phalanx)

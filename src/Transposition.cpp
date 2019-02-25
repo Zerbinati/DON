@@ -225,26 +225,27 @@ u32 TTable::hash_full () const
 /// TTable::extract_pm() extracts ponder move from TT.
 Move TTable::extract_pm (Position &pos, Move bm) const
 {
+    assert(MOVE_NONE != bm
+        && MoveList<GenType::LEGAL> (pos).contains (bm));
+
     Move pm = MOVE_NONE;
-    if (   MOVE_NONE != bm
-        && MoveList<GenType::LEGAL> (pos).contains (bm))
+
+    StateInfo si;
+    pos.do_move (bm, si);
+    bool tt_hit;
+    auto *tte = probe (pos.si->posi_key, tt_hit);
+    Move m;
+    if (   tt_hit
+        && MOVE_NONE != (m = tte->move ())
+        && pos.pseudo_legal (m)
+        && pos.legal (m))
     {
-        StateInfo si;
-        pos.do_move (bm, si);
-        bool tt_hit;
-        auto *tte = probe (pos.si->posi_key, tt_hit);
-        Move m;
-        if (   tt_hit
-            && MOVE_NONE != (m = tte->move ())
-            && pos.pseudo_legal (m)
-            && pos.legal (m))
-        {
-            pm = m;
-        }
-        assert(MOVE_NONE == pm
-            || MoveList<GenType::LEGAL> (pos).contains (pm));
-        pos.undo_move (bm);
+        pm = m;
     }
+    assert(MOVE_NONE == pm
+        || MoveList<GenType::LEGAL> (pos).contains (pm));
+    pos.undo_move (bm);
+
     return pm;
 }
 
