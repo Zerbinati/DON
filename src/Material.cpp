@@ -158,17 +158,17 @@ namespace Material {
         for (const auto &c : { WHITE, BLACK })
         {
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_BSHP
-                && pos.count ( c, BSHP) == 1
+                //&& pos.count ( c, BSHP) == 1
                 && pos.count ( c, PAWN) != 0)
             {
                 e->scale_func[c] = &ScaleKBPsKP[c];
             }
             else
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_QUEN
-                && pos.count ( c, QUEN) == 1
+                //&& pos.count ( c, QUEN) == 1
                 && pos.count ( c, PAWN) == 0
                 && pos.si->non_pawn_material (~c) == VALUE_MG_ROOK
-                && pos.count (~c, ROOK) == 1
+                //&& pos.count (~c, ROOK) == 1
                 && pos.count (~c, PAWN) != 0)
             {
                 e->scale_func[c] = &ScaleKQKRPs[c];

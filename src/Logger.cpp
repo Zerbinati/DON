@@ -24,7 +24,7 @@ void debug_init ()
     ItemSum = 0;
 }
 
-void debug_hit_on (bool hit)
+void debug_hit (bool hit)
 {
     static Mutex mutex;
 
@@ -41,7 +41,7 @@ void debug_hit_on (bool cond, bool hit)
 {
     if (cond)
     {
-        debug_hit_on (hit);
+        debug_hit (hit);
     }
 }
 

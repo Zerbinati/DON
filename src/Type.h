@@ -479,28 +479,16 @@ constexpr Square rel_sq (Color c, Square s) { return Square(s ^ (c*SQ_A8)); }
 constexpr Rank rel_rank (Color c, Rank r)   { return Rank(r ^ (c*R_8)); }
 constexpr Rank rel_rank (Color c, Square s) { return rel_rank (c, _rank (s)); }
 
-constexpr Delta pawn_push (Color c)
-{
-    return WHITE == c ? DEL_N : DEL_S;
-}
-constexpr Delta pawn_l_att (Color c)
-{
-    return WHITE == c ? DEL_NW : DEL_SE;
-}
-constexpr Delta pawn_r_att (Color c)
-{
-    return WHITE == c ? DEL_NE : DEL_SW;
-}
+constexpr Delta pawn_push  (Color c) { return WHITE == c ? DEL_N : DEL_S; }
+constexpr Delta pawn_l_att (Color c) { return WHITE == c ? DEL_NW : DEL_SE; }
+constexpr Delta pawn_r_att (Color c) { return WHITE == c ? DEL_NE : DEL_SW; }
 
 constexpr CastleRight operator| (Color c, CastleSide cs)
 {
     return CastleRight(CR_WKING << (2 * c + (cs == CS_KING ? 0 : 1)));
 }
 
-constexpr bool      _ok   (PieceType pt)
-{
-    return PAWN <= pt && pt <= KING;
-}
+constexpr bool      _ok   (PieceType pt) { return PAWN <= pt && pt <= KING; }
 constexpr Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
 
 constexpr bool      _ok   (Piece p)

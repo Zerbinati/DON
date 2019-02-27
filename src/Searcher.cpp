@@ -500,11 +500,8 @@ namespace Searcher {
             Key key = pos.si->posi_key;
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
-            auto tt_move = tt_hit
-                        && MOVE_NONE != (move = tte->move ())
-                        && pos.pseudo_legal (move)
-                        && pos.legal (move) ?
-                            move :
+            auto tt_move = tt_hit ?
+                            tte->move () :
                             MOVE_NONE;
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
@@ -601,6 +598,13 @@ namespace Searcher {
                 }
 
                 futility_base = best_value + 128;
+            }
+
+            if (   MOVE_NONE != tt_move
+                && !(   pos.pseudo_legal (tt_move)
+                     && pos.legal (tt_move)))
+            {
+                tt_move = MOVE_NONE;
             }
 
             u08 move_count = 0;
@@ -847,11 +851,8 @@ namespace Searcher {
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = root_node ?
                             thread->root_moves[thread->pv_cur].front () :
-                               tt_hit
-                            && MOVE_NONE != (move = tte->move ())
-                            && pos.pseudo_legal (move)
-                            && pos.legal (move) ?
-                                move :
+                               tt_hit ?
+                                tte->move () :
                                 MOVE_NONE;
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
@@ -969,6 +970,13 @@ namespace Searcher {
 
                     }
                 }
+            }
+
+            if (   MOVE_NONE != tt_move
+                && !(   pos.pseudo_legal (tt_move)
+                     && pos.legal (tt_move)))
+            {
+                tt_move = MOVE_NONE;
             }
 
             StateInfo si;
@@ -1166,15 +1174,19 @@ namespace Searcher {
                 depth_search<PVNode> (pos, ss, alfa, beta, depth - 7, cut_node);
 
                 tte = TT.probe (key, tt_hit);
-                tt_move = tt_hit
-                       && MOVE_NONE != (move = tte->move ())
-                       && pos.pseudo_legal (move)
-                       && pos.legal (move) ?
-                            move :
+                tt_move = tt_hit ?
+                            tte->move () :
                             MOVE_NONE;
                 tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
+
+                if (   MOVE_NONE != tt_move
+                    && !(   pos.pseudo_legal (tt_move)
+                         && pos.legal (tt_move)))
+                {
+                    tt_move = MOVE_NONE;
+                }
             }
 
             value = best_value;
@@ -1218,10 +1230,6 @@ namespace Searcher {
                 }
 
                 ss->move_count = ++move_count;
-
-                // Skip quiet moves if move count exceeds our FutilityMoveCounts threshold
-                move_picker.skip_quiets = 16 > depth
-                                       && FutilityMoveCounts[improving ? 1 : 0][depth] <= move_count;
 
                 auto org = org_sq (move);
                 auto dst = dst_sq (move);
@@ -1314,6 +1322,9 @@ namespace Searcher {
                     && -VALUE_MATE_MAX_PLY < best_value
                     && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
                 {
+                    move_picker.skip_quiets = 16 > depth
+                                           && FutilityMoveCounts[improving ? 1 : 0][depth] <= move_count;
+
                     if (   !capture_or_promotion
                         && !gives_check
                         && !pos.pawn_advance (move))
@@ -1559,9 +1570,9 @@ namespace Searcher {
                 }
             }
 
-            assert(!in_check
+            assert(0 != move_count
+                || !in_check
                 || MOVE_NONE != ss->excluded_move
-                || 0 != move_count
                 || 0 == MoveList<GenType::LEGAL> (pos).size ());
 
             // Step 21. Check for checkmate and stalemate.
