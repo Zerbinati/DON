@@ -112,13 +112,13 @@ bool Position::draw (i16 pp) const
     }
 
     // Draw by Repetition?
-    u08 end = std::min (si->clock_ply, si->null_ply);
+    i16 end = std::min (si->clock_ply, si->null_ply);
     if (end < 4)
     {
         return false;
     }
     const auto *psi = si->ptr->ptr;
-    for (u08 cnt = 0, p = 4; p <= end; p += 2)
+    for (i16 cnt = 0, p = 4; p <= end; p += 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == si->posi_key)
@@ -139,7 +139,7 @@ bool Position::draw (i16 pp) const
 /// or an earlier position has a move that directly reaches the current position.
 bool Position::cycled (i16 pp) const
 {
-    u08 end = std::min (si->clock_ply, si->null_ply);
+    i16 end = std::min (si->clock_ply, si->null_ply);
     if (end < 3)
     {
         return false;
@@ -148,7 +148,7 @@ bool Position::cycled (i16 pp) const
     Key posi_key = si->posi_key;
     const auto *psi = si->ptr;
 
-    for (u08 p = 3; p <= end; p += 2)
+    for (i16 p = 3; p <= end; p += 2)
     {
         psi = psi->ptr->ptr;
         Key key = posi_key ^ psi->posi_key;
@@ -172,7 +172,7 @@ bool Position::cycled (i16 pp) const
                 }
                 // For repetitions before or at the root, require one more
                 const auto *next_psi = psi;
-                for (u08 k = p + 2; k <= end; k += 2)
+                for (i16 k = p + 2; k <= end; k += 2)
                 {
                     next_psi = next_psi->ptr->ptr;
                     if (next_psi->posi_key == psi->posi_key)
@@ -192,13 +192,13 @@ bool Position::repeated () const
     const auto *csi = si;
     while (nullptr != csi)
     {
-        u08 end = std::min (csi->clock_ply, csi->null_ply);
+        i16 end = std::min (csi->clock_ply, csi->null_ply);
         if (end < 4)
         {
             break;
         }
         const auto *psi = csi->ptr->ptr;
-        for (u08 p = 4; p <= end; p += 2)
+        for (i16 p = 4; p <= end; p += 2)
         {
             psi = psi->ptr->ptr;
             if (psi->posi_key == si->posi_key)
@@ -770,16 +770,19 @@ void Position::clear ()
     std::fill (castle_rook_path_bb[0], castle_rook_path_bb[0] + CLR_NO*CS_NO, 0);
     std::fill (castle_king_path_bb[0], castle_king_path_bb[0] + CLR_NO*CS_NO, 0);
     for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
+                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
         squares[pc].clear ();
     }
     psq = SCORE_ZERO;
+    ply = 0;
+    active = CLR_NO;
+    thread = nullptr;
 }
 /// Position::setup() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
-Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, bool full)
+Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th)
 {
     // A FEN string defines a particular position using only the ASCII character set.
     // A FEN string contains six fields separated by a space.
@@ -810,11 +813,12 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     // 6) Full move number. The number of the full move.
     //    It starts at 1, and is incremented after Black's move.
 
+    clear ();
+    nsi.clear ();
+    si = &nsi;
+
     istringstream iss (ff);
     iss >> std::noskipws;
-
-    clear ();
-    si = &nsi;
 
     u08 token;
     // 1. Piece placement on Board
@@ -850,7 +854,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     iss >> token;
     active = Color(ColorChar.find (token));
 
-    si->castle_rights = CR_NONE;
     // 3. Castling availability
     iss >> token;
     while (   (iss >> token)
@@ -907,56 +910,42 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     }
 
     // 4. Enpassant square. Ignore if no pawn capture is possible.
-    si->enpassant_sq = SQ_NO;
     u08 file, rank;
     if (   (iss >> file && ('a' <= file && file <= 'h'))
         && (iss >> rank && ('3' == rank || rank == '6')))
     {
-        auto ep_sq = to_square (file, rank);
-        if (can_enpassant (active, ep_sq))
+        si->enpassant_sq = to_square (file, rank);
+        if (!can_enpassant (active, si->enpassant_sq))
         {
-            si->enpassant_sq = ep_sq;
+            si->enpassant_sq = SQ_NO;
         }
     }
 
     // 5-6. Half move clock and Full move number.
-    i16 clock_ply = 0
-      , moves = 1;
-    if (full)
+    iss >> std::skipws
+        >> si->clock_ply
+        >> ply;
+
+    if (SQ_NO != si->enpassant_sq)
     {
-        iss >> std::skipws
-            >> clock_ply
-            >> moves;
-
-        if (SQ_NO != si->enpassant_sq)
-        {
-            clock_ply = 0;
-        }
-        // Rule 50 draw case.
-        assert(100 >= clock_ply);
-
-        // Handle common problem Full move number = 0.
-        if (0 >= moves)
-        {
-            moves = 1;
-        }
+        si->clock_ply = 0;
     }
-
+    // Rule 50 draw case.
+    assert(100 >= si->clock_ply);
     // Convert from moves starting from 1 to ply starting from 0.
-    ply = i16(2*(moves - 1) + (BLACK == active ? 1 : 0));
+    ply = i16(std::max (2*(ply - 1), 0) + (BLACK == active ? 1 : 0));
+
+    thread = th;
 
     si->posi_key = RandZob.compute_posi_key (*this);
     si->matl_key = RandZob.compute_matl_key (*this);
     si->pawn_key = RandZob.compute_pawn_key (*this);
     si->npm[WHITE] = compute_npm<WHITE> (*this);
     si->npm[BLACK] = compute_npm<BLACK> (*this);
-    si->clock_ply = u08(clock_ply);
-    si->null_ply = 0;
-    si->capture = NONE;
-    si->promote = NONE;
     si->checkers = attackers_to (square<KING> (active)) & pieces (~active);
     si->set_check_info (*this);
-    thread = th;
+    
+    assert(ok ());
     return *this;
 }
 /// Position::setup() initializes the position object with the given endgame code string like "KBPKN".
@@ -979,9 +968,7 @@ Position& Position::setup (const string &code, Color c, StateInfo &nsi)
     string fen = "8/" + sides[WHITE] + char('0' + 8 - sides[WHITE].length ()) + "/8/8/8/8/"
                       + sides[BLACK] + char('0' + 8 - sides[BLACK].length ()) + "/8 w - -";
 
-    setup (fen, nsi, nullptr, false);
-
-    return *this;
+    return setup (fen, nsi, nullptr);
 }
 
 /// Position::do_move() makes a move, and saves all information necessary to a StateInfo object.
@@ -1137,11 +1124,14 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         if (dst == org + 2*pawn_push (active))
         {
             // Set enpassant square if the moved pawn can be captured
-            auto ep_sq = org + pawn_push (active);
-            if (can_enpassant (pasive, ep_sq))
+            si->enpassant_sq = org + pawn_push (active);
+            if (!can_enpassant (pasive, si->enpassant_sq))
             {
-                si->enpassant_sq = ep_sq;
-                key ^= RandZob.enpassant[_file (ep_sq)];
+                si->enpassant_sq = SQ_NO;
+            }
+            if (SQ_NO != si->enpassant_sq)
+            {
+                key ^= RandZob.enpassant[_file (si->enpassant_sq)];
             }
         }
 
@@ -1436,7 +1426,7 @@ string Position::fen (bool full) const
 
     if (full)
     {
-        oss << " " << i16(si->clock_ply) << " " << move_num ();
+        oss << " " << si->clock_ply << " " << move_num ();
     }
 
     return oss.str ();
@@ -1581,7 +1571,7 @@ bool Position::ok () const
 
     // SQUARE_LIST
     for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
+                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
         if (count (pc) != pop_count (pieces (pc)))
         {

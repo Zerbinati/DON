@@ -23,7 +23,7 @@ void TCluster::initialize ()
     }
 }
 
-TEntry* TCluster::probe (u16 key16, bool &tt_hit)
+TEntry* TCluster::probe (u16 key16, bool &hit)
 {
     // Find an entry to be replaced according to the replacement strategy.
     auto *rte = entries; // Default first
@@ -33,7 +33,7 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit)
             || ite->k16 == key16)
         {
             ite->refresh (); // Refresh entry.
-            return tt_hit = !ite->empty (), ite;
+            return hit = !ite->empty (), ite;
         }
         // Replacement strategy.
         if (  rte->worth ()
@@ -42,7 +42,7 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit)
             rte = ite;
         }
     }
-    return tt_hit = false, rte;
+    return hit = false, rte;
 }
 
 void TCluster::clear ()
@@ -199,9 +199,9 @@ void TTable::clear ()
 /// TTable::probe() looks up the entry in the transposition table.
 /// If the position is found, it returns true and a pointer to the found entry.
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
-TEntry* TTable::probe (Key key, bool &tt_hit) const
+TEntry* TTable::probe (Key key, bool &hit) const
 {
-    return cluster (key)->probe (u16(key >> 0x30), tt_hit);
+    return cluster (key)->probe (u16(key >> 0x30), hit);
 }
 /// TTable::hash_full() returns an approximation of the per-mille of the 
 /// all transposition entries during a search which have received

@@ -2,6 +2,7 @@
 #define _POSITION_H_INC_
 
 #include <cassert>
+#include <cstring>
 #include <deque>
 #include <list>
 #include <memory> // For std::unique_ptr
@@ -37,9 +38,9 @@ public:
 
     CastleRight castle_rights;  // Castling-rights information
     Square      enpassant_sq;   // Enpassant -> "In passing"
-    u08         clock_ply;      // Number of half moves clock since the last pawn advance or any capture
+    i16         clock_ply;      // Number of half moves clock since the last pawn advance or any capture
                                 // Used to determine if a draw can be claimed under the clock-move rule
-    u08         null_ply;
+    i16         null_ply;
 
     // ---Not copied when making a move---
     Key         posi_key;       // Hash key of position
@@ -70,6 +71,15 @@ public:
     CastleRight castle_right (Color c) const
     {
         return castle_rights & (WHITE == c ? CR_WHITE : CR_BLACK);
+    }
+
+    void clear ()
+    {
+        std::memset (this, 0, sizeof (*this));
+        enpassant_sq = SQ_NO;
+        null_ply = 0;
+        capture = NONE;
+        promote = NONE;
     }
 
     void set_check_info (const Position &pos);
@@ -175,9 +185,9 @@ public:
 
     bool pseudo_legal (Move) const;
     bool legal (Move) const;
-    bool enpassant (Move) const;
+    //bool enpassant (Move) const;
     bool capture (Move) const;
-    bool promotion (Move) const;
+    //bool promotion (Move) const;
     bool capture_or_promotion (Move) const;
     bool pawn_advance (Move) const;
     bool gives_check (Move) const;
@@ -193,7 +203,7 @@ public:
 
     void clear ();
 
-    Position& setup (const std::string&, StateInfo&, Thread *const = nullptr, bool = true);
+    Position& setup (const std::string&, StateInfo&, Thread *const = nullptr);
     Position& setup (const std::string&, Color, StateInfo&);
 
     void do_move (Move, StateInfo&, bool);
@@ -345,8 +355,8 @@ inline Key Position::posi_move_key (Move m) const
     }
     return key
          ^ RandZob.color
-         ^ RandZob.piece_square[active][PROMOTE != mtype (m) ? ptype (piece[org]) : promote (m)][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
          ^ RandZob.piece_square[active][ptype (piece[org])][org]
+         ^ RandZob.piece_square[active][PROMOTE != mtype (m) ? ptype (piece[org]) : promote (m)][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
          ^ RandZob.castle_right[si->castle_rights & (castle_right[org] | castle_right[dst])];
 }
 
@@ -357,7 +367,7 @@ inline bool Position::expeded_castle (Color c, CastleSide cs) const
 /// Position::move_num() starts at 1, and is incremented after BLACK's move.
 inline i16 Position::move_num () const
 {
-    return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1);
+    return i16(std::max ((ply - (BLACK == active ? 1 : 0)) / 2, 0) + 1);
 }
 /// Position::attackers_to() finds attackers to the square on occupancy.
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
@@ -391,38 +401,32 @@ inline bool Position::opposite_bishops () const
     return 1 == count (WHITE, BSHP)
         && 1 == count (BLACK, BSHP)
         && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
-        //&& (   (   0 != (pieces (WHITE, BSHP) & Color_bb[WHITE])
-        //        && 0 != (pieces (BLACK, BSHP) & Color_bb[BLACK]))
-        //    || (   0 != (pieces (WHITE, BSHP) & Color_bb[BLACK])
-        //        && 0 != (pieces (BLACK, BSHP) & Color_bb[WHITE])));
 }
-inline bool Position::enpassant (Move m) const
-{
-    return ENPASSANT == mtype (m)
-        && contains (pieces (active, PAWN), org_sq (m))
-        && empty (dst_sq (m))
-        && si->enpassant_sq == dst_sq (m);
-}
+//inline bool Position::enpassant (Move m) const
+//{
+//    return ENPASSANT == mtype (m)
+//        && contains (pieces (active, PAWN), org_sq (m))
+//        && empty (dst_sq (m))
+//        && si->enpassant_sq == dst_sq (m);
+//}
 inline bool Position::capture (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return (   (   NORMAL == mtype (m)
-                || PROMOTE == mtype (m))
-            && contains (pieces (~active), dst_sq (m)))
-        || ENPASSANT == mtype (m);
+    return CASTLE != mtype (m)
+        && (   ENPASSANT == mtype (m)
+            || contains (pieces (~active), dst_sq (m)));
 }
-inline bool Position::promotion (Move m) const
-{
-    return PROMOTE == mtype (m)
-        && contains (pieces (active, PAWN), org_sq (m))
-        && R_7 == rel_rank (active, org_sq (m));
-}
+//inline bool Position::promotion (Move m) const
+//{
+//    return PROMOTE == mtype (m)
+//        && contains (pieces (active, PAWN), org_sq (m))
+//        && R_7 == rel_rank (active, org_sq (m));
+//}
 inline bool Position::capture_or_promotion (Move m) const
 {
-    return (   NORMAL == mtype (m)
-            && contains (pieces (~active), dst_sq (m)))
-        || ENPASSANT == mtype (m)
-        || PROMOTE == mtype (m);
+    return ENPASSANT == mtype (m)
+        || PROMOTE == mtype (m)
+        || (NORMAL == mtype (m) && contains (pieces (~active), dst_sq (m)));
 }
 
 inline bool Position::pawn_advance (Move m) const
@@ -519,12 +523,12 @@ inline void StateInfo::set_check_info (const Position &pos)
 
 #if !defined(NDEBUG)
 /// _ok() Check the validity of FEN string.
-inline bool _ok (const std::string &fen, bool full = true)
+inline bool _ok (const std::string &fen)
 {
     Position pos;
     StateInfo si;
     return !white_spaces (fen)
-        && pos.setup (fen, si, nullptr, full).ok ();
+        && pos.setup (fen, si, nullptr).ok ();
 }
 #endif
 

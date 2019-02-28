@@ -88,7 +88,7 @@ Score compute_psq (const Position &pos)
 {
     auto psq = SCORE_ZERO;
     for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING, })
+                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
         for (const auto &s : pos.squares[pc])
         {

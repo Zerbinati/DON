@@ -425,7 +425,7 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                                  moves.end (),
                                  [&] (const ValMove &vm)
                                  {
-                                     return (   pos.enpassant (vm)
+                                     return (   ENPASSANT == mtype (vm)
                                              || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
                                          && !pos.legal (vm);
                                  }),

@@ -204,8 +204,8 @@ bool MovePicker::pick (Pred filter)
         std::swap (*beg, *std::max_element (beg, moves.end ()));
         vm = *beg;
         if (   tt_move != vm
-            && (   !(   pos.enpassant (vm)
-                     || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
+            && (   (   ENPASSANT != mtype (vm)
+                    && !contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
                 || pos.legal (vm))
             && filter ())
         {
@@ -1322,6 +1322,7 @@ namespace Searcher {
                     && -VALUE_MATE_MAX_PLY < best_value
                     && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
                 {
+                    // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
                     move_picker.skip_quiets = 16 > depth
                                            && FutilityMoveCounts[improving ? 1 : 0][depth] <= move_count;
 
@@ -2071,8 +2072,8 @@ void MainThread::search ()
             i16 timed_contempt = 0;
             i64 diff_time;
             auto contempt_time = i32(Options["Contempt Time"]);
-            if (   Limits.time_mgr_used ()
-                && 0 != contempt_time
+            if (   0 != contempt_time
+                && Limits.time_mgr_used ()
                 && 0 != (diff_time = (i64(Limits.clock[ root_pos.active].time)
                                     - i64(Limits.clock[~root_pos.active].time)) / 1000))
             {

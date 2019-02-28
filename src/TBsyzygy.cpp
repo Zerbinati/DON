@@ -468,7 +468,7 @@ namespace TBSyzygy {
             has_pawns = 0 != pos.count (PAWN);
             has_unique_pieces = false;
             for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN,
-                                    B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, })
+                                    B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN })
             {    
                 if (1 == pos.count (pc))
                 {
@@ -1585,7 +1585,7 @@ namespace TBSyzygy {
                     -probe_dtz (pos, state);
 
             // If the move mates, force minDTZ to 1
-            if (   dtz == 1
+            if (   1 == dtz
                 && 0 != pos.si->checkers
                 && 0 == MoveList<LEGAL> (pos).size ())
             {
@@ -1663,7 +1663,7 @@ namespace TBSyzygy {
         assert(0 != root_moves.size ());
 
         // Obtain 50-move counter for the root position
-        int clock_ply = root_pos.si->clock_ply;
+        i16 clock_ply = root_pos.si->clock_ply;
         // Check whether a position was repeated since the last zeroing move.
         bool rep = root_pos.repeated ();
 
@@ -1679,7 +1679,7 @@ namespace TBSyzygy {
             root_pos.do_move (move, si);
 
             // Calculate dtz for the current move counting from the root position
-            if (root_pos.si->clock_ply == 0)
+            if (0 == root_pos.si->clock_ply)
             {
                 // In case of a zeroing move, dtz is one of -101/-1/0/1/101
                 WDLScore wdl = -probe_wdl (root_pos, state);
@@ -1695,7 +1695,7 @@ namespace TBSyzygy {
             }
             // Make sure that a mating move is assigned a dtz value of 1
             if (   0 != root_pos.si->checkers
-                && dtz == 2
+                && 2 == dtz
                 && 0 == MoveList<LEGAL> (root_pos).size ())
             {
                 dtz = 1;
@@ -1710,8 +1710,8 @@ namespace TBSyzygy {
 
             // Better moves are ranked higher. Certain wins are ranked equally.
             // Losing moves are ranked equally unless a 50-move draw is in sight.
-            i16 r = dtz > 0 ? (+dtz + clock_ply <= 99 && !rep ? +1000 : +1000 - (dtz + clock_ply)) :
-                    dtz < 0 ? (-dtz * 2 + clock_ply < 100 ? -1000 : -1000 + (-dtz + clock_ply)) :
+            i16 r = dtz > 0 ? (+dtz + clock_ply <= 99 && !rep ? +1000 : +1000 - (+dtz + clock_ply)) :
+                    dtz < 0 ? (-dtz * 2 + clock_ply < 100     ? -1000 : -1000 + (-dtz + clock_ply)) :
                     0;
             rm.tb_rank = r;
 

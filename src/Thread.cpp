@@ -246,11 +246,11 @@ void Thread::clear ()
     move_history.fill (MOVE_NONE);
     butterfly_history.fill (0);
     capture_history.fill (0);
-    for (auto &pd : continuation_history)
+    for (auto &pdhs : continuation_history)
     {
-        for (auto &piece_destiny : pd)
+        for (auto &pdh : pdhs)
         {
-            piece_destiny->fill (0);
+            pdh->fill (0);
         }
     }
     continuation_history[NO_PIECE][0]->fill (CounterMovePruneThreshold - 1);
