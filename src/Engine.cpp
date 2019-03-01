@@ -166,7 +166,7 @@ namespace {
 
         states = StateListPtr (new std::deque<StateInfo> (1)); // Drop old and create a new one
         pos.setup (fen, states->back (), pos.thread);
-        assert(pos.fen() == trim (fen));
+        //assert(pos.fen() == trim (fen));
 
         u16 count = 0;
         // Parse and validate moves (if any)
