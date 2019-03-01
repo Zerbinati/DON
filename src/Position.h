@@ -108,8 +108,8 @@ class Position
 {
 private:
     void place_piece_on (Square, Piece);
-    void remove_piece_on (Square);
-    void move_piece_on_to (Square, Square);
+    void remove_piece_on (Square, Piece);
+    void move_piece_on_to (Square, Square, Piece);
 
     void set_castle (Color, Square);
 
@@ -412,9 +412,10 @@ inline bool Position::opposite_bishops () const
 inline bool Position::capture (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return CASTLE != mtype (m)
-        && (   ENPASSANT == mtype (m)
-            || contains (pieces (~active), dst_sq (m)));
+    return ENPASSANT == mtype (m)
+        || (   CASTLE != mtype (m)
+            //&& contains (pieces (~active), dst_sq (m))
+            && !empty (dst_sq (m)));
 }
 //inline bool Position::promotion (Move m) const
 //{
@@ -424,9 +425,10 @@ inline bool Position::capture (Move m) const
 //}
 inline bool Position::capture_or_promotion (Move m) const
 {
-    return ENPASSANT == mtype (m)
-        || PROMOTE == mtype (m)
-        || (NORMAL == mtype (m) && contains (pieces (~active), dst_sq (m)));
+    return NORMAL != mtype (m) ?
+            CASTLE != mtype (m) :
+            //contains (pieces (~active), dst_sq (m))
+            !empty (dst_sq (m));
 }
 
 inline bool Position::pawn_advance (Move m) const
@@ -462,14 +464,14 @@ inline void Position::place_piece_on (Square s, Piece pc)
     color_bb[color (pc)] |= s;
     type_bb[ptype (pc)] |= s;
     type_bb[NONE] |= s;
-    squares[pc].emplace_back (s);
+    squares[pc].push_front (s);
     psq += PSQ[pc][s];
     piece[s] = pc;
 }
-inline void Position::remove_piece_on (Square s)
+inline void Position::remove_piece_on (Square s, Piece pc)
 {
-    assert(!empty (s));
-    Piece pc = piece[s];
+    assert(_ok (pc)
+        && std::count (squares[pc].begin (), squares[pc].end (), s) == 1);
     color_bb[color (pc)] ^= s;
     type_bb[ptype (pc)] ^= s;
     type_bb[NONE] ^= s;
@@ -477,20 +479,16 @@ inline void Position::remove_piece_on (Square s)
     psq -= PSQ[pc][s];
     //piece[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
-inline void Position::move_piece_on_to (Square s1, Square s2)
+inline void Position::move_piece_on_to (Square s1, Square s2, Piece pc)
 {
-    Piece pc = piece[s1];
-    assert(!empty (s1)
-        && std::count (squares[pc].begin (),
-                       squares[pc].end (), s1) == 1);
-    Bitboard bb = square_bb (s1) ^ square_bb (s2);
+    assert(_ok (pc)
+        && std::count (squares[pc].begin (), squares[pc].end (), s1) == 1);
+    Bitboard bb = square_bb (s1) | square_bb (s2);
     color_bb[color (pc)] ^= bb;
     type_bb[ptype (pc)] ^= bb;
     type_bb[NONE] ^= bb;
-    std::replace (squares[pc].begin (),
-                  squares[pc].end (), s1, s2);
-    psq += PSQ[pc][s2]
-         - PSQ[pc][s1];
+    std::replace (squares[pc].begin (), squares[pc].end (), s1, s2);
+    psq += PSQ[pc][s2] - PSQ[pc][s1];
     piece[s2] = pc;
     piece[s1] = NO_PIECE;
 }

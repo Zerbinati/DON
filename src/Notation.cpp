@@ -354,7 +354,7 @@ string pretty_pv_info (Thread *const &th)
     for (const auto &m : th->root_moves[0])
     {
         oss << move_to_san (m, th->root_pos) << " ";
-        moves.emplace_back (m);
+        moves.push_back (m);
         states->emplace_back ();
         th->root_pos.do_move (m, states->back ());
     }

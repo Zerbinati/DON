@@ -450,6 +450,7 @@ BITWISE_OPERATORS(Bound)
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
+constexpr bool _ok (Color c) { return WHITE == c || BLACK == c; }
 constexpr Color operator~ (Color c) { return Color(c ^ BLACK); }
 
 constexpr bool _ok       (File f) { return F_A <= f && f <= F_H; }

@@ -240,7 +240,7 @@ public:
     bool operator== (Move m) const { return front () == m; }
     bool operator!= (Move m) const { return front () != m; }
 
-    void operator+= (Move m) { emplace_back (m); }
+    void operator+= (Move m) { push_back (m); }
     //void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
     explicit operator std::string () const;
@@ -264,7 +264,7 @@ public:
 
     void operator+= (Move m) { emplace_back (m); }
     //void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
-    void operator+= (const RootMove &rm) { emplace_back (rm); }
+    void operator+= (const RootMove &rm) { push_back (rm); }
     //void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
     void initialize (const Position&, const std::vector<Move>&);

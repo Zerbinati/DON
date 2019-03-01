@@ -307,7 +307,7 @@ namespace {
 
         if (pos_fn == "current")
         {
-            cmds.emplace_back (pos.fen ());
+            cmds.push_back (pos.fen ());
         }
         else
         if (pos_fn == "default")
@@ -327,7 +327,7 @@ namespace {
             {
                 if (!white_spaces (cmd))
                 {
-                    cmds.emplace_back (cmd);
+                    cmds.push_back (cmd);
                 }
             }
             ifs.close ();
@@ -335,9 +335,9 @@ namespace {
 
         bool chess960 = bool(Options["UCI_Chess960"]);
 
-        uci_cmds.emplace_back ("setoption name Threads value " + threads);
-        uci_cmds.emplace_back ("setoption name Hash value " + hash);
-        uci_cmds.emplace_back ("setoption name Clear Hash");
+        uci_cmds.push_back ("setoption name Threads value " + threads);
+        uci_cmds.push_back ("setoption name Hash value " + hash);
+        uci_cmds.push_back ("setoption name Clear Hash");
 
         string go = "go " + mode + " " + value;
 
@@ -345,19 +345,19 @@ namespace {
         {
             if (cmd.find ("setoption") != string::npos)
             {
-                uci_cmds.emplace_back (cmd);
+                uci_cmds.push_back (cmd);
             }
             else
             {
-                uci_cmds.emplace_back ("position fen " + cmd);
-                uci_cmds.emplace_back (go);
+                uci_cmds.push_back ("position fen " + cmd);
+                uci_cmds.push_back (go);
             }
         }
 
         if (pos_fn != "current")
         {
-            uci_cmds.emplace_back ("setoption name UCI_Chess960 value " + string(chess960 ? "true" : "false"));
-            uci_cmds.emplace_back ("position fen " + pos.fen ());
+            uci_cmds.push_back ("setoption name UCI_Chess960 value " + string(chess960 ? "true" : "false"));
+            uci_cmds.push_back ("position fen " + pos.fen ());
         }
         return uci_cmds;
     }

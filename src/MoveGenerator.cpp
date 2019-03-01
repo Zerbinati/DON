@@ -454,14 +454,15 @@ void Perft::classify (Position &pos, Move m, bool detail)
         if (!contains (pos.si->checks[PROMOTE != mtype (m) ? ptype (pos[org_sq (m)]) : ::promote (m)], dst_sq (m)))
         {
             Bitboard mocc;
+            Bitboard b;
             if (   (   contains (pos.si->king_blockers[~pos.active], org_sq (m))
                     && !sqrs_aligned (org_sq (m), dst_sq (m), pos.square<KING> (~pos.active)))
                 || (   ENPASSANT == mtype (m)
                     && 0 != (mocc = (pos.pieces () ^ org_sq (m) ^ (_file (dst_sq (m)) | _rank (org_sq (m)))) | dst_sq (m))
-                    && (   (   0 != (pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][pos.square<KING> (~pos.active)])
-                            && 0 != (pos.pieces (pos.active, BSHP, QUEN) & attacks_bb<BSHP> (pos.square<KING> (~pos.active), mocc)))
-                        || (   0 != (pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][pos.square<KING> (~pos.active)])
-                            && 0 != (pos.pieces (pos.active, ROOK, QUEN) & attacks_bb<ROOK> (pos.square<KING> (~pos.active), mocc))))))
+                    && (   (   0 != (b = pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][pos.square<KING> (~pos.active)])
+                            && 0 != (b & attacks_bb<BSHP> (pos.square<KING> (~pos.active), mocc)))
+                        || (   0 != (b = pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][pos.square<KING> (~pos.active)])
+                            && 0 != (b & attacks_bb<ROOK> (pos.square<KING> (~pos.active), mocc))))))
             {
                 ++dsc_check;
             }
