@@ -887,14 +887,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th)
             }
             break;
         // Chess960
-        case 'a':
-        case 'b':
-        case 'c':
-        case 'd':
-        case 'e':
-        case 'f':
-        case 'g':
-        case 'h':
+        case 'a': case 'b': case 'c': case 'd':
+        case 'e': case 'f': case 'g': case 'h':
             rook_org = to_file (token) | _rank (square<KING> (c));
             break;
         default:
@@ -1138,8 +1132,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     // Calculate checkers
     si->checkers = is_check ? attackers_to (square<KING> (pasive)) & pieces (active) : 0;
     assert(!is_check
-        || (0 != si->checkers
-         && 0 == (si->checkers & ~pieces (active))));
+        || 0 != si->checkers);
 
     // Switch sides
     active = pasive;
@@ -1190,7 +1183,7 @@ void Position::undo_move (Move m)
             assert(R_7 == rel_rank (active, org)
                 && R_8 == rel_rank (active, dst)
                 && NONE != si->promote
-                && contains (pieces (active, promote (m)), dst));
+                && promote (m) == ptype (piece[dst])); //&& contains (pieces (active, promote (m)), dst)
 
             remove_piece_on (dst, piece[dst]);
             place_piece_on (dst, active|PAWN);

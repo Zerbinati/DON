@@ -29,19 +29,17 @@ namespace {
 
         auto org = org_sq (m);
         auto dst = dst_sq (m);
+        auto pt = ptype (pos[org]);
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
-        Bitboard attacks;
-        switch (ptype (pos[org]))
+        Bitboard piece = pos.attacks_from (pt, dst) & pos.pieces (pos.active, pt);
+
+        Bitboard amb = piece ^ org;
+        if (0 == amb)
         {
-        case NIHT: attacks = PieceAttacks[NIHT][dst]; break;
-        case BSHP: attacks = attacks_bb<BSHP> (dst, pos.pieces ()); break;
-        case ROOK: attacks = attacks_bb<ROOK> (dst, pos.pieces ()); break;
-        case QUEN: attacks = attacks_bb<QUEN> (dst, pos.pieces ()); break;
-        default: assert(false); attacks = 0; break;
+            return Ambiguity::AMB_NONE;
         }
 
-        Bitboard amb = (attacks & pos.pieces (pos.active, ptype (pos[org]))) ^ org;
         Bitboard pcs = amb;
                     // If pinned piece is considered as ambiguous
                     // & ~(pos.si->king_blockers[pos.active] & pos.pieces (pos.active));
@@ -53,13 +51,9 @@ namespace {
                 amb ^= sq;
             }
         }
-        if (0 != amb)
-        {
-            if (0 == (amb & file_bb (org))) return Ambiguity::AMB_RANK;
-            if (0 == (amb & rank_bb (org))) return Ambiguity::AMB_FILE;
-            return Ambiguity::AMB_SQUARE;
-        }
-        return Ambiguity::AMB_NONE;
+        if (0 == (amb & file_bb (org))) return Ambiguity::AMB_RANK;
+        if (0 == (amb & rank_bb (org))) return Ambiguity::AMB_FILE;
+        return Ambiguity::AMB_SQUARE;
     }
 
     // Value to string
@@ -158,10 +152,11 @@ string move_to_san (Move m, Position &pos)
 
     if (CASTLE != mtype (m))
     {
-        if (PAWN != ptype (pos[org]))
+        auto pt = ptype (pos[org]);
+        if (PAWN != pt)
         {
-            oss << (WHITE|ptype (pos[org]));
-            if (KING != ptype (pos[org]))
+            oss << (WHITE|pt);
+            if (KING != pt)
             {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'dst' with a legal move.
                 switch (ambiguity (m, pos))
@@ -184,7 +179,7 @@ string move_to_san (Move m, Position &pos)
 
         if (pos.capture (m))
         {
-            if (PAWN == ptype (pos[org]))
+            if (PAWN == pt)
             {
                 oss << to_char (_file (org));
             }
@@ -193,7 +188,7 @@ string move_to_san (Move m, Position &pos)
 
         oss << to_string (dst);
 
-        if (   PAWN == ptype (pos[org])
+        if (   PAWN == pt
             && PROMOTE == mtype (m))
         {
             oss << "=" << (WHITE|promote (m));

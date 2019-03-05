@@ -180,6 +180,10 @@ public:
 
     Bitboard attackers_to (Square, Bitboard) const;
     Bitboard attackers_to (Square) const;
+    Bitboard attacks_from (PieceType, Square, Bitboard) const;
+    Bitboard attacks_from (PieceType, Square) const;
+    Bitboard attacks_from (Square, Bitboard) const;
+    Bitboard attacks_from (Square) const;
 
     Bitboard slider_blockers (Square, Color, Bitboard, Bitboard&, Bitboard&) const;
 
@@ -384,6 +388,44 @@ inline Bitboard Position::attackers_to (Square s) const
 {
     return attackers_to (s, pieces ());
 }
+/// Position::attacks_from() finds attacks of the piecetype from the square on occupancy.
+inline Bitboard Position::attacks_from (PieceType pt, Square s, Bitboard occ) const
+{
+    assert(PAWN != pt);
+    switch (pt)
+    {
+    case NIHT: return PieceAttacks[NIHT][s];
+    case BSHP: return attacks_bb<BSHP> (s, occ);
+    case ROOK: return attacks_bb<ROOK> (s, occ);
+    case QUEN: return attacks_bb<QUEN> (s, occ);
+    case KING: return PieceAttacks[KING][s];
+    default: assert(false); return 0;
+    }
+}
+/// Position::attacks_from() finds attacks of the piecetype from the square.
+inline Bitboard Position::attacks_from (PieceType pt, Square s) const
+{
+    return attacks_from (pt, s, pieces ());
+}
+/// Position::attacks_from() finds attacks from the square on occupancy.
+inline Bitboard Position::attacks_from (Square s, Bitboard occ) const
+{
+    switch (ptype (piece[s]))
+    {
+    case PAWN: return PawnAttacks[color (piece[s])][s];
+    case NIHT: return PieceAttacks[NIHT][s];
+    case BSHP: return attacks_bb<BSHP> (s, occ);
+    case ROOK: return attacks_bb<ROOK> (s, occ);
+    case QUEN: return attacks_bb<QUEN> (s, occ);
+    case KING: return PieceAttacks[KING][s];
+    default: assert(false); return 0;
+    }
+}
+/// Position::attacks_from() finds attacks from the square.
+inline Bitboard Position::attacks_from (Square s) const
+{
+    return attacks_from (s, pieces ());
+}
 
 /// Position::pawn_passed_at() check if pawn passed at the given square.
 inline bool Position::pawn_passed_at (Color c, Square s) const
@@ -487,7 +529,8 @@ inline void Position::move_piece_on_to (Square s1, Square s2, Piece pc)
     color_bb[color (pc)] ^= bb;
     type_bb[ptype (pc)] ^= bb;
     type_bb[NONE] ^= bb;
-    std::replace (squares[pc].begin (), squares[pc].end (), s1, s2);
+    //std::replace (squares[pc].begin (), squares[pc].end (), s1, s2);
+    squares[pc].remove (s1); squares[pc].push_front (s2);
     psq += PSQ[pc][s2] - PSQ[pc][s1];
     piece[s2] = pc;
     piece[s1] = NO_PIECE;

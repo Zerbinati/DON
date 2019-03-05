@@ -1272,10 +1272,11 @@ namespace Searcher {
                 // To verify this do a reduced search on all the other moves but the tt_move,
                 // if result is lower than tt_value minus a margin then extend tt_move.
                 if (   !root_node
-                    && MOVE_NONE == ss->excluded_move // Avoid recursive singular search.
-                    && move == tt_move
+                    && 7 < depth
                     && VALUE_NONE != tt_value // Handle tt_hit
-                    && 7 < depth && depth < tte->depth () + 4
+                    && move == tt_move
+                    && MOVE_NONE == ss->excluded_move // Avoid recursive singular search.
+                    && depth < tte->depth () + 4
                     && BOUND_NONE != (tte->bound () & BOUND_LOWER))
                 {
                     auto singular_beta = std::max (tt_value - 2*depth, -VALUE_MATE);
@@ -1307,7 +1308,8 @@ namespace Searcher {
                     || (   gives_check
                         && (   pos.exchange (move) >= VALUE_ZERO
                             || (   contains (pos.si->king_blockers[~pos.active] & pos.pieces (pos.active), org)
-                                && !contains (PieceAttacks[KING][pos.square<KING> (~pos.active)], dst))
+                                && (   !contains (PieceAttacks[KING][pos.square<KING> (~pos.active)], dst)
+                                    || 0 != (pos.attackers_to (dst) & pos.pieces (pos.active) & ~square_bb (org))))
                             || pos.see_ge (move))))
                 {
                     extension = 1;
@@ -1502,10 +1504,10 @@ namespace Searcher {
                     if (   1 == move_count
                         || alfa < value)
                     {
-                        rm.resize (1);
-                        rm.insert (rm.end (), (ss+1)->pv.begin (), (ss+1)->pv.end ());
                         rm.new_value = value;
                         rm.sel_depth = thread->sel_depth;
+                        rm.resize (1);
+                        rm.insert (rm.end (), (ss+1)->pv.begin (), (ss+1)->pv.end ());
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
@@ -1783,7 +1785,7 @@ void Thread::search ()
         pv_end = 0;
 
         // MultiPV loop. Perform a full root search for each PV line.
-        for (pv_cur = 0; !Threadpool.stop && pv_cur < Threadpool.pv_limit; ++pv_cur)
+        for (pv_cur = 0; pv_cur < Threadpool.pv_limit && !Threadpool.stop; ++pv_cur)
         {
             if (pv_cur == pv_end)
             {
