@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="6.25" Y="3.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAEEAAAAQQACA+5xQOoICQmATEEEAdgAgAgYABgIQA=</HashCode>
+      <HashCode>AEAAEAAAAQQACA+pxQOoICQmATEEEAdgAgCgYABgNQA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -55,7 +55,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="MoveList&lt;GT, PT&gt;" Collapsed="true">
-    <Position X="9.75" Y="5.25" Width="1.5" />
+    <Position X="11" Y="5.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MoveGenerator.h</FileName>
@@ -108,7 +108,7 @@
     </ShowAsAssociation>
   </Class>
   <Class Name="ThreadPool">
-    <Position X="11.5" Y="5.25" Width="1.5" />
+    <Position X="13.5" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AEABAAACQAAAACAAAAAAAAAAQAAgAMAAAAAgAAAAIQA=</HashCode>
       <FileName>src\Thread.h</FileName>
@@ -133,7 +133,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="RootMoves">
-    <Position X="8" Y="4" Width="1.5" />
+    <Position X="8.75" Y="4" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAEggQAAAAAAAAAAAAAgAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
@@ -142,7 +142,7 @@
   <Class Name="TimeManager">
     <Position X="3.25" Y="12.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ABAAAAAAAAIAAAAIAAUAAgCAAAAAAAAAAAAwAAAEAAA=</HashCode>
+      <HashCode>ABAAAAAAAAIAAAAIAAUCAgCAAAAAAAAAAAAwAAAEAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -161,14 +161,9 @@
           <NewMemberFileName>src\Searcher.h</NewMemberFileName>
         </TypeIdentifier>
       </Enum>
-      <Enum Name="MovePicker::PickType" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>src\Searcher.h</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AAQAAAgAAgEgAAAAAAQAEIAAQgQAGCAAIAAgIAAAAAA=</HashCode>
+      <HashCode>AAQAAAgAAgEgAAAAAAQAEIAAQgQACCAAIAAgIAAAAEA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -186,7 +181,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="ValMoves" Collapsed="true">
-    <Position X="9.75" Y="3.75" Width="1.5" />
+    <Position X="11" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
@@ -214,7 +209,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="TEntry">
-    <Position X="21.25" Y="14" Width="1.5" />
+    <Position X="21.25" Y="13.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AgAgAEAAAACAAACAEAAAAAAOAAAAACAAAEISMAAAARA=</HashCode>
       <FileName>src\Transposition.h</FileName>
@@ -243,7 +238,7 @@
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAEAEQAAAAAIAAgAIQAAAQAgAAQCEGAAAAgQAAAAJAI=</HashCode>
+      <HashCode>AEEAEQAAAAAIAAgAIQAAAQAgAAQCEGAAAAgQAAAAJAI=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -298,7 +293,7 @@
     </TypeIdentifier>
   </Struct>
   <Struct Name="Pawns::Entry">
-    <Position X="26.5" Y="12.5" Width="1.5" />
+    <Position X="26.5" Y="10.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AIAAAAAAAABAAAACEAAMgAAgQAEIAAAAQAEACBABAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>
@@ -313,7 +308,6 @@
     <ShowAsAssociation>
       <Field Name="killer_moves" />
       <Field Name="static_eval" />
-      <Field Name="pv" />
     </ShowAsAssociation>
   </Struct>
   <Struct Name="Material::Entry">
@@ -675,7 +669,7 @@
   <Enum Name="EndGame::EndgameCode" Collapsed="true">
     <Position X="24.25" Y="5.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAAAAAAACAARAAAAAAEDAgBCCIABAQQABAIAACAE=</HashCode>
+      <HashCode>AEAAAAAAAAACAARAAAAAAEDQgBCCIABAQQABAIAACAE=</HashCode>
       <FileName>src\Endgame.h</FileName>
     </TypeIdentifier>
   </Enum>

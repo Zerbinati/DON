@@ -180,7 +180,8 @@ void MovePicker::value ()
             m.value = thread->butterfly_history[pos.active][move_pp (m)]
                     + (*pd_histories[0])[pos[org_sq (m)]][dst_sq (m)]
                     + (*pd_histories[1])[pos[org_sq (m)]][dst_sq (m)]
-                    + (*pd_histories[3])[pos[org_sq (m)]][dst_sq (m)];
+                    + (*pd_histories[3])[pos[org_sq (m)]][dst_sq (m)]
+                    + (*pd_histories[5])[pos[org_sq (m)]][dst_sq (m)] / 2;
         }
         else // GenType::EVASION == GT
         {
@@ -404,7 +405,7 @@ namespace Searcher {
         /// update_continuation_histories() updates tables of the move pairs with current move.
         void update_continuation_histories (Stack *const &ss, Piece pc, Square dst, i32 bonus)
         {
-            for (const auto *const &s : { ss-1, ss-2, ss-4 })
+            for (const auto *const &s : { ss-1, ss-2, ss-4, ss-6 })
             {
                 if (_ok (s->played_move))
                 {
@@ -609,12 +610,14 @@ namespace Searcher {
 
             u08 move_count = 0;
 
-            const PieceDestinyHistory *pd_histories[4] =
+            const PieceDestinyHistory *pd_histories[6] =
             {
                 (ss-1)->pd_history,
                 (ss-2)->pd_history,
-                (ss-3)->pd_history,
-                (ss-4)->pd_history
+                nullptr,//(ss-3)->pd_history,
+                (ss-4)->pd_history,
+                nullptr,//(ss-5)->pd_history,
+                (ss-6)->pd_history,
             };
             auto recap_sq = _ok ((ss-1)->played_move) ?
                                 dst_sq ((ss-1)->played_move) :
@@ -640,9 +643,9 @@ namespace Searcher {
                 // Futility pruning
                 if (   !in_check
                     && !gives_check
+                    && !Limits.mate_search ()
                     && -VALUE_KNOWN_WIN < futility_base
-                    && !pos.pawn_advance (move)
-                    && !Limits.mate_search ())
+                    && !pos.pawn_advance (move))
                 {
                     assert(ENPASSANT != mtype (move)); // Due to !pos.pawn_advance
 
@@ -866,11 +869,12 @@ namespace Searcher {
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
-                && MOVE_NONE == ss->excluded_move
                 && VALUE_NONE != tt_value // Handle tt_hit
                 && depth <= tte->depth ()
                 && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
+                assert(MOVE_NONE == ss->excluded_move);
+
                 // Update move sorting heuristics on tt_move.
                 if (MOVE_NONE != tt_move)
                 {
@@ -1044,8 +1048,8 @@ namespace Searcher {
                 // Betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility margins [depth] if do a null move.
                 if (   !root_node
-                    && 7 > depth
                     && !Limits.mate_search ()
+                    && 7 > depth
                     && eval - (improving ? 125 : 175) * depth >= beta
                     && eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
                 {
@@ -1078,36 +1082,28 @@ namespace Searcher {
 
                     if (null_value >= beta)
                     {
-                        bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
-
                         // Skip verification search
                         if (   0 != thread->nmp_ply
                             || (   12 > depth
                                 && abs (beta) < +VALUE_KNOWN_WIN))
                         {
                             // Don't return unproven wins
-                            return unproven ?
-                                    beta :
-                                    null_value;
+                            return null_value >= +VALUE_MATE_MAX_PLY ? beta : null_value;
                         }
 
+                        // Do verification search at high depths
                         assert(0 == thread->nmp_ply); // Recursive verification is not allowed
 
-                        // Do verification search at high depths
-                        thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
                         thread->nmp_color = pos.active;
 
+                        thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
                         value = depth_search<false> (pos, ss, beta-1, beta, depth-R, false);
-
                         thread->nmp_ply = 0;
-                        thread->nmp_color = CLR_NO;
 
                         if (value >= beta)
                         {
                             // Don't return unproven wins
-                            return unproven ?
-                                    beta :
-                                    null_value;
+                            return null_value >= +VALUE_MATE_MAX_PLY ? beta : null_value;
                         }
                     }
                 }
@@ -1116,8 +1112,8 @@ namespace Searcher {
                 // If good enough capture and a reduced search returns a value much above beta,
                 // then can (almost) safely prune the previous move.
                 if (   !PVNode
-                    && 4 < depth
                     && !Limits.mate_search ()
+                    && 4 < depth
                     && abs (beta) < +VALUE_MATE_MAX_PLY)
                 {
                     auto raised_beta = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
@@ -1199,12 +1195,14 @@ namespace Searcher {
             bool ttm_capture = MOVE_NONE != tt_move
                             && pos.capture_or_promotion (tt_move);
 
-            const PieceDestinyHistory *pd_histories[4] =
+            const PieceDestinyHistory *pd_histories[6] =
             {
                 (ss-1)->pd_history,
                 (ss-2)->pd_history,
-                (ss-3)->pd_history,
-                (ss-4)->pd_history
+                nullptr,//(ss-3)->pd_history,
+                (ss-4)->pd_history,
+                nullptr,//(ss-5)->pd_history,
+                (ss-6)->pd_history,
             };
             auto counter_move = _ok ((ss-1)->played_move) ?
                                     thread->move_history[pos[dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
@@ -1717,14 +1715,14 @@ using namespace Searcher;
 /// - Maximum search depth is reached.
 void Thread::search ()
 {
-    // To allow access to (ss-5) up to (ss+2), the stack must be oversized.
+    // To allow access to (ss-7) up to (ss+2), the stack must be oversized.
     // The former is needed to allow update_continuation_histories(ss-1, ...),
     // which accesses its argument at ss-4, also near the root.
     // The latter is needed for stats and killer initialization.
-    Stack stacks[MaxDepth + 8];
-    for (auto ss = stacks; ss < stacks + MaxDepth + 8; ++ss)
+    Stack stacks[MaxDepth + 10];
+    for (auto ss = stacks; ss < stacks + MaxDepth + 10; ++ss)
     {
-        ss->ply = i16(ss - (stacks+5));
+        ss->ply = i16(ss - (stacks+7));
         ss->played_move = MOVE_NONE;
         ss->excluded_move = MOVE_NONE;
         std::fill_n (ss->killer_moves, 2, MOVE_NONE);
@@ -1826,7 +1824,7 @@ void Thread::search ()
             do
             {
                 i16 adjusted_depth = i16(std::max (running_depth - failed_high_count, 1));
-                best_value = depth_search<true> (root_pos, stacks+5, alfa, beta, adjusted_depth, false);
+                best_value = depth_search<true> (root_pos, stacks+7, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
                 // done with a stable algorithm because all the values but the first

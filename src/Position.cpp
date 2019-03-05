@@ -321,36 +321,12 @@ bool Position::pseudo_legal (Move m) const
         }
     }
     else
+    if (   NORMAL != mtype (m)
+        || !contains (attacks_from (org_sq (m)), dst_sq (m)))
     {
-        if (NORMAL != mtype (m))
-        {
-            return false;
-        }
-        switch (ptype (piece[org_sq (m)]))
-        {
-        case NIHT:
-            if (   !contains (PieceAttacks[NIHT][org_sq (m)], dst_sq (m))) { return false; }
-            break;
-        case BSHP:
-            if (   !contains (PieceAttacks[BSHP][org_sq (m)], dst_sq (m))
-                || !contains (attacks_bb<BSHP> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
-            break;
-        case ROOK:
-            if (   !contains (PieceAttacks[ROOK][org_sq (m)], dst_sq (m))
-                || !contains (attacks_bb<ROOK> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
-            break;
-        case QUEN:
-            if (   !contains (PieceAttacks[QUEN][org_sq (m)], dst_sq (m))
-                || !contains (attacks_bb<QUEN> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
-            break;
-        case KING:
-            if (   !contains (PieceAttacks[KING][org_sq (m)], dst_sq (m))) { return false; }
-            break;
-        default:
-            assert(false);
-            break;
-        }
+        return false;
     }
+
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
     // So have to take care that the same kind of moves are filtered out here.
     if (0 != si->checkers)
@@ -476,14 +452,6 @@ bool Position::gives_check (Move m) const
         return false;
     case CASTLE:
     {
-        assert(KING == ptype (piece[org_sq (m)]) //&& contains (pieces (active, KING), org_sq (m))
-            && ROOK == ptype (piece[dst_sq (m)]) //&& contains (pieces (active, ROOK), dst_sq (m))
-            && castle_rook_sq[active][dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN] == dst_sq (m)
-            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN)
-            //&& R_1 == rel_rank (active, org_sq (m))
-            //&& R_1 == rel_rank (active, dst_sq (m))
-            && si->can_castle (active|(dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN))
-            && 0 == si->checkers);
         // Castling with check?
         auto king_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_F1 : SQ_D1);
@@ -492,13 +460,6 @@ bool Position::gives_check (Move m) const
     }
     case ENPASSANT:
     {
-        assert(PAWN == ptype (piece[org_sq (m)]) //&&contains (pieces (active, PAWN), org_sq (m))
-            && R_5 == rel_rank (active, org_sq (m))
-            && R_6 == rel_rank (active, dst_sq (m))
-            && 0 == si->clock_ply
-            && si->enpassant_sq == dst_sq (m)
-            && empty (dst_sq (m)) //&& !contains (pieces (), dst_sq (m))
-            && PAWN == ptype (piece[dst_sq (m) - pawn_push (active)])); //&& contains (pieces (~active, PAWN), dst_sq (m) - pawn_push (active))
         // Enpassant capture with check?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
@@ -511,10 +472,6 @@ bool Position::gives_check (Move m) const
     }
     case PROMOTE:
     {
-        assert(contains (pieces (active, PAWN), org_sq (m))
-            && R_7 == rel_rank (active, org_sq (m))
-            && R_8 == rel_rank (active, dst_sq (m))
-            /*&& NIHT <= promote (m) && promote (m) <= QUEN*/);
         // Promotion with check?
         switch (promote (m))
         {
@@ -933,7 +890,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th)
     si->npm[BLACK] = compute_npm<BLACK> (*this);
     si->checkers = attackers_to (square<KING> (active)) & pieces (~active);
     si->set_check_info (*this);
-    
+
     assert(ok ());
     return *this;
 }
@@ -1000,7 +957,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             //&& R_1 == rel_rank (active, org)
             //&& R_1 == rel_rank (active, dst)
             && si->can_castle (active|(dst > org ? CS_KING : CS_QUEN))
-            && 0 == si->ptr->checkers); // (attackers_to (org) & pieces (pasive))
+            && 0 == si->ptr->checkers); //&& (attackers_to (org) & pieces (pasive))
 
         si->capture = NONE;
         auto rook_org = dst; // Castling is encoded as "King captures friendly Rook"
@@ -1048,9 +1005,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             {
                 si->npm[pasive] -= PieceValues[MG][si->capture];
             }
+
             // Reset clock ply counter
             si->clock_ply = 0;
-
             remove_piece_on (cap, pasive|si->capture);
             key ^= RandZob.piece_square[pasive][si->capture][cap];
             si->matl_key ^= RandZob.piece_square[pasive][si->capture][count (pasive, si->capture)];
@@ -1132,7 +1089,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     // Calculate checkers
     si->checkers = is_check ? attackers_to (square<KING> (pasive)) & pieces (active) : 0;
     assert(!is_check
-        || 0 != si->checkers);
+        || (0 != si->checkers
+         && 2 >= pop_count (si->checkers)));
 
     // Switch sides
     active = pasive;

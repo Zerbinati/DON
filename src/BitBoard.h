@@ -24,7 +24,7 @@ namespace BitBoard {
     //    return U64(0x00000000000000FF) << (r * 8) | make_bitboard (ranks...);
     //}
 
-    constexpr Bitboard Full = U64(0xFFFFFFFFFFFFFFFF);
+    //constexpr Bitboard Full = U64(0xFFFFFFFFFFFFFFFF);
 
     constexpr Bitboard FA_bb = U64(0x0101010101010101);
     constexpr Bitboard FB_bb = FA_bb << 1;
@@ -186,12 +186,14 @@ namespace BitBoard {
     constexpr Bitboard rank_bb (Rank r) { return R1_bb << (8 * r); }
     constexpr Bitboard rank_bb (Square s) { return rank_bb (_rank (s)); }
 
+    // front_rank_bb() returns ranks in front of the given rank
     constexpr Bitboard front_rank_bb (Color c, Rank r)
     {
         return WHITE == c ?
-                Full << (8 * ( r + 1)) :
-                Full >> (8 * (~r + 1));
+                ~R1_bb << (8 * (r - R_1)) :
+                ~R8_bb >> (8 * (R_8 - r));
     }
+    // front_rank_bb() returns ranks in front of the given square
     constexpr Bitboard front_rank_bb (Color c, Square s) { return front_rank_bb (c, _rank (s)); }
 
     constexpr Bitboard adj_file_bb (File f)
@@ -210,7 +212,7 @@ namespace BitBoard {
     constexpr Bitboard pawn_attack_span (Color c, Square s) { return front_rank_bb (c, s) & adj_file_bb (_file (s)); }
     constexpr Bitboard pawn_pass_span   (Color c, Square s) { return front_line_bb (c, s) | pawn_attack_span (c, s); }
 
-    template<typename T> inline i32 dist (T t1, T t2) { return t1 != t2 ? t1 < t2 ? t2 - t1 : t1 - t2 : 0; }
+    template<typename T> inline i32 dist (T t1, T t2) { return std::abs (t1 - t2); }
     template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
 
     template<typename T1, typename T2> inline i32 dist (T2, T2);

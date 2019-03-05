@@ -18,22 +18,21 @@ namespace {
         {
             for (const auto &s : pos.squares[pos.active|pt])
             {
+                Bitboard attacks = PieceAttacks[pt][s] & targets;
+                if (0 == attacks)
+                {
+                    continue;
+                }
                 if (   GenType::CHECK == GT
                     || GenType::QUIET_CHECK == GT)
                 {
-                    if (   (   BSHP == pt
-                            || ROOK == pt
-                            || QUEN == pt)
-                        && 0 == (pos.si->checks[pt] & PieceAttacks[pt][s] & targets))
-                    {
-                        continue;
-                    }
-                    if (contains (pos.si->king_blockers[~pos.active], s))
+                    if (   contains (pos.si->king_blockers[~pos.active], s)
+                        || 0 == (attacks & pos.si->checks[pt]))
                     {
                         continue;
                     }
                 }
-                Bitboard attacks = pos.attacks_from (pt, s) & targets;
+                attacks &= pos.attacks_from (pt, s);
                 while (0 != attacks) { moves += mk_move<NORMAL> (s, pop_lsq (attacks)); }
             }
         }
@@ -43,6 +42,7 @@ namespace {
     template<GenType GT>
     void generate_promotion_moves (ValMoves &moves, const Position &pos, Bitboard promotion, Delta del)
     {
+        auto ek_sq = pos.square<KING> (~pos.active);
         while (0 != promotion)
         {
             auto dst = pop_lsq (promotion);
@@ -63,24 +63,24 @@ namespace {
                 moves += mk_move_promote (org, dst, QUEN);
                 break;
             case GenType::CHECK:
-                if (   contains (PieceAttacks[QUEN][dst], pos.square<KING> (~pos.active))
-                    && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ org), pos.square<KING> (~pos.active)))
+                if (   contains (PieceAttacks[QUEN][dst], ek_sq)
+                    && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ org), ek_sq))
                 {
                     moves += mk_move_promote (org, dst, QUEN);
                 }
-                if (   contains (PieceAttacks[ROOK][dst], pos.square<KING> (~pos.active))
-                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ org), pos.square<KING> (~pos.active)))
+                if (   contains (PieceAttacks[ROOK][dst], ek_sq)
+                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ org), ek_sq))
                 {
                     moves += mk_move_promote (org, dst, ROOK);
                 }
-                if (   contains (PieceAttacks[BSHP][dst], pos.square<KING> (~pos.active))
-                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ org), pos.square<KING> (~pos.active)))
+                if (   contains (PieceAttacks[BSHP][dst], ek_sq)
+                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ org), ek_sq))
                 {
                     moves += mk_move_promote (org, dst, BSHP);
                 }
                 /* fall through */
             case GenType::QUIET_CHECK:
-                if (contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active)))
+                if (contains (PieceAttacks[NIHT][dst], ek_sq))
                 {
                     moves += mk_move_promote (org, dst, NIHT);
                 }
@@ -178,7 +178,7 @@ namespace {
                 }
                 generate_promotion_moves<GT> (moves, pos, b, pawn_push (pos.active));
             }
-            
+
             if (GenType::CAPTURE == GT)
             {
                 break;
@@ -240,7 +240,7 @@ namespace {
                 for (auto &cs : { CS_KING, CS_QUEN })
                 {
                     if (   pos.expeded_castle (pos.active, cs)
-                        && pos.si->can_castle (pos.active | cs))
+                        && pos.si->can_castle (pos.active|cs))
                     {
                         moves += mk_move<CASTLE> (fk_sq, pos.castle_rook_sq[pos.active][cs]);
                     }
@@ -291,7 +291,8 @@ template void generate<GenType::QUIET  > (ValMoves&, const Position&);
 /// generate<EVASION>     Generates all pseudo-legal check evasions moves.
 template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position &pos)
 {
-    assert(0 != pos.si->checkers);
+    assert(0 != pos.si->checkers
+        && 2 >= pop_count (pos.si->checkers));
 
     moves.clear ();
     auto fk_sq = pos.square<KING> (pos.active);
@@ -332,7 +333,7 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
     Bitboard ex_dsc_blockers =  pos.si->king_blockers[~pos.active]
                              &  pos.pieces (pos.active)
                              & ~pos.pieces (PAWN);
-    assert(0 == (ex_dsc_blockers & pos.pieces (pos.active, QUEN)));
+    assert(0 == (ex_dsc_blockers & pos.pieces (QUEN)));
     while (0 != ex_dsc_blockers)
     {
         auto org = pop_lsq (ex_dsc_blockers);
@@ -356,7 +357,7 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
     Bitboard ex_dsc_blockers =  pos.si->king_blockers[~pos.active]
                              &  pos.pieces (pos.active)
                              & ~pos.pieces (PAWN);
-    assert(0 == (ex_dsc_blockers & pos.pieces (pos.active, QUEN)));
+    assert(0 == (ex_dsc_blockers & pos.pieces (QUEN)));
     while (0 != ex_dsc_blockers)
     {
         auto org = pop_lsq (ex_dsc_blockers);
@@ -415,16 +416,17 @@ void Perft::classify (Position &pos, Move m, bool detail)
         ++any_check;
         if (!contains (pos.si->checks[PROMOTE != mtype (m) ? ptype (pos[org_sq (m)]) : ::promote (m)], dst_sq (m)))
         {
+            auto ek_sq = pos.square<KING> (~pos.active);
             Bitboard mocc;
             Bitboard b;
             if (   (   contains (pos.si->king_blockers[~pos.active], org_sq (m))
-                    && !sqrs_aligned (org_sq (m), dst_sq (m), pos.square<KING> (~pos.active)))
+                    && !sqrs_aligned (org_sq (m), dst_sq (m), ek_sq))
                 || (   ENPASSANT == mtype (m)
                     && 0 != (mocc = (pos.pieces () ^ org_sq (m) ^ (_file (dst_sq (m)) | _rank (org_sq (m)))) | dst_sq (m))
-                    && (   (   0 != (b = pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][pos.square<KING> (~pos.active)])
-                            && 0 != (b & attacks_bb<BSHP> (pos.square<KING> (~pos.active), mocc)))
-                        || (   0 != (b = pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][pos.square<KING> (~pos.active)])
-                            && 0 != (b & attacks_bb<ROOK> (pos.square<KING> (~pos.active), mocc))))))
+                    && (   (   0 != (b = pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][ek_sq])
+                            && 0 != (b & attacks_bb<BSHP> (ek_sq, mocc)))
+                        || (   0 != (b = pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][ek_sq])
+                            && 0 != (b & attacks_bb<ROOK> (ek_sq, mocc))))))
             {
                 ++dsc_check;
             }

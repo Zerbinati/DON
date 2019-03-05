@@ -117,7 +117,25 @@ namespace UCI {
                     val = Empty;
                 }
             }
-
+            else
+            if (type == "combo")
+            {
+                OptionMap comboMap; // To have case insensitive compare
+                string token;
+                std::istringstream ss (default_value);
+                while (ss >> token)
+                {
+                    if (token == "var")
+                    {
+                        continue;
+                    }
+                    comboMap[token] << Option ();
+                }
+                if (comboMap.find (val) == comboMap.end ())
+                {
+                    return *this;
+                }
+            }
             current_value = val;
         }
 
