@@ -293,7 +293,7 @@ namespace {
         {
             assert(pos[s] == (Own|PT));
             Bitboard attacks;
-            // Find attacked squares, including x-ray attacks for bishops and rooks
+            // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
             switch (PT)
             {
             case NIHT: attacks = PieceAttacks[NIHT][s]; break;

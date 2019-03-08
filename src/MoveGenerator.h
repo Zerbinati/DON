@@ -102,7 +102,7 @@ struct Perft
         checkmate -= p.checkmate;
     }
 
-    void classify (Position&, Move, bool);
+    void classify (Position&, Move);
 };
 
 template<bool RootNode>

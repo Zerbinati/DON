@@ -286,10 +286,10 @@ template void generate<GenType::NATURAL> (ValMoves&, const Position&);
 /// generate<CAPTURE>     Generates all pseudo-legal captures and queen promotions.
 template void generate<GenType::CAPTURE> (ValMoves&, const Position&);
 /// generate<QUIET>       Generates all pseudo-legal non-captures and underpromotions.
-template void generate<GenType::QUIET  > (ValMoves&, const Position&);
+template void generate<GenType::QUIET> (ValMoves&, const Position&);
 
 /// generate<EVASION>     Generates all pseudo-legal check evasions moves.
-template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position &pos)
+template<> void generate<GenType::EVASION> (ValMoves &moves, const Position &pos)
 {
     assert(0 != pos.si->checkers
         && 2 >= pop_count (pos.si->checkers));
@@ -310,9 +310,8 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
                      & ~pos.pieces (pos.active);
     while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
 
-    // If double-check or only king, then only king move can save the day
-    if (   more_than_one (pos.si->checkers)
-        || 1 == pos.count (pos.active))
+    // Double-check, only king move can save the day
+    if (more_than_one (pos.si->checkers))
     {
         return;
     }
@@ -324,7 +323,7 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
     generate_moves<GenType::EVASION> (moves, pos, targets);
 }
 /// generate<CHECK>       Generates all pseudo-legal check giving moves.
-template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position &pos)
+template<> void generate<GenType::CHECK> (ValMoves &moves, const Position &pos)
 {
     assert(0 == pos.si->checkers);
     moves.clear ();
@@ -373,7 +372,7 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
 }
 
 /// generate<LEGAL>       Generates all legal moves.
-template<> void generate<GenType::LEGAL      > (ValMoves &moves, const Position &pos)
+template<> void generate<GenType::LEGAL> (ValMoves &moves, const Position &pos)
 {
     0 == pos.si->checkers ?
         generate<GenType::NATURAL> (moves, pos) :
@@ -384,24 +383,17 @@ template<> void generate<GenType::LEGAL      > (ValMoves &moves, const Position 
 /// Filter illegal moves
 void filter_illegal (ValMoves &moves, const Position &pos)
 {
-    moves.erase (std::remove_if (moves.begin (),
-                                 moves.end (),
+    moves.erase (std::remove_if (moves.begin (), moves.end (),
                                  [&] (const ValMove &vm)
                                  {
                                      return (   ENPASSANT == mtype (vm)
                                              || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
                                          && !pos.legal (vm);
-                                 }),
-                 moves.end ());
+                                 }), moves.end ());
 }
 
-void Perft::classify (Position &pos, Move m, bool detail)
+void Perft::classify (Position &pos, Move m)
 {
-    ++any;
-    if (!detail)
-    {
-        return;
-    }
     if (contains (pos.pieces (~pos.active), dst_sq (m)))
     {
         ++capture;
@@ -497,7 +489,8 @@ Perft perft (Position &pos, i16 depth, bool detail)
         if (   RootNode
             && 1 >= depth)
         {
-            leaf.classify (pos, vm, detail);
+            ++leaf.any;
+            if (detail) leaf.classify (pos, vm);
         }
         else
         {
@@ -508,7 +501,8 @@ Perft perft (Position &pos, i16 depth, bool detail)
             {
                 for (const auto &ivm : MoveList<GenType::LEGAL> (pos))
                 {
-                    leaf.classify (pos, ivm, detail);
+                    ++leaf.any;
+                    if (detail) leaf.classify (pos, ivm);
                 }
             }
             else

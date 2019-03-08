@@ -359,11 +359,11 @@ namespace Searcher {
     namespace {
 
         constexpr u08 SkipIndex = 20;
-        constexpr u08 SkipSize[SkipIndex] =
+        constexpr i16 SkipSize[SkipIndex] =
         {
             1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4
         };
-        constexpr u08 SkipPhase[SkipIndex] =
+        constexpr i16 SkipPhase[SkipIndex] =
         {
             0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7
         };
@@ -1752,7 +1752,7 @@ void Thread::search ()
         {
             // Thread Redistribution Scheme: Distribute search depths across the threads.
             assert(0 != index);
-            i32 i = (index - 1) % SkipIndex;
+            i16 i = (index - 1) % SkipIndex;
             if (0 != ((running_depth + SkipPhase[i]) / SkipSize[i]) % 2)
             {
                 continue;
@@ -1766,7 +1766,7 @@ void Thread::search ()
             rm.old_value = rm.new_value;
         }
 
-        size_t pv_beg = 0;
+        pv_beg = 0;
         pv_end = 0;
 
         // MultiPV loop. Perform a full root search for each PV line.

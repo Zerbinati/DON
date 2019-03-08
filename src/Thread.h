@@ -91,7 +91,8 @@ public:
     i16   nmp_ply;
     Color nmp_color;
 
-    size_t pv_cur
+    size_t pv_beg
+         , pv_cur
          , pv_end;
 
     std::atomic<u64> nodes
