@@ -803,10 +803,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto king_proximity = [&](Color c, Square s)
-                              {
-                                  return std::min (dist (pos.square<KING> (c), s), 5);
-                              };
+        auto king_proximity = [&](Color c, Square s) { return std::min (dist (pos.square<KING> (c), s), 5); };
 
         auto score = SCORE_ZERO;
 
@@ -827,16 +824,13 @@ namespace {
                 i32 w = (r-2) * (r-2) + 2;
 
                 // Adjust bonus based on the king's proximity
-                if (!contains (pawn_pass_span (Own, s), pos.square<KING> (Opp)))
-                {
-                    bonus += mk_score(0, 5*w*king_proximity (Opp, push_sq));
-                }
-                bonus -= mk_score (0, 2*w*king_proximity (Own, push_sq));
+                bonus += mk_score (0, (5*king_proximity (Opp, push_sq)
+                                     - 2*king_proximity (Own, push_sq))*w);
 
                 // If block square is not the queening square then consider also a second push.
                 if (R_7 != r)
                 {
-                    bonus -= mk_score (0, 1*w*king_proximity (Own, push_sq + pawn_push (Own)));
+                    bonus -= mk_score (0, 1*king_proximity (Own, push_sq + pawn_push (Own))*w);
                 }
 
                 // If the pawn is free to advance.
@@ -854,22 +848,19 @@ namespace {
                         behind_major &= attacks_bb<ROOK> (s, pos.pieces ());
                         assert(1 >= pop_count (behind_major));
                     }
-                    Bitboard b;
-                    // If there is no enemy rook or queen attacking the pawn from behind,
-                    // consider only the squares in the pawn's path attacked or occupied by the enemy,
-                    // Otherwise add all X-ray attacks by the enemy rook or queen.
-                    if (   0 == (b = (behind_major & pos.pieces (Opp)))
-                        || 0 != (b & pos.si->king_blockers[Opp]))
-                    {
-                        unsafe_front_line &= sgl_attacks[Opp][NONE] | pos.pieces (Opp);
-                    }
                     // If there is no friend rook or queen attacking the pawn from behind,
                     // consider only the squares in the pawn's path attacked by the friend.
                     // Otherwise add all X-ray attacks by the friend rook or queen.
-                    if (   0 == (b = (behind_major & pos.pieces (Own)))
-                        || 0 != (b & pos.si->king_blockers[Own]))
+                    if (0 == (behind_major & pos.pieces (Own) & ~pos.si->king_blockers[Own]))
                     {
                         safe_front_line &= sgl_attacks[Own][NONE];
+                    }
+                    // If there is no enemy rook or queen attacking the pawn from behind,
+                    // consider only the squares in the pawn's path attacked or occupied by the enemy,
+                    // Otherwise add all X-ray attacks by the enemy rook or queen.
+                    if (0 == (behind_major & pos.pieces (Opp) & ~pos.si->king_blockers[Opp]))
+                    {
+                        unsafe_front_line &= sgl_attacks[Opp][NONE] | pos.pieces (Opp);
                     }
 
                     i32 k;
@@ -923,9 +914,6 @@ namespace {
         }
 
         // Safe squares for friend pieces inside the area defined by SpaceMask.
-        // - if not occupied by friend pawns
-        // - if not attacked by an enemy pawns
-        // - if defended by friend pieces or not attacked by enemy pieces.
         Bitboard safe_space = Space_bb[Own]
                             & Side_bb[CS_NO]
                             & ~pos.pieces (Own, PAWN)

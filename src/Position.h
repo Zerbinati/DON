@@ -119,25 +119,23 @@ private:
     PieceType pick_least_val_att (Bitboard, Square, Square&, Bitboard&, Bitboard&) const;
 
 public:
-    Piece    piece[SQ_NO];
-    Bitboard color_bb[CLR_NO];
-    Bitboard type_bb[PT_NO];
+    Piece       piece[SQ_NO];
+    Bitboard    color_bb[CLR_NO];
+    Bitboard    type_bb[PT_NO];
     std::list<Square> squares[MAX_PIECE];
 
     CastleRight castle_right[SQ_NO];
 
-    Square   castle_rook_sq[CLR_NO][CS_NO];
-    Bitboard castle_rook_path_bb[CLR_NO][CS_NO];
-    Bitboard castle_king_path_bb[CLR_NO][CS_NO];
+    Square      castle_rook_sq[CLR_NO][CS_NO];
+    Bitboard    castle_rook_path_bb[CLR_NO][CS_NO];
+    Bitboard    castle_king_path_bb[CLR_NO][CS_NO];
 
-    Score psq;
-    i16   ply;
+    Score       psq;
+    i16         ply;
+    Color       active;
+    Thread      *thread;
 
-    Color active;
-
-    Thread *thread;
-
-    StateInfo *si; // Current state information pointer
+    StateInfo   *si; // Current state information pointer
 
     static void initialize ();
 
@@ -379,8 +377,8 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
     return (pieces (BLACK, PAWN) & PawnAttacks[WHITE][s])
          | (pieces (WHITE, PAWN) & PawnAttacks[BLACK][s])
          | (pieces (NIHT)        & PieceAttacks[NIHT][s])
-         | (0 != (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s]) ? pieces (BSHP, QUEN) & attacks_bb<BSHP> (s, occ) : 0)
-         | (0 != (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
+         | (pieces (BSHP, QUEN)  & attacks_bb<BSHP> (s, occ))
+         | (pieces (ROOK, QUEN)  & attacks_bb<ROOK> (s, occ))
          | (pieces (KING)        & PieceAttacks[KING][s]);
 }
 /// Position::attackers_to() finds attackers to the square.
@@ -502,7 +500,8 @@ inline void Position::do_move (Move m, StateInfo &nsi)
 
 inline void Position::place_piece_on (Square s, Piece pc)
 {
-    assert(_ok (pc));
+    assert(_ok (pc)
+        && std::count (squares[pc].begin (), squares[pc].end (), s) == 0);
     color_bb[color (pc)] |= s;
     type_bb[ptype (pc)] |= s;
     type_bb[NONE] |= s;
@@ -524,13 +523,13 @@ inline void Position::remove_piece_on (Square s, Piece pc)
 inline void Position::move_piece_on_to (Square s1, Square s2, Piece pc)
 {
     assert(_ok (pc)
-        && std::count (squares[pc].begin (), squares[pc].end (), s1) == 1);
+        && std::count (squares[pc].begin (), squares[pc].end (), s1) == 1
+        && std::count (squares[pc].begin (), squares[pc].end (), s2) == 0);
     Bitboard bb = square_bb (s1) | square_bb (s2);
     color_bb[color (pc)] ^= bb;
     type_bb[ptype (pc)] ^= bb;
     type_bb[NONE] ^= bb;
-    //std::replace (squares[pc].begin (), squares[pc].end (), s1, s2);
-    squares[pc].remove (s1); squares[pc].push_front (s2);
+    std::replace (squares[pc].begin (), squares[pc].end (), s1, s2);
     psq += PSQ[pc][s2] - PSQ[pc][s1];
     piece[s2] = pc;
     piece[s1] = NO_PIECE;

@@ -368,20 +368,26 @@ namespace Searcher {
             0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7
         };
 
-        // Razoring and futility margin
+        // Razor margin
         constexpr Value RazorMargin = Value(600);
+        // Futility margin
+        constexpr Value futility_margin (bool imp, i16 d)
+        {
+            return Value((imp ? 125 : 175) * d);
+        }
+        // Futility move count threshold
+        constexpr i16 futility_move_count (bool imp, i16 d)
+        {
+            return (imp ? 2 : 1) * (5 + d * d) / 2;
+        }
 
-        // FutilityMoveCounts[improving][depth]
-        u08 FutilityMoveCounts[2][16];
-
-        // Reductions[improving][depth][move-count]
-        i16 Reductions[2][64][64];
+        // Reductions[depth & move-count]
+        i16 Reductions[64];
         template <bool PVNode>
         i16 reduction (bool imp, i16 d, u08 mc)
         {
-            return PVNode ?
-                    std::max (Reductions[imp ? 1 : 0][std::min (d, i16(63))][std::min (mc, u08(63))] - 1, 0) :
-                    Reductions[imp ? 1 : 0][std::min (d, i16(63))][std::min (mc, u08(63))];
+            i16 r = Reductions[std::min (d, i16(63))] * Reductions[std::min (mc, u08(63))] / 1024;
+            return ((r + 512) / 1024 + (!imp && r > 1024 ? 1 : 0) - (PVNode ? 1 : 0));
         }
 
         i32 BasicContempt = 0;
@@ -860,7 +866,7 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            auto tt_pv = (  tt_hit
+            auto tt_pv = (   tt_hit
                           && tte->is_pv ())
                       || (   PVNode
                           && 4 < depth);
@@ -935,7 +941,7 @@ namespace Searcher {
                     {
                         thread->tb_hits.fetch_add (1, std::memory_order::memory_order_relaxed);
 
-                        auto draw = TBUseRule50 ? 1 : 0;
+                        i16 draw = TBUseRule50 ? 1 : 0;
 
                         value = wdl < -draw ? -VALUE_MATE + (MaxDepth + ss->ply + 1) :
                                 wdl > +draw ? +VALUE_MATE - (MaxDepth + ss->ply + 1) :
@@ -1036,7 +1042,7 @@ namespace Searcher {
                 // Step 7. Razoring. (~2 ELO)
                 if (   !root_node // The required RootNode PV handling is not available in qsearch
                     && 2 > depth
-                    && eval <= alfa - RazorMargin)
+                    && eval + RazorMargin <= alfa)
                 {
                     return quien_search<PVNode> (pos, ss, alfa, beta);
                 }
@@ -1050,7 +1056,7 @@ namespace Searcher {
                 if (   !root_node
                     && !Limits.mate_search ()
                     && 7 > depth
-                    && eval - (improving ? 125 : 175) * depth >= beta
+                    && eval - futility_margin (improving, depth) >= beta
                     && eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
                 {
                     return eval;
@@ -1119,7 +1125,7 @@ namespace Searcher {
                     auto raised_beta = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
                     // Initialize movepicker (3) for the current position
                     MovePicker move_picker (pos, tt_move, raised_beta - ss->static_eval);
-                    u08 pc_movelimit = cut_node ? 4 : 2;
+                    const u08 pc_movelimit = cut_node ? 4 : 2;
                     u08 pc_movecount = 0;
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
                     while (   pc_movecount < pc_movelimit
@@ -1323,8 +1329,7 @@ namespace Searcher {
                     && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
                 {
                     // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
-                    move_picker.skip_quiets = 16 > depth
-                                           && FutilityMoveCounts[improving ? 1 : 0][depth] <= move_count;
+                    move_picker.skip_quiets = futility_move_count (improving, depth) <= move_count;
 
                     if (   !capture_or_promotion
                         && !gives_check
@@ -1670,27 +1675,9 @@ namespace Searcher {
     {
         srand ((unsigned int)(time (NULL)));
 
-        for (i08 d = 0; d < 16; ++d)
+        for (i08 i = 1; i < 64; ++i)
         {
-            FutilityMoveCounts[0][d] = u08(0.74 * std::pow (d, 1.78) + 2.4);
-            FutilityMoveCounts[1][d] = u08(1.00 * std::pow (d, 2.00) + 5.0);
-        }
-        for (i08 imp = 0; imp < 2; ++imp)
-        {
-            Reductions[imp][0][0] = 0;
-            for (i08 d = 1; d < 64; ++d)
-            {
-                for (i08 mc = 1; mc < 64; ++mc)
-                {
-                    double r = std::log (d) * std::log (mc) / 1.95;
-                    Reductions[imp][d][mc] = i16(std::round (r));
-                    if (   0 == imp
-                        && 1.0 < r)
-                    {
-                        Reductions[imp][d][mc]++;
-                    }
-                }
-            }
+            Reductions[i] = i16(1024 * std::log (i) / std::sqrt (1.95));
         }
     }
     /// clear() resets search state to its initial value.
