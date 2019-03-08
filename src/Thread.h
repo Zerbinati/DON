@@ -143,6 +143,8 @@ public:
     SkillManager skill_mgr;
 
     bool   failed_low;
+    i16    failed_high_count;
+
     double best_move_change;
     Move   best_move;
     i16    best_move_depth;

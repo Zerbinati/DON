@@ -1807,10 +1807,18 @@ void Thread::search ()
 
             // Start with a small aspiration window and, in case of fail high/low,
             // research with bigger window until not failing high/low anymore.
-            i16 failed_high_count = 0;
+            if (nullptr != main_thread)
+            {
+                main_thread->failed_high_count = 0;
+            }
+
             do
             {
-                i16 adjusted_depth = i16(std::max (running_depth - failed_high_count, 1));
+                i16 adjusted_depth = running_depth;
+                if (nullptr != main_thread)
+                {
+                    adjusted_depth = i16(std::max (adjusted_depth - main_thread->failed_high_count, 1));
+                }
                 best_value = depth_search<true> (root_pos, stacks+7, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -1845,7 +1853,7 @@ void Thread::search ()
 
                     if (nullptr != main_thread)
                     {
-                        failed_high_count = 0;
+                        main_thread->failed_high_count = 0;
                         if (Limits.time_mgr_used ())
                         {
                             main_thread->failed_low = true;
@@ -1862,7 +1870,7 @@ void Thread::search ()
 
                     if (nullptr != main_thread)
                     {
-                        ++failed_high_count;
+                        ++main_thread->failed_high_count;
                     }
                 }
                 // Otherwise exit the loop.
@@ -2081,6 +2089,7 @@ void MainThread::search ()
             if (Limits.time_mgr_used ())
             {
                 failed_low = false;
+                failed_high_count = 0;
                 best_move_change = 0.0;
                 best_move = MOVE_NONE;
                 best_move_depth = DepthZero;
