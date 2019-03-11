@@ -1,6 +1,7 @@
 #include "BitBoard.h"
 
 #include <memory>
+#include <bitset>
 #include "PRNG.h"
 #include "Notation.h"
 
@@ -21,7 +22,18 @@ namespace BitBoard {
         , RMagics[SQ_NO];
 
 #if !defined(ABM)
+    
     u08 PopCount16[1 << 16];
+
+    //// Counts the non-zero bits using SWAR-Popcount algorithm
+    //u08 pop_count16 (u32 u)
+    //{
+    //    u -= (u >> 1) & 0x5555U;
+    //    u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
+    //    u = ((u >> 4) + u) & 0x0F0FU;
+    //    return u08((u * 0x0101U) >> 8);
+    //}
+
 #endif
 
     namespace {
@@ -64,17 +76,6 @@ namespace BitBoard {
 //        }
 //
 //        u08 MSB_Table[(1 << 8)];
-
-#   if !defined(ABM)
-        // Counts the non-zero bits using SWAR-Popcount algorithm
-        u08 pop_count16 (u32 u)
-        {
-            u -= (u >> 1) & 0x5555U;
-            u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
-            u = ((u >> 4) + u) & 0x0F0FU;
-            return u08((u * 0x0101U) >> 8);
-        }
-#   endif
 
         // Max Bishop Table Size
         // 4 * 2^6 + 12 * 2^7 + 44 * 2^5 + 4 * 2^9
@@ -248,7 +249,7 @@ namespace BitBoard {
 #   if !defined(ABM)
         for (u32 i = 0; i < (1 << 16); ++i)
         {
-            PopCount16[i] = pop_count16 (i);
+            PopCount16[i] = std::bitset<16> (i).count ();
         }
 #   endif
 

@@ -142,7 +142,6 @@ public:
     TimeManager  time_mgr;
     SkillManager skill_mgr;
 
-    bool   failed_low;
     i16    failed_high_count;
 
     double best_move_change;

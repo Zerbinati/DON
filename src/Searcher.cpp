@@ -1277,13 +1277,13 @@ namespace Searcher {
                 // if result is lower than tt_value minus a margin then extend tt_move.
                 if (   !root_node
                     && 7 < depth
-                    && VALUE_NONE != tt_value // Handle tt_hit
                     && move == tt_move
                     && MOVE_NONE == ss->excluded_move // Avoid recursive singular search.
+                    && +VALUE_KNOWN_WIN > abs (tt_value) // Handle tt_hit
                     && depth < tte->depth () + 4
                     && BOUND_NONE != (tte->bound () & BOUND_LOWER))
                 {
-                    auto singular_beta = std::max (tt_value - 2*depth, -VALUE_MATE);
+                    auto singular_beta = tt_value - 2*depth;
 
                     ss->excluded_move = move;
                     value = depth_search<false> (pos, ss, singular_beta -1, singular_beta, depth/2, cut_node);
@@ -1743,7 +1743,6 @@ void Thread::search ()
         {
             if (Limits.time_mgr_used ())
             {
-                main_thread->failed_low = false;
                 // Age out PV variability metric
                 main_thread->best_move_change *= 0.517;
             }
@@ -1854,10 +1853,6 @@ void Thread::search ()
                     if (nullptr != main_thread)
                     {
                         main_thread->failed_high_count = 0;
-                        if (Limits.time_mgr_used ())
-                        {
-                            main_thread->failed_low = true;
-                        }
                         main_thread->stop_on_ponderhit = false;
                     }
                 }
@@ -1946,9 +1941,7 @@ void Thread::search ()
                         // Falling Eval factor
                      * std::min (1.5,
                         std::max (0.5,
-                                  (306
-                                 + 119 * (main_thread->failed_low ? 1 : 0)
-                                 +   6 * (VALUE_NONE != main_thread->last_value ? main_thread->last_value - best_value: 0)) / 581.0))))
+                                  (306 + 9 * (VALUE_NONE != main_thread->last_value ? main_thread->last_value - best_value: 0)) / 581.0))))
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".
@@ -2088,7 +2081,6 @@ void MainThread::search ()
 
             if (Limits.time_mgr_used ())
             {
-                failed_low = false;
                 failed_high_count = 0;
                 best_move_change = 0.0;
                 best_move = MOVE_NONE;
