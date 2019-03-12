@@ -103,16 +103,16 @@ namespace {
     };
     constexpr Score MajorThreat[NONE] =
     {
-        S( 0,24), S(38,71), S(38,61), S( 0, 38), S(51, 38), S( 0, 0)
+        S( 0,24), S(38,71), S(38,61), S( 0,38), S(51,38), S( 0, 0)
     };
 
     constexpr Score PasserFile[F_NO/2] =
     {
-        S( -1,  7), S(  0,  9), S( -9, -8), S(-30,-14)
+        S(-1, 7), S( 0, 9), S(-9,-8), S(-30,-14)
     };
     constexpr Score PasserRank[R_NO] =
     {
-        S( 0, 0), S(  5, 18), S( 12, 23), S( 10, 31), S( 57, 62), S(163,167), S(271,250), S( 0, 0)
+        S( 0, 0), S( 5,18), S(12,23), S(10,31), S(57,62), S(163,167), S(271,250), S( 0, 0)
     };
 
     constexpr Score MinorBehindPawn =   S( 18,  3);
@@ -138,12 +138,12 @@ namespace {
 
 #undef S
 
-    constexpr i32 KingSafeCheck[NONE] =
+    constexpr i32 SafeCheckBonus[NONE] =
     {
         0, 790, 635, 880, 980, 0
     };
 
-    constexpr i32 KingAttack[NONE] =
+    constexpr i32 KingAttackerWeight[NONE] =
     {
         0, 77, 55, 44, 10, 0
     };
@@ -178,7 +178,7 @@ namespace {
         // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
         u08 king_attackers_count[CLR_NO];
         // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
-        // The weights of the individual piece types are given by the KingAttack[piece-type]
+        // The weights of the individual piece types are given by the KingAttackerWeight[piece-type]
         i32 king_attackers_weight[CLR_NO];
         // Number of attacks by the color to squares directly adjacent to the enemy king.
         // Pieces which attack more than one square are counted multiple times.
@@ -354,7 +354,7 @@ namespace {
             if (0 != (king_ring[Opp] & attacks))
             {
                 ++king_attackers_count[Own];
-                king_attackers_weight[Own] += KingAttack[PT];
+                king_attackers_weight[Own] += KingAttackerWeight[PT];
                 king_attacks_count[Own] += u08(pop_count (sgl_attacks[Opp][KING] & attacks));
             }
 
@@ -509,7 +509,7 @@ namespace {
             safety = std::max (pe->king_safety[Own][1], safety);
         }
 
-        auto score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
+        Score score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
 
         // Main king safety evaluation
         i32 king_danger = 0;
@@ -517,9 +517,9 @@ namespace {
         // Attacked squares defended at most once by friend queen or king
         Bitboard weak_area =  sgl_attacks[Opp][NONE]
                            & ~dbl_attacks[Own]
-                           & (   sgl_attacks[Own][KING]
+                           & (  ~sgl_attacks[Own][NONE]
                               |  sgl_attacks[Own][QUEN]
-                              | ~sgl_attacks[Own][NONE]);
+                              |  sgl_attacks[Own][KING]);
 
         // Safe squares where enemy's safe checks are possible on next move
         Bitboard safe_area = ~pos.pieces (Opp)
@@ -539,7 +539,7 @@ namespace {
                                  & quen_check;
         if (0 != (quen_safe_check & ~sgl_attacks[Own][QUEN]))
         {
-            king_danger += KingSafeCheck[QUEN];
+            king_danger += SafeCheckBonus[QUEN];
         }
 
         // Enemy rook checks
@@ -551,7 +551,7 @@ namespace {
                                  & ~quen_safe_check;
         if (0 != rook_safe_check)
         {
-            king_danger += KingSafeCheck[ROOK];
+            king_danger += SafeCheckBonus[ROOK];
         }
         else
         {
@@ -567,7 +567,7 @@ namespace {
                                  & ~quen_safe_check;
         if (0 != bshp_safe_check)
         {
-            king_danger += KingSafeCheck[BSHP];
+            king_danger += SafeCheckBonus[BSHP];
         }
         else
         {
@@ -582,23 +582,19 @@ namespace {
                                  & niht_check;
         if (0 != niht_safe_check)
         {
-            king_danger += KingSafeCheck[NIHT];
+            king_danger += SafeCheckBonus[NIHT];
         }
         else
         {
             unsafe_check |= niht_check;
         }
 
-        // Squares attacked by enemy in friend king flank
         Bitboard b1 = KingFlank_bb[_file (fk_sq)]
                     & Camp_bb[Own]
                     & sgl_attacks[Opp][NONE];
-        // Squares attacked by enemy twice in friend king flank.
-        Bitboard b2 = b1
-                    & dbl_attacks[Opp];
         // Friend king flank attacks count
-        i32 tropism = pop_count (b1)
-                    + pop_count (b2);
+        i32 tropism = pop_count (b1)                    // Squares attacked by enemy in friend king flank
+                    + pop_count (b1 & dbl_attacks[Opp]);// Squares attacked by enemy twice in friend king flank.
 
         // Initialize the king danger, which will be transformed later into a score.
         // - number and types of the enemy's attacking pieces,
