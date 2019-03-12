@@ -76,8 +76,8 @@ namespace Pawns {
             {
                 assert(pos[s] == (Own|PAWN));
 
-                e->color_count[Own][color (s)]++;
                 auto f = _file (s);
+                e->color_count[Own][color (s)]++;
                 e->semiopens[Own] &= ~(1 << f);
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 

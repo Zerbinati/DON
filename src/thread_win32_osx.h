@@ -1,5 +1,5 @@
-#ifndef _THREAD_WIN32_H_INC_
-#define _THREAD_WIN32_H_INC_
+#ifndef _THREAD_WIN32_OSX_H_INC_
+#define _THREAD_WIN32_OSX_H_INC_
 
 /// STL thread library used by mingw and gcc when cross compiling for Windows
 /// relies on libwinpthread. Currently libwinpthread implements mutexes directly
@@ -33,6 +33,7 @@
 #endif
 
 #if defined(_WIN32) && !defined(_MSC_VER)
+
 /// Mutex and ConditionVariable struct are wrappers of the low level locking
 /// machinery and are modeled after the corresponding C++11 classes.
 class Mutex
@@ -52,7 +53,7 @@ public:
 
 typedef std::condition_variable_any ConditionVariable;
 
-#else // Default case
+#else // Default case: use STL classes
 
 // STL classes are used
 typedef std::mutex              Mutex;
@@ -60,4 +61,51 @@ typedef std::condition_variable ConditionVariable;
 
 #endif
 
-#endif // _THREAD_WIN32_H_INC_
+#include <thread>
+
+/// On OSX threads other than the main thread are created with a reduced stack
+/// size of 512KB by default, this is dangerously low for deep searches, so
+/// adjust it to TH_STACK_SIZE. The implementation calls pthread_create() with
+/// proper stack size parameter.
+#if defined(__APPLE__)
+
+#include <pthread.h>
+
+static const size_t TH_STACK_SIZE = 2 * 1024 * 1024;
+
+template <class T, class P = std::pair<T*, void(T::*)()>>
+void* start_routine (void *ptr)
+{
+    P* p = reinterpret_cast<P*>(ptr);
+    (p->first->*(p->second))(); // Call member function pointer
+    delete p;
+    return NULL;
+}
+
+class NativeThread
+{
+private:
+    pthread_t thread;
+
+public:
+    template<class T, class P = std::pair<T*, void (T::*)()>>
+    explicit NativeThread (void (T::*fun)(), T *obj)
+    {
+        pthread_attr_t attr_storage, *attr = &attr_storage;
+        pthread_attr_init (attr);
+        pthread_attr_setstacksize (attr, TH_STACK_SIZE);
+        pthread_create (&thread, attr, start_routine<T>, new P (obj, fun));
+    }
+
+    void join () { pthread_join (thread, NULL); }
+};
+
+#else // Default case: use STL classes
+
+typedef std::thread NativeThread;
+
+#endif
+
+
+
+#endif // _THREAD_WIN32_OSX_H_INC_

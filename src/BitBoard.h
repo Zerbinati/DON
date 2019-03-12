@@ -44,7 +44,7 @@ namespace BitBoard {
     constexpr Bitboard R7_bb = R1_bb << (8 * 6);
     constexpr Bitboard R8_bb = R1_bb << (8 * 7);
 
-    constexpr Bitboard Diagonals_bb = U64(0x8142241818244281); // A1..H8 | H1..A8
+    //constexpr Bitboard Diagonals_bb = U64(0x8142241818244281); // A1..H8 | H1..A8
     constexpr Bitboard Center_bb = (FD_bb|FE_bb) & (R4_bb|R5_bb);
 
     constexpr Bitboard Color_bb[CLR_NO] =

@@ -218,7 +218,7 @@ Bitboard Position::slider_blockers (Square s, Color c, Bitboard excluds, Bitboar
     Bitboard blockers = 0;
     // Snipers are attackers to the square 's'
     Bitboard snipers = (  pieces (c)
-                        & ~(excluds | xattackers_to (s))) // Remove direct attackers to the square 's'
+                        & ~(excluds | attackers_to (s))) // Remove direct attackers to the square 's'
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     // Occupancy are pieces but removed snipers

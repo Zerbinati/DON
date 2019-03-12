@@ -185,7 +185,7 @@ void SkillManager::pick_best_move (i16 level)
 /// Note that 'busy' and 'dead' should be already set.
 Thread::Thread (size_t idx)
     : index (idx)
-    , std_thread (&Thread::idle_loop, this)
+    , native_thread (&Thread::idle_loop, this)
 {
     wait_while_busy ();
 }
@@ -196,7 +196,7 @@ Thread::~Thread ()
     assert(!busy);
     dead = true;
     start ();
-    std_thread.join ();
+    native_thread.join ();
 }
 /// Thread::start() wakes up the thread that will start the search.
 void Thread::start ()

@@ -109,7 +109,6 @@ namespace BitBoard {
 #           else
                 { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
 #           endif
-
 #       endif
 
             u32 offset = 0;
@@ -249,7 +248,7 @@ namespace BitBoard {
 #   if !defined(ABM)
         for (u32 i = 0; i < (1 << 16); ++i)
         {
-            PopCount16[i] = std::bitset<16> (i).count ();
+            PopCount16[i] = std::bitset<16> (i).count (); //pop_count16 (i);
         }
 #   endif
 

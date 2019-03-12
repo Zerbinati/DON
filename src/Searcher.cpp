@@ -1925,7 +1925,7 @@ void Thread::search ()
                 }
 
                 // Reduce time if the best_move is stable over 10 iterations
-                double time_reduction = main_thread->best_move_depth + 10 < finished_depth ?
+                double time_reduction = 10 < (finished_depth - main_thread->best_move_depth) ?
                                             1.95 :
                                             1.00;
                 // Stop the search

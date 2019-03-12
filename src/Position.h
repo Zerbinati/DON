@@ -1,15 +1,14 @@
 #ifndef _POSITION_H_INC_
 #define _POSITION_H_INC_
 
-#include <cassert>
 #include <cstring>
 #include <deque>
 #include <list>
 #include <memory> // For std::unique_ptr
 #include <string>
+#include "Type.h"
 #include "BitBoard.h"
 #include "PSQTable.h"
-#include "Type.h"
 #include "Zobrist.h"
 
 using namespace BitBoard;
@@ -176,10 +175,10 @@ public:
     bool cycled (i16) const;
     bool repeated () const;
 
-    Bitboard xattackers_to (Square, Bitboard) const;
-    Bitboard xattackers_to (Square) const;
     Bitboard attackers_to (Square, Bitboard) const;
     Bitboard attackers_to (Square) const;
+    //Bitboard xattackers_to (Square, Bitboard) const;
+    //Bitboard xattackers_to (Square) const;
     Bitboard attacks_from (PieceType, Square, Bitboard) const;
     Bitboard attacks_from (PieceType, Square) const;
     Bitboard attacks_from (Square, Bitboard) const;
@@ -373,25 +372,7 @@ inline i16 Position::move_num () const
 {
     return i16(std::max ((ply - (BLACK == active ? 1 : 0)) / 2, 0) + 1);
 }
-/// Position::xattackers_to() finds attackers to the square on occupancy.
-inline Bitboard Position::xattackers_to (Square s, Bitboard occ) const
-{
-    return (pieces (BLACK, PAWN) & PawnAttacks[WHITE][s])
-        | (pieces (WHITE, PAWN) & PawnAttacks[BLACK][s])
-        | (pieces (NIHT)        & PieceAttacks[NIHT][s])
-        | (pieces (WHITE, BSHP) & attacks_bb<BSHP> (s, occ & ~pieces (WHITE, QUEN, BSHP)))
-        | (pieces (BLACK, BSHP) & attacks_bb<BSHP> (s, occ & ~pieces (BLACK, QUEN, BSHP)))
-        | (pieces (WHITE, ROOK) & attacks_bb<ROOK> (s, occ & ~pieces (WHITE, QUEN, ROOK)))
-        | (pieces (BLACK, ROOK) & attacks_bb<ROOK> (s, occ & ~pieces (BLACK, QUEN, ROOK)))
-        | (pieces (WHITE, QUEN) & attacks_bb<QUEN> (s, occ & ~pieces (WHITE, QUEN)))
-        | (pieces (BLACK, QUEN) & attacks_bb<QUEN> (s, occ & ~pieces (BLACK, QUEN)))
-        | (pieces (KING)        & PieceAttacks[KING][s]);
-}
-/// Position::attackers_to() finds attackers to the square.
-inline Bitboard Position::xattackers_to (Square s) const
-{
-    return xattackers_to (s, pieces ());
-}
+
 /// Position::attackers_to() finds attackers to the square on occupancy.
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
@@ -407,6 +388,25 @@ inline Bitboard Position::attackers_to (Square s) const
 {
     return attackers_to (s, pieces ());
 }
+///// Position::xattackers_to() finds attackers to the square on occupancy.
+//inline Bitboard Position::xattackers_to (Square s, Bitboard occ) const
+//{
+//    return (pieces (BLACK, PAWN) & PawnAttacks[WHITE][s])
+//        | (pieces (WHITE, PAWN) & PawnAttacks[BLACK][s])
+//        | (pieces (NIHT)        & PieceAttacks[NIHT][s])
+//        | (pieces (WHITE, BSHP) & attacks_bb<BSHP> (s, occ & ~pieces (WHITE, QUEN, BSHP)))
+//        | (pieces (BLACK, BSHP) & attacks_bb<BSHP> (s, occ & ~pieces (BLACK, QUEN, BSHP)))
+//        | (pieces (WHITE, ROOK) & attacks_bb<ROOK> (s, occ & ~pieces (WHITE, QUEN, ROOK)))
+//        | (pieces (BLACK, ROOK) & attacks_bb<ROOK> (s, occ & ~pieces (BLACK, QUEN, ROOK)))
+//        | (pieces (WHITE, QUEN) & attacks_bb<QUEN> (s, occ & ~pieces (WHITE, QUEN)))
+//        | (pieces (BLACK, QUEN) & attacks_bb<QUEN> (s, occ & ~pieces (BLACK, QUEN)))
+//        | (pieces (KING)        & PieceAttacks[KING][s]);
+//}
+///// Position::attackers_to() finds attackers to the square.
+//inline Bitboard Position::xattackers_to (Square s) const
+//{
+//    return xattackers_to (s, pieces ());
+//}
 /// Position::attacks_from() finds attacks of the piecetype from the square on occupancy.
 inline Bitboard Position::attacks_from (PieceType pt, Square s, Bitboard occ) const
 {
@@ -571,8 +571,8 @@ inline void StateInfo::set_check_info (const Position &pos)
     king_checkers[BLACK] = 0;
     king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), BLACK, 0, king_checkers[WHITE], king_checkers[BLACK]);
     king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), WHITE, 0, king_checkers[BLACK], king_checkers[WHITE]);
-    assert(0 == (king_blockers[WHITE] & pos.pieces (BLACK, QUEN)) && (attacks_bb<QUEN> (pos.square<KING> (WHITE), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
-    assert(0 == (king_blockers[BLACK] & pos.pieces (WHITE, QUEN)) && (attacks_bb<QUEN> (pos.square<KING> (BLACK), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
+    assert(/*0 == (king_blockers[WHITE] & pos.pieces (BLACK, QUEN)) &&*/ (attacks_bb<QUEN> (pos.square<KING> (WHITE), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
+    assert(/*0 == (king_blockers[BLACK] & pos.pieces (WHITE, QUEN)) &&*/ (attacks_bb<QUEN> (pos.square<KING> (BLACK), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
 
     checks[PAWN] = PawnAttacks[~pos.active][pos.square<KING> (~pos.active)];
     checks[NIHT] = PieceAttacks[NIHT][pos.square<KING> (~pos.active)];

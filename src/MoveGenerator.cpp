@@ -139,7 +139,7 @@ namespace {
                 case GenType::EVASION:
                     // If the checking piece is the double pushed pawn and also is in the target.
                     // Otherwise this is a discovery check and are forced to do otherwise.
-                    if (!contains (enemies & pos.pieces (PAWN), pos.si->enpassant_sq - pawn_push (pos.active)))
+                    if (!contains (enemies /*& pos.pieces (PAWN)*/, pos.si->enpassant_sq - pawn_push (pos.active)))
                     {
                         ep_captures = 0;
                     }

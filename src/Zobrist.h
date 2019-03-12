@@ -9,9 +9,7 @@ class Position;
 class Zobrist
 {
 public:
-    // 2*6*64 + 2*2 + 8 + 1
-    //    768 +   4 + 8 + 1
-    //                  781
+    // 2*6*64 + 4 + 8 + 1 = 781
     Key piece_square[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
     Key castle_right[CR_NO];                // [castle-right]
     Key enpassant   [F_NO];                 // [enpassant file]

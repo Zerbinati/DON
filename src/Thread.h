@@ -1,7 +1,6 @@
 #ifndef _THREAD_H_INC_
 #define _THREAD_H_INC_
 
-#include <thread>
 #include <atomic>
 #include "Material.h"
 #include "Option.h"
@@ -9,8 +8,7 @@
 #include "Position.h"
 #include "PRNG.h"
 #include "Searcher.h"
-#include "thread_win32.h"
-#include "Type.h"
+#include "thread_win32_osx.h"
 
 /// TimeManager class is used to computes the optimal time to think depending on the
 /// maximum available time, the move game number and other parameters.
@@ -77,7 +75,7 @@ protected:
        , busy = true;
 
     size_t index;
-    std::thread std_thread;
+    NativeThread native_thread;
 
 public:
 

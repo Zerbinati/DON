@@ -629,7 +629,7 @@
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\TBsyzygy.h" />
     <ClInclude Include="src\Thread.h" />
-    <ClInclude Include="src\thread_win32.h" />
+    <ClInclude Include="src\thread_win32_osx.h" />
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Type.h" />

@@ -191,7 +191,7 @@ Zobrist RandZob;
 // Constant numbers from Polyglot, used to compute polyglot book hash key
 Zobrist const PolyZob =
 {
-    // PieceSquare
+    // PieceSquare (768)
     {
         // White
         {
@@ -428,7 +428,7 @@ Zobrist const PolyZob =
             }
         }
     },
-    // CastleRights
+    // CastleRights (4)->(16)
     {
     U64(0x0000000000000000),
     U64(0x31D71DCE64B2C310), // White King
@@ -447,11 +447,17 @@ Zobrist const PolyZob =
     U64(0x4AED3065B3336CF9),
     U64(0x7B3A2DABD781AFE9)
     },
+    // EnpassantFile (8)
     {
-    // EnpasantFile
-    U64(0x70CC73D90BC26E24), U64(0xE21A6B35DF0C3AD7), U64(0x003A93D8B2806962), U64(0x1C99DED33CB890A1),
-    U64(0xCF3145DE0ADD4289), U64(0xD0E4427A5514FB72), U64(0x77C621CC9FB3A483), U64(0x67A34DAC4356550B),
+    U64(0x70CC73D90BC26E24),
+    U64(0xE21A6B35DF0C3AD7),
+    U64(0x003A93D8B2806962),
+    U64(0x1C99DED33CB890A1),
+    U64(0xCF3145DE0ADD4289),
+    U64(0xD0E4427A5514FB72),
+    U64(0x77C621CC9FB3A483),
+    U64(0x67A34DAC4356550B),
     },
-    // ActiveSide
+    // Color (1)
     U64(0xF8D626AAAF278509)
 };
