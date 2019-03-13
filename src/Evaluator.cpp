@@ -527,10 +527,25 @@ namespace {
                               | (  weak_area
                                  & dbl_attacks[Opp]));
 
+        Bitboard unsafe_check = 0;
+
+        // Enemy knight checks
+        Bitboard niht_check = PieceAttacks[NIHT][fk_sq]
+                            & sgl_attacks[Opp][NIHT];
+        // Enemy knight safe checks
+        Bitboard niht_safe_check = niht_check
+                                 & safe_area;
+        if (0 != niht_safe_check)
+        {
+            king_danger += pop_count (niht_safe_check) * SafeCheckWeight[NIHT];
+        }
+        else
+        {
+            unsafe_check |= niht_check;
+        }
+
         Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
         Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
-
-        Bitboard unsafe_check = 0;
 
         // Enemy bishop checks
         Bitboard bshp_check = bshp_attack
@@ -540,7 +555,7 @@ namespace {
                                  & safe_area;
         if (0 != bshp_safe_check)
         {
-            king_danger += SafeCheckWeight[BSHP];
+            king_danger += pop_count (bshp_safe_check) * SafeCheckWeight[BSHP];
         }
         else
         {
@@ -555,7 +570,7 @@ namespace {
                                  & safe_area;
         if (0 != rook_safe_check)
         {
-            king_danger += SafeCheckWeight[ROOK];
+            king_danger += pop_count (rook_safe_check) * SafeCheckWeight[ROOK];
         }
         else
         {
@@ -565,31 +580,19 @@ namespace {
         // Enemy queen checks
         Bitboard quen_check = (bshp_attack | rook_attack)
                             &  sgl_attacks[Opp][QUEN]
+                            & ~(bshp_safe_check | rook_safe_check)
                             & ~sgl_attacks[Own][QUEN];
         // Enemy queen safe checks
         Bitboard quen_safe_check = quen_check
-                                 & safe_area
-                                 & ~bshp_safe_check
-                                 & ~rook_safe_check;
+                                 & safe_area;
         if (0 != quen_safe_check)
         {
-            king_danger += SafeCheckWeight[QUEN];
+            king_danger += pop_count (quen_safe_check) * SafeCheckWeight[QUEN];
         }
-
-        // Enemy knight checks
-        Bitboard niht_check = PieceAttacks[NIHT][fk_sq]
-                            & sgl_attacks[Opp][NIHT];
-        // Enemy knight safe checks
-        Bitboard niht_safe_check = safe_area
-                                 & niht_check;
-        if (0 != niht_safe_check)
-        {
-            king_danger += SafeCheckWeight[NIHT];
-        }
-        else
-        {
-            unsafe_check |= niht_check;
-        }
+        //else
+        //{
+        //    unsafe_check |= quen_check;
+        //}
 
         // Unsafe or occupied checking squares will also be considered, as long as
         // the square is in the attacker's mobility area.
@@ -615,11 +618,11 @@ namespace {
                     -    3 * safety / 4
                     -   25;
         // If friend knight is near by to defend king
-        if (0 != (  pos.pieces (Own, NIHT)
-                  & ~pos.si->king_blockers[Own]
-                  & (  DistRings_bb[fk_sq][1]
-                     | DistRings_bb[fk_sq][2]
-                     | DistRings_bb[fk_sq][3])))
+        if ((  pos.pieces (Own, NIHT)
+             & ~pos.si->king_blockers[Own]
+             & (  DistRings_bb[fk_sq][1]
+                | DistRings_bb[fk_sq][2]
+                | DistRings_bb[fk_sq][3])) != 0)
         {
             king_danger -= 100;
         }
