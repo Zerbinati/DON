@@ -144,17 +144,14 @@ u32 TTable::resize (u32 mem_size)
 /// TTable::auto_resize()
 void TTable::auto_resize (u32 mem_size)
 {
-    for (auto msize =
-            0 != mem_size ?
-            mem_size :
-            MaxHashSize;
-            msize >= MinHashSize;
-            msize /= 2)
+    auto msize = 0 != mem_size ? mem_size : MaxHashSize;
+    while (msize >= MinHashSize)
     {
         if (0 != resize (msize))
         {
             return;
         }
+        msize /= 2;
     }
     stop (EXIT_FAILURE);
 }

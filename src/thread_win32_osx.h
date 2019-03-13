@@ -11,9 +11,6 @@
 /// is racy between unlock() and WaitForSingleObject() but they have the same
 /// speed performance of SRW locks.
 
-#include <condition_variable>
-#include <mutex>
-
 #if defined(_WIN32)
 
 #   if !defined(NOMINMAX)
@@ -33,6 +30,8 @@
 #endif
 
 #if defined(_WIN32) && !defined(_MSC_VER)
+
+#include <condition_variable>
 
 /// Mutex and ConditionVariable struct are wrappers of the low level locking
 /// machinery and are modeled after the corresponding C++11 classes.
@@ -55,13 +54,13 @@ typedef std::condition_variable_any ConditionVariable;
 
 #else // Default case: use STL classes
 
-// STL classes are used
-typedef std::mutex              Mutex;
+#include <condition_variable>
+#include <mutex>
+
 typedef std::condition_variable ConditionVariable;
+typedef std::mutex              Mutex;
 
 #endif
-
-#include <thread>
 
 /// On OSX threads other than the main thread are created with a reduced stack
 /// size of 512KB by default, this is dangerously low for deep searches, so
@@ -102,10 +101,10 @@ public:
 
 #else // Default case: use STL classes
 
+#include <thread>
+
 typedef std::thread NativeThread;
 
 #endif
-
-
 
 #endif // _THREAD_WIN32_OSX_H_INC_
