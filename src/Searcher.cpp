@@ -1335,7 +1335,7 @@ namespace Searcher {
                         && !gives_check
                         && !pos.pawn_advance (move))
                     {
-                        // Move count based pruning. (~30 ELO)
+                        // Move count based pruning: (~30 ELO)
                         if (move_picker.skip_quiets)
                         {
                             continue;
@@ -1343,8 +1343,8 @@ namespace Searcher {
 
                         // Reduced depth of the next LMR search.
                         i16 lmr_depth = i16(std::max (new_depth - reduction<PVNode> (improving, depth, move_count), 0));
-                        // Countermoves based pruning. (~20 ELO)
-                        if (   (0 < (ss-1)->stats || 1 == (ss-1)->move_count ? 4 : 3) > lmr_depth
+                        // Countermoves based pruning: (~20 ELO)
+                        if (   ((0 < (ss-1)->stats || 1 == (ss-1)->move_count) ? 4 : 3) > lmr_depth
                             && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
                             && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
                         {
@@ -1366,9 +1366,9 @@ namespace Searcher {
                         }
                     }
                     else
-                    // SEE based pruning. (~20 ELO)
                     if (DepthZero == extension)
                     {
+                        // SEE based pruning: -ve SEE (~20 ELO)
                         auto thr = -VALUE_EG_PAWN*i32(depth);
                         if (   pos.exchange (move) < thr
                             && !pos.see_ge (move, thr))
@@ -1675,6 +1675,7 @@ namespace Searcher {
     {
         srand ((unsigned int)(time (NULL)));
 
+        Reductions[0] = 0;
         for (i08 i = 1; i < 64; ++i)
         {
             Reductions[i] = i16(1024 * std::log (i) / std::sqrt (1.95));

@@ -134,8 +134,9 @@ namespace EndGame {
         template<typename ET>
         const EndgameBase<ET>* probe (Key matl_key)
         {
-            return map<ET> ().find (matl_key) != map<ET> ().end () ?
-                    map<ET> ()[matl_key].get () :
+            auto eb = map<ET> ().find (matl_key);
+            return eb != map<ET> ().end () ?
+                    eb->second.get () :
                     nullptr;
         }
     };

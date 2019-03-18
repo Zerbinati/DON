@@ -140,7 +140,7 @@ namespace {
 
     constexpr i32 SafeCheckWeight[NONE] =
     {
-        0, 790, 635, 880, 980, 0
+        30, 790, 635, 880, 980, 0
     };
 
     constexpr i32 KingAttackerWeight[NONE] =
@@ -187,10 +187,10 @@ namespace {
 
         template<Color> void initialize ();
         template<Color, PieceType> Score pieces ();
-        template<Color> Score king ();
-        template<Color> Score threats ();
-        template<Color> Score passers ();
-        template<Color> Score space ();
+        template<Color> Score king () const;
+        template<Color> Score threats () const;
+        template<Color> Score passers () const;
+        template<Color> Score space () const;
 
         Score initiative (Value) const;
         Scale scale (Value) const;
@@ -487,7 +487,7 @@ namespace {
 
     /// king() evaluates the king of the color.
     template<bool Trace> template<Color Own>
-    Score Evaluator<Trace>::king ()
+    Score Evaluator<Trace>::king () const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -529,11 +529,24 @@ namespace {
 
         Bitboard unsafe_check = 0;
 
-        // Enemy knight checks
-        Bitboard niht_check = PieceAttacks[NIHT][fk_sq]
-                            & sgl_attacks[Opp][NIHT];
+        //// Enemy pawn checks
+        //Bitboard pawn_check = PawnAttacks[Own][fk_sq]
+        //                    & sgl_attacks[Opp][PAWN];
+        //// Enemy pawn safe checks
+        //Bitboard pawn_safe_check = pawn_check
+        //                         & safe_area;
+        //if (0 != pawn_safe_check)
+        //{
+        //    king_danger += pop_count (pawn_safe_check) * SafeCheckWeight[PAWN];
+        //}
+        //else
+        //{
+        //    unsafe_check |= pawn_check;
+        //}
+
         // Enemy knight safe checks
-        Bitboard niht_safe_check = niht_check
+        Bitboard niht_safe_check = PieceAttacks[NIHT][fk_sq]
+                                 & sgl_attacks[Opp][NIHT]
                                  & safe_area;
         if (0 != niht_safe_check)
         {
@@ -541,69 +554,81 @@ namespace {
         }
         else
         {
-            unsafe_check |= niht_check;
+            unsafe_check |= PieceAttacks[NIHT][fk_sq]
+                          & sgl_attacks[Opp][NIHT];
         }
 
         Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
         Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
 
-        // Enemy bishop checks
-        Bitboard bshp_check = bshp_attack
-                            & sgl_attacks[Opp][BSHP];
-        // Enemy bishop safe checks
-        Bitboard bshp_safe_check = bshp_check
-                                 & safe_area;
-        if (0 != bshp_safe_check)
-        {
-            king_danger += pop_count (bshp_safe_check) * SafeCheckWeight[BSHP];
-        }
-        else
-        {
-            unsafe_check |= bshp_check;
-        }
-
-        // Enemy rook checks
-        Bitboard rook_check = rook_attack
-                            & sgl_attacks[Opp][ROOK];
-        // Enemy rook safe checks
-        Bitboard rook_safe_check = rook_check
-                                 & safe_area;
-        if (0 != rook_safe_check)
-        {
-            king_danger += pop_count (rook_safe_check) * SafeCheckWeight[ROOK];
-        }
-        else
-        {
-            unsafe_check |= rook_check;
-        }
-
-        // Enemy queen checks
-        Bitboard quen_check = (bshp_attack | rook_attack)
-                            &  sgl_attacks[Opp][QUEN]
-                            & ~(bshp_safe_check | rook_safe_check)
-                            & ~sgl_attacks[Own][QUEN];
         // Enemy queen safe checks
-        Bitboard quen_safe_check = quen_check
+        Bitboard quen_safe_check = (bshp_attack | rook_attack)
+                                 &  sgl_attacks[Opp][QUEN]
+                                 & ~sgl_attacks[Own][QUEN]
                                  & safe_area;
+
+        Bitboard b;
+
+        // Enemy bishop safe checks
+        Bitboard bshp_safe_check = bshp_attack
+                                 & sgl_attacks[Opp][BSHP]
+                                 & safe_area;
+        b = bshp_safe_check
+          & ~quen_safe_check;
+        if (0 != b)
+        {
+            king_danger += pop_count (b) * SafeCheckWeight[BSHP];
+        }
+        else
+        {
+            unsafe_check |= bshp_attack
+                          & sgl_attacks[Opp][BSHP];
+        }
+
+        // Enemy rook safe checks
+        Bitboard rook_safe_check = rook_attack
+                                 & sgl_attacks[Opp][ROOK]
+                                 & safe_area;
+        b = rook_safe_check
+          & ~quen_safe_check;
+        if (0 != b)
+        {
+            king_danger += pop_count (b) * SafeCheckWeight[ROOK];
+        }
+        else
+        {
+            unsafe_check |= rook_attack
+                          & sgl_attacks[Opp][ROOK];
+        }
+
         if (0 != quen_safe_check)
         {
             king_danger += pop_count (quen_safe_check) * SafeCheckWeight[QUEN];
         }
         //else
         //{
-        //    unsafe_check |= quen_check;
+        //    unsafe_check |= (bshp_attack | rook_attack)
+        //                  &  sgl_attacks[Opp][QUEN]
+        //                  & ~sgl_attacks[Own][QUEN];
         //}
+
+        b = quen_safe_check
+          & (bshp_safe_check | rook_safe_check);
+        if (0 != b)
+        {
+            king_danger += pop_count (b) * 200;
+        }
 
         // Unsafe or occupied checking squares will also be considered, as long as
         // the square is in the attacker's mobility area.
         unsafe_check &= mob_area[Opp];
 
-        Bitboard b1 = KingFlank_bb[_file (fk_sq)]
-                    & Camp_bb[Own]
-                    & sgl_attacks[Opp][NONE];
+        b = KingFlank_bb[_file (fk_sq)]
+          & Camp_bb[Own]
+          & sgl_attacks[Opp][NONE];
         // Friend king flank attacks count
-        i32 tropism = pop_count (b1)                    // Squares attacked by enemy in friend king flank
-                    + pop_count (b1 & dbl_attacks[Opp]);// Squares attacked by enemy twice in friend king flank.
+        i32 tropism = pop_count (b)                    // Squares attacked by enemy in friend king flank
+                    + pop_count (b & dbl_attacks[Opp]);// Squares attacked by enemy twice in friend king flank.
 
         // Initialize the king danger, which will be transformed later into a score.
         // - number and types of the enemy's attacking pieces,
@@ -638,7 +663,7 @@ namespace {
             score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
         }
 
-        // Penalty for king on a pawn less flank
+        // Penalty for king on a pawnless flank
         if (0 == (pos.pieces (PAWN) & KingFlank_bb[_file (fk_sq)]))
         {
             score -= PawnLessFlank;
@@ -657,7 +682,7 @@ namespace {
 
     /// threats() evaluates the threats of the color.
     template<bool Trace> template<Color Own>
-    Score Evaluator<Trace>::threats ()
+    Score Evaluator<Trace>::threats () const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -804,7 +829,7 @@ namespace {
 
     /// passers() evaluates the passed pawns of the color.
     template<bool Trace> template<Color Own>
-    Score Evaluator<Trace>::passers ()
+    Score Evaluator<Trace>::passers () const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -908,7 +933,7 @@ namespace {
     /// Safe squares one, two or three squares behind a friend pawn are counted twice
     /// The aim is to improve play on opening
     template<bool Trace> template<Color Own>
-    Score Evaluator<Trace>::space ()
+    Score Evaluator<Trace>::space () const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 

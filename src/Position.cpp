@@ -724,11 +724,7 @@ void Position::clear ()
     std::fill (castle_rook_sq[0], castle_rook_sq[0] + CLR_NO*CS_NO, SQ_NO);
     std::fill (castle_rook_path_bb[0], castle_rook_path_bb[0] + CLR_NO*CS_NO, 0);
     std::fill (castle_king_path_bb[0], castle_king_path_bb[0] + CLR_NO*CS_NO, 0);
-    for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                            B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
-    {
-        squares[pc].clear ();
-    }
+    std::for_each (squares, squares + MAX_PIECE, [](std::list<Square> &sq) { sq.clear (); });
     psq = SCORE_ZERO;
     ply = 0;
     active = CLR_NO;
@@ -1390,8 +1386,7 @@ Position::operator std::string () const
         oss << "   " << to_char (f, false);
     }
 
-    oss << "\nFEN: "
-        << fen ()
+    oss << "\nFEN: " << fen ()
         << "\nKey: "
         << std::setfill ('0')
         << std::hex

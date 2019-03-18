@@ -394,14 +394,14 @@ void filter_illegal (ValMoves &moves, const Position &pos)
 
 void Perft::classify (Position &pos, Move m)
 {
-    if (contains (pos.pieces (~pos.active), dst_sq (m)))
+    if (   ENPASSANT == mtype (m)
+        || contains (pos.pieces (~pos.active), dst_sq (m)))
     {
         ++capture;
-    }
-    if (ENPASSANT == mtype (m))
-    {
-        ++capture;
-        ++enpassant;
+        if (ENPASSANT == mtype (m))
+        {
+            ++enpassant;
+        }
     }
     if (pos.gives_check (m))
     {
