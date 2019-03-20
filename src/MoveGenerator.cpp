@@ -437,6 +437,16 @@ void Perft::classify (Position &pos, Move m)
         }
         pos.undo_move (m);
     }
+    //else
+    //{
+    //    StateInfo si;
+    //    pos.do_move (m, si, false);
+    //    if (0 == MoveList<GenType::LEGAL> (pos).size ())
+    //    {
+    //        ++stalemate;
+    //    }
+    //    pos.undo_move (m);
+    //}
     if (CASTLE == mtype (m))
     {
         ++castle;
@@ -479,7 +489,10 @@ Perft perft (Position &pos, i16 depth, bool detail)
                   << std::setw (15)
                   << "Promote"
                   << std::setw (15)
-                  << "Checkmate";
+                  << "Checkmate"
+                  //<< std::setw (15)
+                  //<< "Stalemate"
+                  ;
         }
         std::cout << sync_endl;
     }
@@ -516,10 +529,12 @@ Perft perft (Position &pos, i16 depth, bool detail)
 
         if (RootNode)
         {
+            ++total_leaf.moves;
+
             sync_cout << std::right
                       << std::setfill ('0')
                       << std::setw (2)
-                      << ++total_leaf.moves
+                      << total_leaf.moves
                       << " "
                       << std::left
                       << std::setfill (' ')
@@ -556,7 +571,11 @@ Perft perft (Position &pos, i16 depth, bool detail)
                       << leaf.promote
                       << "   "
                       << std::setw (12)
-                      << leaf.checkmate;
+                      << leaf.checkmate
+                      //<< "   "
+                      //<< std::setw (12)
+                      //<< leaf.stalemate
+                      ;
             }
             std::cout << std::setfill (' ')
                       << std::left << sync_endl;
@@ -595,7 +614,11 @@ Perft perft (Position &pos, i16 depth, bool detail)
                   << total_leaf.promote
                   << " "
                   << std::setw (14)
-                  << total_leaf.checkmate;
+                  << total_leaf.checkmate
+                  //<< " "
+                  //<< std::setw (14)
+                  //<< total_leaf.stalemate
+                  ;
         }
         std::cout << std::setfill (' ')
                   << std::left

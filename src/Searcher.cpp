@@ -172,7 +172,7 @@ void MovePicker::value ()
         {
             assert(pos.capture_or_promotion (m));
             m.value = i32(PieceValues[MG][pos.cap_type (m)])
-                    + thread->capture_history[pos[org_sq (m)]][move_pp (m)][pos.cap_type (m)] / 8;
+                    + thread->capture_history[pos[org_sq (m)]][dst_sq (m)][pos.cap_type (m)] / 8;
         }
         else
         if (GenType::QUIET == GT)
@@ -399,7 +399,7 @@ namespace Searcher {
         /// stat_bonus() is the bonus, based on depth
         i32 stat_bonus (i16 depth)
         {
-            return depth < 18 ? (29*depth + 138)*depth - 134 : 0;
+            return 18 > depth ? (29*depth + 138)*depth - 134 : 0;
         }
 
         // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
@@ -431,7 +431,7 @@ namespace Searcher {
 
             if (_ok ((ss-1)->played_move))
             {
-                pos.thread->move_history[pos[dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] = move;
+                pos.thread->move_history[pos[dst_sq ((ss-1)->played_move)]][dst_sq ((ss-1)->played_move)] = move;
             }
         }
 
@@ -502,7 +502,6 @@ namespace Searcher {
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply < MaxDepth);
 
-            Move move;
             // Transposition table lookup.
             Key key = pos.si->posi_key;
             bool tt_hit;
@@ -544,7 +543,7 @@ namespace Searcher {
             {
                 ss->static_eval = VALUE_NONE;
                 // Starting from the worst case which is checkmate
-                best_value = futility_base = mated_in (ss->ply);
+                best_value = futility_base = -VALUE_INFINITE;
             }
             else
             {
@@ -614,6 +613,8 @@ namespace Searcher {
                 tt_move = MOVE_NONE;
             }
 
+            Move move;
+
             u08 move_count = 0;
 
             const PieceDestinyHistory *pd_histories[6] =
@@ -673,11 +674,10 @@ namespace Searcher {
                     }
                 }
 
-                // Don't search moves with negative SEE values
+                // Pruning: Don't search moves with negative SEE
                 if (   (   !in_check
-                        // Evasion Prunable: Detect non-capture evasions that are candidate to be pruned
-                        || (   (   DepthZero != depth
-                                || 2 < move_count)
+                        // Evasion pruning: Detect non-capture evasions for pruning
+                        || (   (DepthZero != depth || 2 < move_count)
                             && -VALUE_MATE_MAX_PLY < best_value
                             && !pos.capture (move)))
                     && !Limits.mate_search ()
@@ -732,6 +732,14 @@ namespace Searcher {
                         }
                     }
                 }
+            }
+
+            // All legal moves have been searched. A special case: If we're in check
+            // and no legal moves were found, it is checkmate.
+            if (   in_check
+                && -VALUE_INFINITE == best_value)
+            {
+                return mated_in (ss->ply); // Plies to mate from the root
             }
 
             tte->save (key,
@@ -851,7 +859,6 @@ namespace Searcher {
             // This influences the reduction rules in LMR which are based on the stats of parent position.
             (ss+2)->stats = 0;
 
-            Move move;
             // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
@@ -990,6 +997,7 @@ namespace Searcher {
             }
 
             StateInfo si;
+            Move move;
             Value tt_eval;
 
             // Step 6. Static evaluation of the position
@@ -1054,8 +1062,8 @@ namespace Searcher {
                 // Betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility margins [depth] if do a null move.
                 if (   !root_node
-                    && !Limits.mate_search ()
                     && 7 > depth
+                    && !Limits.mate_search ()
                     && eval - futility_margin (improving, depth) >= beta
                     && eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
                 {
@@ -1064,9 +1072,9 @@ namespace Searcher {
 
                 // Step 9. Null move search with verification search. (~40 ELO)
                 if (   !PVNode
-                    && !Limits.mate_search ()
                     && MOVE_NULL != (ss-1)->played_move
                     && MOVE_NONE == ss->excluded_move
+                    && !Limits.mate_search ()
                     && VALUE_ZERO != pos.si->non_pawn_material (pos.active)
                     && 23200 > (ss-1)->stats
                     && eval >= beta
@@ -1118,8 +1126,8 @@ namespace Searcher {
                 // If good enough capture and a reduced search returns a value much above beta,
                 // then can (almost) safely prune the previous move.
                 if (   !PVNode
-                    && !Limits.mate_search ()
                     && 4 < depth
+                    && !Limits.mate_search ()
                     && abs (beta) < +VALUE_MATE_MAX_PLY)
                 {
                     auto raised_beta = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
@@ -1211,7 +1219,7 @@ namespace Searcher {
                 (ss-6)->pd_history,
             };
             auto counter_move = _ok ((ss-1)->played_move) ?
-                                    thread->move_history[pos[dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
+                                    thread->move_history[pos[dst_sq ((ss-1)->played_move)]][dst_sq ((ss-1)->played_move)] :
                                     MOVE_NONE;
             // Initialize movepicker (1) for the current position
             MovePicker move_picker (pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);
@@ -1324,8 +1332,8 @@ namespace Searcher {
 
                 // Step 14. Pruning at shallow depth. (~170 ELO)
                 if (   !root_node
-                    && !Limits.mate_search ()
                     && -VALUE_MATE_MAX_PLY < best_value
+                    && !Limits.mate_search ()
                     && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
                 {
                     // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
@@ -1357,7 +1365,7 @@ namespace Searcher {
                         {
                             continue;
                         }
-                        // SEE based pruning: -ve SEE (~10 ELO)
+                        // SEE based pruning: negative SEE (~10 ELO)
                         auto thr = Value(-29*lmr_depth*lmr_depth);
                         if (   pos.exchange (move) < thr
                             && !pos.see_ge (move, thr))
@@ -1368,7 +1376,7 @@ namespace Searcher {
                     else
                     if (DepthZero == extension)
                     {
-                        // SEE based pruning: -ve SEE (~20 ELO)
+                        // SEE based pruning: negative SEE (~20 ELO)
                         auto thr = -VALUE_EG_PAWN*i32(depth);
                         if (   pos.exchange (move) < thr
                             && !pos.see_ge (move, thr))
@@ -1388,7 +1396,7 @@ namespace Searcher {
                 // Step 15. Make the move.
                 pos.do_move (move, si, gives_check);
 
-                bool search_fd;
+                bool full_search;
                 // Step 16. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
                 if (   2 < depth
@@ -1458,17 +1466,17 @@ namespace Searcher {
 
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduct_depth, true);
 
-                    search_fd = alfa < value
-                             && 0 != reduct_depth;
+                    full_search = alfa < value
+                               && 0 != reduct_depth;
                 }
                 else
                 {
-                    search_fd = !PVNode
-                             || 1 < move_count;
+                    full_search = !PVNode
+                               || 1 < move_count;
                 }
 
                 // Step 17. Full depth search when LMR is skipped or fails high.
-                if (search_fd)
+                if (full_search)
                 {
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node);
                 }
@@ -1613,27 +1621,27 @@ namespace Searcher {
                 }
                 else
                 {
-                    thread->capture_history[pos[org_sq (best_move)]][move_pp (best_move)][pos.cap_type (best_move)] << cbonus;
+                    thread->capture_history[pos[org_sq (best_move)]][dst_sq (best_move)][pos.cap_type (best_move)] << cbonus;
                 }
                 // Decrease all the other played capture moves.
                 for (auto cm : capture_moves)
                 {
-                    thread->capture_history[pos[org_sq (cm)]][move_pp (cm)][pos.cap_type (cm)] << -cbonus;
+                    thread->capture_history[pos[org_sq (cm)]][dst_sq (cm)][pos.cap_type (cm)] << -cbonus;
                 }
 
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
-                if (   NONE == pos.si->capture
-                    && NONE == pos.si->promote
-                    && (   1 == (ss-1)->move_count
-                        || (ss-1)->played_move == (ss-1)->killer_moves[0]))
+                if (   (   1 == (ss-1)->move_count
+                        || (ss-1)->played_move == (ss-1)->killer_moves[0])
+                    && NONE == pos.si->capture
+                    && NONE == pos.si->promote)
                 {
                     update_continuation_histories (ss-1, pos[dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                 }
             }
             else
             // Bonus for prior countermove that caused the fail low.
-            if (   (   2 < depth
-                    || PVNode)
+            if (   (   PVNode
+                    || 2 < depth)
                 && NONE == pos.si->capture
                 && NONE == pos.si->promote)
             {
@@ -1805,13 +1813,13 @@ void Thread::search ()
                 }
             }
 
-            // Start with a small aspiration window and, in case of fail high/low,
-            // research with bigger window until not failing high/low anymore.
             if (nullptr != main_thread)
             {
                 main_thread->failed_high_count = 0;
             }
 
+            // Start with a small aspiration window and, in case of fail high/low,
+            // research with bigger window until not failing high/low anymore.
             do
             {
                 i16 adjusted_depth = running_depth;
@@ -2082,7 +2090,6 @@ void MainThread::search ()
 
             if (Limits.time_mgr_used ())
             {
-                failed_high_count = 0;
                 best_move_change = 0.0;
                 best_move = MOVE_NONE;
                 best_move_depth = DepthZero;
@@ -2145,14 +2152,15 @@ void MainThread::search ()
         }
         // Check if there is better thread than main thread.
         if (   1 == Threadpool.pv_limit
-            && DepthZero == Limits.depth // Depth limit search don't use deeper thread
-            && MOVE_NONE != root_moves[0].front ()
+            //&& DepthZero == Limits.depth // Depth limit search don't use deeper thread
             && !skill_mgr_enabled ())
         {
+            assert(MOVE_NONE != root_moves[0].front ());
+
             std::map<Move, i64> votes;
 
             auto min_value = root_moves[0].new_value;
-            // Find out minimum value and reset votes for moves which can be voted
+            // Find out minimum value
             for (auto *th : Threadpool)
             {
                 min_value = std::min (th->root_moves[0].new_value, min_value);
@@ -2163,7 +2171,7 @@ void MainThread::search ()
                 i64 s = th->root_moves[0].new_value - min_value + 1;
                 votes[th->root_moves[0].front ()] += 200 + s * s * th->finished_depth;
             }
-            // Select best thread
+            // Select best thread from voting
             auto best_vote = votes[root_moves[0].front ()];
             for (auto *th : Threadpool)
             {

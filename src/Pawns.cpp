@@ -69,7 +69,7 @@ namespace Pawns {
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_G1));
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_C1));
 
-            auto score = SCORE_ZERO;
+            Score score = SCORE_ZERO;
 
             Bitboard b;
             for (const auto &s : pos.squares[Own|PAWN])

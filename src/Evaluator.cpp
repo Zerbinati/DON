@@ -282,7 +282,7 @@ namespace {
 
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto score = SCORE_ZERO;
+        Score score = SCORE_ZERO;
 
         sgl_attacks[Own][PT] = 0;
         if (QUEN == PT)
@@ -686,7 +686,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto score = SCORE_ZERO;
+        Score score = SCORE_ZERO;
 
         // Enemy non-pawns
         Bitboard nonpawns_enemies =  pos.pieces (Opp)
@@ -835,7 +835,7 @@ namespace {
 
         auto king_proximity = [&](Color c, Square s) { return std::min (dist (pos.square<KING> (c), s), 5); };
 
-        auto score = SCORE_ZERO;
+        Score score = SCORE_ZERO;
 
         Bitboard psr = pe->passers[Own];
         while (0 != psr)
@@ -871,12 +871,10 @@ namespace {
                         ,  unsafe_front_line = front_line;
                     // If there is a rook or queen attacking/defending the pawn from behind, consider front squares.
                     // Otherwise consider only the squares in the pawn's path attacked or occupied by the enemy.
-                    Bitboard behind_major = pos.pieces (ROOK, QUEN) & front_line_bb (Opp, s);
-                    if (0 != behind_major)
-                    {
-                        behind_major &= attacks_bb<ROOK> (s, pos.pieces ());
-                        assert(1 >= pop_count (behind_major));
-                    }
+                    Bitboard behind_major = pos.pieces (ROOK, QUEN)
+                                          & front_line_bb (Opp, s)
+                                          & attacks_bb<ROOK> (s, pos.pieces ());
+                    assert(1 >= pop_count (behind_major));
                     // If there is no friend rook or queen attacking the pawn from behind,
                     // consider only the squares in the pawn's path attacked by the friend.
                     // Otherwise add all X-ray attacks by the friend rook or queen.
@@ -954,7 +952,7 @@ namespace {
         behind |= pawn_pushes_bb (Opp, pawn_pushes_bb (Opp, behind));
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
         i32 weight = pos.count (Own) - 2 * pop_count (pe->semiopens[WHITE] & pe->semiopens[BLACK]);
-        auto score = mk_score (bonus * weight * weight / 16, 0);
+        Score score = mk_score (bonus * weight * weight / 16, 0);
 
         if (Trace)
         {
@@ -987,7 +985,7 @@ namespace {
             complexity += 49;
         }
 
-        auto score = mk_score (0, sign (eg) * std::max (complexity, -abs (eg)));
+        Score score = mk_score (0, sign (eg) * std::max (complexity, -abs (eg)));
 
         if (Trace)
         {

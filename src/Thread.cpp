@@ -78,10 +78,7 @@ TimePoint TimeManager::elapsed_time () const
                         Threadpool.nodes () :
                         now () - start_time);
 }
-void TimeManager::initialize ()
-{
-    available_nodes = 0;
-}
+
 /// TimeManager::set() calculates the allowed thinking time out of the time control and current game ply.
 /// Support four different kind of time controls, passed in 'limit':
 ///
@@ -243,7 +240,6 @@ void Thread::idle_loop ()
 /// Thread::clear() clears all the thread related stuff.
 void Thread::clear ()
 {
-    move_history.fill (MOVE_NONE);
     butterfly_history.fill (0);
     capture_history.fill (0);
     for (auto &pdhs : continuation_history)
@@ -254,6 +250,7 @@ void Thread::clear ()
         }
     }
     continuation_history[NO_PIECE][0]->fill (CounterMovePruneThreshold - 1);
+    move_history.fill (MOVE_NONE);
     //// No need to clear
     //pawn_table.clear ();
     //matl_table.clear ();
@@ -266,12 +263,13 @@ MainThread::MainThread (size_t idx)
 /// MainThread::clear()
 void MainThread::clear ()
 {
-    Thread::clear();
+    Thread::clear ();
 
+    check_count = 0;
     last_value = VALUE_NONE;
     last_time_reduction = 1.00;
 
-    time_mgr.initialize ();
+    time_mgr.available_nodes = 0;
 }
 
 namespace WinProcGroup {

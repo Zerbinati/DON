@@ -103,13 +103,13 @@ void psq_initialize ()
 {
     for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        const auto score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
+        Score score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
         for (const auto &s : SQ)
         {
-            const auto psq = score
-                           + (PAWN == pt ?
-                                PawnFullSQ[_rank (s)][_file (s)] :
-                                PieceHalfSQ[pt][_rank (s)][std::min (_file (s), ~_file (s))]);
+            Score psq = score
+                      + (PAWN == pt ?
+                            PawnFullSQ[_rank (s)][_file (s)] :
+                            PieceHalfSQ[pt][_rank (s)][std::min (_file (s), ~_file (s))]);
             PSQ[WHITE|pt][ s] = +psq;
             PSQ[BLACK|pt][~s] = -psq;
         }

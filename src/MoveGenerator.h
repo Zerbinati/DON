@@ -62,6 +62,7 @@ struct Perft
     u64 castle;
     u64 promote;
     u64 checkmate;
+    //u64 stalemate;
 
     Perft ()
     {
@@ -75,6 +76,7 @@ struct Perft
         castle = 0;
         promote = 0;
         checkmate = 0;
+        //stalemate = 0;
     }
 
     void operator+= (Perft &p)
@@ -88,6 +90,7 @@ struct Perft
         castle    += p.castle;
         promote   += p.promote;
         checkmate += p.checkmate;
+        //stalemate += p.stalemate;
     }
     void operator-= (Perft &p)
     {
@@ -100,6 +103,7 @@ struct Perft
         castle    -= p.castle;
         promote   -= p.promote;
         checkmate -= p.checkmate;
+        //stalemate -= p.stalemate;
     }
 
     void classify (Position&, Move);

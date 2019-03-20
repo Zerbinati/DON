@@ -22,18 +22,14 @@ public:
     TimePoint optimum_time;
     TimePoint maximum_time;
 
-    u64 available_nodes;
+    u64 available_nodes = 0;
 
-    TimeManager ()
-    {
-        initialize ();
-    }
+    TimeManager () {}
     TimeManager (const TimeManager&) = delete;
     TimeManager& operator= (const TimeManager&) = delete;
 
     TimePoint elapsed_time () const;
 
-    void initialize ();
     void set (Color, i16, u16, TimePoint, TimePoint, double, bool);
     void update (Color);
 };
@@ -97,13 +93,14 @@ public:
         ,            tb_hits;
     Score contempt;
 
-    MoveHistory move_history;
-    ButterflyHistory butterfly_history;
-    CaptureHistory capture_history;
+    ButterflyHistory    butterfly_history;
+    CaptureHistory      capture_history;
     ContinuationHistory continuation_history;
 
-    Pawns::Table pawn_table;
-    Material::Table matl_table;
+    MoveHistory         move_history;
+
+    Pawns::Table        pawn_table;
+    Material::Table     matl_table;
 
     explicit Thread (size_t);
     Thread () = delete;
@@ -220,14 +217,9 @@ inline std::ostream& operator<< (std::ostream &os, OutputState state)
 {
     switch (state)
     {
-    case OutputState::OS_LOCK:
-        OutputMutex.lock ();
-        break;
-    case OutputState::OS_UNLOCK:
-        OutputMutex.unlock ();
-        break;
-    default:
-        break;
+    case OutputState::OS_LOCK:   OutputMutex.lock (); break;
+    case OutputState::OS_UNLOCK: OutputMutex.unlock (); break;
+    default: break;
     }
     return os;
 }
