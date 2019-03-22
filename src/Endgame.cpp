@@ -460,11 +460,10 @@ namespace EndGame {
         // If rook pawns
         if (0 != ((FA_bb|FH_bb) & pos.pieces (PAWN)))
         {
-            auto wk_sq = pos.square<KING> (  weak_color);
-            auto wb_sq = pos.square<BSHP> (  weak_color);
             auto sp_sq = pos.square<PAWN> (strong_color);
             auto sp_r  = rel_rank (strong_color, sp_sq);
-            auto push  = pawn_push (strong_color);
+            auto wk_sq = pos.square<KING> (  weak_color);
+            auto wb_sq = pos.square<BSHP> (  weak_color);
 
             // If the pawn is on the 5th rank and the pawn (currently) is on the 
             // same color square as the bishop then there is a chance of a fortress.
@@ -473,10 +472,10 @@ namespace EndGame {
             if (   R_5 == sp_r
                 && !opposite_colors (wb_sq, sp_sq))
             {
-                auto d = dist (sp_sq + 3*push, wk_sq);
+                auto d = dist (sp_sq + 3*pawn_push (strong_color), wk_sq);
                 return d <= 2
                     && (   0 != d
-                        || wk_sq != pos.square<KING> (strong_color) + 2*push) ?
+                        || wk_sq != pos.square<KING> (strong_color) + 2*pawn_push (strong_color)) ?
                             Scale(24) :
                             Scale(48);
             }
@@ -484,8 +483,8 @@ namespace EndGame {
             // if the bishop attacks the square in front of the pawn from a reasonable distance
             // and the defending king is near the corner
             if (   R_6 == sp_r
-                && 1 >= dist (sp_sq + 2*push, wk_sq)
-                && contains (PieceAttacks[BSHP][wb_sq], (sp_sq + push))
+                && 1 >= dist (sp_sq + 2*pawn_push (strong_color), wk_sq)
+                && contains (PieceAttacks[BSHP][wb_sq], (sp_sq + pawn_push (strong_color)))
                 && 2 <= dist<File> (wb_sq, sp_sq))
             {
                 return Scale(8);
@@ -582,9 +581,9 @@ namespace EndGame {
 
         if (opposite_colors (sb_sq, wb_sq))
         {
-            auto wk_sq  = pos.square<KING> (  weak_color);
             auto sp1_sq = pos.square<PAWN> (strong_color, 0);
             auto sp2_sq = pos.square<PAWN> (strong_color, 1);
+            auto wk_sq  = pos.square<KING> (  weak_color);
 
             Square block1_sq
                  , block2_sq;

@@ -131,7 +131,7 @@ namespace UCI {
                     }
                     comboMap[token] << Option ();
                 }
-                if (comboMap.find (val) == comboMap.end ())
+                if (comboMap.count (val) == 0)
                 {
                     return *this;
                 }

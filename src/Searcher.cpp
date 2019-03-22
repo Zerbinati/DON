@@ -358,16 +358,6 @@ namespace Searcher {
 
     namespace {
 
-        constexpr u08 SkipIndex = 20;
-        constexpr i16 SkipSize[SkipIndex] =
-        {
-            1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4
-        };
-        constexpr i16 SkipPhase[SkipIndex] =
-        {
-            0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7
-        };
-
         // Razor margin
         constexpr Value RazorMargin = Value(600);
         // Futility margin
@@ -1319,7 +1309,7 @@ namespace Searcher {
                     // Check extension (~2 ELO)
                     || (   gives_check
                         && (   pos.exchange (move) >= VALUE_ZERO
-                            || (   contains (pos.si->king_blockers[~pos.active] & pos.pieces (pos.active), org)
+                            || (   contains (pos.si->king_blockers[~pos.active], org)
                                 && (   !contains (PieceAttacks[KING][pos.square<KING> (~pos.active)], dst)
                                     || 0 != (pos.attackers_to (dst) & pos.pieces (pos.active) & ~square_bb (org))))
                             || pos.see_ge (move))))
@@ -1374,7 +1364,6 @@ namespace Searcher {
                         }
                     }
                     else
-                    if (DepthZero == extension)
                     {
                         // SEE based pruning: negative SEE (~20 ELO)
                         auto thr = -VALUE_EG_PAWN*i32(depth);
@@ -1748,23 +1737,11 @@ void Thread::search ()
                || DepthZero == Limits.depth
                || running_depth <= Limits.depth))
     {
-        if (nullptr != main_thread)
+        if (   nullptr != main_thread
+            && Limits.time_mgr_used ())
         {
-            if (Limits.time_mgr_used ())
-            {
-                // Age out PV variability metric
-                main_thread->best_move_change *= 0.517;
-            }
-        }
-        else
-        {
-            // Thread Redistribution Scheme: Distribute search depths across the threads.
-            assert(0 != index);
-            i16 i = (index - 1) % SkipIndex;
-            if (0 != ((running_depth + SkipPhase[i]) / SkipSize[i]) % 2)
-            {
-                continue;
-            }
+            // Age out PV variability metric
+            main_thread->best_move_change *= 0.517;
         }
 
         // Save the last iteration's values before first PV line is searched and

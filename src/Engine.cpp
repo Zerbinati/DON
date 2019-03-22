@@ -125,7 +125,7 @@ namespace {
             value += (white_spaces (value) ? "" : " ") + token;
         }
 
-        if (Options.find (name) != Options.end ())
+        if (Options.count (name) != 0)
         {
             Options[name] = value;
         }
