@@ -296,17 +296,18 @@ template<> void generate<GenType::EVASION> (ValMoves &moves, const Position &pos
 
     moves.clear ();
     auto fk_sq = pos.square<KING> (pos.active);
-    Bitboard check_attacks = 0;
-    Bitboard ex_checkers = pos.si->checkers & ~pos.pieces (PAWN);
-    // Squares attacked by checkers will remove them from the king evasions
+    Bitboard checks = 0;
+    Bitboard ex_checkers = pos.si->checkers & ~pos.pieces (NIHT, PAWN);
+    // Squares attacked by slide checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
     while (0 != ex_checkers)
     {
-        check_attacks |= pos.attacks_from (pop_lsq (ex_checkers), pos.pieces () ^ fk_sq);
+        auto check_sq = pop_lsq (ex_checkers);
+        checks |= strline_bb (check_sq, fk_sq) ^ check_sq;
     }
     // Generate evasions for king, capture and non capture moves
     Bitboard attacks = PieceAttacks[KING][fk_sq]
-                     & ~check_attacks
+                     & ~checks
                      & ~pos.pieces (pos.active);
     while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
 

@@ -8,10 +8,10 @@ namespace Endgames {
     using namespace std;
     using namespace BitBoard;
 
-    std::pair<Map<Value>, Map<Scale>> pair;
+    pair<Map<Value>, Map<Scale>> EndgamePair;
 
     template<EndgameCode EC, typename ET = EndgameType<EC>>
-    void add (const std::string &code)
+    void add (const string &code)
     {
         StateInfo si;
         map<ET> ()[Position ().setup (code, WHITE, si).si->matl_key] = Ptr<ET> (new Endgame<EC> (WHITE));

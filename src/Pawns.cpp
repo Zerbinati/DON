@@ -45,6 +45,7 @@ namespace Pawns {
         {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
             constexpr auto Push = pawn_push (Own);
+            Bitboard *const Attack = PawnAttacks[Own];
 
             Bitboard own_pawns = pos.pieces (Own, PAWN);
             Bitboard opp_pawns = pos.pieces (Opp, PAWN);
@@ -85,8 +86,8 @@ namespace Pawns {
                 Bitboard supporters = neighbours & rank_bb (s-Push);
                 Bitboard phalanxes  = neighbours & rank_bb (s);
                 Bitboard stoppers   = opp_pawns & pawn_pass_span (Own, s);
-                Bitboard levers     = opp_pawns & PawnAttacks[Own][s];
-                Bitboard escapes    = opp_pawns & PawnAttacks[Own][s+Push]; // Push levers
+                Bitboard levers     = opp_pawns & Attack[s];
+                Bitboard escapes    = opp_pawns & Attack[s+Push]; // Push levers
 
                 bool blocked = contains (own_pawns, s-Push);
                 bool opposed = 0 != (opp_pawns & front_line_bb (Own, s));
@@ -113,7 +114,7 @@ namespace Pawns {
                     b = pawn_pushes_bb (Own, supporters) & ~opp_pawns;
                     while (0 != b)
                     {
-                        if (!more_than_one (opp_pawns & PawnAttacks[Own][pop_lsq (b)]))
+                        if (!more_than_one (opp_pawns & Attack[pop_lsq (b)]))
                         {
                             e->passers[Own] |= s;
                             break;
