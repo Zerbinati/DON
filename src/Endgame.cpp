@@ -3,13 +3,44 @@
 #include "BitBases.h"
 #include "MoveGenerator.h"
 
-EndGame::Endgames *EndGames = nullptr;
-
-namespace EndGame {
+namespace Endgames {
 
     using namespace std;
     using namespace BitBoard;
-    using namespace BitBases;
+
+    std::pair<Map<Value>, Map<Scale>> pair;
+
+    template<EndgameCode EC, typename ET = EndgameType<EC>>
+    void add (const std::string &code)
+    {
+        StateInfo si;
+        map<ET> ()[Position ().setup (code, WHITE, si).si->matl_key] = Ptr<ET> (new Endgame<EC> (WHITE));
+        map<ET> ()[Position ().setup (code, BLACK, si).si->matl_key] = Ptr<ET> (new Endgame<EC> (BLACK));
+    }
+
+    void initialize ()
+    {
+        // EVALUATION_FUNCTIONS
+        add<KPK> ("KPK");
+        add<KNNK> ("KNNK");
+        add<KNNKP> ("KNNKP");
+        add<KBNK> ("KBNK");
+        add<KRKP> ("KRKP");
+        add<KRKB> ("KRKB");
+        add<KRKN> ("KRKN");
+        add<KQKP> ("KQKP");
+        add<KQKR> ("KQKR");
+
+        // SCALING_FUNCTIONS
+        add<KRPKR> ("KRPKR");
+        add<KRPKB> ("KRPKB");
+        add<KRPPKRP> ("KRPPKRP");
+        add<KNPK> ("KNPK");
+        add<KBPKB> ("KBPKB");
+        add<KBPPKB> ("KBPPKB");
+        add<KBPKN> ("KBPKN");
+        add<KNPKB> ("KNPKB");
+    }
 
     namespace {
 
@@ -127,7 +158,7 @@ namespace EndGame {
         auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
         auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
 
-        if (!probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+        if (!BitBases::probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
         {
             return VALUE_DRAW;
         }
@@ -714,7 +745,7 @@ namespace EndGame {
         {
             // Probe the KPK bitbase with the weakest side's pawn removed.
             // If it's a draw, it's probably at least a draw even with the pawn.
-            if (!probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+            if (!BitBases::probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
             {
                 return SCALE_DRAW;
             }
@@ -848,21 +879,4 @@ namespace EndGame {
         return SCALE_NONE;
     }
 
-    void initialize ()
-    {
-        if (nullptr == EndGames)
-        {
-            EndGames = new Endgames;
-            assert(nullptr != EndGames);
-        }
-    }
-
-    void deinitialize ()
-    {
-        if (nullptr != EndGames)
-        {
-            delete EndGames;
-            EndGames = nullptr;
-        }
-    }
 }

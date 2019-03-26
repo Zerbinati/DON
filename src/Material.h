@@ -18,8 +18,8 @@ namespace Material {
         Score imbalance;
         Scale scale[CLR_NO];
 
-        const EndGame::EndgameBase<Value> *value_func;
-        const EndGame::EndgameBase<Scale> *scale_func[CLR_NO];
+        const Endgames::EndgameBase<Value> *value_func;
+        const Endgames::EndgameBase<Scale> *scale_func[CLR_NO];
     };
 
     typedef HashTable<Entry, 0x2000> Table;

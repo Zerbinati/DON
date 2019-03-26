@@ -719,7 +719,7 @@ void run (int argc, const char *const *argv)
     Position::initialize ();
     UCI::initialize ();
     Pawns::initialize ();
-    EndGame::initialize ();
+    Endgames::initialize ();
     WinProcGroup::initialize ();
     TCluster::initialize ();
     Threadpool.configure (threads_option ());
@@ -735,7 +735,6 @@ void stop (int code)
 {
     Threadpool.stop = true;
     Threadpool.configure (0);
-    EndGame::deinitialize ();
     UCI::deinitialize ();
 #if defined(LPAGES)
     Memory::deinitialize ();

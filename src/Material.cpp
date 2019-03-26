@@ -5,7 +5,7 @@
 namespace Material {
 
     using namespace std;
-    using namespace EndGame;
+    using namespace Endgames;
 
     namespace {
 
@@ -125,7 +125,7 @@ namespace Material {
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        if (nullptr != (e->value_func = EndGames->probe<Value> (pos.si->matl_key)))
+        if (nullptr != (e->value_func = Endgames::probe<Value> (pos.si->matl_key)))
         {
             return e;
         }
@@ -146,7 +146,7 @@ namespace Material {
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
         const EndgameBase<Scale> *scale_func;
-        if (nullptr != (scale_func = EndGames->probe<Scale> (pos.si->matl_key)))
+        if (nullptr != (scale_func = Endgames::probe<Scale> (pos.si->matl_key)))
         {
             e->scale_func[scale_func->strong_color] = scale_func;
             return e;

@@ -9,7 +9,7 @@
 #include "Position.h"
 #include "Type.h"
 
-namespace EndGame {
+namespace Endgames {
 
     /// EndgameCode lists all supported endgame functions by corresponding codes
     enum EndgameCode : u08
@@ -47,7 +47,7 @@ namespace EndGame {
     template<EndgameCode EC>
     using EndgameType = typename std::conditional<EC < SCALING_FUNCTIONS, Value, Scale>::type;
 
-    /// Base and derived functors for endgame evaluation and scaling functions
+    /// Base functors for endgame evaluation and scaling functions
     template<typename ET>
     class EndgameBase
     {
@@ -62,9 +62,10 @@ namespace EndGame {
         virtual ~EndgameBase () = default;
         EndgameBase& operator= (const EndgameBase&) = delete;
 
-        virtual ET operator() (const Position &pos) const = 0;
+        virtual ET operator() (const Position&) const = 0;
     };
 
+    /// Derived functors for endgame evaluation and scaling functions
     template<EndgameCode EC, typename ET = EndgameType<EC>>
     class Endgame
         : public EndgameBase<ET>
@@ -76,76 +77,31 @@ namespace EndGame {
         virtual ~Endgame () = default;
         Endgame& operator= (const Endgame&) = delete;
 
-        ET operator() (const Position &pos) const override;
+        ET operator() (const Position&) const override;
     };
 
-    /// The Endgames class stores the pointers to endgame evaluation and scaling base objects in two std::map. 
-    /// Uses polymorphism to invoke the actual endgame function by calling its virtual operator().
-    class Endgames
+
+    template<typename T> using Ptr = std::unique_ptr<EndgameBase<T>>;
+    template<typename T> using Map = std::map<Key, Ptr<T>>;
+
+    // Stores the pointers to endgame evaluation and scaling base objects in two std::map
+    extern std::pair<Map<Value>, Map<Scale>> pair;
+
+    template<typename T>
+    Map<T>& map ()
     {
-    private:
-        template<typename T> using Ptr = std::unique_ptr<EndgameBase<T>>;
-        template<typename T> using Map = std::map<Key, Ptr<T>>;
+        return std::get<std::is_same<T, Scale>::value> (pair);
+    }
 
-        std::pair<Map<Value>, Map<Scale>> maps;
-
-        template<typename T>
-        Map<T>& map ()
-        {
-            return std::get<std::is_same<T, Scale>::value> (maps);
-        }
-
-        template<EndgameCode EC, typename ET = EndgameType<EC>>
-        void add (const std::string &code)
-        {
-            StateInfo si;
-            map<ET> ()[Position ().setup (code, WHITE, si).si->matl_key] = Ptr<ET> (new Endgame<EC> (WHITE));
-            map<ET> ()[Position ().setup (code, BLACK, si).si->matl_key] = Ptr<ET> (new Endgame<EC> (BLACK));
-        }
-
-    public:
-        Endgames ()
-        {
-            // EVALUATION_FUNCTIONS
-            add<KPK>     ("KPK");
-            add<KNNK>    ("KNNK");
-            add<KNNKP>   ("KNNKP");
-            add<KBNK>    ("KBNK");
-            add<KRKP>    ("KRKP");
-            add<KRKB>    ("KRKB");
-            add<KRKN>    ("KRKN");
-            add<KQKP>    ("KQKP");
-            add<KQKR>    ("KQKR");
-
-            // SCALING_FUNCTIONS
-            add<KRPKR>   ("KRPKR");
-            add<KRPKB>   ("KRPKB");
-            add<KRPPKRP> ("KRPPKRP");
-            add<KNPK>    ("KNPK");
-            add<KBPKB>   ("KBPKB");
-            add<KBPPKB>  ("KBPPKB");
-            add<KBPKN>   ("KBPKN");
-            add<KNPKB>   ("KNPKB");
-        }
-
-        Endgames (const Endgames&) = delete;
-        Endgames& operator= (const Endgames&) = delete;
-
-        template<typename ET>
-        const EndgameBase<ET>* probe (Key matl_key)
-        {
-            return map<ET> ().count (matl_key) != 0 ?
-                    map<ET> ()[matl_key].get () :
-                    nullptr;
-        }
-    };
+    template<typename ET>
+    const EndgameBase<ET>* probe (Key matl_key)
+    {
+        return map<ET> ().count (matl_key) != 0 ?
+                map<ET> ()[matl_key].get () :
+                nullptr;
+    }
 
     extern void initialize ();
-
-    extern void deinitialize ();
-}
-
-// Global Endgames
-extern EndGame::Endgames *EndGames;
+};
 
 #endif // _ENDGAME_H_INC_
