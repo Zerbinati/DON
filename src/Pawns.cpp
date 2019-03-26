@@ -74,7 +74,7 @@ namespace Pawns {
             Bitboard b;
             for (const auto &s : pos.squares[Own|PAWN])
             {
-                assert(pos[s] == (Own|PAWN));
+                assert((Own|PAWN) == pos[s]);
 
                 auto f = _file (s);
                 e->color_count[Own][color (s)]++;
@@ -98,11 +98,10 @@ namespace Pawns {
                 assert(!backward
                     || 0 == (pawn_attack_span (Opp, s+Push) & neighbours));
 
-                // Include also not passed pawns which could become passed
-                // after one or two pawn pushes when are not attacked more times than defended.
-                // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
+                // Include also which could become passed after 1 or 2 pawn pushes
+                // when are not attacked more times than defended. 
                 if (   stoppers == (levers | escapes)
-                    && pop_count (supporters) >= pop_count (levers) - 1
+                    && (0 != supporters || !more_than_one (levers))
                     && pop_count (phalanxes) >= pop_count (escapes))
                 {
                     e->passers[Own] |= s;
@@ -220,8 +219,8 @@ namespace Pawns {
         e->key = pos.si->pawn_key;
         e->scores[WHITE] = evaluate<WHITE> (pos, e);
         e->scores[BLACK] = evaluate<BLACK> (pos, e);
-        e->asymmetry = u08(pop_count ((e->passers  [WHITE] | e->passers  [BLACK])
-                                    | (e->semiopens[WHITE] ^ e->semiopens[BLACK])));
+        e->passed_count = u08(pop_count (e->passers[WHITE] | e->passers[BLACK]));
+                                    
         return e;
     }
 

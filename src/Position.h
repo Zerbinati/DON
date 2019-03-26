@@ -106,16 +106,16 @@ class Thread;
 class Position
 {
 private:
-    void place_piece_on (Square, Piece);
-    void remove_piece_on (Square, Piece);
-    void move_piece_on_to (Square, Square, Piece);
+    void place_piece (Square, Piece);
+    void remove_piece (Square, Piece);
+    void move_piece (Square, Square, Piece);
 
     void set_castle (Color, Square);
 
     bool can_enpassant (Color, Square, bool = true) const;
 
     template<PieceType>
-    PieceType pick_least_val_att (Bitboard, Square, Square&, Bitboard&, Bitboard&) const;
+    PieceType pick_next_attacker (Bitboard, Square, Square&, Bitboard&, Bitboard&) const;
 
 public:
     Piece       piece[SQ_NO];
@@ -519,7 +519,7 @@ inline void Position::do_move (Move m, StateInfo &nsi)
     do_move (m, nsi, gives_check (m));
 }
 
-inline void Position::place_piece_on (Square s, Piece pc)
+inline void Position::place_piece (Square s, Piece pc)
 {
     assert(_ok (pc)
         && std::count (squares[pc].begin (), squares[pc].end (), s) == 0);
@@ -530,7 +530,7 @@ inline void Position::place_piece_on (Square s, Piece pc)
     psq += PSQ[pc][s];
     piece[s] = pc;
 }
-inline void Position::remove_piece_on (Square s, Piece pc)
+inline void Position::remove_piece (Square s, Piece pc)
 {
     assert(_ok (pc)
         && std::count (squares[pc].begin (), squares[pc].end (), s) == 1);
@@ -541,7 +541,7 @@ inline void Position::remove_piece_on (Square s, Piece pc)
     psq -= PSQ[pc][s];
     //piece[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
-inline void Position::move_piece_on_to (Square s1, Square s2, Piece pc)
+inline void Position::move_piece (Square s1, Square s2, Piece pc)
 {
     assert(_ok (pc)
         && std::count (squares[pc].begin (), squares[pc].end (), s1) == 1

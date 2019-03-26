@@ -968,12 +968,12 @@ namespace {
     Score Evaluator<Trace>::initiative (Value eg) const
     {
         // Compute the initiative bonus for the attacking side
-        i32 complexity =   9 * pe->asymmetry
+        i32 complexity =   9 * pe->passed_count
                        +  11 * pos.count (PAWN)
                         // Outflanking
                        +   9 * (  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
                                 - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK)))
-                       - 121;
+                       - 103;
         // Pawn on both flanks
         if (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
             && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]))
@@ -1016,7 +1016,7 @@ namespace {
                 && VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
                 && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
-                    Scale(8 + 4 * pe->asymmetry) :
+                    Scale(16 + 4 * pe->passed_count) :
                     std::min (Scale(40 + (pos.opposite_bishops () ? 2 : 7) * pos.count (color, PAWN)), SCALE_NORMAL);
         }
         return scl;

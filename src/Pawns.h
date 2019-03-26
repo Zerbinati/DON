@@ -13,7 +13,7 @@ namespace Pawns {
     public:
         Key key;
 
-        u08      asymmetry;
+        u08      passed_count;
         Score    scores[CLR_NO];
         Bitboard any_attacks[CLR_NO];
         Bitboard dbl_attacks[CLR_NO];

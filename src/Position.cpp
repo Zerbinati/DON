@@ -298,17 +298,17 @@ bool Position::pseudo_legal (Move m) const
                     && (   PROMOTE != mtype (m)
                         || R_7 != rel_rank (active, org)
                         || R_8 != rel_rank (active, dst)))
-                || !contains (PawnAttacks[active][org], dst)
-                || empty (dst))
+                || empty (dst)
+                || !contains (PawnAttacks[active][org], dst))
                 // Enpassant capture
             && (   ENPASSANT != mtype (m)
                 || R_5 != rel_rank (active, org)
                 || R_6 != rel_rank (active, dst)
                 || NIHT != promote (m)
                 || si->enpassant_sq != dst
-                || !contains (PawnAttacks[active][org], dst)
                 || !empty (dst)
                 || empty (dst - pawn_push (active))
+                || !contains (PawnAttacks[active][org], dst)
                 || 0 != si->clock_ply)
                 // Double push
             && (   NORMAL != mtype (m)
@@ -316,8 +316,8 @@ bool Position::pseudo_legal (Move m) const
                 || R_4 != rel_rank (active, dst)
                 || NIHT != promote (m)
                 || dst != org + 2*pawn_push (active)
-                || !empty (dst - pawn_push (active))
-                || !empty (dst)))
+                || !empty (dst)
+                || !empty (dst - pawn_push (active))))
         {
             return false;
         }
@@ -375,7 +375,8 @@ bool Position::legal (Move m) const
         }
         /* fall through */
     case PROMOTE:
-        assert(NORMAL == mtype (m)
+        assert((   NORMAL == mtype (m)
+                && NIHT == promote (m))
             || (   (active|PAWN) == piece[org] //&& contains (pieces (active, PAWN), org)
                 && R_7 == rel_rank (active, org)
                 && R_8 == rel_rank (active, dst)
@@ -490,9 +491,9 @@ bool Position::gives_check (Move m) const
 /// Position::set_castle() set the castling right.
 void Position::set_castle (Color c, Square rook_org)
 {
-    assert(SQ_NO != rook_org
-        && contains (pieces (c, ROOK), rook_org)
-        && R_1 == rel_rank (c, rook_org));
+    assert(_ok (rook_org)
+        && R_1 == rel_rank (c, rook_org)
+        && (c|ROOK) == piece[rook_org]); //&& contains (pieces (c, ROOK), rook_org)
 
     auto king_org = square<KING> (c);
     assert(R_1 == rel_rank (c, king_org));
@@ -530,12 +531,12 @@ void Position::set_castle (Color c, Square rook_org)
 /// Position::can_enpassant() Can the enpassant possible.
 bool Position::can_enpassant (Color c, Square ep_sq, bool move_done) const
 {
-    assert(SQ_NO != ep_sq
+    assert(_ok (ep_sq)
         && R_6 == rel_rank (c, ep_sq));
     auto cap = move_done ?
                 ep_sq - pawn_push (c) :
                 ep_sq + pawn_push (c);
-    assert(contains (pieces (~c, PAWN), cap));
+    assert((~c|PAWN) == piece[cap]); //contains (pieces (~c, PAWN), cap));
     // Enpassant attackers
     Bitboard attackers = pieces (c, PAWN) & PawnAttacks[~c][ep_sq];
     if (0 == attackers)
@@ -566,16 +567,15 @@ bool Position::can_enpassant (Color c, Square ep_sq, bool move_done) const
     return false;
 }
 
-/// Position::pick_least_val_att() helper function used by see_ge()
-/// Used to locate the least valuable attacker on square 'dst' for the side to move,
-/// remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
+/// Position::pick_next_attacker() is used to locate the least valuable attacker on square 'dst'
+/// for the side to move, remove the attacker just found and scan for new X-ray attacks behind it.
 template<PieceType PT>
-PieceType Position::pick_least_val_att (Bitboard stm_attackers, Square dst, Square &org, Bitboard &mocc, Bitboard &attackers) const
+PieceType Position::pick_next_attacker (Bitboard stm_attackers, Square dst, Square &org, Bitboard &mocc, Bitboard &attackers) const
 {
     Bitboard b = stm_attackers & pieces (PT);
     if (0 == b)
     {
-        return pick_least_val_att<PieceType(PT+1)> (stm_attackers, dst, org, mocc, attackers);
+        return pick_next_attacker<PieceType(PT+1)> (stm_attackers, dst, org, mocc, attackers);
     }
 
     org = scan_lsq (b);
@@ -603,7 +603,7 @@ PieceType Position::pick_least_val_att (Bitboard stm_attackers, Square dst, Squa
     return PT;
 }
 template<>
-PieceType Position::pick_least_val_att<KING> (Bitboard, Square, Square&, Bitboard&, Bitboard&) const
+PieceType Position::pick_next_attacker<KING> (Bitboard, Square, Square&, Bitboard&, Bitboard&) const
 {
     return KING;
 }
@@ -685,7 +685,7 @@ bool Position::see_ge (Move m, Value threshold) const
 
         // Locate and remove the next least valuable attacker, and add to
         // the bitboard 'attackers' the possibly X-ray attackers behind it.
-        victim = pick_least_val_att<PAWN> (stm_attackers, dst, org, mocc, attackers);
+        victim = pick_next_attacker<PAWN> (stm_attackers, dst, org, mocc, attackers);
 
         stm = ~stm;
 
@@ -790,7 +790,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th)
         else
         if ((idx = PieceChar.find (token)) != string::npos)
         {
-            place_piece_on (sq, Piece(idx));
+            place_piece (sq, Piece(idx));
             ++sq;
         }
         else
@@ -959,11 +959,11 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         auto rook_dst = rel_sq (active, rook_org > org ? SQ_F1 : SQ_D1);
         /* king */dst = rel_sq (active, rook_org > org ? SQ_G1 : SQ_C1);
         // Remove both pieces first since squares could overlap in chess960
-        remove_piece_on (org, piece[org]);
-        remove_piece_on (rook_org, piece[rook_org]);
-        piece[org] = piece[rook_org] = NO_PIECE; // Not done by remove_piece_on()
-        place_piece_on (dst, active|KING);
-        place_piece_on (rook_dst, active|ROOK);
+        remove_piece (org, piece[org]);
+        remove_piece (rook_org, piece[rook_org]);
+        piece[org] = piece[rook_org] = NO_PIECE; // Not done by remove_piece()
+        place_piece (dst, active|KING);
+        place_piece (rook_dst, active|ROOK);
 
         key ^= RandZob.piece_square[active][ROOK][rook_org]
              ^ RandZob.piece_square[active][ROOK][rook_dst];
@@ -990,7 +990,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
                         && empty (dst) //&& !contains (pieces (), dst)
                         && (pasive|PAWN) == piece[cap]); //&& contains (pieces (pasive, PAWN), cap));
 
-                    piece[cap] = NO_PIECE; // Not done by remove_piece_on()
+                    piece[cap] = NO_PIECE; // Not done by remove_piece()
                 }
 
                 si->pawn_key ^= RandZob.piece_square[pasive][PAWN][cap];
@@ -1002,14 +1002,14 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
             // Reset clock ply counter
             si->clock_ply = 0;
-            remove_piece_on (cap, pasive|si->capture);
+            remove_piece (cap, pasive|si->capture);
             key ^= RandZob.piece_square[pasive][si->capture][cap];
             si->matl_key ^= RandZob.piece_square[pasive][si->capture][count (pasive, si->capture)];
             prefetch (thread->matl_table[si->matl_key]);
         }
 
         // Move the piece
-        move_piece_on_to (org, dst, piece[org]);
+        move_piece (org, dst, piece[org]);
     }
     key ^= RandZob.piece_square[active][mpt][org]
          ^ RandZob.piece_square[active][mpt][dst];
@@ -1047,8 +1047,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
             si->promote = promote (m);
             // Replace the pawn with the promoted piece
-            remove_piece_on (dst, piece[dst]);
-            place_piece_on (dst, active|si->promote);
+            remove_piece (dst, piece[dst]);
+            place_piece (dst, active|si->promote);
             si->npm[active] += PieceValues[MG][si->promote];
             key ^= RandZob.piece_square[active][mpt][dst]
                  ^ RandZob.piece_square[active][si->promote][dst];
@@ -1122,11 +1122,11 @@ void Position::undo_move (Move m)
         auto rook_dst = rel_sq (active, rook_org > org ? SQ_F1 : SQ_D1);
         /* king */dst = rel_sq (active, rook_org > org ? SQ_G1 : SQ_C1);
         // Remove both pieces first since squares could overlap in chess960
-        remove_piece_on (dst, piece[dst]);
-        remove_piece_on (rook_dst, piece[rook_dst]);
-        piece[dst] = piece[rook_dst] = NO_PIECE; // Not done by remove_piece_on()
-        place_piece_on (org, active|KING);
-        place_piece_on (rook_org, active|ROOK);
+        remove_piece (dst, piece[dst]);
+        remove_piece (rook_dst, piece[rook_dst]);
+        piece[dst] = piece[rook_dst] = NO_PIECE; // Not done by remove_piece()
+        place_piece (org, active|KING);
+        place_piece (rook_org, active|ROOK);
     }
     else
     {
@@ -1137,11 +1137,11 @@ void Position::undo_move (Move m)
                 && NONE != si->promote
                 && promote (m) == ptype (piece[dst])); //&& contains (pieces (active, promote (m)), dst)
 
-            remove_piece_on (dst, piece[dst]);
-            place_piece_on (dst, active|PAWN);
+            remove_piece (dst, piece[dst]);
+            place_piece (dst, active|PAWN);
         }
         // Move the piece
-        move_piece_on_to (dst, org, piece[dst]);
+        move_piece (dst, org, piece[dst]);
 
         if (NONE != si->capture)
         {
@@ -1159,7 +1159,7 @@ void Position::undo_move (Move m)
             }
             // Restore the captured piece.
             assert(empty (cap));
-            place_piece_on (cap, ~active|si->capture);
+            place_piece (cap, ~active|si->capture);
         }
     }
 
