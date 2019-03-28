@@ -139,7 +139,7 @@ public:
 
     i16    failed_high_count;
 
-    double best_move_change;
+    double pv_change;
     Move   best_move;
     i16    best_move_depth;
 

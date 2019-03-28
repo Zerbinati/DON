@@ -266,7 +266,7 @@ void MainThread::clear ()
     Thread::clear ();
 
     check_count = 0;
-    last_value = VALUE_NONE;
+    last_value = +VALUE_INFINITE;
     last_time_reduction = 1.00;
 
     time_mgr.available_nodes = 0;

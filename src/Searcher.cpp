@@ -1512,7 +1512,7 @@ namespace Searcher {
                             && Limits.time_mgr_used ()
                             && Threadpool.main_thread () == thread)
                         {
-                            ++Threadpool.main_thread ()->best_move_change;
+                            ++Threadpool.main_thread ()->pv_change;
                         }
                     }
                     else
@@ -1722,8 +1722,8 @@ void Thread::search ()
                 +mk_score (BasicContempt, BasicContempt / 2) :
                 -mk_score (BasicContempt, BasicContempt / 2);
 
-    Value best_value;
-    Value window;
+    auto best_value = -VALUE_INFINITE;
+    auto window = Value(100);
     auto  alfa = -VALUE_INFINITE
         , beta = +VALUE_INFINITE;
 
@@ -1738,7 +1738,7 @@ void Thread::search ()
             && Limits.time_mgr_used ())
         {
             // Age out PV variability metric
-            main_thread->best_move_change *= 0.517;
+            main_thread->pv_change *= 0.517;
         }
 
         // Save the last iteration's values before first PV line is searched and
@@ -1916,11 +1916,11 @@ void Thread::search ()
                     || (main_thread->time_mgr.elapsed_time () >
                         main_thread->time_mgr.optimum_time
                         // Best Move Instability factor
-                     * (main_thread->best_move_change + 1)
+                     * (main_thread->pv_change + 1)
                         // Time reduction factor - Use part of the gained time from a previous stable move for the current move
                      * std::pow (main_thread->last_time_reduction, 0.528) / time_reduction
                         // Falling Eval factor
-                     * clamp (0.5, (306 + 9 * (VALUE_NONE != main_thread->last_value ? main_thread->last_value - best_value: 0)) / 581.0, 1.5)))
+                     * clamp (0.5, (306 + 9 * (+VALUE_INFINITE != main_thread->last_value ? main_thread->last_value - best_value: 0)) / 581.0, 1.5)))
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".
@@ -2060,7 +2060,7 @@ void MainThread::search ()
 
             if (Limits.time_mgr_used ())
             {
-                best_move_change = 0.0;
+                pv_change = 0.0;
                 best_move = MOVE_NONE;
                 best_move_depth = DepthZero;
             }
