@@ -8,7 +8,7 @@
 #include "Searcher.h"
 #include "TBsyzygy.h"
 
-UCI::OptionMap Options;
+UCI::NoCaseMap Options;
 
 using namespace std;
 
@@ -107,7 +107,7 @@ namespace UCI {
             else
             if (type == "spin")
             {
-                val = std::to_string (std::min (std::max (stoi (val), minimum), maximum));
+                val = std::to_string (clamp (minimum, stoi (val), maximum));
             }
             else
             if (type == "string")
@@ -120,7 +120,7 @@ namespace UCI {
             else
             if (type == "combo")
             {
-                OptionMap comboMap; // To have case insensitive compare
+                NoCaseMap comboMap; // To have case insensitive compare
                 string token;
                 std::istringstream ss (default_value);
                 while (ss >> token)

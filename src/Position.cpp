@@ -357,11 +357,12 @@ bool Position::pseudo_legal (Move m) const
 /// Position::legal() tests whether a pseudo-legal move is legal.
 bool Position::legal (Move m) const
 {
-    assert(_ok (m)
-        && contains (pieces (active), org_sq (m)));
+    assert(_ok (m));
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
+    assert(contains (pieces (active), org));
+
     switch (mtype (m))
     {
     case NORMAL:
@@ -439,11 +440,12 @@ bool Position::legal (Move m) const
 /// Position::gives_check() tests whether a pseudo-legal move gives a check.
 bool Position::gives_check (Move m) const
 {
-    assert(_ok (m)
-        && contains (pieces (active), org_sq (m)));
+    assert(_ok (m));
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
+    assert(contains (pieces (active), org));
+
     if (    // Direct check ?
            contains (si->checks[PROMOTE != mtype (m) ? ptype (piece[org]) : promote (m)], dst)
             // Discovered check ?
@@ -612,8 +614,7 @@ PieceType Position::pick_next_attacker<KING> (Bitboard, Square, Square&, Bitboar
 /// An algorithm similar to alpha-beta pruning with a null window is used.
 bool Position::see_ge (Move m, Value threshold) const
 {
-    assert(_ok (m)
-        && contains (pieces (), org_sq (m)));
+    assert(_ok (m));
 
     // Only deal with normal and enpassant moves, assume others pass a simple see
     if (   CASTLE == mtype (m)
@@ -624,6 +625,7 @@ bool Position::see_ge (Move m, Value threshold) const
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
+    assert(contains (pieces (), org));
 
     // The opponent may be able to recapture so this is the best result we can hope for.
     auto balance = PieceValues[MG][ENPASSANT != mtype (m) ? ptype (piece[dst]) : PAWN] - threshold;

@@ -291,7 +291,7 @@ namespace {
         }
         for (const auto &s : pos.squares[Own|PT])
         {
-            assert(pos[s] == (Own|PT));
+            assert((Own|PT) == pos[s]);
             Bitboard mocc = pos.pieces ();
             // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
             switch (PT)
@@ -333,8 +333,8 @@ namespace {
             {
                 Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
                 Bitboard qp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
-                Bitboard qb = att & PieceAttacks[BSHP][s]  & pos.pieces (BSHP);
-                Bitboard qr = att & PieceAttacks[ROOK][s]  & pos.pieces (ROOK);
+                Bitboard qb = att & PieceAttacks[BSHP][s] & pos.pieces (BSHP);
+                Bitboard qr = att & PieceAttacks[ROOK][s] & pos.pieces (ROOK);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
                                      | (0 != qp ? pawn_sgl_attacks_bb (Own, qp) & PieceAttacks[BSHP][s] : 0)
@@ -652,7 +652,7 @@ namespace {
             king_danger -= 100;
         }
         // If no enemy queen
-        if (0 == pos.count (Opp, QUEN))
+        if (0 == pos.pieces (Opp, QUEN))
         {
             king_danger -= 873;
         }

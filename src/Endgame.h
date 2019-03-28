@@ -44,11 +44,11 @@ namespace Endgames {
     };
 
     /// Endgame functions can be of two category depending on whether they return Value or Scale.
-    template<EndgameCode EC>
-    using EndgameType = typename std::conditional<EC < SCALING_FUNCTIONS, Value, Scale>::type;
+    template<EndgameCode C>
+    using EndgameType = typename std::conditional<C < SCALING_FUNCTIONS, Value, Scale>::type;
 
     /// Base functors for endgame evaluation and scaling functions
-    template<typename ET>
+    template<typename T>
     class EndgameBase
     {
     public:
@@ -62,42 +62,43 @@ namespace Endgames {
         virtual ~EndgameBase () = default;
         EndgameBase& operator= (const EndgameBase&) = delete;
 
-        virtual ET operator() (const Position&) const = 0;
+        virtual T operator() (const Position&) const = 0;
     };
 
     /// Derived functors for endgame evaluation and scaling functions
-    template<EndgameCode EC, typename ET = EndgameType<EC>>
+    template<EndgameCode C, typename T = EndgameType<C>>
     class Endgame
-        : public EndgameBase<ET>
+        : public EndgameBase<T>
     {
     public:
         explicit Endgame (Color c)
-            : EndgameBase<ET> (c)
+            : EndgameBase<T> (c)
         {}
         virtual ~Endgame () = default;
         Endgame& operator= (const Endgame&) = delete;
 
-        ET operator() (const Position&) const override;
+        T operator() (const Position&) const override;
     };
 
 
-    template<typename ET> using Ptr = std::unique_ptr<EndgameBase<ET>>;
-    template<typename ET> using Map = std::map<Key, Ptr<ET>>;
+    template<typename T> using Ptr = std::unique_ptr<EndgameBase<T>>;
+    template<typename T> using Map = std::map<Key, Ptr<T>>;
+    template<typename T1, typename T2> using MapPair = std::pair<Map<T1>, Map<T2>>;
 
     // Stores the pointers to endgame evaluation and scaling base objects in two std::map
-    extern std::pair<Map<Value>, Map<Scale>> EndgamePair;
+    extern MapPair<Value, Scale> EndgameMapPair;
 
-    template<typename ET>
-    Map<ET>& map ()
+    template<typename T>
+    Map<T>& map ()
     {
-        return std::get<std::is_same<ET, Scale>::value> (EndgamePair);
+        return std::get<std::is_same<T, Scale>::value> (EndgameMapPair);
     }
 
-    template<typename ET>
-    const EndgameBase<ET>* probe (Key matl_key)
+    template<typename T>
+    const EndgameBase<T>* probe (Key matl_key)
     {
-        return map<ET> ().count (matl_key) != 0 ?
-                map<ET> ()[matl_key].get () :
+        return map<T> ().count (matl_key) != 0 ?
+                map<T> ()[matl_key].get () :
                 nullptr;
     }
 

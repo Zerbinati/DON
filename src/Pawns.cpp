@@ -180,7 +180,7 @@ namespace Pawns {
             value += 369;
         }
 
-        auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
+        auto kf = clamp (F_B, _file (fk_sq), F_G);
         for (const auto &f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);

@@ -315,19 +315,21 @@ namespace BitBoard {
         {
             for (const auto &s2 : SQ)
             {
+                Between_bb[s1][s2] = 0;
+                StrLine_bb[s1][s2] = 0;
                 if (s1 != s2)
                 {
                     if (contains (PieceAttacks[BSHP][s1], s2))
                     {
-                        Between_bb[s1][s2] = attacks_bb<BSHP> (s1, Square_bb[s2])
-                                           & attacks_bb<BSHP> (s2, Square_bb[s1]);
+                        Between_bb[s1][s2] = attacks_bb<BSHP> (s1, square_bb (s2))
+                                           & attacks_bb<BSHP> (s2, square_bb (s1));
                         StrLine_bb[s1][s2] = (PieceAttacks[BSHP][s1] & PieceAttacks[BSHP][s2]) | s1 | s2;
                     }
                     else
                     if (contains (PieceAttacks[ROOK][s1], s2))
                     {
-                        Between_bb[s1][s2] = attacks_bb<ROOK> (s1, Square_bb[s2])
-                                           & attacks_bb<ROOK> (s2, Square_bb[s1]);
+                        Between_bb[s1][s2] = attacks_bb<ROOK> (s1, square_bb (s2))
+                                           & attacks_bb<ROOK> (s2, square_bb (s1));
                         StrLine_bb[s1][s2] = (PieceAttacks[ROOK][s1] & PieceAttacks[ROOK][s2]) | s1 | s2;
                     }
                 }

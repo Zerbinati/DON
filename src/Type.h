@@ -607,6 +607,11 @@ template<class T> i32 sign (T val)
     return (T(0) < val) - (val < T(0));
 }
 
+template<class T> constexpr const T& clamp (const T &lo, const T &v, const T &hi)
+{
+    return lo > v ? lo : v > hi ? hi : v;
+}
+
 const std::string Empty = "<empty>";
 
 inline bool white_spaces (const std::string &str)

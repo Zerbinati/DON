@@ -6,9 +6,9 @@
 #include <cstring>   // For std::memset and std::memcpy
 #include <deque>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <list>
-#include <sstream>
 #include <vector>
 
 #include "BitBoard.h"
