@@ -78,16 +78,16 @@ public:
     Position  root_pos;
     RootMoves root_moves;
 
-    i16 running_depth
-      , finished_depth
-      , sel_depth;
+    i16   running_depth
+        , finished_depth
+        , sel_depth;
 
     i16   nmp_ply;
     Color nmp_color;
 
     size_t pv_beg
-         , pv_cur
-         , pv_end;
+        ,  pv_cur
+        ,  pv_end;
 
     std::atomic<u64> nodes
         ,            tb_hits;
@@ -136,8 +136,6 @@ public:
 
     TimeManager  time_mgr;
     SkillManager skill_mgr;
-
-    i16    failed_high_count;
 
     double pv_change;
     Move   best_move;
