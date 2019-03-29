@@ -919,7 +919,6 @@ Position& Position::setup (const string &code, Color c, StateInfo &nsi)
 void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 {
     assert(_ok (m)
-        && contains (pieces (), org_sq (m))
         && &nsi != si);
 
     thread->nodes.fetch_add (1, std::memory_order::memory_order_relaxed);

@@ -573,7 +573,7 @@ namespace {
         Bitboard bshp_safe_check = bshp_attack
                                  & sgl_attacks[Opp][BSHP]
                                  & safe_area;
-        b = bshp_safe_check
+        b =  bshp_safe_check
           & ~quen_safe_check;
         if (0 != b)
         {
@@ -589,7 +589,7 @@ namespace {
         Bitboard rook_safe_check = rook_attack
                                  & sgl_attacks[Opp][ROOK]
                                  & safe_area;
-        b = rook_safe_check
+        b =  rook_safe_check
           & ~quen_safe_check;
         if (0 != b)
         {
@@ -612,7 +612,7 @@ namespace {
         //                  & ~sgl_attacks[Own][QUEN];
         //}
 
-        b = quen_safe_check
+        b =  quen_safe_check
           & (bshp_safe_check | rook_safe_check);
         if (0 != b)
         {

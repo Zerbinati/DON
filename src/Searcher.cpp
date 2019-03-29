@@ -866,7 +866,16 @@ namespace Searcher {
                       || (   PVNode
                           && 4 < depth);
 
-            bool improving;
+            // If position has been searched at higher depths and we are shuffling, return draw
+            if (   3 > depth
+                && 36 < pos.si->clock_ply
+                && 36 < ss->ply
+                && 0 != pos.count (PAWN)
+                && tt_hit
+                && tte->depth () > depth)
+            {
+                return VALUE_DRAW;
+            }
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
@@ -987,6 +996,7 @@ namespace Searcher {
             StateInfo si;
             Move move;
             Value tt_eval;
+            bool improving;
 
             // Step 6. Static evaluation of the position
             if (in_check)
@@ -1302,6 +1312,11 @@ namespace Searcher {
                 else
                 if (// Castle extension
                        CASTLE == mtype (move)
+                    // Shuffle extension
+                    || (   PVNode
+                        && 3 > depth
+                        && 14 < pos.si->clock_ply
+                        && 14 < ss->ply)
                     // Check extension (~2 ELO)
                     || (   gives_check
                         && (   pos.exchange (move) >= VALUE_ZERO
@@ -1723,7 +1738,7 @@ void Thread::search ()
                 -mk_score (BasicContempt, BasicContempt / 2);
 
     auto best_value = -VALUE_INFINITE;
-    auto window = +VALUE_INFINITE;
+    auto window = +VALUE_ZERO;
     auto  alfa = -VALUE_INFINITE
         , beta = +VALUE_INFINITE;
 
@@ -1826,7 +1841,10 @@ void Thread::search ()
                     beta = (alfa + beta) / 2;
                     alfa = std::max (best_value - window, -VALUE_INFINITE);
 
-                    failed_high_count = 0;
+                    if (0 != failed_high_count)
+                    {
+                        failed_high_count = 0;
+                    }
                     if (nullptr != main_thread)
                     {
                         main_thread->stop_on_ponderhit = false;
@@ -1844,6 +1862,11 @@ void Thread::search ()
                 // Otherwise exit the loop.
                 else
                 {
+                    if (0 != failed_high_count)
+                    {
+                        failed_high_count = 0;
+                        continue;
+                    }
                     break;
                 }
 

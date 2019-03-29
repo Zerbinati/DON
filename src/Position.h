@@ -475,7 +475,6 @@ inline bool Position::capture (Move m) const
     // Castling is encoded as "king captures the rook"
     return ENPASSANT == mtype (m)
         || (   CASTLE != mtype (m)
-            //&& contains (pieces (~active), dst_sq (m))
             && !empty (dst_sq (m)));
 }
 //inline bool Position::promotion (Move m) const
@@ -488,7 +487,6 @@ inline bool Position::capture_or_promotion (Move m) const
 {
     return NORMAL != mtype (m) ?
             CASTLE != mtype (m) :
-            //contains (pieces (~active), dst_sq (m))
             !empty (dst_sq (m));
 }
 
