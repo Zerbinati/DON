@@ -643,8 +643,7 @@ namespace {
                     sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
                 }
             }
-        } while (   1 == argc
-                 && cmd != "quit");
+        } while (1 == argc && cmd != "quit");
     }
 }
 
@@ -718,7 +717,6 @@ void run (int argc, const char *const *argv)
     zobrist_initialize ();
     Position::initialize ();
     UCI::initialize ();
-    Pawns::initialize ();
     Endgames::initialize ();
     WinProcGroup::initialize ();
     TCluster::initialize ();

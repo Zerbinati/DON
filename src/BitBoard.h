@@ -170,15 +170,15 @@ namespace BitBoard {
     //// Rotate Left  (toward MSB)
     //constexpr Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQ_NO - k)); }
 
-    constexpr bool contains (Bitboard bb, Square s) { return 0 != (bb & Square_bb[s]); }
-
-    constexpr Bitboard operator| (Bitboard  bb, Square s) { return bb | Square_bb[s]; }
-    constexpr Bitboard operator^ (Bitboard  bb, Square s) { return bb ^ Square_bb[s]; }
-
-    inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
-    inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= Square_bb[s]; }
-
     constexpr Bitboard square_bb (Square s) { return Square_bb[s]; }
+
+    constexpr bool contains (Bitboard bb, Square s) { return 0 != (bb & square_bb (s)); }
+
+    constexpr Bitboard operator| (Bitboard  bb, Square s) { return bb | square_bb (s); }
+    constexpr Bitboard operator^ (Bitboard  bb, Square s) { return bb ^ square_bb (s); }
+
+    inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= square_bb (s); }
+    inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= square_bb (s); }
 
     constexpr Bitboard file_bb (File f) { return FA_bb << f; }
     constexpr Bitboard file_bb (Square s) { return file_bb (_file (s)); }

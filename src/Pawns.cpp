@@ -10,6 +10,9 @@ namespace Pawns {
 
     namespace {
 
+        // Connected pawn bonus
+        constexpr int Connected[R_NO] = { 0, 13, 24, 18, 65, 100, 175, 330 };
+
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
         constexpr i32 Shelter[F_NO/2][R_NO] =
@@ -36,9 +39,6 @@ namespace Pawns {
         constexpr Score Isolated = S( 5,15);
 
 #   undef S
-
-        // Bonus for connected pawn indexed by [opposed][phalanx][twice supported][rank]
-        Score Connected[2][2][3][R_NO];
 
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
@@ -124,10 +124,10 @@ namespace Pawns {
 
                 if (0 != (supporters | phalanxes))
                 {
-                    score += Connected[opposed ? 1 : 0]
-                                      [0 != phalanxes ? 1 : 0]
-                                      [pop_count (supporters)]
-                                      [rel_rank (Own, s)];
+                    auto r = rel_rank (Own, s);
+                    i32 v = 17 * pop_count (supporters)
+                          + ((0 != phalanxes ? Connected[r] + Connected[r + 1] : 2 * Connected[r]) >> (opposed ? 2 : 1));
+                    score += mk_score (v, v * (r - R_3) / 4);
                 }
                 else
                 if (0 == neighbours)
@@ -223,26 +223,5 @@ namespace Pawns {
         e->passed_count = u08(pop_count (e->passers[WHITE] | e->passers[BLACK]));
                                     
         return e;
-    }
-
-    /// Pawns::initialize() initializes pawn lookup tables.
-    void initialize ()
-    {
-        constexpr i32 Seeds[R_NO] ={ 0, 13, 24, 18, 65, 100, 175, 330 };
-
-        for (i08 opposed = 0; opposed < 2; ++opposed)
-        {
-            for (i08 phalanx = 0; phalanx < 2; ++phalanx)
-            {
-                for (i08 support = 0; support < 3; ++support)
-                {
-                    for (const auto &r : { R_2, R_3, R_4, R_5, R_6, R_7 })
-                    {
-                        i32 v = 17 * support + ((Seeds[r] + (0 != phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
-                        Connected[opposed][phalanx][support][r] = mk_score (v, v * (r-2) / 4);
-                    }
-                }
-            }
-        }
     }
 }

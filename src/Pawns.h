@@ -72,8 +72,6 @@ namespace Pawns {
     typedef HashTable<Entry, 0x4000> Table;
 
     extern Entry* probe (const Position&);
-
-    extern void initialize ();
 }
 
 #endif // _PAWNS_H_INC_

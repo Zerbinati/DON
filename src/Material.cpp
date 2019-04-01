@@ -116,11 +116,8 @@ namespace Material {
         e->key = pos.si->matl_key;
         std::fill_n (e->scale, CLR_NO, SCALE_NORMAL);
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        e->phase = i32(  std::min (VALUE_MIDGAME,
-                         std::max (VALUE_ENDGAME, pos.si->non_pawn_material ()))
-                       - VALUE_ENDGAME)
-                 * PhaseResolution
-                 / (VALUE_MIDGAME - VALUE_ENDGAME);
+        Value npm = clamp (VALUE_ENDGAME, pos.si->non_pawn_material (), VALUE_MIDGAME);
+        e->phase = i32(npm - VALUE_ENDGAME) * PhaseResolution / (VALUE_MIDGAME - VALUE_ENDGAME);
 
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
@@ -145,8 +142,8 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        const EndgameBase<Scale> *scale_func;
-        if (nullptr != (scale_func = Endgames::probe<Scale> (pos.si->matl_key)))
+        const auto *scale_func = Endgames::probe<Scale> (pos.si->matl_key);
+        if (nullptr != scale_func)
         {
             e->scale_func[scale_func->strong_color] = scale_func;
             return e;
@@ -183,9 +180,7 @@ namespace Material {
             {
                 e->scale[c] = pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
                                 SCALE_DRAW :
-                                Scale(pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
-                                    4 :
-                                    14);
+                                Scale(pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ? 4 : 14);
             }
         }
 

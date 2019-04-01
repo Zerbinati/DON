@@ -94,11 +94,8 @@ namespace Endgames {
             {
                 sq = !sq;
             }
-            if (BLACK == c)
-            {
-                sq = ~sq;
-            }
-            return sq;
+
+            return WHITE == c ? sq : ~sq;
         }
 
 #if !defined(NDEBUG)
