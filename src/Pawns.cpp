@@ -126,7 +126,7 @@ namespace Pawns {
                 {
                     auto r = rel_rank (Own, s);
                     i32 v = 17 * pop_count (supporters)
-                          + ((Connected[r] + Connected[r + (0 != phalanxes ? 1 : 0)]) >> (opposed ? 2 : 1));
+                          + ((Connected[r] + Connected[0 != phalanxes ? r + 1 : r]) >> (opposed ? 2 : 1));
                     score += mk_score (v, v * (r - R_3) / 4);
                 }
                 else
