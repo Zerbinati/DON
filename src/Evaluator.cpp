@@ -1001,9 +1001,10 @@ namespace {
     {
         auto color = eg >= VALUE_ZERO ? WHITE : BLACK;
 
-        Scale scl;
-        if (   nullptr == me->scale_func[color]
-            || SCALE_NONE == (scl = (*me->scale_func[color])(pos)))
+        Scale scl = nullptr != me->scale_func[color] ?
+                        (*me->scale_func[color])(pos) :
+                        SCALE_NONE;
+        if (SCALE_NONE == scl)
         {
             scl = me->scale[color];
         }

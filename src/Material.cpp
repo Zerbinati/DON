@@ -122,7 +122,8 @@ namespace Material {
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        if (nullptr != (e->value_func = Endgames::probe<Value> (pos.si->matl_key)))
+        e->value_func = Endgames::probe<Value> (pos.si->matl_key);
+        if (nullptr != e->value_func)
         {
             return e;
         }
@@ -174,7 +175,7 @@ namespace Material {
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
-            if (   0 == pos.count (c, PAWN)
+            if (   pos.count (c, PAWN) == 0
                 && abs (  pos.si->non_pawn_material ( c)
                         - pos.si->non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {
@@ -188,20 +189,20 @@ namespace Material {
         if (   pos.si->non_pawn_material () == VALUE_ZERO
             && pos.pieces (PAWN) != 0)
         {
-            if (0 == pos.pieces (BLACK, PAWN))
+            if (pos.pieces (BLACK, PAWN) == 0)
             {
                 assert(2 <= pos.count (WHITE, PAWN));
                 e->scale_func[WHITE] = &ScaleKPsK[WHITE];
             }
             else
-            if (0 == pos.pieces (WHITE, PAWN))
+            if (pos.pieces (WHITE, PAWN) == 0)
             {
                 assert(2 <= pos.count (BLACK, PAWN));
                 e->scale_func[BLACK] = &ScaleKPsK[BLACK];
             }
             else
-            if (   1 == pos.count (WHITE, PAWN)
-                && 1 == pos.count (BLACK, PAWN))
+            if (   pos.count (WHITE, PAWN) == 1
+                && pos.count (BLACK, PAWN) == 1)
             {
                 e->scale_func[WHITE] = &ScaleKPKP[WHITE];
                 e->scale_func[BLACK] = &ScaleKPKP[BLACK];

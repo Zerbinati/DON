@@ -81,15 +81,15 @@ namespace Endgames {
     };
 
 
-    template<typename T> using Ptr = std::unique_ptr<EndgameBase<T>>;
-    template<typename T> using Map = std::map<Key, Ptr<T>>;
-    template<typename T1, typename T2> using MapPair = std::pair<Map<T1>, Map<T2>>;
+    template<typename T> using EG_Ptr = std::unique_ptr<EndgameBase<T>>;
+    template<typename T> using EG_Map = std::map<Key, EG_Ptr<T>>;
+    template<typename T1, typename T2> using EG_MapPair = std::pair<EG_Map<T1>, EG_Map<T2>>;
 
     // Stores the pointers to endgame evaluation and scaling base objects in two std::map
-    extern MapPair<Value, Scale> EndgameMapPair;
+    extern EG_MapPair<Value, Scale> EndgameMapPair;
 
     template<typename T>
-    Map<T>& map ()
+    EG_Map<T>& map ()
     {
         return std::get<std::is_same<T, Scale>::value> (EndgameMapPair);
     }

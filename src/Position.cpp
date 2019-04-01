@@ -298,17 +298,17 @@ bool Position::pseudo_legal (Move m) const
                     && (   PROMOTE != mtype (m)
                         || R_7 != rel_rank (active, org)
                         || R_8 != rel_rank (active, dst)))
-                || empty (dst)
-                || !contains (PawnAttacks[active][org], dst))
+                || !contains (PawnAttacks[active][org], dst)
+                || empty (dst))
                 // Enpassant capture
             && (   ENPASSANT != mtype (m)
                 || R_5 != rel_rank (active, org)
                 || R_6 != rel_rank (active, dst)
                 || NIHT != promote (m)
                 || si->enpassant_sq != dst
+                || !contains (PawnAttacks[active][org], dst)
                 || !empty (dst)
                 || empty (dst - pawn_push (active))
-                || !contains (PawnAttacks[active][org], dst)
                 || 0 != si->clock_ply)
                 // Double push
             && (   NORMAL != mtype (m)
@@ -380,8 +380,7 @@ bool Position::legal (Move m) const
                 && NIHT == promote (m))
             || (   (active|PAWN) == piece[org] //&& contains (pieces (active, PAWN), org)
                 && R_7 == rel_rank (active, org)
-                && R_8 == rel_rank (active, dst)
-                /*&& NIHT <= promote (m) && promote (m) <= QUEN*/));
+                && R_8 == rel_rank (active, dst)));
 
         // A non-king move is legal if and only if
         // - not pinned

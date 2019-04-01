@@ -1607,27 +1607,29 @@ namespace Searcher {
             {
                 if (!pos.capture_or_promotion (best_move))
                 {
+                    auto qbonus = stat_bonus (depth + (best_value > beta + VALUE_MG_PAWN ? 1 : 0));
+
                     update_killers (ss, pos, best_move);
-                    auto bonus = stat_bonus (depth + (best_value > beta + VALUE_MG_PAWN ? 1 : 0));
-                    thread->butterfly_history[pos.active][move_pp (best_move)] << bonus;
-                    update_continuation_histories (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
+                    thread->butterfly_history[pos.active][move_pp (best_move)] << qbonus;
+                    update_continuation_histories (ss, pos[org_sq (best_move)], dst_sq (best_move), qbonus);
                     // Decrease all the other played quiet moves.
                     for (auto qm : quiet_moves)
                     {
-                        thread->butterfly_history[pos.active][move_pp (qm)] << -bonus;
-                        update_continuation_histories (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
+                        thread->butterfly_history[pos.active][move_pp (qm)] << -qbonus;
+                        update_continuation_histories (ss, pos[org_sq (qm)], dst_sq (qm), -qbonus);
                     }
                 }
                 else
                 {
-                    thread->capture_history[pos[org_sq (best_move)]][dst_sq (best_move)][pos.cap_type (best_move)] << stat_bonus (depth + 1);
+                    auto cbonus = stat_bonus (depth + 1);
+                    thread->capture_history[pos[org_sq (best_move)]][dst_sq (best_move)][pos.cap_type (best_move)] << cbonus;
                 }
 
-                auto bonus = stat_bonus (depth + 1);
+                auto cbonus = stat_bonus (depth + 1);
                 // Decrease all the other played capture moves.
                 for (auto cm : capture_moves)
                 {
-                    thread->capture_history[pos[org_sq (cm)]][dst_sq (cm)][pos.cap_type (cm)] << -bonus;
+                    thread->capture_history[pos[org_sq (cm)]][dst_sq (cm)][pos.cap_type (cm)] << -cbonus;
                 }
 
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
