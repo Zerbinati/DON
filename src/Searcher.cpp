@@ -245,11 +245,17 @@ Move MovePicker::next_move ()
 
     case Stage::NT_GOOD_CAPTURES:
         if (pick ([&]() { auto thr = Value(-vm.value * 55 / 1024);
-                          return pos.exchange (vm) >= thr
-                              || pos.see_ge (vm, thr) ?
-                                    true :
-                                    // Put losing capture to bad_capture_moves to be tried later
-                                    (bad_capture_moves.push_back (vm), false); }))
+                          if (   pos.exchange (vm) >= thr
+                              || pos.see_ge (vm, thr))
+                          {
+                              return true;
+                          }
+                          else
+                          {
+                              // Put losing capture to bad_capture_moves to be tried later
+                              bad_capture_moves.push_back (vm);
+                              return false;
+                          }}))
         {
             return vm;
         }
@@ -381,7 +387,7 @@ namespace Searcher {
         i32 BasicContempt = 0;
 
         TimePoint DebugTime;
-        bool      Output = false;
+        bool      Output;
         ofstream  OutputStream;
 
         /// stat_bonus() is the bonus, based on depth
@@ -1969,12 +1975,13 @@ void MainThread::search ()
 
     time_mgr.start_time = now ();
     DebugTime = 0;
-
+    Output = false;
     auto output_fn = string(Options["Output File"]);
     if (!white_spaces (output_fn))
     {
         OutputStream.open (output_fn, ios_base::out|ios_base::app);
-        if (OutputStream.is_open ())
+        Output = OutputStream.is_open ();
+        if (Output)
         {
             OutputStream << std::boolalpha
                          << "RootPos  : " << root_pos.fen () << "\n"
@@ -1991,8 +1998,6 @@ void MainThread::search ()
                          << std::noboolalpha << std::endl;
         }
     }
-
-    Output = OutputStream.is_open ();
 
     if (Limits.time_mgr_used ())
     {

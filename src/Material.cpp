@@ -93,8 +93,8 @@ namespace Material {
             }
             if (0 != count[Own][KING])
             {
-                value += count[Own][KING] * OwnQuadratic[KING][KING]
-                       + count[Opp][KING] * OppQuadratic[KING][KING];
+                value += count[Own][KING] * OwnQuadratic[KING][KING];
+                       //+ count[Opp][KING] * OppQuadratic[KING][KING]; // OppQuadratic[KING][KING] = 0
             }
 
             return value;

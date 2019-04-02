@@ -87,6 +87,6 @@ namespace UCI {
 // Global nocase mapping of Options
 extern UCI::NoCaseMap Options;
 
-extern u32 threads_option ();
+extern u32 option_threads ();
 
 #endif // _UCI_H_INC_

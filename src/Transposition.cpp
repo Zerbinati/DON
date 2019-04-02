@@ -126,7 +126,7 @@ u32 TTable::resize (u32 mem_size)
 {
     Threadpool.main_thread ()->wait_while_busy ();
 
-    mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
+    mem_size = clamp (MinHashSize, mem_size, MaxHashSize);
     size_t msize = size_t(mem_size) << 20;
 
     free_aligned_memory ();
@@ -165,7 +165,7 @@ void TTable::clear ()
     }
     
     std::vector<std::thread> threads;
-    auto thread_count = threads_option ();
+    auto thread_count = option_threads ();
     for (u32 idx = 0; idx < thread_count; ++idx)
     {
         threads.push_back (std::thread ([this, idx, thread_count]()

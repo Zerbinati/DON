@@ -11,7 +11,7 @@ namespace Pawns {
     namespace {
 
         // Connected pawn bonus
-        constexpr int Connected[R_NO] = { 0, 13, 24, 18, 65, 100, 175, 330 };
+        constexpr i32 Connected[R_NO] = { 0, 13, 24, 18, 65, 100, 175, 330 };
 
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
@@ -193,11 +193,12 @@ namespace Pawns {
                 || (own_r != opp_r));
 
             auto ff = std::min (f, ~f);
-            assert(ff < 4);
-            value += Shelter[ff][own_r];
-            value -= R_1 != own_r && (own_r + 1 == opp_r) ?
-                        (R_3 == opp_r ? 66 : 0) :
-                        Storm[ff][opp_r];
+            assert(ff < F_E);
+            value += Shelter[ff][own_r]
+                   - (   (R_1 != own_r)
+                      && ((own_r + 1) == opp_r) ?
+                        ((R_3 == opp_r) ? 66 : 0) :
+                        Storm[ff][opp_r]);
         }
 
         return Value(value);

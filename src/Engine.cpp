@@ -720,7 +720,7 @@ void run (int argc, const char *const *argv)
     Endgames::initialize ();
     WinProcGroup::initialize ();
     TCluster::initialize ();
-    Threadpool.configure (threads_option ());
+    Threadpool.configure (option_threads ());
     Book.initialize (string(Options["Book File"]));
     Searcher::initialize ();
     Searcher::clear ();

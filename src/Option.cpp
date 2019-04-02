@@ -212,7 +212,7 @@ namespace UCI {
 
         void on_threads (const Option &)
         {
-            Threadpool.configure (threads_option ());
+            Threadpool.configure (option_threads ());
         }
 
         void on_book_fn (const Option &o)
@@ -292,7 +292,7 @@ namespace UCI {
 
 }
 
-u32 threads_option ()
+u32 option_threads ()
 {
     auto threads = i32(Options["Threads"]);
     if (0 == threads)
