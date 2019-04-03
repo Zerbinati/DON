@@ -127,57 +127,6 @@ typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO>     ContinuationHistory;
 /// MoveHistory stores moves, indexed by [piece][square]
 typedef Stats<Move, 0, MAX_PIECE, SQ_NO>                    MoveHistory;
 
-/// MovePicker class is used to pick one legal moves from the current position.
-class MovePicker
-{
-private:
-    enum Stage : u08
-    {
-        NT_TT, NT_INIT, NT_GOOD_CAPTURES, NT_REFUTATIONS, NT_QUIETS, NT_BAD_CAPTURES,
-        EV_TT, EV_INIT, EV_MOVES,
-        PC_TT, PC_INIT, PC_CAPTURES,
-        QS_TT, QS_INIT, QS_CAPTURES, QS_CHECKS,
-    };
-
-    const Position &pos;
-
-    Move tt_move;
-    i16 depth;
-
-    const PieceDestinyHistory **pd_histories;
-
-    Value threshold;
-    Square recap_sq;
-
-    ValMoves moves;
-
-    std::vector<Move> refutation_moves
-        ,             bad_capture_moves;
-
-    u08 stage;
-    size_t i;
-    ValMove vm;
-
-    template<GenType>
-    void value ();
-
-    template<typename Pred>
-    bool pick (Pred);
-
-public:
-    bool skip_quiets;
-
-    MovePicker () = delete;
-    MovePicker (const MovePicker&) = delete;
-    MovePicker& operator= (const MovePicker&) = delete;
-
-    MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, const Move*, Move);
-    MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, Square);
-    MovePicker (const Position&, Move, Value);
-
-    Move next_move ();
-};
-
 /// The root of the tree is a PV node.
 /// At a PV node all the children have to be investigated.
 /// The best move found at a PV node leads to a successor PV node,
@@ -251,7 +200,21 @@ public:
     void operator+= (const RootMove &rm) { push_back (rm); }
     //void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
-    void initialize (const Position&, const std::vector<Move>&);
+    /// initializes with search moves
+    void initialize (const Position &pos, const std::vector<Move> &search_moves)
+    {
+        assert(empty ());
+        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+        {
+            if (   search_moves.empty ()
+                || std::find (search_moves.begin (), search_moves.end (), vm) != search_moves.end ())
+            {
+                *this += vm;
+                assert(back ().tb_rank == 0
+                    && back ().tb_value == VALUE_ZERO);
+            }
+        }
+    }
 
     explicit operator std::string () const;
 };
