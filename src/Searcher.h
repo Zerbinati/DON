@@ -178,22 +178,6 @@ public:
     Move next_move ();
 };
 
-/// Stack keeps the information of the nodes in the tree during the search.
-struct Stack
-{
-public:
-    i16   ply;
-    Move  played_move;
-    Move  excluded_move;
-    Move  killer_moves[2];
-    u08   move_count;
-    Value static_eval;
-    i32   stats;
-    PieceDestinyHistory *pd_history;
-
-    std::list<Move> pv;
-};
-
 /// The root of the tree is a PV node.
 /// At a PV node all the children have to be investigated.
 /// The best move found at a PV node leads to a successor PV node,

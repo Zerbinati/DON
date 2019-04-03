@@ -37,18 +37,18 @@ namespace Material {
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
-        Endgame<KXK> ValueKXK[CLR_NO] =
+        Endgame<KXK>    ValueKXK[CLR_NO] =
         {
             Endgame<KXK> (WHITE),
             Endgame<KXK> (BLACK)
         };
         // Endgame generic scale functions
-        Endgame<KPKP> ScaleKPKP[CLR_NO] =
+        Endgame<KPKP>   ScaleKPKP[CLR_NO] =
         {
             Endgame<KPKP> (WHITE),
             Endgame<KPKP> (BLACK)
         };
-        Endgame<KPsK> ScaleKPsK[CLR_NO] =
+        Endgame<KPsK>   ScaleKPsK[CLR_NO] =
         {
             Endgame<KPsK> (WHITE),
             Endgame<KPsK> (BLACK)

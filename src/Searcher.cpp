@@ -362,6 +362,22 @@ namespace Searcher {
 
     namespace {
 
+        /// Stack keeps the information of the nodes in the tree during the search.
+        struct Stack
+        {
+        public:
+            i16   ply;
+            Move  played_move;
+            Move  excluded_move;
+            Move  killer_moves[2];
+            u08   move_count;
+            Value static_eval;
+            i32   stats;
+            PieceDestinyHistory *pd_history;
+
+            std::list<Move> pv;
+        };
+
         // Razor margin
         constexpr Value RazorMargin = Value(600);
         // Futility margin
@@ -2147,28 +2163,27 @@ void MainThread::search ()
         {
             assert(MOVE_NONE != root_moves[0].front ());
 
-            std::map<Move, i64> votes;
-
-            auto min_value = root_moves[0].new_value;
-            // Find out minimum value
+            std::map<Move, u16> votes;
             for (auto *th : Threadpool)
             {
-                min_value = std::min (th->root_moves[0].new_value, min_value);
-            }
-            // Vote according to value and depth
-            for (auto *th : Threadpool)
-            {
-                i64 s = th->root_moves[0].new_value - min_value + 1;
-                votes[th->root_moves[0].front ()] += 200 + s * s * th->finished_depth;
+                votes[th->root_moves[0].front ()] += th->finished_depth;
             }
             // Select best thread from voting
-            auto best_vote = votes[root_moves[0].front ()];
+            auto best_fm = std::max_element (votes.begin (), votes.end (),
+                                             [](const decltype(votes)::value_type &p1, const decltype(votes)::value_type &p2)
+                                             {
+                                                 return p1.second < p2.second;
+                                             })->first;
+            i16 max_depth = 0;
             for (auto *th : Threadpool)
             {
-                if (best_vote < votes[th->root_moves[0].front ()])
+                if (best_fm == th->root_moves[0].front ())
                 {
-                    best_vote = votes[th->root_moves[0].front ()];
-                    best_thread = th;
+                    if (max_depth < th->finished_depth)
+                    {
+                        max_depth = th->finished_depth;
+                        best_thread = th;
+                    }
                 }
             }
             // If new best thread then send PV info again.
@@ -2192,14 +2207,12 @@ void MainThread::search ()
     }
 
     auto bm = rm.front ();
-    auto pm = MOVE_NONE != bm ?
-                1 < rm.size () ?
-                    *std::next (rm.begin(), 1) :
-                    TT.extract_pm (root_pos, bm) :
-                MOVE_NONE;
-    assert(MOVE_NONE != bm
-        || (MOVE_NONE == bm
-         && MOVE_NONE == pm));
+    auto pm = MOVE_NONE;
+    if (MOVE_NONE != bm)
+    {
+        auto itr = std::next (rm.begin ());
+        pm = itr != rm.end () ? *itr : TT.extract_pm (root_pos, bm);
+    }
 
     if (Output)
     {
@@ -2234,7 +2247,7 @@ void MainThread::set_check_count ()
 {
     //assert(0 == check_count);
     // At low node count increase the checking rate otherwise use a default value.
-    check_count = 0 != Limits.nodes ? 
+    check_count = 0 != Limits.nodes ?
                     std::min ((i32)std::max (Limits.nodes / 1024, u64(1)), 1024) :
                     1024;
     assert(0 != check_count);

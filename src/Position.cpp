@@ -624,7 +624,6 @@ bool Position::see_ge (Move m, Value threshold) const
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    assert(contains (pieces (), org));
 
     // The opponent may be able to recapture so this is the best result we can hope for.
     auto balance = PieceValues[MG][ENPASSANT != mtype (m) ? ptype (piece[dst]) : PAWN] - threshold;
@@ -634,6 +633,7 @@ bool Position::see_ge (Move m, Value threshold) const
     }
 
     auto victim = ptype (piece[org]);
+    assert(NONE != victim);
     // Now assume the worst possible result: that the opponent can capture our piece for free.
     balance -= PieceValues[MG][victim];
     // If it is enough (like in PxQ) then return immediately.

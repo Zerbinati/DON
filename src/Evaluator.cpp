@@ -266,7 +266,7 @@ namespace {
         }
 
         king_attackers_count[Own] = u08(pop_count (king_ring[Opp] & sgl_attacks[Own][PAWN]));
-        king_ring[Opp] &= ~pawn_dbl_attacks_bb (Opp, pos.pieces (Opp, PAWN));
+        king_ring[Opp] &= ~pe->dbl_attacks[Opp];
         king_attackers_weight[Own] = 0;
         king_attacks_count[Own] = 0;
     }
