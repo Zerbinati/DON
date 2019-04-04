@@ -149,9 +149,9 @@ namespace Searcher {
                     auto beg = moves.begin () + i++;
                     std::swap (*beg, *std::max_element (beg, moves.end ()));
                     vm = *beg;
-                    if (tt_move != vm
-                        && ((ENPASSANT != mtype (vm)
-                             && !contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
+                    if (   tt_move != vm
+                        && (   (   ENPASSANT != mtype (vm)
+                                && !contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
                             || pos.legal (vm))
                         && filter ())
                     {
@@ -2183,11 +2183,18 @@ void MainThread::search ()
             && !skill_mgr_enabled ())
         {
             assert(MOVE_NONE != root_moves[0].front ());
-
-            std::map<Move, u16> votes;
+            // Find out minimum value
+            auto min_value = (*std::min_element (Threadpool.begin (), Threadpool.end (),
+                                                 [](const decltype(Threadpool)::value_type &t1, const decltype(Threadpool)::value_type &t2)
+                                                 {
+                                                     return t1->root_moves[0].new_value < t2->root_moves[0].new_value;
+                                                 }))->root_moves[0].new_value;
+            // Vote according to value and depth
+            std::map<Move, u64> votes;
             for (auto *th : Threadpool)
             {
-                votes[th->root_moves[0].front ()] += th->finished_depth;
+                u64 s = th->root_moves[0].new_value - min_value + 1;
+                votes[th->root_moves[0].front ()] += 200 + s * s * th->finished_depth;
             }
             // Select best thread from voting
             auto best_fm = std::max_element (votes.begin (), votes.end (),
@@ -2195,18 +2202,15 @@ void MainThread::search ()
                                              {
                                                  return p1.second < p2.second;
                                              })->first;
-            i16 max_depth = 0;
-            for (auto *th : Threadpool)
-            {
-                if (best_fm == th->root_moves[0].front ())
-                {
-                    if (max_depth < th->finished_depth)
-                    {
-                        max_depth = th->finished_depth;
-                        best_thread = th;
-                    }
-                }
-            }
+            best_thread = *std::max_element (std::find_if (Threadpool.begin (), Threadpool.end (), 
+                                             [best_fm](const decltype(Threadpool)::value_type &th)
+                                             {
+                                                 return th->root_moves[0].front () == best_fm;
+                                             }), Threadpool.end (),
+                                             [](const decltype(Threadpool)::value_type &t1, const decltype(Threadpool)::value_type &t2)
+                                             {
+                                                 return t1->finished_depth < t2->finished_depth;
+                                             });
             // If new best thread then send PV info again.
             if (best_thread != this)
             {

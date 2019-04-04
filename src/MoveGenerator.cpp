@@ -385,12 +385,13 @@ template<> void generate<GenType::LEGAL> (ValMoves &moves, const Position &pos)
 void filter_illegal (ValMoves &moves, const Position &pos)
 {
     moves.erase (std::remove_if (moves.begin (), moves.end (),
-                                 [&] (const ValMove &vm)
+                                 [&pos] (const ValMove &vm)
                                  {
                                      return (   ENPASSANT == mtype (vm)
                                              || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
                                          && !pos.legal (vm);
-                                 }), moves.end ());
+                                 }),
+                 moves.end ());
 }
 
 void Perft::classify (Position &pos, Move m)
