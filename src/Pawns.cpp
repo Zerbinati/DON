@@ -168,14 +168,14 @@ namespace Pawns {
     Value Entry::evaluate_safety (const Position &pos, Square fk_sq) const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr Bitboard BlockSquares = (WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb) & (FA_bb | FH_bb);
+        constexpr Bitboard BlockRanks = WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb;
 
         Bitboard front_pawns = ~front_rank_bb (Opp, fk_sq) & pos.pieces (PAWN);
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         i32 value = 5;
-        if (contains (pawn_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq))
+        if (contains (pawn_pushes_bb (Opp, opp_front_pawns) & BlockRanks & (FA_bb | FH_bb), fk_sq))
         {
             value += 369;
         }

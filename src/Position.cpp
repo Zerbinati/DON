@@ -79,7 +79,8 @@ void Position::initialize ()
                         {
                             std::swap (Cuckoos[i], cuckoo);
                             // Arrived at empty slot ?
-                            if (/*0 == cuckoo.key ||*/ MOVE_NONE == cuckoo.move)
+                            if (   0 == cuckoo.key
+                                || MOVE_NONE == cuckoo.move)
                             {
                                 break;
                             }
@@ -411,8 +412,9 @@ bool Position::legal (Move m) const
         // In case of Chess960, verify that when moving the castling rook we do not discover some hidden checker.
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         return !bool(Options["UCI_Chess960"])
-            || 0 == (b = pieces (~active, ROOK, QUEN) & rank_bb (rel_rank (active, R_1)))
-            || 0 == (b & attacks_bb<ROOK> (rel_sq (active, dst > org ? SQ_G1 : SQ_C1), pieces () ^ dst));
+            || 0 == (  pieces (~active, ROOK, QUEN)
+                     & rank_bb (rel_rank (active, R_1))
+                     & attacks_bb<ROOK> (rel_sq (active, dst > org ? SQ_G1 : SQ_C1), pieces () ^ dst));
     }
     case ENPASSANT:
     {
@@ -426,12 +428,9 @@ bool Position::legal (Move m) const
             && empty (dst) //&& !contains (pieces (), dst)
             && (~active|PAWN) == piece[dst - pawn_push (active)]); //&& contains (pieces (~active, PAWN), dst - pawn_push (active))
         Bitboard mocc = (pieces () ^ org ^ (dst - pawn_push (active))) | dst;
-        Bitboard b;
         // If any attacker then in check and not legal move.
-        return (   0 == (b = pieces (~active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (active)])
-                || 0 == (b & attacks_bb<BSHP> (square<KING> (active), mocc)))
-            && (   0 == (b = pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (active)])
-                || 0 == (b & attacks_bb<ROOK> (square<KING> (active), mocc)));
+        return 0 == (pieces (~active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (active), mocc))
+            && 0 == (pieces (~active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (active), mocc));
     }
     default: assert(false); return false;
     }
@@ -463,8 +462,7 @@ bool Position::gives_check (Move m) const
         // Castling with check?
         auto king_dst = rel_sq (active, dst > org ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (active, dst > org ? SQ_F1 : SQ_D1);
-        return contains (PieceAttacks[ROOK][rook_dst], square<KING> (~active))
-            && contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ dst) | king_dst | rook_dst), square<KING> (~active));
+        return contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ dst) | king_dst | rook_dst), square<KING> (~active));
     }
     case ENPASSANT:
     {
@@ -472,18 +470,13 @@ bool Position::gives_check (Move m) const
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         Bitboard mocc = (pieces () ^ org ^ (_file (dst)|_rank (org))) | dst;
-        Bitboard b;
-        return (   0 != (b = pieces (active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (~active)])
-                && 0 != (b & attacks_bb<BSHP> (square<KING> (~active), mocc)))
-            || (   0 != (b = pieces (active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (~active)])
-                && 0 != (b & attacks_bb<ROOK> (square<KING> (~active), mocc)));
+        return 0 != (pieces (active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (~active), mocc))
+            || 0 != (pieces (active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (~active), mocc));
     }
     case PROMOTE:
     {
         // Promotion with check?
-        auto ppt = promote (m);
-        return contains (PieceAttacks[ppt][dst], square<KING> (~active))
-            && contains (attacks_from (ppt, dst, pieces () ^ org), square<KING> (~active));
+        return contains (attacks_from (promote (m), dst, pieces () ^ org), square<KING> (~active));
     }
     default: assert(false); return false;
     }
@@ -585,18 +578,16 @@ PieceType Position::pick_next_attacker (Bitboard stm_attackers, Square dst, Squa
     // Add any X-ray attack behind the just removed piece.
     // For instance with rooks in a8 and a7 attacking a1, after removing a7 now add rook in a8.
     // Note that new added attackers can be of any color.
-    if (   (   PAWN == PT
-            || BSHP == PT
-            || QUEN == PT)
-        && 0 != (b = mocc & pieces (BSHP, QUEN) & PieceAttacks[BSHP][dst]))
+    if (   PAWN == PT
+        || BSHP == PT
+        || QUEN == PT)
     {
-        attackers |= b & attacks_bb<BSHP> (dst, mocc);
+        attackers |= pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc);
     }
-    if (   (   ROOK == PT
-            || QUEN == PT)
-        && 0 != (b = mocc & pieces (ROOK, QUEN) & PieceAttacks[ROOK][dst]))
+    if (   ROOK == PT
+        || QUEN == PT)
     {
-        attackers |= b & attacks_bb<ROOK> (dst, mocc);
+        attackers |= pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc);
     }
     // X-ray may add already processed pieces because type_bb[] is constant:
     // in the rook example, now attackers contains rook in a7 again, so remove it.

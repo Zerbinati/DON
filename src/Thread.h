@@ -131,8 +131,8 @@ public:
     bool   stop_on_ponderhit; // Stop search on ponderhit
     std::atomic<bool> ponder; // Search on ponder move until the "stop"/"ponderhit" command
 
-    Value  last_value;
-    double last_time_reduction;
+    Value  best_value;
+    double time_reduction;
 
     TimeManager  time_mgr;
     SkillManager skill_mgr;

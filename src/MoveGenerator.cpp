@@ -388,7 +388,7 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                                  [&pos] (const ValMove &vm)
                                  {
                                      return (   ENPASSANT == mtype (vm)
-                                             || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
+                                             || contains (pos.si->king_blockers[pos.active] | pos.square<KING> (pos.active), org_sq (vm)))
                                          && !pos.legal (vm);
                                  }),
                  moves.end ());
@@ -411,18 +411,20 @@ void Perft::classify (Position &pos, Move m)
         if (!contains (pos.si->checks[PROMOTE != mtype (m) ? ptype (pos[org_sq (m)]) : ::promote (m)], dst_sq (m)))
         {
             auto ek_sq = pos.square<KING> (~pos.active);
-            Bitboard mocc;
-            Bitboard b;
-            if (   (   contains (pos.si->king_blockers[~pos.active], org_sq (m))
-                    && !sqrs_aligned (org_sq (m), dst_sq (m), ek_sq))
-                || (   ENPASSANT == mtype (m)
-                    && 0 != (mocc = (pos.pieces () ^ org_sq (m) ^ (_file (dst_sq (m)) | _rank (org_sq (m)))) | dst_sq (m))
-                    && (   (   0 != (b = pos.pieces (pos.active, BSHP, QUEN) & PieceAttacks[BSHP][ek_sq])
-                            && 0 != (b & attacks_bb<BSHP> (ek_sq, mocc)))
-                        || (   0 != (b = pos.pieces (pos.active, ROOK, QUEN) & PieceAttacks[ROOK][ek_sq])
-                            && 0 != (b & attacks_bb<ROOK> (ek_sq, mocc))))))
+            if (   contains (pos.si->king_blockers[~pos.active], org_sq (m))
+                && !sqrs_aligned (org_sq (m), dst_sq (m), ek_sq))
             {
                 ++dsc_check;
+            }
+            else
+            if (ENPASSANT == mtype (m))
+            {
+                Bitboard mocc = (pos.pieces () ^ org_sq (m) ^ (_file (dst_sq (m)) | _rank (org_sq (m)))) | dst_sq (m);
+                if (   0 != (pos.pieces (pos.active, BSHP, QUEN) & attacks_bb<BSHP> (ek_sq, mocc))
+                    || 0 != (pos.pieces (pos.active, ROOK, QUEN) & attacks_bb<ROOK> (ek_sq, mocc)))
+                {
+                    ++dsc_check;
+                }
             }
         }
         StateInfo si;

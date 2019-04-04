@@ -151,7 +151,7 @@ namespace Searcher {
                     vm = *beg;
                     if (   tt_move != vm
                         && (   (   ENPASSANT != mtype (vm)
-                                && !contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
+                                && !contains (pos.si->king_blockers[pos.active] | pos.square<KING> (pos.active), org_sq (vm)))
                             || pos.legal (vm))
                         && filter ())
                     {
@@ -1976,9 +1976,9 @@ void Thread::search ()
                         // Best Move Instability factor
                      * (main_thread->pv_change + 1)
                         // Time reduction factor - Use part of the gained time from a previous stable move for the current move
-                     * std::pow (main_thread->last_time_reduction, 0.528) / time_reduction
+                     * std::pow (main_thread->time_reduction, 0.528) / time_reduction
                         // Falling Eval factor
-                     * clamp (0.5, (306 + 9 * (+VALUE_INFINITE != main_thread->last_value ? main_thread->last_value - best_value: 0)) / 581.0, 1.5)))
+                     * clamp (0.5, (306 + 9 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value: 0)) / 581.0, 1.5)))
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".
@@ -1992,7 +1992,7 @@ void Thread::search ()
                     }
                 }
 
-                main_thread->last_time_reduction = time_reduction;
+                main_thread->time_reduction = time_reduction;
             }
 
             if (Output)
@@ -2228,7 +2228,7 @@ void MainThread::search ()
     {
         // Update the time manager after searching.
         time_mgr.update (root_pos.active);
-        last_value = rm.new_value;
+        best_value = rm.new_value;
     }
 
     auto bm = rm.front ();
