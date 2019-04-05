@@ -1038,13 +1038,12 @@ namespace Searcher {
 
             StateInfo si;
             Move move;
-            Value tt_eval;
             bool improving;
 
             // Step 6. Static evaluation of the position
             if (in_check)
             {
-                ss->static_eval = tt_eval = VALUE_NONE;
+                ss->static_eval = VALUE_NONE;
                 improving = false;
             }
             else
@@ -1052,11 +1051,11 @@ namespace Searcher {
                 Value eval;
                 if (tt_hit)
                 {
-                    ss->static_eval = eval = tt_eval = tte->eval ();
+                    ss->static_eval = eval = tte->eval ();
                     // Never assume anything on values stored in TT.
-                    if (VALUE_NONE == tt_eval)
+                    if (VALUE_NONE == eval)
                     {
-                        ss->static_eval = eval = tt_eval = evaluate (pos);
+                        ss->static_eval = eval = evaluate (pos);
                     }
 
                     // Can tt_value be used as a better position evaluation?
@@ -1070,18 +1069,17 @@ namespace Searcher {
                 {
                     if (MOVE_NULL != (ss-1)->played_move)
                     {
-                        tt_eval = evaluate (pos);
-                        ss->static_eval = eval = tt_eval - (ss-1)->stats / 512;
+                        ss->static_eval = eval = evaluate (pos) - (ss-1)->stats / 512;
                     }
                     else
                     {
-                        ss->static_eval = eval = tt_eval = -(ss-1)->static_eval + 2*Tempo;
+                        ss->static_eval = eval = -(ss-1)->static_eval + 2*Tempo;
                     }
 
                     tte->save (key,
                                MOVE_NONE,
                                VALUE_NONE,
-                               tt_eval,
+                               eval,
                                DepthNone,
                                BOUND_NONE,
                                tt_pv ? 4 : 0);
@@ -1095,7 +1093,7 @@ namespace Searcher {
                     return quien_search<PVNode> (pos, ss, alfa, beta);
                 }
 
-                improving = (ss-0)->static_eval >= (ss-2)->static_eval
+                improving = ss->static_eval >= (ss-2)->static_eval
                          || VALUE_NONE == (ss-2)->static_eval;
 
                 // Step 8. Futility pruning: child node. (~30 ELO)
@@ -1118,7 +1116,7 @@ namespace Searcher {
                     && VALUE_ZERO != pos.si->non_pawn_material (pos.active)
                     && 23200 > (ss-1)->stats
                     && eval >= beta
-                    && tt_eval + 36*depth - 225 >= beta
+                    && ss->static_eval + 36*depth - 225 >= beta
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != pos.active))
                 {
@@ -1707,7 +1705,7 @@ namespace Searcher {
                 tte->save (key,
                            best_move,
                            value_to_tt (best_value, ss->ply),
-                           tt_eval,
+                           ss->static_eval,
                            depth,
                            best_value >= beta ?
                                BOUND_LOWER :
@@ -2202,15 +2200,18 @@ void MainThread::search ()
                                              {
                                                  return p1.second < p2.second;
                                              })->first;
-            best_thread = *std::max_element (std::find_if (Threadpool.begin (), Threadpool.end (), 
-                                             [best_fm](const decltype(Threadpool)::value_type &th)
-                                             {
-                                                 return th->root_moves[0].front () == best_fm;
-                                             }), Threadpool.end (),
-                                             [](const decltype(Threadpool)::value_type &t1, const decltype(Threadpool)::value_type &t2)
-                                             {
-                                                 return t1->finished_depth < t2->finished_depth;
-                                             });
+            i16 best_depth = 0;
+            for (auto *th : Threadpool)
+            {
+                if (best_fm == th->root_moves[0].front ())
+                {
+                    if (best_depth < th->finished_depth)
+                    {
+                        best_depth = th->finished_depth;
+                        best_thread = th;
+                    }
+                }
+            }
             // If new best thread then send PV info again.
             if (best_thread != this)
             {
