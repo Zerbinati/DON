@@ -1046,7 +1046,11 @@ namespace TBSyzygy {
                 // groups (similar to what done earlier for leading group pieces).
                 for (i32 i = 0; i < d->group_len[group_idx]; ++i)
                 {
-                    auto adjust = std::count_if (squares, group_sq, [&](Square s) { return group_sq[i] > s; });
+                    auto adjust = std::count_if (squares, group_sq,
+                                                 [&](Square s)
+                                                 {
+                                                     return group_sq[i] > s;
+                                                 });
                     n += Binomial[i + 1][group_sq[i] - adjust - 8 * (pawn_remain ? 1 : 0)];
                 }
 

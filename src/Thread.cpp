@@ -2,6 +2,7 @@
 
 #include <cfloat>
 #include <cmath>
+#include <map>
 #include <iostream>
 #include "Option.h"
 #include "Searcher.h"
@@ -401,6 +402,45 @@ namespace WinProcGroup {
 
 }
 
+Thread* ThreadPool::best_thread () const
+{
+    auto min_value = (*std::min_element (begin (), end (),
+                                         [](Thread* const &t1, Thread* const &t2)
+                                         {
+                                             return t1->root_moves[0].new_value < t2->root_moves[0].new_value;
+                                         }))->root_moves[0].new_value;
+
+    // Vote according to value and depth
+    std::map<Move, u64> votes;
+    for (auto *th : *this)
+    {
+        u64 s = th->root_moves[0].new_value - min_value + 1;
+        votes[th->root_moves[0].front ()] += 200 + s * s * th->finished_depth;
+    }
+    // Select best thread from voting
+    auto best_fm = std::max_element (votes.begin (), votes.end (),
+                                     [](const decltype(votes)::value_type &p1, const decltype(votes)::value_type &p2)
+                                     {
+                                         return p1.second < p2.second;
+                                     })->first;
+    
+    i16 best_depth = DepthZero;
+    auto best_thread = front ();
+    
+    for (auto *th : *this)
+    {
+        if (best_fm == th->root_moves[0].front ())
+        {
+            if (best_depth < th->finished_depth)
+            {
+                best_depth = th->finished_depth;
+                best_thread = th;
+            }
+        }
+    }
+    return best_thread;
+}
+
 /// ThreadPool::clear() clears the threadpool
 void ThreadPool::clear ()
 {
@@ -489,7 +529,10 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
         {
             // Sort moves according to TB rank
             std::sort (root_moves.begin (), root_moves.end (),
-                        [](const RootMove &rm1, const RootMove &rm2) { return rm1.tb_rank > rm2.tb_rank; });
+                       [](const decltype(root_moves)::value_type &rm1, const decltype(root_moves)::value_type &rm2)
+                       {
+                           return rm1.tb_rank > rm2.tb_rank;
+                       });
 
             // Probe during search only if DTZ is not available and we are winning
             if (   dtz_available
@@ -525,8 +568,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
     auto back_si = setup_states->back ();
     for (auto *th : *this)
     {
-        th->running_depth = 0;
-        th->finished_depth = 0;
+        th->finished_depth = DepthZero;
         th->nodes = 0;
         th->tb_hits = 0;
         th->nmp_ply = 0;

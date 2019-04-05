@@ -78,8 +78,7 @@ public:
     Position  root_pos;
     RootMoves root_moves;
 
-    i16   running_depth
-        , finished_depth
+    i16   finished_depth
         , sel_depth;
 
     i16   nmp_ply;
@@ -194,6 +193,7 @@ public:
     MainThread* main_thread () const { return static_cast<MainThread*> (front ()); }
     u64 nodes () const { return accumulate (&Thread::nodes); }
     u64 tb_hits () const { return accumulate (&Thread::tb_hits); }
+    Thread* best_thread () const;
 
     void clear ();
     void configure (u32);

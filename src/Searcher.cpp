@@ -1,7 +1,6 @@
 ﻿#include "Searcher.h"
 
 #include <cmath>
-#include <map>
 #include <stdlib.h>
 #include <time.h>
 
@@ -1785,12 +1784,13 @@ void Thread::search ()
     auto  alfa = -VALUE_INFINITE
         , beta = +VALUE_INFINITE;
 
+    i16 depth = DepthZero;
     // Iterative deepening loop until requested to stop or the target depth is reached.
-    while (   ++running_depth < MaxDepth
+    while (   ++depth < MaxDepth
            && !Threadpool.stop
            && (   nullptr == main_thread
                || DepthZero == Limits.depth
-               || running_depth <= Limits.depth))
+               || depth <= Limits.depth))
     {
         if (   nullptr != main_thread
             && Limits.time_mgr_used ())
@@ -1827,7 +1827,7 @@ void Thread::search ()
             sel_depth = DepthZero;
 
             // Reset aspiration window starting size.
-            if (4 < running_depth)
+            if (4 < depth)
             {
                 auto old_value = root_moves[pv_cur].old_value;
                 window = Value(20);
@@ -1851,7 +1851,7 @@ void Thread::search ()
             // research with bigger window until not failing high/low anymore.
             do
             {
-                i16 adjusted_depth = i16(std::max (running_depth - failed_high_count, 1));
+                i16 adjusted_depth = i16(std::max (depth - failed_high_count, 1));
                 best_value = depth_search<true> (root_pos, stacks+7, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -1875,7 +1875,7 @@ void Thread::search ()
                     && (best_value <= alfa || beta <= best_value)
                     && main_thread->time_mgr.elapsed_time () > 3000)
                 {
-                    sync_cout << multipv_info (main_thread, running_depth, alfa, beta) << sync_endl;
+                    sync_cout << multipv_info (main_thread, depth, alfa, beta) << sync_endl;
                 }
 
                 // If fail low set new bounds.
@@ -1926,13 +1926,13 @@ void Thread::search ()
                     || Threadpool.pv_limit - 1 == pv_cur
                     || main_thread->time_mgr.elapsed_time () > 3000))
             {
-                sync_cout << multipv_info (main_thread, running_depth, alfa, beta) << sync_endl;
+                sync_cout << multipv_info (main_thread, depth, alfa, beta) << sync_endl;
             }
         }
 
         if (!Threadpool.stop)
         {
-            finished_depth = running_depth;
+            finished_depth = depth;
         }
 
         // Has any of the threads found a "mate in <x>"?
@@ -1947,7 +1947,7 @@ void Thread::search ()
         {
             // If skill level is enabled and can pick move, pick a sub-optimal best move.
             if (   skill_mgr_enabled ()
-                && running_depth == i16(i32(Options["Skill Level"])) + 1)
+                && depth == i16(i32(Options["Skill Level"])) + 1)
             {
                 main_thread->skill_mgr.best_move = MOVE_NONE;
                 main_thread->skill_mgr.pick_best_move (i16(i32(Options["Skill Level"])));
@@ -1960,7 +1960,7 @@ void Thread::search ()
                 if (main_thread->best_move != root_moves[0].front())
                 {
                     main_thread->best_move = root_moves[0].front ();
-                    main_thread->best_move_depth = running_depth;
+                    main_thread->best_move_depth = depth;
                 }
 
                 // Reduce time if the best_move is stable over 10 iterations
@@ -2181,37 +2181,9 @@ void MainThread::search ()
             && !skill_mgr_enabled ())
         {
             assert(MOVE_NONE != root_moves[0].front ());
-            // Find out minimum value
-            auto min_value = (*std::min_element (Threadpool.begin (), Threadpool.end (),
-                                                 [](const decltype(Threadpool)::value_type &t1, const decltype(Threadpool)::value_type &t2)
-                                                 {
-                                                     return t1->root_moves[0].new_value < t2->root_moves[0].new_value;
-                                                 }))->root_moves[0].new_value;
-            // Vote according to value and depth
-            std::map<Move, u64> votes;
-            for (auto *th : Threadpool)
-            {
-                u64 s = th->root_moves[0].new_value - min_value + 1;
-                votes[th->root_moves[0].front ()] += 200 + s * s * th->finished_depth;
-            }
-            // Select best thread from voting
-            auto best_fm = std::max_element (votes.begin (), votes.end (),
-                                             [](const decltype(votes)::value_type &p1, const decltype(votes)::value_type &p2)
-                                             {
-                                                 return p1.second < p2.second;
-                                             })->first;
-            i16 best_depth = 0;
-            for (auto *th : Threadpool)
-            {
-                if (best_fm == th->root_moves[0].front ())
-                {
-                    if (best_depth < th->finished_depth)
-                    {
-                        best_depth = th->finished_depth;
-                        best_thread = th;
-                    }
-                }
-            }
+
+            best_thread = Threadpool.best_thread ();
+
             // If new best thread then send PV info again.
             if (best_thread != this)
             {
@@ -2271,11 +2243,10 @@ void MainThread::search ()
 /// MainThread::set_check_count()
 void MainThread::set_check_count ()
 {
-    //assert(0 == check_count);
     // At low node count increase the checking rate otherwise use a default value.
     check_count = 0 != Limits.nodes ?
-                    std::min ((i32)std::max (Limits.nodes / 1024, u64(1)), 1024) :
-                    1024;
+                    clamp (1ULL, Limits.nodes / 1024, 1024ULL) :
+                    1024ULL;
     assert(0 != check_count);
 }
 /// MainThread::tick() is used as timer function.
