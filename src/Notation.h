@@ -55,7 +55,7 @@ extern Move move_from_san (const std::string&, Position&);
 //extern std::string move_to_lan (Move, Position&);
 //extern Move move_from_lan (const std::string&, Position&);
 
-extern std::string multipv_info (Thread *const&, i16, Value, Value);
+extern std::string multipv_info (const Thread *const&, i16, Value, Value);
 
 extern std::string pretty_pv_info (Thread *const&);
 

@@ -402,7 +402,7 @@ namespace WinProcGroup {
 
 }
 
-Thread* ThreadPool::best_thread () const
+const Thread* ThreadPool::best_thread () const
 {
     auto min_value = (*std::min_element (begin (), end (),
                                          [](Thread* const &t1, Thread* const &t2)
@@ -425,7 +425,7 @@ Thread* ThreadPool::best_thread () const
                                      })->first;
     
     i16 best_depth = DepthZero;
-    auto best_thread = front ();
+    const auto *best_thread = front ();
     
     for (auto *th : *this)
     {

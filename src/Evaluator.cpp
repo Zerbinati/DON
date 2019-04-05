@@ -292,17 +292,8 @@ namespace {
         for (const auto &s : pos.squares[Own|PT])
         {
             assert((Own|PT) == pos[s]);
-            Bitboard mocc = pos.pieces ();
             // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
-            switch (PT)
-            {
-            case BSHP: mocc ^= ((pos.pieces (Own, QUEN, BSHP) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN)); break;
-            case ROOK: mocc ^= ((pos.pieces (Own, QUEN, ROOK) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN)); break;
-            case QUEN: mocc ^= ((pos.pieces (Own, QUEN)       & ~pos.si->king_blockers[Own])); break;
-            default: break;
-            }
-
-            Bitboard attacks = pos.attacks_from (PT, s, mocc);
+            Bitboard attacks = pos.xattacks_from<PT> (Own, s);
 
             ful_attacks[Own] |= attacks;
 

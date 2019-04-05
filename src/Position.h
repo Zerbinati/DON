@@ -183,6 +183,8 @@ public:
     Bitboard attacks_from (PieceType, Square) const;
     Bitboard attacks_from (Square, Bitboard) const;
     Bitboard attacks_from (Square) const;
+    template<PieceType>
+    Bitboard xattacks_from (Color, Square) const;
 
     Bitboard slider_blockers (Square, Color, Bitboard, Bitboard&, Bitboard&) const;
 
@@ -392,15 +394,15 @@ inline Bitboard Position::attackers_to (Square s) const
 //inline Bitboard Position::xattackers_to (Square s, Bitboard occ) const
 //{
 //    return (pieces (BLACK, PAWN) & PawnAttacks[WHITE][s])
-//        | (pieces (WHITE, PAWN) & PawnAttacks[BLACK][s])
-//        | (pieces (NIHT)        & PieceAttacks[NIHT][s])
-//        | (pieces (WHITE, BSHP) & attacks_bb<BSHP> (s, occ & ~pieces (WHITE, QUEN, BSHP)))
-//        | (pieces (BLACK, BSHP) & attacks_bb<BSHP> (s, occ & ~pieces (BLACK, QUEN, BSHP)))
-//        | (pieces (WHITE, ROOK) & attacks_bb<ROOK> (s, occ & ~pieces (WHITE, QUEN, ROOK)))
-//        | (pieces (BLACK, ROOK) & attacks_bb<ROOK> (s, occ & ~pieces (BLACK, QUEN, ROOK)))
-//        | (pieces (WHITE, QUEN) & attacks_bb<QUEN> (s, occ & ~pieces (WHITE, QUEN)))
-//        | (pieces (BLACK, QUEN) & attacks_bb<QUEN> (s, occ & ~pieces (BLACK, QUEN)))
-//        | (pieces (KING)        & PieceAttacks[KING][s]);
+//         | (pieces (WHITE, PAWN) & PawnAttacks[BLACK][s])
+//         | (pieces (NIHT)        & PieceAttacks[NIHT][s])
+//         | (pieces (WHITE, BSHP) & attacks_bb<BSHP> (s, occ & ~pieces (WHITE, QUEN, BSHP)))
+//         | (pieces (BLACK, BSHP) & attacks_bb<BSHP> (s, occ & ~pieces (BLACK, QUEN, BSHP)))
+//         | (pieces (WHITE, ROOK) & attacks_bb<ROOK> (s, occ & ~pieces (WHITE, QUEN, ROOK)))
+//         | (pieces (BLACK, ROOK) & attacks_bb<ROOK> (s, occ & ~pieces (BLACK, QUEN, ROOK)))
+//         | (pieces (WHITE, QUEN) & attacks_bb<QUEN> (s, occ & ~pieces (WHITE, QUEN)))
+//         | (pieces (BLACK, QUEN) & attacks_bb<QUEN> (s, occ & ~pieces (BLACK, QUEN)))
+//         | (pieces (KING)        & PieceAttacks[KING][s]);
 //}
 ///// Position::attackers_to() finds attackers to the square.
 //inline Bitboard Position::xattackers_to (Square s) const
@@ -444,6 +446,29 @@ inline Bitboard Position::attacks_from (Square s, Bitboard occ) const
 inline Bitboard Position::attacks_from (Square s) const
 {
     return attacks_from (s, pieces ());
+}
+
+/// Position::xattacks_from() finds xattacks of the piecetype of the color from the square.
+
+template<>
+inline Bitboard Position::xattacks_from<NIHT> (Color, Square s) const
+{
+    return PieceAttacks[NIHT][s];
+}
+template<>
+inline Bitboard Position::xattacks_from<BSHP> (Color c, Square s) const
+{
+    return attacks_bb<BSHP> (s, pieces () ^ ((pieces (c, QUEN, BSHP) & ~si->king_blockers[c]) | pieces (~c, QUEN)));
+}
+template<>
+inline Bitboard Position::xattacks_from<ROOK> (Color c, Square s) const
+{
+    return attacks_bb<ROOK> (s, pieces () ^ ((pieces (c, QUEN, ROOK) & ~si->king_blockers[c]) | pieces (~c, QUEN)));
+}
+template<>
+inline Bitboard Position::xattacks_from<QUEN> (Color c, Square s) const
+{
+    return attacks_bb<QUEN> (s, pieces () ^ ((pieces (c, QUEN)       & ~si->king_blockers[c])));
 }
 
 /// Position::pawn_passed_at() check if pawn passed at the given square.

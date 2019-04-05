@@ -2162,7 +2162,7 @@ void MainThread::search ()
            && !Threadpool.stop)
     {} // Busy wait for a stop or a ponder reset
 
-    Thread *best_thread = this;
+    const Thread *best_thread = this;
     if (think)
     {
         // Stop the threads if not already stopped (Also raise the stop if "ponderhit" just reset Threads.ponder).

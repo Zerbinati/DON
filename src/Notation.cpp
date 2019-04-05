@@ -249,7 +249,7 @@ Move move_from_san (const string &san, Position &pos)
 
 /// multipv_info() formats PV information according to UCI protocol.
 /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
-string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
+string multipv_info (const Thread *const &th, i16 depth, Value alfa, Value beta)
 {
     auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), TimePoint(1));
     auto &rms = th->root_moves;
