@@ -1357,6 +1357,10 @@ namespace Searcher {
                         && 3 > depth
                         && 14 < pos.si->clock_ply
                         && 14 < ss->ply)
+                    // Passed pawn extension
+                    || (   move == ss->killer_moves[0]
+                        && pos.pawn_advance (move)
+                        && pos.pawn_passed_at (pos.active, dst))
                     // Check extension (~2 ELO)
                     || (   gives_check
                         && (   pos.exchange (move) >= VALUE_ZERO

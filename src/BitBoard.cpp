@@ -15,7 +15,6 @@ namespace BitBoard {
     Bitboard PawnAttacks[CLR_NO][SQ_NO];
     Bitboard PieceAttacks[NONE][SQ_NO];
 
-    Bitboard Between_bb[SQ_NO][SQ_NO];
     Bitboard Line_bb[SQ_NO][SQ_NO];
 
     Magic BMagics[SQ_NO]

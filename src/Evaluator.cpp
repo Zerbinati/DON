@@ -275,10 +275,7 @@ namespace {
     template<bool Trace> template<Color Own, PieceType PT>
     Score Evaluator<Trace>::pieces ()
     {
-        static_assert (NIHT == PT
-                    || BSHP == PT
-                    || ROOK == PT
-                    || QUEN == PT, "PT incorrect");
+        static_assert (NIHT <= PT && PT <= QUEN, "PT incorrect");
 
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -293,7 +290,7 @@ namespace {
         {
             assert((Own|PT) == pos[s]);
             // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
-            Bitboard attacks = pos.xattacks_from<PT> (Own, s);
+            Bitboard attacks = pos.xattacks_from<PT> (s, Own);
 
             ful_attacks[Own] |= attacks;
 

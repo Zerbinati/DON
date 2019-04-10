@@ -126,8 +126,8 @@ public:
     CastleRight castle_right[SQ_NO];
 
     Square      castle_rook_sq[CLR_NO][CS_NO];
-    Bitboard    castle_rook_path_bb[CLR_NO][CS_NO];
     Bitboard    castle_king_path_bb[CLR_NO][CS_NO];
+    Bitboard    castle_rook_path_bb[CLR_NO][CS_NO];
 
     Score       psq;
     i16         ply;
@@ -184,7 +184,7 @@ public:
     Bitboard attacks_from (Square, Bitboard) const;
     Bitboard attacks_from (Square) const;
     template<PieceType>
-    Bitboard xattacks_from (Color, Square) const;
+    Bitboard xattacks_from (Square, Color) const;
 
     Bitboard slider_blockers (Square, Color, Bitboard, Bitboard&, Bitboard&) const;
 
@@ -451,22 +451,22 @@ inline Bitboard Position::attacks_from (Square s) const
 /// Position::xattacks_from() finds xattacks of the piecetype of the color from the square.
 
 template<>
-inline Bitboard Position::xattacks_from<NIHT> (Color, Square s) const
+inline Bitboard Position::xattacks_from<NIHT> (Square s, Color) const
 {
     return PieceAttacks[NIHT][s];
 }
 template<>
-inline Bitboard Position::xattacks_from<BSHP> (Color c, Square s) const
+inline Bitboard Position::xattacks_from<BSHP> (Square s, Color c) const
 {
     return attacks_bb<BSHP> (s, pieces () ^ ((pieces (c, QUEN, BSHP) & ~si->king_blockers[c]) | pieces (~c, QUEN)));
 }
 template<>
-inline Bitboard Position::xattacks_from<ROOK> (Color c, Square s) const
+inline Bitboard Position::xattacks_from<ROOK> (Square s, Color c) const
 {
     return attacks_bb<ROOK> (s, pieces () ^ ((pieces (c, QUEN, ROOK) & ~si->king_blockers[c]) | pieces (~c, QUEN)));
 }
 template<>
-inline Bitboard Position::xattacks_from<QUEN> (Color c, Square s) const
+inline Bitboard Position::xattacks_from<QUEN> (Square s, Color c) const
 {
     return attacks_bb<QUEN> (s, pieces () ^ ((pieces (c, QUEN)       & ~si->king_blockers[c])));
 }

@@ -501,26 +501,10 @@ void Position::set_castle (Color c, Square rook_org)
     castle_right[king_org] |= cr;
     castle_right[rook_org] |= cr;
 
-    for (auto s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
-    {
-        if (s != king_org)
-        {
-            castle_king_path_bb[c][cs] |= s;
-        }
-        if (s != king_org
-         && s != rook_org)
-        {
-            castle_rook_path_bb[c][cs] |= s;
-        }
-    }
-    for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
-    {
-        if (s != king_org
-         && s != rook_org)
-        {
-            castle_rook_path_bb[c][cs] |= s;
-        }
-    }
+    castle_king_path_bb[c][cs] = (between_bb (king_org, king_dst) | king_dst)
+                               & ~(square_bb (king_org));
+    castle_rook_path_bb[c][cs] = (between_bb (king_org, king_dst) | between_bb (rook_org, rook_dst) | king_dst | rook_dst)
+                               & ~(square_bb (king_org) | square_bb (rook_org));
 }
 /// Position::can_enpassant() Can the enpassant possible.
 bool Position::can_enpassant (Color c, Square ep_sq, bool move_done) const
@@ -714,8 +698,8 @@ void Position::clear ()
     std::fill_n (type_bb, PT_NO, 0);
     std::fill_n (castle_right, SQ_NO, CR_NONE);
     std::fill (castle_rook_sq[0], castle_rook_sq[0] + CLR_NO*CS_NO, SQ_NO);
-    std::fill (castle_rook_path_bb[0], castle_rook_path_bb[0] + CLR_NO*CS_NO, 0);
     std::fill (castle_king_path_bb[0], castle_king_path_bb[0] + CLR_NO*CS_NO, 0);
+    std::fill (castle_rook_path_bb[0], castle_rook_path_bb[0] + CLR_NO*CS_NO, 0);
     std::for_each (squares, squares + MAX_PIECE, [](std::list<Square> &sq) { sq.clear (); });
     psq = SCORE_ZERO;
     ply = 0;
