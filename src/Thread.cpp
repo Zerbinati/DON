@@ -412,7 +412,7 @@ const Thread* ThreadPool::best_thread () const
 
     // Vote according to value and depth
     std::map<Move, u64> votes;
-    for (auto *th : *this)
+    for (const auto *th : *this)
     {
         u64 s = th->root_moves[0].new_value - min_value + 1;
         votes[th->root_moves[0].front ()] += 200 + s * s * th->finished_depth;
@@ -427,7 +427,7 @@ const Thread* ThreadPool::best_thread () const
     i16 best_depth = DepthZero;
     const auto *best_thread = front ();
     
-    for (auto *th : *this)
+    for (const auto *th : *this)
     {
         if (best_fm == th->root_moves[0].front ())
         {

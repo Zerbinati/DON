@@ -303,7 +303,7 @@ template<> void generate<GenType::EVASION> (ValMoves &moves, const Position &pos
     while (0 != ex_checkers)
     {
         auto check_sq = pop_lsq (ex_checkers);
-        checks |= strline_bb (check_sq, fk_sq) ^ check_sq;
+        checks |= line_bb (check_sq, fk_sq) ^ check_sq;
     }
     // Generate evasions for king, capture and non capture moves
     Bitboard attacks = PieceAttacks[KING][fk_sq]

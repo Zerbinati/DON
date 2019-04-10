@@ -90,6 +90,8 @@ public:
 
     std::atomic<u64> nodes
         ,            tb_hits;
+    std::atomic<u32> pv_change;
+
     Score contempt;
 
     ButterflyHistory    butterfly_history;
@@ -136,7 +138,6 @@ public:
     TimeManager  time_mgr;
     SkillManager skill_mgr;
 
-    double pv_change;
     Move   best_move;
     i16    best_move_depth;
 
@@ -170,9 +171,10 @@ private:
 
     StateListPtr setup_states;
 
-    u64 accumulate (std::atomic<u64> Thread::*member) const
+    template<typename T>
+    T accumulate (std::atomic<T> Thread::*member) const
     {
-        u64 sum = 0;
+        T sum = 0;
         for (const auto *th : *this)
         {
             sum += (th->*member).load (std::memory_order::memory_order_relaxed);
@@ -193,6 +195,8 @@ public:
     MainThread* main_thread () const { return static_cast<MainThread*> (front ()); }
     u64 nodes () const { return accumulate (&Thread::nodes); }
     u64 tb_hits () const { return accumulate (&Thread::tb_hits); }
+    u32 pv_change () const { return accumulate (&Thread::pv_change); }
+
     const Thread* best_thread () const;
 
     void clear ();

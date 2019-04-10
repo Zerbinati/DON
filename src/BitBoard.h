@@ -24,7 +24,7 @@ namespace BitBoard {
     //    return U64(0x00000000000000FF) << (r * 8) | make_bitboard (ranks...);
     //}
 
-    //constexpr Bitboard Full = U64(0xFFFFFFFFFFFFFFFF);
+    constexpr Bitboard All_bb = U64(0xFFFFFFFFFFFFFFFF);
 
     constexpr Bitboard FA_bb = U64(0x0101010101010101);
     constexpr Bitboard FB_bb = FA_bb << 1;
@@ -109,8 +109,7 @@ namespace BitBoard {
     extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
     extern Bitboard PieceAttacks[NONE][SQ_NO];
 
-    extern Bitboard Between_bb[SQ_NO][SQ_NO];
-    extern Bitboard StrLine_bb[SQ_NO][SQ_NO];
+    extern Bitboard Line_bb[SQ_NO][SQ_NO];
 
     // Magic holds all magic relevant data for a single square
     struct Magic
@@ -221,10 +220,15 @@ namespace BitBoard {
 
     inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
 
-    inline Bitboard between_bb (Square s1, Square s2) { return Between_bb[s1][s2]; }
-    inline Bitboard strline_bb (Square s1, Square s2) { return StrLine_bb[s1][s2]; }
+    inline Bitboard line_bb (Square s1, Square s2) { return Line_bb[s1][s2]; }
+    inline Bitboard between_bb (Square s1, Square s2)
+    {
+        return line_bb (s1, s2)
+             & (  (All_bb << (s1 + (s1 < s2)))
+                ^ (All_bb << (s2 + (s2 < s1))));
+    }
     /// Check the squares s1, s2 and s3 are aligned on a straight line.
-    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[s1][s2], s3); }
+    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (line_bb (s1, s2), s3); }
 
     constexpr bool more_than_one (Bitboard bb)
     {

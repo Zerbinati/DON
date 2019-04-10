@@ -152,7 +152,6 @@ namespace Material {
 
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
-        // Note that these ones don't return after setting the function.
         for (const auto &c : { WHITE, BLACK })
         {
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_BSHP

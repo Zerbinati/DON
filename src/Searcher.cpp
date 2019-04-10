@@ -1564,10 +1564,9 @@ namespace Searcher {
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
                         if (   1 < move_count
-                            && Limits.time_mgr_used ()
-                            && Threadpool.main_thread () == thread)
+                            && Limits.time_mgr_used ())
                         {
-                            ++Threadpool.main_thread ()->pv_change;
+                            ++thread->pv_change;
                         }
                     }
                     else
@@ -1775,6 +1774,9 @@ void Thread::search ()
                             Threadpool.main_thread () :
                             nullptr;
 
+    pv_change = 0;
+    double total_pv_changes = 0.0;
+
     contempt = WHITE == root_pos.active ?
                 +mk_score (BasicContempt, BasicContempt / 2) :
                 -mk_score (BasicContempt, BasicContempt / 2);
@@ -1796,7 +1798,7 @@ void Thread::search ()
             && Limits.time_mgr_used ())
         {
             // Age out PV variability metric
-            main_thread->pv_change *= 0.517;
+            total_pv_changes *= 0.5;
         }
 
         // Save the last iteration's values before first PV line is searched and
@@ -1962,7 +1964,13 @@ void Thread::search ()
                     main_thread->best_move = root_moves[0].front ();
                     main_thread->best_move_depth = depth;
                 }
-
+                
+                // Use part of the gained time from a previous stable move for the current move
+                for (auto *th : Threadpool)
+                {
+                    total_pv_changes += th->pv_change;
+                    th->pv_change = 0;
+                }
                 // Reduce time if the best_move is stable over 10 iterations
                 double time_reduction = clamp (1.0, 0.17 * (finished_depth - main_thread->best_move_depth), 1.95);
                 // Stop the search
@@ -1972,11 +1980,11 @@ void Thread::search ()
                     || (main_thread->time_mgr.elapsed_time () >
                         main_thread->time_mgr.optimum_time
                         // Best Move Instability factor
-                     * (main_thread->pv_change + 1)
+                      * (1 + total_pv_changes / Threadpool.size ())
                         // Time reduction factor - Use part of the gained time from a previous stable move for the current move
-                     * std::pow (main_thread->time_reduction, 0.528) / time_reduction
+                      * std::pow (main_thread->time_reduction, 0.528) / time_reduction
                         // Falling Eval factor
-                     * clamp (0.5, (306 + 9 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value: 0)) / 581.0, 1.5)))
+                      * clamp (0.5, (314 + 9 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value: 0)) / 581.0, 1.5)))
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".
@@ -2115,7 +2123,6 @@ void MainThread::search ()
 
             if (Limits.time_mgr_used ())
             {
-                pv_change = 0.0;
                 best_move = MOVE_NONE;
                 best_move_depth = DepthZero;
             }

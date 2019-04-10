@@ -359,7 +359,7 @@
     <Node Id="@350" Category="CodeSchema_Method" Bounds="25421.6699545849,23469.2117794633,86.7099999999991,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator-" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@351" Category="CodeSchema_Method" Bounds="25611.2582029413,21514.4517794633,119.266666666666,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="opposite_colors" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@352" Category="CodeSchema_Method" Bounds="24621.2512117708,23498.121276779,104.660000000003,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="pawns_comp" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@353" Category="CodeSchema_Method" Bounds="26210.3282763514,25259.3457883557,87.3000000000466,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="strline_bb" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@353" Category="CodeSchema_Method" Bounds="26210.3282763514,25259.3457883557,87.3000000000466,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="line_bb" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@354" Category="CodeSchema_Method" Bounds="25581.6461487957,22352.8917794633,257.716666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@355" Category="CodeSchema_Method" Bounds="25900.4487320806,25088.8828977307,80.3266666666605,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="contains" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@356" Category="CodeSchema_Method" Bounds="26445.6018701015,25259.3457883557,90.1199999999953,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="operator^" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
@@ -6526,7 +6526,7 @@
     <Alias n="350" Id="(@1 @3 Member=(@62 @345))" />
     <Alias n="351" Id="(@1 @3 Member=(Name=opposite_colors @345))" />
     <Alias n="352" Id="(@1 @5 Member=(Name=pawns_comp @345))" />
-    <Alias n="353" Id="(@1 @12 Member=(Name=strline_bb @345))" />
+    <Alias n="353" Id="(@1 @12 Member=(Name=line_bb @345))" />
     <Alias n="354" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,@127]))" />
     <Alias n="355" Id="(@1 @12 Member=(Name=contains OverloadingParameters=[@163,@127]))" />
     <Alias n="356" Id="(@1 @12 Member=(Name=operator^ OverloadingParameters=[@163,@127]))" />

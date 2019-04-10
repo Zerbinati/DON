@@ -306,7 +306,7 @@ namespace {
 
             if (contains (pos.si->king_blockers[Own], s))
             {
-                attacks &= strline_bb (pos.square<KING> (Own), s);
+                attacks &= line_bb (pos.square<KING> (Own), s);
             }
 
             switch (PT)
@@ -632,7 +632,7 @@ namespace {
                     +    1 * mg_value (mobility[Opp] - mobility[Own])
                     +    5 * tropism * tropism / 16
                     -    3 * safety / 4
-                    -   25;
+                    -   15;
         // If friend knight is near by to defend king
         if ((  pos.pieces (Own, NIHT)
              & ~pos.si->king_blockers[Own]
@@ -649,7 +649,7 @@ namespace {
         }
 
         // Transform the king danger into a score
-        if (0 < king_danger)
+        if (100 < king_danger)
         {
             score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
         }
