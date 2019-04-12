@@ -623,13 +623,13 @@ namespace {
         // - number of attacked and undefended squares around friend king,
         // - quality of the pawn shelter ('mg score' safety).
         king_danger +=   1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
-                    +   69 * king_attacks_count[Opp]
-                    +  185 * pop_count (king_ring[Own] & weak_area)
-                    +  150 * pop_count (pos.si->king_blockers[Own] | unsafe_check)
-                    +    1 * mg_value (mobility[Opp] - mobility[Own])
-                    +    5 * tropism * tropism / 16
-                    -    3 * safety / 4
-                    -   15;
+                     +  69 * king_attacks_count[Opp]
+                     + 185 * pop_count (king_ring[Own] & weak_area)
+                     + 150 * pop_count (pos.si->king_blockers[Own] | unsafe_check)
+                     +   1 * mg_value (mobility[Opp] - mobility[Own])
+                     +   5 * tropism * tropism / 16
+                     -   3 * safety / 4
+                     -  15;
         // If friend knight is near by to defend king
         if ((  pos.pieces (Own, NIHT)
              & ~pos.si->king_blockers[Own]

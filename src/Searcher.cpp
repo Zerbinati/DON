@@ -907,17 +907,6 @@ namespace Searcher {
                       || (   PVNode
                           && 4 < depth);
 
-            // If position has been searched at higher depths and we are shuffling, return draw
-            if (   3 > depth
-                && 36 < pos.si->clock_ply
-                && 36 < ss->ply
-                && 0 != pos.count (PAWN)
-                && tt_hit
-                && tte->depth () > depth)
-            {
-                return VALUE_DRAW;
-            }
-
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && VALUE_NONE != tt_value // Handle tt_hit
@@ -1351,11 +1340,6 @@ namespace Searcher {
                 else
                 if (// Castle extension
                        CASTLE == mtype (move)
-                    // Shuffle extension
-                    || (   PVNode
-                        && 3 > depth
-                        && 14 < pos.si->clock_ply
-                        && 14 < ss->ply)
                     // Passed pawn extension
                     || (   move == ss->killer_moves[0]
                         && pos.pawn_advance (move)
