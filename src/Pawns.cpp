@@ -11,7 +11,7 @@ namespace Pawns {
     namespace {
 
         // Connected pawn bonus
-        constexpr i32 Connected[R_NO] = { 0, 13, 24, 18, 65, 100, 175, 330 };
+        constexpr i32 Connected[R_NO] = { 0, 13, 17, 24, 59, 96, 171, 0 };
 
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
@@ -22,6 +22,7 @@ namespace Pawns {
             { -10,  75,  23,  -2,  32,   3,  -45, 0 },
             { -39, -13, -29, -52, -48, -67, -166, 0 }
         };
+
         // Danger of unblocked enemy pawns strom toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
         constexpr i32 Storm[F_NO/2][R_NO] =
@@ -44,7 +45,6 @@ namespace Pawns {
         Score evaluate (const Position &pos, Entry *e)
         {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-            constexpr auto Push = pawn_push (Own);
             Bitboard *const Attack = PawnAttacks[Own];
 
             Bitboard own_pawns = pos.pieces (Own, PAWN);
@@ -83,21 +83,21 @@ namespace Pawns {
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 Bitboard neighbours = own_pawns & adj_file_bb (f);
-                Bitboard supporters = neighbours & rank_bb (s-Push);
+                Bitboard supporters = neighbours & rank_bb (s-pawn_push (Own));
                 Bitboard phalanxes  = neighbours & rank_bb (s);
                 Bitboard stoppers   = opp_pawns & pawn_pass_span (Own, s);
                 Bitboard levers     = opp_pawns & Attack[s];
-                Bitboard escapes    = opp_pawns & Attack[s+Push]; // Push levers
+                Bitboard escapes    = opp_pawns & Attack[s+pawn_push (Own)]; // Push levers
 
-                bool blocked = contains (own_pawns, s-Push);
+                bool blocked = contains (own_pawns, s-pawn_push (Own));
                 bool opposed = 0 != (opp_pawns & front_line_bb (Own, s));
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
-                bool backward = 0 == (own_pawns & pawn_attack_span (Opp, s+Push))
-                             && 0 != (stoppers & (escapes | (s+Push)));
+                bool backward = 0 == (own_pawns & pawn_attack_span (Opp, s+pawn_push (Own)))
+                             && 0 != (stoppers & (escapes | (s+pawn_push (Own))));
 
                 assert(!backward
-                    || 0 == (pawn_attack_span (Opp, s+Push) & neighbours));
+                    || 0 == (pawn_attack_span (Opp, s+pawn_push (Own)) & neighbours));
 
                 // Include also which could become passed after 1 or 2 pawn pushes
                 // when are not attacked more times than defended. 
@@ -108,7 +108,7 @@ namespace Pawns {
                     e->passers[Own] |= s;
                 }
                 else
-                if (   stoppers == square_bb (s+Push)
+                if (   stoppers == square_bb (s+pawn_push (Own))
                     && R_4 < rel_rank (Own, s))
                 {
                     b = pawn_pushes_bb (Own, supporters) & ~opp_pawns;
@@ -126,7 +126,7 @@ namespace Pawns {
                 {
                     auto r = rel_rank (Own, s);
                     i32 v = 17 * pop_count (supporters)
-                          + ((Connected[r] + Connected[0 != phalanxes ? r + 1 : r]) >> (opposed ? 2 : 1));
+                          + (((0 != phalanxes ? 3 : 2) * Connected[r]) >> (opposed ? 2 : 1));
                     score += mk_score (v, v * (r - R_3) / 4);
                 }
                 else

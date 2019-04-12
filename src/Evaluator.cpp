@@ -932,7 +932,7 @@ namespace {
         Bitboard safe_space = Space_bb[Own]
                             & Side_bb[CS_NO]
                             & ~pos.pieces (Own, PAWN)
-                            & ~sgl_attacks[Opp][PAWN];
+                            & ~pe->any_attacks[Opp];
 
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PAWN);

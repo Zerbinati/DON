@@ -2,7 +2,7 @@
 
 #include <cmath>
 #include <stdlib.h>
-#include <time.h>
+#include <ctime>
 
 #include "Evaluator.h"
 #include "Logger.h"
@@ -28,7 +28,6 @@ RootMove::operator string () const
     }
     return oss.str ();
 }
-
 /// RootMoves::operator string()
 RootMoves::operator string () const
 {
