@@ -511,10 +511,6 @@ namespace Searcher {
                 ss->pv.clear ();
             }
 
-            auto *thread = pos.thread;
-            ss->played_move = MOVE_NONE;
-            ss->pd_history = &thread->continuation_history[NO_PIECE][0];
-
             bool in_check = 0 != pos.si->checkers;
 
             // Check for maximum ply reached or immediate draw.
@@ -563,6 +559,7 @@ namespace Searcher {
             Value best_value
                 , futility_base;
 
+            auto *thread = pos.thread;
             auto best_move = MOVE_NONE;
 
             StateInfo si;
@@ -643,7 +640,6 @@ namespace Searcher {
             }
 
             Move move;
-
             u08 move_count = 0;
 
             const PieceDestinyHistory *pd_histories[6] =
@@ -929,11 +925,10 @@ namespace Searcher {
                             update_continuation_histories (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
                         }
 
-                        // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted.
+                        // Extra penalty for early quiet moves in previous ply when it gets refuted.
                         if (   NONE == pos.si->capture
                             && NONE == pos.si->promote
-                            && (   1 == (ss-1)->move_count
-                                || (ss-1)->played_move == (ss-1)->killer_moves[0]))
+                            && 2 >= (ss-1)->move_count)
                         {
                             update_continuation_histories (ss-1, pos[dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                         }

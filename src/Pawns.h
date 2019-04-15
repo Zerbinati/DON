@@ -13,13 +13,12 @@ namespace Pawns {
     public:
         Key key;
 
-        u08      passed_count;
         Score    scores[CLR_NO];
         Bitboard any_attacks[CLR_NO];
         Bitboard dbl_attacks[CLR_NO];
         Bitboard attack_span[CLR_NO];
         Bitboard passers[CLR_NO];
-        
+
         u08      semiopens[CLR_NO];
         i32      color_count[CLR_NO][CLR_NO];
         i32      weak_unopposed_count[CLR_NO];
@@ -34,6 +33,10 @@ namespace Pawns {
         {
             return 0 != (semiopens[Own] & (1 << f));
         }
+        i32 passed_count () const
+        {
+            return pop_count (passers[WHITE] | passers[BLACK]);
+        }
 
         template<Color Own>
         Value evaluate_safety (const Position&, Square) const;
@@ -47,7 +50,7 @@ namespace Pawns {
             {
                 return u08(idx);
             }
-            
+
             idx = index[Own];
             if (idx < MaxCache - 1)
             {

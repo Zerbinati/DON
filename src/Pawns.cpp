@@ -78,6 +78,7 @@ namespace Pawns {
                 assert((Own|PAWN) == pos[s]);
 
                 auto f = _file (s);
+                auto r = rel_rank (Own, s);
                 e->color_count[Own][color (s)]++;
                 e->semiopens[Own] &= ~(1 << f);
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
@@ -109,7 +110,7 @@ namespace Pawns {
                 }
                 else
                 if (   stoppers == square_bb (s+pawn_push (Own))
-                    && R_4 < rel_rank (Own, s))
+                    && R_4 < r)
                 {
                     b = pawn_pushes_bb (Own, supporters) & ~opp_pawns;
                     while (0 != b)
@@ -124,7 +125,6 @@ namespace Pawns {
 
                 if (0 != (supporters | phalanxes))
                 {
-                    auto r = rel_rank (Own, s);
                     i32 v = 17 * pop_count (supporters)
                           + (((0 != phalanxes ? 3 : 2) * Connected[r]) >> (opposed ? 2 : 1));
                     score += mk_score (v, v * (r - R_3) / 4);
@@ -221,8 +221,7 @@ namespace Pawns {
         e->key = pos.si->pawn_key;
         e->scores[WHITE] = evaluate<WHITE> (pos, e);
         e->scores[BLACK] = evaluate<BLACK> (pos, e);
-        e->passed_count = u08(pop_count (e->passers[WHITE] | e->passers[BLACK]));
-                                    
+
         return e;
     }
 }

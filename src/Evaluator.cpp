@@ -484,13 +484,15 @@ namespace {
         // King Safety: friend pawns shelter and enemy pawns storm
         u08 index = pe->king_safety_on<Own> (pos, fk_sq);
         Value safety = pe->king_safety[Own][index];
-        if (   pos.si->can_castle (Own|CS_KING)
+        if (   0 != index
+            && pos.si->can_castle (Own|CS_KING)
             && pos.expeded_castle (Own, CS_KING)
             && 0 == (pos.castle_king_path_bb[Own][CS_KING] & ful_attacks[Opp]))
         {
             safety = std::max (pe->king_safety[Own][0], safety);
         }
-        if (   pos.si->can_castle (Own|CS_QUEN)
+        if (   1 != index
+            && pos.si->can_castle (Own|CS_QUEN)
             && pos.expeded_castle (Own, CS_QUEN)
             && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & ful_attacks[Opp]))
         {
@@ -932,7 +934,7 @@ namespace {
         Bitboard safe_space = Space_bb[Own]
                             & Side_bb[CS_NO]
                             & ~pos.pieces (Own, PAWN)
-                            & ~pe->any_attacks[Opp];
+                            & ~sgl_attacks[Opp][PAWN];
 
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PAWN);
@@ -956,7 +958,7 @@ namespace {
     Score Evaluator<Trace>::initiative (Value eg) const
     {
         // Compute the initiative bonus for the attacking side
-        i32 complexity =   9 * pe->passed_count
+        i32 complexity =   9 * pe->passed_count ()
                        +  11 * pos.count (PAWN)
                         // Outflanking
                        +   9 * (  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
@@ -989,9 +991,9 @@ namespace {
     {
         auto color = eg >= VALUE_ZERO ? WHITE : BLACK;
 
-        Scale scl = nullptr != me->scale_func[color] ?
-                        (*me->scale_func[color])(pos) :
-                        SCALE_NONE;
+        auto scl = nullptr != me->scale_func[color] ?
+                    (*me->scale_func[color])(pos) :
+                    SCALE_NONE;
         if (SCALE_NONE == scl)
         {
             scl = me->scale[color];
@@ -1005,7 +1007,7 @@ namespace {
                 && VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
                 && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
-                    Scale(16 + 4 * pe->passed_count) :
+                    Scale(16 + 4 * pe->passed_count ()) :
                     std::min (Scale(40 + (pos.opposite_bishops () ? 2 : 7) * pos.count (color, PAWN)), SCALE_NORMAL);
         }
         return scl;
