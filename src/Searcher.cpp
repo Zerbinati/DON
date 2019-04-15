@@ -89,13 +89,14 @@ namespace Searcher {
             Square recap_sq;
 
             ValMoves moves;
+            ValMoves::iterator itr;
 
             std::vector<Move> refutation_moves
                 ,             bad_capture_moves;
+            size_t idx;
+
 
             u08 stage;
-            size_t i;
-            ValMove vm;
 
             /// value() assigns a numerical value to each move in a list, used for sorting.
             /// Captures are ordered by Most Valuable Victim (MVV) with using the histories.
@@ -142,19 +143,18 @@ namespace Searcher {
             template<typename Pred>
             bool pick (Pred filter)
             {
-                while (i < moves.size ())
+                while (itr != moves.end ())
                 {
-                    auto beg = moves.begin () + i++;
-                    std::swap (*beg, *std::max_element (beg, moves.end ()));
-                    vm = *beg;
-                    if (   tt_move != vm
-                        && (   (   ENPASSANT != mtype (vm)
-                                && !contains (pos.si->king_blockers[pos.active] | pos.square<KING> (pos.active), org_sq (vm)))
-                            || pos.legal (vm))
+                    std::swap (*itr, *std::max_element (itr, moves.end ()));
+                    if (   tt_move != itr->move
+                        && (   (   ENPASSANT != mtype (itr->move)
+                                && !contains (pos.si->king_blockers[pos.active] | pos.square<KING> (pos.active), org_sq (itr->move)))
+                            || pos.legal (itr->move))
                         && filter ())
                     {
-                        return true;
+                        return ++itr, true;
                     }
+                    ++itr;
                 }
                 return false;
             }
@@ -284,25 +284,25 @@ namespace Searcher {
                     generate<GenType::CAPTURE> (moves, pos);
                     value<GenType::CAPTURE> ();
                     ++stage;
-                    i = 0;
+                    itr = moves.begin ();
                     // Re-branch at the top of the switch
                     goto restage;
 
                 case Stage::NT_GOOD_CAPTURES:
-                    if (pick ([&]() { auto thr = Value(-vm.value * 55 / 1024);
-                                      if (   pos.exchange (vm) >= thr
-                                          || pos.see_ge (vm, thr))
+                    if (pick ([&]() { auto thr = Value(-(itr->value) * 55 / 1024);
+                                      if (   pos.exchange (itr->move) >= thr
+                                          || pos.see_ge (itr->move, thr))
                                       {
                                           return true;
                                       }
                                       else
                                       {
                                           // Put losing capture to bad_capture_moves to be tried later
-                                          bad_capture_moves.push_back (vm);
+                                          bad_capture_moves.push_back (itr->move);
                                           return false;
                                       }}))
                     {
-                        return vm;
+                        return (itr-1)->move;
                     }
                     // If the countermove is the same as a killers, skip it
                     if (   MOVE_NONE != refutation_moves[2]
@@ -319,59 +319,59 @@ namespace Searcher {
                                                                               || !pos.legal (m); }),
                                             refutation_moves.end ());
                     ++stage;
-                    i = 0;
+                    idx = 0;
                     /* fall through */
                 case NT_REFUTATIONS:
                     // Refutation moves: Killers, Counter moves
-                    if (i < refutation_moves.size ())
+                    if (idx < refutation_moves.size ())
                     {
-                        return refutation_moves[i++];
+                        return refutation_moves[idx++];
                     }
 
                     generate<GenType::QUIET> (moves, pos);
                     value<GenType::QUIET> ();
                     std::for_each (moves.begin (), moves.end (),
-                                   [&](ValMove &m) { if (m.value < threshold)
-                                                         m.value = threshold - 1; });
+                                   [&](ValMove &vm) { if (vm.value < threshold)
+                                                          vm.value = threshold - 1; });
                     ++stage;
-                    i = 0;
+                    itr = moves.begin ();
                     /* fall through */
                 case Stage::NT_QUIETS:
                     if (   !skip_quiets
-                        && pick ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), vm.move) == refutation_moves.end (); }))
+                        && pick ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), itr->move) == refutation_moves.end (); }))
                     {
-                        return vm;
+                        return (itr-1)->move;
                     }
                     ++stage;
-                    i = 0;
+                    idx = 0;
                     /* fall through */
                 case Stage::NT_BAD_CAPTURES:
-                    return i < bad_capture_moves.size () ?
-                            bad_capture_moves[i++] :
+                    return idx < bad_capture_moves.size () ?
+                            bad_capture_moves[idx++] :
                             MOVE_NONE;
                     /* end */
                 case Stage::EV_INIT:
                     generate<GenType::EVASION> (moves, pos);
                     value<GenType::EVASION> ();
                     ++stage;
-                    i = 0;
+                    itr = moves.begin ();
                     /* fall through */
                 case Stage::EV_MOVES:
                     return pick ([]() { return true; }) ?
-                            vm :
+                            (itr-1)->move :
                             MOVE_NONE;
                     /* end */
                 case Stage::PC_CAPTURES:
-                    return pick ([&]() { return pos.exchange (vm) >= threshold
-                                             || pos.see_ge (vm, threshold); }) ?
-                            vm :
+                    return pick ([&]() { return pos.exchange (itr->move) >= threshold
+                                             || pos.see_ge (itr->move, threshold); }) ?
+                            (itr-1)->move :
                             MOVE_NONE;
                     /* end */
                 case Stage::QS_CAPTURES:
                     if (pick ([&]() { return DepthQSRecapture < depth
-                                          || dst_sq (vm) == recap_sq; }))
+                                          || dst_sq (itr->move) == recap_sq; }))
                     {
-                        return vm;
+                        return (itr-1)->move;
                     }
                     // If did not find any move then do not try checks, finished.
                     if (DepthQSCheck > depth)
@@ -382,11 +382,11 @@ namespace Searcher {
                     generate<GenType::QUIET_CHECK> (moves, pos);
                     value<GenType::QUIET> ();
                     ++stage;
-                    i = 0;
+                    itr = moves.begin ();
                     /* fall through */
                 case Stage::QS_CHECKS:
                     return pick ([]() { return true; }) ?
-                            vm :
+                            (itr-1)->move :
                             MOVE_NONE;
                     /* end */
                 default:
