@@ -205,6 +205,7 @@ public:
     bool pawn_passed_at (Color, Square) const;
     bool paired_bishop  (Color) const;
     bool opposite_bishops () const;
+    bool semiopen_file (Color, File) const;
 
     void clear ();
 
@@ -471,23 +472,7 @@ inline Bitboard Position::xattacks_from<QUEN> (Square s, Color c) const
     return attacks_bb<QUEN> (s, pieces () ^ ((pieces (c, QUEN)       & ~si->king_blockers[c])));
 }
 
-/// Position::pawn_passed_at() check if pawn passed at the given square.
-inline bool Position::pawn_passed_at (Color c, Square s) const
-{
-    return 0 == (pawn_pass_span (c, s) & pieces (~c, PAWN));
-}
-/// Position::paired_bishop() check the side has pair of opposite color bishops.
-inline bool Position::paired_bishop (Color c) const
-{
-    return 0 != (pieces (c, BSHP) & Color_bb[WHITE])
-        && 0 != (pieces (c, BSHP) & Color_bb[BLACK]);
-}
-inline bool Position::opposite_bishops () const
-{
-    return 1 == count (WHITE, BSHP)
-        && 1 == count (BLACK, BSHP)
-        && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
-}
+
 //inline bool Position::enpassant (Move m) const
 //{
 //    return ENPASSANT == mtype (m)
@@ -535,6 +520,28 @@ inline Value Position::exchange (Move m) const
             PieceValues[MG][ptype (piece[dst_sq (m)])]
           - PieceValues[MG][ptype (piece[org_sq (m)])] :
             VALUE_ZERO;
+}
+
+/// Position::pawn_passed_at() check if pawn passed at the given square.
+inline bool Position::pawn_passed_at (Color c, Square s) const
+{
+    return 0 == (pawn_pass_span (c, s) & pieces (~c, PAWN));
+}
+/// Position::paired_bishop() check the side has pair of opposite color bishops.
+inline bool Position::paired_bishop (Color c) const
+{
+    return 0 != (pieces (c, BSHP) & Color_bb[WHITE])
+        && 0 != (pieces (c, BSHP) & Color_bb[BLACK]);
+}
+inline bool Position::opposite_bishops () const
+{
+    return 1 == count (WHITE, BSHP)
+        && 1 == count (BLACK, BSHP)
+        && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
+}
+inline bool Position::semiopen_file (Color c, File f) const
+{
+    return 0 == (pieces (c, PAWN) & file_bb (f));
 }
 
 inline void Position::do_move (Move m, StateInfo &nsi)

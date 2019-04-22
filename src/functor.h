@@ -2,6 +2,7 @@
 #define _FUNCTOR_H_INC_
 
 #include <cctype>
+#include <string>
 #include <functional>
 
 namespace std {

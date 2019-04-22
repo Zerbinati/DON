@@ -429,9 +429,9 @@ namespace {
                 }
 
                 // Bonus for rook when on an open or semi-open file
-                if (pe->file_semiopen<Own> (_file (s)))
+                if (pos.semiopen_file (Own, _file (s)))
                 {
-                    score += RookOnFile[pe->file_semiopen<Opp> (_file (s)) ? 1 : 0];
+                    score += RookOnFile[pos.semiopen_file (Opp, _file (s)) ? 1 : 0];
                 }
                 else
                 // Penalty for rook when trapped by the king, even more if the king can't castle
@@ -941,7 +941,7 @@ namespace {
         behind |= pawn_pushes_bb (Opp, behind);
         behind |= pawn_pushes_bb (Opp, pawn_pushes_bb (Opp, behind));
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
-        i32 weight = pos.count (Own) - 2 * pop_count (pe->semiopens[WHITE] & pe->semiopens[BLACK]);
+        i32 weight = pos.count (Own) - (16 - pos.count (PAWN)) / 4;
         Score score = mk_score (bonus * weight * weight / 16, 0);
 
         if (Trace)

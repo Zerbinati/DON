@@ -19,7 +19,6 @@ namespace Pawns {
         Bitboard attack_span[CLR_NO];
         Bitboard passers[CLR_NO];
 
-        u08      semiopens[CLR_NO];
         i32      color_count[CLR_NO][CLR_NO];
         i32      weak_unopposed_count[CLR_NO];
 
@@ -28,11 +27,6 @@ namespace Pawns {
         Value    king_safety[CLR_NO][MaxCache];
         u08      king_pawn_dist[CLR_NO][MaxCache];
 
-        template<Color Own>
-        bool file_semiopen (File f) const
-        {
-            return 0 != (semiopens[Own] & (1 << f));
-        }
         i32 passed_count () const
         {
             return pop_count (passers[WHITE] | passers[BLACK]);
