@@ -58,7 +58,6 @@ namespace Pawns {
             e->attack_span[Own] = 0;
             e->passers[Own] = 0;
             
-            std::fill_n (e->color_count[Own], CLR_NO, 0);
             e->weak_unopposed_count[Own] = 0;
 
             e->index[Own] = 0;
@@ -78,7 +77,6 @@ namespace Pawns {
 
                 auto f = _file (s);
                 auto r = rel_rank (Own, s);
-                e->color_count[Own][color (s)]++;
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 Bitboard neighbours = own_pawns & adj_file_bb (f);

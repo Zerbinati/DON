@@ -93,8 +93,7 @@ namespace Searcher {
 
             std::vector<Move> refutation_moves
                 ,             bad_capture_moves;
-            size_t idx;
-
+            std::vector<Move>::iterator idx;
 
             u08 stage;
 
@@ -319,13 +318,13 @@ namespace Searcher {
                                                                               || !pos.legal (m); }),
                                             refutation_moves.end ());
                     ++stage;
-                    idx = 0;
+                    idx = refutation_moves.begin ();
                     /* fall through */
                 case NT_REFUTATIONS:
                     // Refutation moves: Killers, Counter moves
-                    if (idx < refutation_moves.size ())
+                    if (idx != refutation_moves.end ())
                     {
-                        return refutation_moves[idx++];
+                        return *idx++;
                     }
 
                     generate<GenType::QUIET> (moves, pos);
@@ -343,11 +342,11 @@ namespace Searcher {
                         return (itr-1)->move;
                     }
                     ++stage;
-                    idx = 0;
+                    idx = bad_capture_moves.begin ();
                     /* fall through */
                 case Stage::NT_BAD_CAPTURES:
-                    return idx < bad_capture_moves.size () ?
-                            bad_capture_moves[idx++] :
+                    return idx != bad_capture_moves.end () ?
+                            *idx++ :
                             MOVE_NONE;
                     /* end */
                 case Stage::EV_INIT:

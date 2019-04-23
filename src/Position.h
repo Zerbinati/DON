@@ -160,6 +160,8 @@ public:
     i32 count (PieceType) const;
     i32 count (Color, PieceType) const;
 
+    i32 same_color_pawn_count (Color, Color) const;
+
     //i32 diff (PieceType) const;
 
     template<PieceType>
@@ -205,7 +207,7 @@ public:
     bool pawn_passed_at (Color, Square) const;
     bool paired_bishop  (Color) const;
     bool opposite_bishops () const;
-    bool semiopen_file (Color, File) const;
+    bool file_semiopen (Color, File) const;
 
     void clear ();
 
@@ -305,6 +307,11 @@ inline i32 Position::count (Color c, PieceType pt) const
 {
     assert(_ok (pt));
     return i32(squares[c|pt].size ());
+}
+
+inline i32 Position::same_color_pawn_count (Color c, Color s) const
+{
+    return pop_count (pieces (c, PAWN) & Color_bb[s]);
 }
 
 //inline i32 Position::diff (PieceType pt) const
@@ -539,7 +546,7 @@ inline bool Position::opposite_bishops () const
         && 1 == count (BLACK, BSHP)
         && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
 }
-inline bool Position::semiopen_file (Color c, File f) const
+inline bool Position::file_semiopen (Color c, File f) const
 {
     return 0 == (pieces (c, PAWN) & file_bb (f));
 }

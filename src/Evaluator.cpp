@@ -390,7 +390,7 @@ namespace {
                       & pawn_pushes_bb (Opp, pos.pieces ());
                     score -= BishopPawns
                            * (1 + pop_count (b))
-                           * pe->color_count[Own][color (s)];
+                           * pos.same_color_pawn_count (Own, color (s));
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     if (more_than_one (attacks_bb<BSHP> (s, pos.pieces (PAWN)) & Center_bb))
@@ -429,9 +429,9 @@ namespace {
                 }
 
                 // Bonus for rook when on an open or semi-open file
-                if (pos.semiopen_file (Own, _file (s)))
+                if (pos.file_semiopen (Own, _file (s)))
                 {
-                    score += RookOnFile[pos.semiopen_file (Opp, _file (s)) ? 1 : 0];
+                    score += RookOnFile[pos.file_semiopen (Opp, _file (s)) ? 1 : 0];
                 }
                 else
                 // Penalty for rook when trapped by the king, even more if the king can't castle
