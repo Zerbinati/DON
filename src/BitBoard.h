@@ -211,12 +211,13 @@ namespace BitBoard {
     constexpr Bitboard pawn_attack_span (Color c, Square s) { return front_rank_bb (c, s) & adj_file_bb (_file (s)); }
     constexpr Bitboard pawn_pass_span   (Color c, Square s) { return front_line_bb (c, s) | pawn_attack_span (c, s); }
 
-    template<typename T> inline i32 dist (T t1, T t2) { return std::abs (t1 - t2); }
-    template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
+    /// dist() functions return the distance between s1 and s2, defined as the
+    /// number of steps for a king in s1 to reach s2.
 
-    template<typename T1, typename T2> inline i32 dist (T2, T2);
-    template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
-    template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
+    template<typename T = Square> inline int dist (Square, Square);
+    template<> inline int dist<File> (Square s1, Square s2) { return std::abs (_file (s1) - _file (s2)); }
+    template<> inline int dist<Rank> (Square s1, Square s2) { return std::abs (_rank (s1) - _rank (s2)); }
+    template<> inline int dist<Square> (Square s1, Square s2) { return SquareDist[s1][s2]; }
 
     inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
 

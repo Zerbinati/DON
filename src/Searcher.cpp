@@ -410,11 +410,11 @@ namespace Searcher {
         }
 
         // Reductions[depth & move-count]
-        i16 Reductions[64];
+        i16 Reductions[MaxMoves];
         template <bool PVNode>
         i16 reduction (bool imp, i16 d, u08 mc)
         {
-            i16 r = Reductions[std::min (d, i16(63))] * Reductions[std::min (mc, u08(63))] / 1024;
+            i16 r = Reductions[d] * Reductions[mc] / 1024;
             return ((r + 512) / 1024 + (!imp && r > 1024 ? 1 : 0) - (PVNode ? 1 : 0));
         }
 
@@ -1707,7 +1707,7 @@ namespace Searcher {
         srand ((unsigned int)(time (NULL)));
 
         Reductions[0] = 0;
-        for (i08 i = 1; i < 64; ++i)
+        for (i08 i = 1; i < MaxMoves; ++i)
         {
             Reductions[i] = i16(1024 * std::log (i) / std::sqrt (1.95));
         }

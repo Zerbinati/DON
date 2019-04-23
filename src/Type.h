@@ -160,6 +160,8 @@ constexpr i16 DepthNone         = -6;
 constexpr i16 DepthEmpty        = -7;
 constexpr i16 MaxDepth          = 128; // Maximum Plies
 
+constexpr i32 MaxMoves          = 256;
+
 enum Color : i08 { WHITE, BLACK, CLR_NO };
 
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
