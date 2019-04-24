@@ -50,11 +50,19 @@ namespace Pawns {
                 ++index[Own];
             }
 
-            u08 kp_dist = 0;
             Bitboard pawns = pos.pieces (Own, PAWN);
-            if (0 != pawns)
+            u08 kp_dist = 0 != pawns ?
+                            8 : 0;
+            if (0 != (pawns & PieceAttacks[KING][fk_sq]))
             {
-                while (0 == (pawns & BitBoard::dist_rings_bb (fk_sq, ++kp_dist))) {}
+                kp_dist = 1;
+            }
+            else
+            {
+                while (0 != pawns)
+                {
+                    kp_dist = std::min ((u08)dist (fk_sq, pop_lsq (pawns)), kp_dist);
+                }
             }
 
             king_square[Own][idx] = fk_sq;

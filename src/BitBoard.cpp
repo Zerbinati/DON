@@ -10,7 +10,6 @@ namespace BitBoard {
     using namespace std;
 
     u08      SquareDist[SQ_NO][SQ_NO];
-    Bitboard DistRings_bb[SQ_NO][8];
 
     Bitboard PawnAttacks[CLR_NO][SQ_NO];
     Bitboard PieceAttacks[NONE][SQ_NO];
@@ -258,7 +257,7 @@ namespace BitBoard {
                 if (s1 != s2)
                 {
                     SquareDist[s1][s2] = u08(std::max (dist<File> (s1, s2), dist<Rank> (s1, s2)));
-                    DistRings_bb[s1][SquareDist[s1][s2]] |= s2;
+                    //DistRings_bb[s1][SquareDist[s1][s2]] |= s2;
                 }
             }
         }

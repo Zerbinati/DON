@@ -633,11 +633,7 @@ namespace {
                      -   3 * safety / 4
                      -  15;
         // If friend knight is near by to defend king
-        if ((  pos.pieces (Own, NIHT)
-             & ~pos.si->king_blockers[Own]
-             & (  DistRings_bb[fk_sq][1]
-                | DistRings_bb[fk_sq][2]
-                | DistRings_bb[fk_sq][3])) != 0)
+        if (0 != (sgl_attacks[Own][NIHT] & sgl_attacks[Own][KING]))
         {
             king_danger -= 100;
         }

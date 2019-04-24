@@ -104,7 +104,6 @@ namespace BitBoard {
 #   undef S_02
 
     extern u08      SquareDist[SQ_NO][SQ_NO];
-    extern Bitboard DistRings_bb[SQ_NO][8];
 
     extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
     extern Bitboard PieceAttacks[NONE][SQ_NO];
@@ -214,12 +213,10 @@ namespace BitBoard {
     /// dist() functions return the distance between s1 and s2, defined as the
     /// number of steps for a king in s1 to reach s2.
 
-    template<typename T = Square> inline int dist (Square, Square);
-    template<> inline int dist<File> (Square s1, Square s2) { return std::abs (_file (s1) - _file (s2)); }
-    template<> inline int dist<Rank> (Square s1, Square s2) { return std::abs (_rank (s1) - _rank (s2)); }
-    template<> inline int dist<Square> (Square s1, Square s2) { return SquareDist[s1][s2]; }
-
-    inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
+    template<typename T = Square> inline i32 dist (Square, Square);
+    template<> inline i32 dist<File> (Square s1, Square s2) { return std::abs (_file (s1) - _file (s2)); }
+    template<> inline i32 dist<Rank> (Square s1, Square s2) { return std::abs (_rank (s1) - _rank (s2)); }
+    template<> inline i32 dist<Square> (Square s1, Square s2) { return SquareDist[s1][s2]; }
 
     inline Bitboard line_bb (Square s1, Square s2) { return Line_bb[s1][s2]; }
     inline Bitboard between_bb (Square s1, Square s2)
