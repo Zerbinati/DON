@@ -379,13 +379,17 @@ namespace Searcher {
                     }
 
                     generate<GenType::QUIET_CHECK> (moves, pos);
-                    value<GenType::QUIET> ();
+                    moves.erase (std::remove_if (moves.begin (), moves.end (),
+                                                 [&](ValMove &vm) { return tt_move == vm
+                                                                        //|| !pos.pseudo_legal (vm)
+                                                                        || !pos.legal (vm); }),
+                                 moves.end ());
                     ++stage;
                     itr = moves.begin ();
                     /* fall through */
                 case Stage::QS_CHECKS:
-                    return pick ([]() { return true; }) ?
-                            (itr-1)->move :
+                    return itr != moves.end () ?
+                            *itr++ :
                             MOVE_NONE;
                     /* end */
                 default:
@@ -870,9 +874,6 @@ namespace Searcher {
             assert(ss->ply >= 0
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply < MaxDepth);
-
-            ss->played_move = MOVE_NONE;
-            ss->pd_history = &thread->continuation_history[NO_PIECE][0];
 
             assert(MOVE_NONE == (ss+1)->excluded_move);
             std::fill_n ((ss+2)->killer_moves, 2, MOVE_NONE);
@@ -1707,7 +1708,7 @@ namespace Searcher {
         srand ((unsigned int)(time (NULL)));
 
         Reductions[0] = 0;
-        for (i08 i = 1; i < MaxMoves; ++i)
+        for (i16 i = 1; i < MaxMoves; ++i)
         {
             Reductions[i] = i16(1024 * std::log (i) / std::sqrt (1.95));
         }

@@ -9,8 +9,6 @@ namespace BitBoard {
 
     using namespace std;
 
-    u08      SquareDist[SQ_NO][SQ_NO];
-
     Bitboard PawnAttacks[CLR_NO][SQ_NO];
     Bitboard PieceAttacks[NONE][SQ_NO];
 
@@ -249,18 +247,6 @@ namespace BitBoard {
             PopCount16[i] = std::bitset<16> (i).count (); //pop_count16 (i);
         }
 #   endif
-
-        for (const auto &s1 : SQ)
-        {
-            for (const auto &s2 : SQ)
-            {
-                if (s1 != s2)
-                {
-                    SquareDist[s1][s2] = u08(std::max (dist<File> (s1, s2), dist<Rank> (s1, s2)));
-                    //DistRings_bb[s1][SquareDist[s1][s2]] |= s2;
-                }
-            }
-        }
 
         for (const auto &s : SQ)
         {

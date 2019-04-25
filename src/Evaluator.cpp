@@ -633,7 +633,8 @@ namespace {
                      -   3 * safety / 4
                      -  15;
         // If friend knight is near by to defend king
-        if (0 != (sgl_attacks[Own][NIHT] & sgl_attacks[Own][KING]))
+        if (0 != (  sgl_attacks[Own][NIHT]
+                  & sgl_attacks[Own][KING]))
         {
             king_danger -= 100;
         }
