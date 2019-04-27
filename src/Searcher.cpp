@@ -636,8 +636,8 @@ namespace Searcher {
             }
 
             if (   MOVE_NONE != tt_move
-                && !(   pos.pseudo_legal (tt_move)
-                     && pos.legal (tt_move)))
+                && (   !pos.pseudo_legal (tt_move)
+                    || !pos.legal (tt_move)))
             {
                 tt_move = MOVE_NONE;
             }
@@ -913,6 +913,13 @@ namespace Searcher {
             {
                 return VALUE_DRAW;
             }
+
+            if (   MOVE_NONE != tt_move
+                && (   !pos.pseudo_legal (tt_move)
+                    || !pos.legal (tt_move)))
+            {
+                tt_move = MOVE_NONE;
+            }
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && VALUE_NONE != tt_value // Handle tt_hit
@@ -1019,13 +1026,6 @@ namespace Searcher {
 
                     }
                 }
-            }
-
-            if (   MOVE_NONE != tt_move
-                && !(   pos.pseudo_legal (tt_move)
-                     && pos.legal (tt_move)))
-            {
-                tt_move = MOVE_NONE;
             }
 
             StateInfo si;
@@ -1221,8 +1221,8 @@ namespace Searcher {
                             VALUE_NONE;
 
                 if (   MOVE_NONE != tt_move
-                    && !(   pos.pseudo_legal (tt_move)
-                         && pos.legal (tt_move)))
+                    && (   !pos.pseudo_legal (tt_move)
+                        || !pos.legal (tt_move)))
                 {
                     tt_move = MOVE_NONE;
                 }
