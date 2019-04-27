@@ -631,12 +631,19 @@ namespace {
                      +   1 * mg_value (mobility[Opp] - mobility[Own])
                      +   5 * tropism * tropism / 16
                      -   3 * safety / 4
-                     -  15;
+                     -   7;
+
+        Bitboard king_spot = sgl_attacks[Own][KING] | fk_sq;
+        
         // If friend knight is near by to defend king
-        if (0 != (  sgl_attacks[Own][NIHT]
-                  & sgl_attacks[Own][KING]))
+        if (0 != (king_spot & sgl_attacks[Own][NIHT]))
         {
             king_danger -= 100;
+        }
+        // If friend bishop is near by to defend king
+        if (0 != (king_spot & sgl_attacks[Own][BSHP]))
+        {
+            king_danger -= 35;
         }
         // If no enemy queen
         if (0 == pos.pieces (Opp, QUEN))

@@ -568,6 +568,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
     auto back_si = setup_states->back ();
     for (auto *th : *this)
     {
+        th->root_depth = DepthZero;
         th->finished_depth = DepthZero;
         th->nodes = 0;
         th->tb_hits = 0;

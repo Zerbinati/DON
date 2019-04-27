@@ -903,6 +903,16 @@ namespace Searcher {
                       || (   PVNode
                           && 4 < depth);
 
+            auto ply = pos.count () > 14 ? 6 : 0;
+            // If position has been searched at higher depths and are shuffling, return VALUE_DRAW.
+            if (   pos.si->clock_ply > 36 - ply
+                && ss->ply > 36 - ply
+                && pos.count (PAWN) != 0
+                && tt_hit
+                && tte->depth () > depth)
+            {
+                return VALUE_DRAW;
+            }
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && VALUE_NONE != tt_value // Handle tt_hit
@@ -1345,7 +1355,13 @@ namespace Searcher {
                             || (   contains (pos.si->king_blockers[~pos.active], org)
                                 && (   !contains (PieceAttacks[KING][pos.square<KING> (~pos.active)], dst)
                                     || 0 != (pos.attackers_to (dst) & pos.pieces (pos.active) & ~square_bb (org))))
-                            || pos.see_ge (move))))
+                            || pos.see_ge (move)))
+                    // Shuffle extension
+                    || (   PVNode
+                        && pos.si->clock_ply > 18
+                        && ss->ply > 18
+                        && ss->ply < 3 * thread->root_depth // To avoid infinite loops
+                        && depth < 3))
                 {
                     extension = 1;
                 }
@@ -1768,13 +1784,12 @@ void Thread::search ()
     auto  alfa = -VALUE_INFINITE
         , beta = +VALUE_INFINITE;
 
-    i16 depth = DepthZero;
     // Iterative deepening loop until requested to stop or the target depth is reached.
-    while (   ++depth < MaxDepth
+    while (   ++root_depth < MaxDepth
            && !Threadpool.stop
            && (   nullptr == main_thread
                || DepthZero == Limits.depth
-               || depth <= Limits.depth))
+               || root_depth <= Limits.depth))
     {
         if (   nullptr != main_thread
             && Limits.time_mgr_used ())
@@ -1811,7 +1826,7 @@ void Thread::search ()
             sel_depth = DepthZero;
 
             // Reset aspiration window starting size.
-            if (4 < depth)
+            if (4 < root_depth)
             {
                 auto old_value = root_moves[pv_cur].old_value;
                 window = Value(20);
@@ -1835,7 +1850,7 @@ void Thread::search ()
             // research with bigger window until not failing high/low anymore.
             do
             {
-                i16 adjusted_depth = i16(std::max (depth - failed_high_count, 1));
+                i16 adjusted_depth = i16(std::max (root_depth - failed_high_count, 1));
                 best_value = depth_search<true> (root_pos, stacks+7, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -1859,7 +1874,7 @@ void Thread::search ()
                     && (best_value <= alfa || beta <= best_value)
                     && main_thread->time_mgr.elapsed_time () > 3000)
                 {
-                    sync_cout << multipv_info (main_thread, depth, alfa, beta) << sync_endl;
+                    sync_cout << multipv_info (main_thread, root_depth, alfa, beta) << sync_endl;
                 }
 
                 // If fail low set new bounds.
@@ -1910,13 +1925,13 @@ void Thread::search ()
                     || Threadpool.pv_limit - 1 == pv_cur
                     || main_thread->time_mgr.elapsed_time () > 3000))
             {
-                sync_cout << multipv_info (main_thread, depth, alfa, beta) << sync_endl;
+                sync_cout << multipv_info (main_thread, root_depth, alfa, beta) << sync_endl;
             }
         }
 
         if (!Threadpool.stop)
         {
-            finished_depth = depth;
+            finished_depth = root_depth;
         }
 
         // Has any of the threads found a "mate in <x>"?
@@ -1931,7 +1946,7 @@ void Thread::search ()
         {
             // If skill level is enabled and can pick move, pick a sub-optimal best move.
             if (   skill_mgr_enabled ()
-                && depth == i16(i32(Options["Skill Level"])) + 1)
+                && root_depth == i16(i32(Options["Skill Level"])) + 1)
             {
                 main_thread->skill_mgr.best_move = MOVE_NONE;
                 main_thread->skill_mgr.pick_best_move (i16(i32(Options["Skill Level"])));
@@ -1944,7 +1959,7 @@ void Thread::search ()
                 if (main_thread->best_move != root_moves[0].front())
                 {
                     main_thread->best_move = root_moves[0].front ();
-                    main_thread->best_move_depth = depth;
+                    main_thread->best_move_depth = root_depth;
                 }
                 
                 // Use part of the gained time from a previous stable move for the current move

@@ -78,7 +78,8 @@ public:
     Position  root_pos;
     RootMoves root_moves;
 
-    i16   finished_depth
+    i16   root_depth
+        , finished_depth
         , sel_depth;
 
     i16   nmp_ply;
