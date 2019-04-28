@@ -177,7 +177,7 @@ namespace BitBoard {
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct slide attack in the magics[s].attacks database.
                     // Note that build up the database for square as a side effect of verifying the magic.
-                    auto used = std::make_unique<bool[]> (size);
+                    auto used = new bool[size] {false};
                     for (i = 0; i < size; ++i)
                     {
                         u16 idx = magic.index (occupancy[i]);
@@ -193,6 +193,7 @@ namespace BitBoard {
                         used[idx] = true;
                         magic.attacks[idx] = reference[i];
                     }
+                    delete[] used;
                 } while (i < size);
 #           endif
                 offset += u32(pow (2, mask_popcount));
