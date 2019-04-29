@@ -91,8 +91,7 @@ namespace BitBoard {
         template<PieceType PT>
         void initialize_magic (Bitboard *attacks, Magic *magics)
         {
-            static_assert (BSHP == PT
-                        || ROOK == PT, "PT incorrect");
+            static_assert (BSHP == PT || ROOK == PT, "PT incorrect");
 
 #       if !defined(BM2)
             constexpr i16 MaxIndex = 0x1000;
@@ -177,7 +176,7 @@ namespace BitBoard {
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct slide attack in the magics[s].attacks database.
                     // Note that build up the database for square as a side effect of verifying the magic.
-                    auto used = new bool[size] {false};
+                    auto used = new bool[size] ();
                     for (i = 0; i < size; ++i)
                     {
                         u16 idx = magic.index (occupancy[i]);
@@ -208,7 +207,7 @@ namespace BitBoard {
     template<PieceType PT>
     Bitboard slide_attacks (Square s, Bitboard occ)
     {
-        static_assert (BSHP <= PT && PT <= QUEN, "PT incorrect");
+        static_assert (BSHP == PT || ROOK == PT || QUEN == PT, "PT incorrect");
 
         Bitboard attacks = 0;
         for (auto del : PieceDeltas[PT])

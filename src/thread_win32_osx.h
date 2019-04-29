@@ -11,7 +11,7 @@
 /// is racy between unlock() and WaitForSingleObject() but they have the same
 /// speed performance of SRW locks.
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_MSC_VER)
 
 #   if !defined(NOMINMAX)
 #       define NOMINMAX // Disable macros min() and max()
@@ -19,17 +19,9 @@
 #   if !defined(WIN32_LEAN_AND_MEAN)
 #       define WIN32_LEAN_AND_MEAN
 #   endif
-#   if _WIN32_WINNT < 0x0601
-#       undef  _WIN32_WINNT
-#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
-#   endif
 #   include <windows.h>
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
-
-#endif
-
-#if defined(_WIN32) && !defined(_MSC_VER)
 
 #include <condition_variable>
 
@@ -70,30 +62,30 @@ typedef std::mutex              Mutex;
 
 #include <pthread.h>
 
-static const size_t TH_STACK_SIZE = 2 * 1024 * 1024;
-
-template <class T, class P = std::pair<T*, void(T::*)()>>
-void* start_routine (void *ptr)
-{
-    P* p = reinterpret_cast<P*>(ptr);
-    (p->first->*(p->second))(); // Call member function pointer
-    delete p;
-    return NULL;
-}
-
 class NativeThread
 {
 private:
+    static constexpr size_t TH_STACK_SIZE = 2 * 1024 * 1024;
+
+    template <class T, class P = std::pair<T*, void(T::*)()>>
+    static void* start_routine (void *ptr)
+    {
+        P *p = reinterpret_cast<P*>(ptr);
+        (p->first->*(p->second))(); // Call member function pointer
+        delete p;
+        return NULL;
+    }
+
     pthread_t thread;
 
 public:
     template<class T, class P = std::pair<T*, void (T::*)()>>
     explicit NativeThread (void (T::*fun)(), T *obj)
     {
-        pthread_attr_t attr_storage, *attr = &attr_storage;
-        pthread_attr_init (attr);
-        pthread_attr_setstacksize (attr, TH_STACK_SIZE);
-        pthread_create (&thread, attr, start_routine<T>, new P (obj, fun));
+        pthread_attr_t attribute;
+        pthread_attr_init (&attribute);
+        pthread_attr_setstacksize (&attribute, TH_STACK_SIZE);
+        pthread_create (&thread, &attribute, start_routine<T>, new P (obj, fun));
     }
 
     void join () { pthread_join (thread, NULL); }

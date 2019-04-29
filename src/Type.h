@@ -32,45 +32,20 @@
 /// __GNUC__           Compiler is gcc, Clang or Intel on Linux
 /// __INTEL_COMPILER   Compiler is Intel
 /// _MSC_VER           Compiler is MSVC or Intel on Windows
-/// _WIN32             Building on Windows (any)
-/// _WIN64             Building on Windows 64 bit
-
-// Windows or MinGW
-#if defined(_WIN32)
-
-// Auto make 64-bit compiles
-#   if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
-#       if !defined(BIT64)
-#           define BIT64
-#       endif
-#   endif
-
-#endif
-
-#if defined(BM2)
-#   include <immintrin.h>   // Header for BMI2 instructions
-// BEXTR = Bit field extract (with register)
-// PDEP  = Parallel bits deposit
-// PEXT  = Parallel bits extract
-// BLSR  = Reset lowest set bit
-#   if defined(BIT64)
-#       define BEXTR(b, m, l)   _bextr_u64 (b, m, l)
-#       define PDEP(b, m)       _pdep_u64 (b, m)
-#       define PEXT(b, m)       _pext_u64 (b, m)
-#       define BLSR(b)          _blsr_u64 (b)
-#   else
-//#       define BEXTR(b, m, l)   _bextr_u32 (b, m, l)
-//#       define PDEP(b, m)       _pdep_u32 (b, m)
-//#       define PEXT(b, m)       _pext_u32 (b, m)
-//#       define BLSR(b)          _blsr_u32 (b)
-#   endif
-#endif
+/// _WIN32             Compilation target is Windows (any)
+/// _WIN64             Compilation target is Windows 64-bit
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
 #   pragma warning (disable: 4127) // Conditional expression is constant
 #   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
 #   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
+
+#   if defined(_WIN64)
+#       if !defined(BIT64)
+#           define BIT64
+#       endif
+#   endif
 
 typedef   signed __int8     i08;
 typedef unsigned __int8     u08;
@@ -104,6 +79,25 @@ typedef        uint64_t    u64;
 #   define S64(X) (X ##  LL)
 #   define U64(X) (X ## ULL)
 
+#endif
+
+#if defined(BM2)
+#   include <immintrin.h>   // Header for BMI2 instructions
+// BEXTR = Bit field extract (with register)
+// PDEP  = Parallel bits deposit
+// PEXT  = Parallel bits extract
+// BLSR  = Reset lowest set bit
+#   if defined(BIT64)
+#       define BEXTR(b, m, l)   _bextr_u64 (b, m, l)
+#       define PDEP(b, m)       _pdep_u64 (b, m)
+#       define PEXT(b, m)       _pext_u64 (b, m)
+#       define BLSR(b)          _blsr_u64 (b)
+#   else
+//#       define BEXTR(b, m, l)   _bextr_u32 (b, m, l)
+//#       define PDEP(b, m)       _pdep_u32 (b, m)
+//#       define PEXT(b, m)       _pext_u32 (b, m)
+//#       define BLSR(b)          _blsr_u32 (b)
+#   endif
 #endif
 
 /// Pre-loads the given address in L1/L2 cache.

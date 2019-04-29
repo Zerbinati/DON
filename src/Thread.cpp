@@ -21,6 +21,20 @@ namespace {
 
 #if defined(_WIN32)
 
+#   if !defined(NOMINMAX)
+#       define NOMINMAX // Disable macros min() and max()
+#   endif
+#   if !defined(WIN32_LEAN_AND_MEAN)
+#       define WIN32_LEAN_AND_MEAN
+#   endif
+#   if _WIN32_WINNT < 0x0601
+#       undef  _WIN32_WINNT
+#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
+#   endif
+#   include <windows.h>
+#   undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
+
     /// Win Processors Group
     /// Under Windows it is not possible for a process to run on more than one logical processor group.
     /// This usually means to be limited to use max 64 cores.
@@ -36,9 +50,6 @@ namespace {
         typedef bool (*GNNPME)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
         typedef bool (*STGA)  (HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
     }
-
-#else
-
 
 #endif
 
@@ -357,8 +368,6 @@ namespace WinProcGroup {
             Groups.push_back (t % nodes);
         }
 
-#   else
-
 #   endif
     }
     /// bind() set the group affinity for the thread index.
@@ -394,8 +403,6 @@ namespace WinProcGroup {
             }
             SetThreadGroupAffinity (GetCurrentThread (), &group_affinity, nullptr);
         }
-
-#   else
 
 #   endif
     }

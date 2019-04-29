@@ -291,6 +291,12 @@ namespace BitBoard {
 
     inline i32 pop_count (Bitboard bb)
     {
+        //Bitboard x = bb;
+        //x -= (x >> 1) & 0x5555555555555555;
+        //x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
+        //x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
+        //return (x * 0x0101010101010101) >> 56;
+
         union
         {
             Bitboard b;
@@ -347,7 +353,7 @@ namespace BitBoard {
         assert(0 != bb);
 
         unsigned long index;
-#   if defined(_WIN64)
+#   if defined(BIT64)
         _BitScanForward64 (&index, bb);
 #   else
         if (0 != u32(bb >> 0))
@@ -368,7 +374,7 @@ namespace BitBoard {
         assert(0 != bb);
 
         unsigned long index;
-#   if defined(_WIN64)
+#   if defined(BIT64)
         _BitScanReverse64 (&index, bb);
 #   else
         if (0 != u32(bb >> 0x20))
