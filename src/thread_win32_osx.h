@@ -68,9 +68,9 @@ private:
     static constexpr size_t TH_STACK_SIZE = 2 * 1024 * 1024;
 
     template <class T, class P = std::pair<T*, void(T::*)()>>
-    static void* start_routine (void *ptr)
+    static void* start_routine (void *arg)
     {
-        P *p = reinterpret_cast<P*>(ptr);
+        P *p = reinterpret_cast<P*>(arg);
         (p->first->*(p->second))(); // Call member function pointer
         delete p;
         return NULL;
