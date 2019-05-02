@@ -903,17 +903,6 @@ namespace Searcher {
                       || (   PVNode
                           && 4 < depth);
 
-            auto ply = pos.count () > 14 ? 6 : 0;
-            // If position has been searched at higher depths and are shuffling, return VALUE_DRAW.
-            if (   pos.si->clock_ply > 36 - ply
-                && ss->ply > 36 - ply
-                && pos.count (PAWN) != 0
-                && tt_hit
-                && tte->depth () > depth)
-            {
-                return VALUE_DRAW;
-            }
-
             if (   MOVE_NONE != tt_move
                 && (   !pos.pseudo_legal (tt_move)
                     || !pos.legal (tt_move)))
@@ -1358,10 +1347,9 @@ namespace Searcher {
                             || pos.see_ge (move)))
                     // Shuffle extension
                     || (   PVNode
+                        && depth < 3
                         && pos.si->clock_ply > 18
-                        && ss->ply > 18
-                        && ss->ply < 3 * thread->root_depth // To avoid infinite loops
-                        && depth < 3))
+                        && ss->ply < 3 * thread->root_depth)) // To avoid too deep searching
                 {
                     extension = 1;
                 }

@@ -267,10 +267,10 @@ enum Piece : u08
 
 enum MoveType : u16
 {
-    NORMAL    = 0 << 14, // [00] 00
-    CASTLE    = 1 << 14, // [01] 00
-    ENPASSANT = 2 << 14, // [10] 00
-    PROMOTE   = 3 << 14, // [11] xx
+    NORMAL    = 0 << 14, // [00]----
+    CASTLE    = 1 << 14, // [01]----
+    ENPASSANT = 2 << 14, // [10]----
+    PROMOTE   = 3 << 14, // [11]x---
 };
 /// Move needs 16-bits to be stored
 ///

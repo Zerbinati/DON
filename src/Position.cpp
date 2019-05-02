@@ -1032,10 +1032,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             remove_piece (dst, piece[dst]);
             place_piece (dst, active|si->promote);
             si->npm[active] += PieceValues[MG][si->promote];
-            key ^= RandZob.piece_square[active][mpt][dst]
+            key ^= RandZob.piece_square[active][PAWN][dst]
                  ^ RandZob.piece_square[active][si->promote][dst];
             si->pawn_key ^= RandZob.piece_square[active][PAWN][dst];
-            si->matl_key ^= RandZob.piece_square[active][PAWN][count (active, mpt)]
+            si->matl_key ^= RandZob.piece_square[active][PAWN][count (active, PAWN)]
                           ^ RandZob.piece_square[active][si->promote][count (active, si->promote) - 1];
             prefetch (thread->matl_table[si->matl_key]);
         }
@@ -1116,8 +1116,7 @@ void Position::undo_move (Move m)
         {
             assert(R_7 == rel_rank (active, org)
                 && R_8 == rel_rank (active, dst)
-                && NONE != si->promote
-                && promote (m) == ptype (piece[dst])); //&& contains (pieces (active, promote (m)), dst)
+                && promote (m) == si->promote);
 
             remove_piece (dst, piece[dst]);
             place_piece (dst, active|PAWN);
