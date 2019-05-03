@@ -84,7 +84,7 @@ namespace BitBoard {
         R2_bb|R3_bb,
         R7_bb|R6_bb
     };
-    constexpr Bitboard Space_bb[CLR_NO] =
+    constexpr Bitboard Region_bb[CLR_NO] =
     {
         R2_bb|R3_bb|R4_bb,
         R7_bb|R6_bb|R5_bb
@@ -212,8 +212,8 @@ namespace BitBoard {
     /// number of steps for a king in s1 to reach s2.
 
     template<typename T = Square> inline i32 dist (Square, Square);
-    template<> inline i32 dist<File> (Square s1, Square s2) { return std::abs (_file (s1) - _file (s2)); }
-    template<> inline i32 dist<Rank> (Square s1, Square s2) { return std::abs (_rank (s1) - _rank (s2)); }
+    template<> inline i32 dist<File>   (Square s1, Square s2) { return std::abs (_file (s1) - _file (s2)); }
+    template<> inline i32 dist<Rank>   (Square s1, Square s2) { return std::abs (_rank (s1) - _rank (s2)); }
     template<> inline i32 dist<Square> (Square s1, Square s2) { return std::max (dist<File> (s1, s2), dist<Rank> (s1, s2)); }
 
     inline Bitboard line_bb (Square s1, Square s2) { return Line_bb[s1][s2]; }

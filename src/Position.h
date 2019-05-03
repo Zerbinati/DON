@@ -11,6 +11,40 @@
 #include "PSQTable.h"
 #include "Zobrist.h"
 
+/// Pre-loads the given address in L1/L2 cache.
+/// This is a non-blocking function that doesn't stall the CPU
+/// waiting for data to be loaded from memory, which can be quite slow.
+#if defined(PREFETCH)
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+
+inline void prefetch (const void* addr)
+{
+#   if defined(__INTEL_COMPILER)
+    // This hack prevents prefetches from being optimized away by
+    // Intel compiler. Both MSVC and gcc seem not be affected by this.
+    __asm__ ("");
+#   endif
+    _mm_prefetch ((const char*)(addr), _MM_HINT_T0);
+}
+
+#   else
+
+inline void prefetch (const void* addr)
+{
+    __builtin_prefetch (addr);
+}
+
+#   endif
+
+#else
+
+inline void prefetch (const void*)
+{}
+
+#endif
+
 using namespace BitBoard;
 
 /// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
@@ -192,9 +226,7 @@ public:
 
     bool pseudo_legal (Move) const;
     bool legal (Move) const;
-    //bool enpassant (Move) const;
     bool capture (Move) const;
-    //bool promotion (Move) const;
     bool capture_or_promotion (Move) const;
     bool pawn_advance (Move) const;
     bool gives_check (Move) const;
@@ -398,6 +430,7 @@ inline Bitboard Position::attackers_to (Square s) const
 {
     return attackers_to (s, pieces ());
 }
+
 ///// Position::xattackers_to() finds attackers to the square on occupancy.
 //inline Bitboard Position::xattackers_to (Square s, Bitboard occ) const
 //{
@@ -417,6 +450,7 @@ inline Bitboard Position::attackers_to (Square s) const
 //{
 //    return xattackers_to (s, pieces ());
 //}
+
 /// Position::attacks_from() finds attacks of the piecetype from the square on occupancy.
 inline Bitboard Position::attacks_from (PieceType pt, Square s, Bitboard occ) const
 {
@@ -479,27 +513,13 @@ inline Bitboard Position::xattacks_from<QUEN> (Square s, Color c) const
     return attacks_bb<QUEN> (s, pieces () ^ ((pieces (c, QUEN)       & ~si->king_blockers[c])));
 }
 
-
-//inline bool Position::enpassant (Move m) const
-//{
-//    return ENPASSANT == mtype (m)
-//        && contains (pieces (active, PAWN), org_sq (m))
-//        && empty (dst_sq (m))
-//        && si->enpassant_sq == dst_sq (m);
-//}
 inline bool Position::capture (Move m) const
 {
-    // Castling is encoded as "king captures the rook"
     return ENPASSANT == mtype (m)
         || (   CASTLE != mtype (m)
             && !empty (dst_sq (m)));
 }
-//inline bool Position::promotion (Move m) const
-//{
-//    return PROMOTE == mtype (m)
-//        && contains (pieces (active, PAWN), org_sq (m))
-//        && R_7 == rel_rank (active, org_sq (m));
-//}
+
 inline bool Position::capture_or_promotion (Move m) const
 {
     return NORMAL != mtype (m) ?
@@ -509,7 +529,7 @@ inline bool Position::capture_or_promotion (Move m) const
 
 inline bool Position::pawn_advance (Move m) const
 {
-    return contains (pieces (PAWN) & Space_bb[~active], org_sq (m));
+    return contains (pieces (PAWN) & Region_bb[~active], org_sq (m));
 }
 
 inline PieceType Position::cap_type (Move m) const

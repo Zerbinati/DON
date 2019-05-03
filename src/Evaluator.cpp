@@ -935,16 +935,17 @@ namespace {
             return SCORE_ZERO;
         }
 
-        // Safe squares for friend pieces inside the area defined by SpaceMask.
-        Bitboard safe_space = Space_bb[Own]
-                            & Side_bb[CS_NO]
-                            & ~pos.pieces (Own, PAWN)
-                            & ~sgl_attacks[Opp][PAWN];
-
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PAWN);
         behind |= pawn_sgl_pushes_bb (Opp, behind);
         behind |= pawn_dbl_pushes_bb (Opp, behind);
+
+        // Safe squares for friend pieces inside the area defined by SpaceMask.
+        Bitboard safe_space = Region_bb[Own]
+                            & Side_bb[CS_NO]
+                            & ~pos.pieces (Own, PAWN)
+                            & ~sgl_attacks[Opp][PAWN];
+
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
         i32 weight = pos.count (Own) - (16 - pos.count (PAWN)) / 4;
         Score score = mk_score (bonus * weight * weight / 16, 0);
