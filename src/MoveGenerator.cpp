@@ -171,7 +171,7 @@ namespace {
                 generate_promotion_moves<GT> (moves, pos, b, pawn_l_att (pos.active));
                 b = enemies & pawn_r_attacks_bb (pos.active, R7_pawns);
                 generate_promotion_moves<GT> (moves, pos, b, pawn_r_att (pos.active));
-                b = empties & pawn_pushes_bb (pos.active, R7_pawns);
+                b = empties & pawn_sgl_pushes_bb (pos.active, R7_pawns);
                 if (GenType::EVASION == GT)
                 {
                     b &= targets;
@@ -185,8 +185,8 @@ namespace {
             }
 
             // Pawn single-push and double-push, no promotions
-            Bitboard pushs_1 = empties & pawn_pushes_bb (pos.active, Rx_pawns);
-            Bitboard pushs_2 = empties & pawn_pushes_bb (pos.active, pushs_1 & rank_bb (rel_rank (pos.active, R_3)));
+            Bitboard pushs_1 = empties & pawn_sgl_pushes_bb (pos.active, Rx_pawns);
+            Bitboard pushs_2 = empties & pawn_sgl_pushes_bb (pos.active, pushs_1 & rank_bb (rel_rank (pos.active, R_3)));
             switch (GT)
             {
             case GenType::EVASION:
@@ -207,8 +207,8 @@ namespace {
                                    & ~file_bb (pos.square<KING> (~pos.active));
                 if (0 != dsc_pawns)
                 {
-                    Bitboard dc_pushs_1 = empties & pawn_pushes_bb (pos.active, dsc_pawns);
-                    Bitboard dc_pushs_2 = empties & pawn_pushes_bb (pos.active, dc_pushs_1 & rank_bb (rel_rank (pos.active, R_3)));
+                    Bitboard dc_pushs_1 = empties & pawn_sgl_pushes_bb (pos.active, dsc_pawns);
+                    Bitboard dc_pushs_2 = empties & pawn_sgl_pushes_bb (pos.active, dc_pushs_1 & rank_bb (rel_rank (pos.active, R_3)));
                     pushs_1 |= dc_pushs_1;
                     pushs_2 |= dc_pushs_2;
                 }

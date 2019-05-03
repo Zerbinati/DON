@@ -1,5 +1,6 @@
 #include "Pawns.h"
 
+#include <algorithm>
 #include "BitBoard.h"
 #include "Thread.h"
 
@@ -108,7 +109,7 @@ namespace Pawns {
                 if (   stoppers == square_bb (s+pawn_push (Own))
                     && R_4 < r)
                 {
-                    b = pawn_pushes_bb (Own, supporters) & ~opp_pawns;
+                    b = pawn_sgl_pushes_bb (Own, supporters) & ~opp_pawns;
                     while (0 != b)
                     {
                         if (!more_than_one (opp_pawns & Attack[pop_lsq (b)]))
@@ -164,14 +165,14 @@ namespace Pawns {
     Value Entry::evaluate_safety (const Position &pos, Square fk_sq) const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr Bitboard BlockRanks = WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb;
+        constexpr Bitboard BlockSquares = (FA_bb | FH_bb) & (R1_bb | R2_bb | R8_bb | R7_bb);
 
         Bitboard front_pawns = ~front_rank_bb (Opp, fk_sq) & pos.pieces (PAWN);
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         i32 value = 5;
-        if (contains (pawn_pushes_bb (Opp, opp_front_pawns) & BlockRanks & (FA_bb | FH_bb), fk_sq))
+        if (contains (pawn_sgl_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq))
         {
             value += 369;
         }

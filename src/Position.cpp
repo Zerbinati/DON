@@ -1057,7 +1057,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
         si->pawn_key ^= RandZob.piece_square[active][PAWN][org]
                       ^ RandZob.piece_square[active][PAWN][dst];
-        prefetch2 (thread->pawn_table[si->pawn_key]);
+        prefetch (thread->pawn_table[si->pawn_key]);
     }
 
     assert(0 == (attackers_to (square<KING> (active)) & pieces (pasive)));

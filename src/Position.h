@@ -509,9 +509,7 @@ inline bool Position::capture_or_promotion (Move m) const
 
 inline bool Position::pawn_advance (Move m) const
 {
-    return //   PAWN == ptype (piece[org_sq (m)])
-           //&& R_4 < rel_rank (active, org_sq (m));
-           contains (front_rank_bb (active, rel_rank (active, R_4)) & pieces (PAWN), org_sq (m));
+    return contains (pieces (PAWN) & Space_bb[~active], org_sq (m));
 }
 
 inline PieceType Position::cap_type (Move m) const

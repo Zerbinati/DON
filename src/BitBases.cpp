@@ -10,7 +10,7 @@ namespace BitBases {
 
     namespace {
 
-        // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
+        // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
         constexpr u32 MaxIndex = 2*24*SQ_NO*SQ_NO; // stm * p_sq * wk_sq * bk_sq = 196608
 
         // Each u32 entity stores results of 32 positions, one per bit

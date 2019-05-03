@@ -1,7 +1,6 @@
 #ifndef _TYPE_H_INC_
 #define _TYPE_H_INC_
 
-#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cctype>
@@ -127,18 +126,9 @@ inline void prefetch (const void *addr)
 
 #   endif
 
-inline void prefetch2 (const void *addr)
-{
-    prefetch (addr);
-    prefetch ((const u08*)(addr)+64);
-}
-
 #else
 
 inline void prefetch (const void*)
-{}
-
-inline void prefetch2 (const void*)
 {}
 
 #endif
@@ -154,7 +144,7 @@ constexpr i16 DepthNone         = -6;
 constexpr i16 DepthEmpty        = -7;
 constexpr i16 MaxDepth          = 128; // Maximum Plies
 
-constexpr i16 MaxMoves          = 256;
+//constexpr i16 MaxMoves          = 256;
 
 enum Color : i08 { WHITE, BLACK, CLR_NO };
 

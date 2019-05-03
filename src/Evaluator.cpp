@@ -1,5 +1,6 @@
 #include "Evaluator.h"
 
+#include <algorithm>
 #include <ostream>
 #include "BitBoard.h"
 #include "Material.h"
@@ -246,14 +247,14 @@ namespace {
                           | pos.pieces (Opp, QUEN, KING)
                           | (  pos.pieces (Opp, PAWN)
                              & (  LowRanks_bb[Opp]
-                                | pawn_pushes_bb (Own, pos.pieces ()))));
+                                | pawn_sgl_pushes_bb (Own, pos.pieces ()))));
         mobility[Opp] = SCORE_ZERO;
 
         auto ek_sq = pos.square<KING> (Opp);
         king_ring[Opp] = PieceAttacks[KING][ek_sq];
         if (R_1 == rel_rank (Opp, ek_sq))
         {
-            king_ring[Opp] |= pawn_pushes_bb (Opp, king_ring[Opp]);
+            king_ring[Opp] |= pawn_sgl_pushes_bb (Opp, king_ring[Opp]);
         }
         if (F_H == _file (ek_sq))
         {
@@ -360,7 +361,7 @@ namespace {
             case BSHP:
             {
                 // Bonus for minor behind a pawn
-                if (contains (pawn_pushes_bb (Opp, pos.pieces (PAWN)), s))
+                if (contains (pawn_sgl_pushes_bb (Opp, pos.pieces (PAWN)), s))
                 {
                     score += MinorBehindPawn;
                 }
@@ -373,12 +374,12 @@ namespace {
                 // Bonus for knight outpost squares
                 if (contains (b, s))
                 {
-                    score += Outpost * (4 * (1 + (contains (sgl_attacks[Own][PAWN], s) ? 1 : 0)) / PT);
+                    score += Outpost * (4 * (contains (sgl_attacks[Own][PAWN], s) ? 2 : 1) / PT);
                 }
                 else
                 if (0 != (b &= attacks & ~pos.pieces (Own)))
                 {
-                    score += Outpost * (2 * (1 + (0 != (sgl_attacks[Own][PAWN] & b) ? 1 : 0)) / PT);
+                    score += Outpost * (2 * (0 != (sgl_attacks[Own][PAWN] & b) ? 2 : 1) / PT);
                 }
 
                 if (BSHP == PT)
@@ -387,7 +388,7 @@ namespace {
                     // more when the center files are blocked with pawns.
                     b = pos.pieces (Own, PAWN)
                       & Side_bb[CS_NO]
-                      & pawn_pushes_bb (Opp, pos.pieces ());
+                      & pawn_sgl_pushes_bb (Opp, pos.pieces ());
                     score -= BishopPawns
                            * (1 + pop_count (b))
                            * pos.same_color_pawn_count (Own, color (s));
@@ -784,9 +785,9 @@ namespace {
         b =  pos.pieces (Own, PAWN)
           & ~pos.si->king_blockers[Own];
         // Friend pawns push
-        b =  pawn_pushes_bb (Own, b)
+        b =  pawn_sgl_pushes_bb (Own, b)
           & ~pos.pieces ();
-        b |= pawn_pushes_bb (Own, b & rank_bb (rel_rank (Own, R_3)))
+        b |= pawn_sgl_pushes_bb (Own, b & rank_bb (rel_rank (Own, R_3)))
           & ~pos.pieces ();
         // Friend pawns push safe
         b &= safe_area
@@ -835,7 +836,7 @@ namespace {
         while (0 != psr)
         {
             auto s = pop_lsq (psr);
-            assert(0 == (pos.pieces (Opp, PAWN) & pawn_pushes_bb (Own, front_line_bb (Own, s))));
+            assert(0 == (pos.pieces (Opp, PAWN) & pawn_sgl_pushes_bb (Own, front_line_bb (Own, s))));
 
             i32 r = rel_rank (Own, s);
             // Base bonus depending on rank.
@@ -942,8 +943,8 @@ namespace {
 
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PAWN);
-        behind |= pawn_pushes_bb (Opp, behind);
-        behind |= pawn_pushes_bb (Opp, pawn_pushes_bb (Opp, behind));
+        behind |= pawn_sgl_pushes_bb (Opp, behind);
+        behind |= pawn_dbl_pushes_bb (Opp, behind);
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
         i32 weight = pos.count (Own) - (16 - pos.count (PAWN)) / 4;
         Score score = mk_score (bonus * weight * weight / 16, 0);
@@ -1008,8 +1009,7 @@ namespace {
         if (SCALE_NORMAL == scl)
         {
             return pos.opposite_bishops ()
-                && VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
-                && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
+                && pos.si->non_pawn_material () == 2 * VALUE_MG_BSHP ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
                     Scale(16 + 4 * pe->passed_count ()) :
                     std::min (Scale(40 + (pos.opposite_bishops () ? 2 : 7) * pos.count (color, PAWN)), SCALE_NORMAL);

@@ -243,11 +243,17 @@ namespace BitBoard {
         return (contains (Color_bb[WHITE], s1) == contains (Color_bb[BLACK], s2));
     }
 
-    constexpr Bitboard pawn_pushes_bb (Color c, Bitboard bb)
+    constexpr Bitboard pawn_sgl_pushes_bb (Color c, Bitboard bb)
     {
         return WHITE == c ?
                 shift<DEL_N> (bb) :
                 shift<DEL_S> (bb);
+    }
+    constexpr Bitboard pawn_dbl_pushes_bb (Color c, Bitboard bb)
+    {
+        return WHITE == c ?
+            shift<DEL_NN> (bb) :
+            shift<DEL_SS> (bb);
     }
     constexpr Bitboard pawn_l_attacks_bb (Color c, Bitboard bb)
     {
@@ -546,7 +552,7 @@ namespace BitBoard {
 
 #endif
 
-    // Find the square corresponding to the most/least advanced bit relative to the given color.
+    // Find the most/least advanced square in the given bitboard relative to the given color.
 
     inline Square scan_frntmost_sq (Color c, Bitboard bb)
     {

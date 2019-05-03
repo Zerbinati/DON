@@ -413,12 +413,10 @@ namespace Searcher {
             return (imp ? 2 : 1) * (5 + d * d) / 2;
         }
 
-        // Reductions[depth & move-count]
-        i16 Reductions[MaxMoves];
         template <bool PVNode>
         i16 reduction (bool imp, i16 d, u08 mc)
         {
-            i16 r = Reductions[d] * Reductions[mc] / 1024;
+            i16 r = 1024 * (d != 0 ? std::log (d) : 0) * (mc != 0 ? std::log (mc) : 0) / 1.95;
             return ((r + 512) / 1024 + (!imp && r > 1024 ? 1 : 0) - (PVNode ? 1 : 0));
         }
 
@@ -1710,12 +1708,6 @@ namespace Searcher {
     void initialize ()
     {
         srand ((unsigned int)(time (NULL)));
-
-        Reductions[0] = 0;
-        for (i16 i = 1; i < MaxMoves; ++i)
-        {
-            Reductions[i] = i16(1024 * std::log (i) / std::sqrt (1.95));
-        }
     }
     /// clear() resets search state to its initial value.
     void clear ()
