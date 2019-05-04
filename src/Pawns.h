@@ -6,7 +6,7 @@
 
 namespace Pawns {
 
-    const i08 MaxCache = 4;
+    constexpr u08 MaxCache = 4;
     /// Pawns::Entry contains various information about a pawn structure.
     struct Entry
     {
@@ -18,7 +18,6 @@ namespace Pawns {
         Bitboard dbl_attacks[CLR_NO];
         Bitboard attack_span[CLR_NO];
         Bitboard passers[CLR_NO];
-
         i32      weak_unopposed_count[CLR_NO];
 
         u08      index[CLR_NO];

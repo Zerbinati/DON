@@ -198,8 +198,7 @@ public:
 
     //i32 diff (PieceType) const;
 
-    template<PieceType>
-    Square square (Color, u08 = 0) const;
+    Square square (Piece, u08 = 0) const;
 
     Key pg_key () const;
     Key posi_move_key (Move) const;
@@ -352,12 +351,11 @@ inline i32 Position::same_color_pawn_count (Color c, Color s) const
 //         - count (BLACK, pt);
 //}
 
-template<PieceType PT>
-inline Square Position::square (Color c, u08 index) const
+inline Square Position::square (Piece pc, u08 index) const
 {
-    static_assert (_ok (PT), "PT incorrect");
-    assert(squares[c|PT].size () > index);
-    return *std::next (squares[c|PT].begin (), index);
+    assert (_ok (pc));
+    assert(squares[pc].size () > index);
+    return *std::next (squares[pc].begin (), index);
 }
 
 inline Key Position::pg_key () const
@@ -562,7 +560,7 @@ inline bool Position::opposite_bishops () const
 {
     return 1 == count (WHITE, BSHP)
         && 1 == count (BLACK, BSHP)
-        && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
+        && opposite_colors (square (WHITE|BSHP), square (BLACK|BSHP));
 }
 inline bool Position::file_semiopen (Color c, File f) const
 {
@@ -624,15 +622,15 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), BLACK, 0, king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), WHITE, 0, king_checkers[BLACK], king_checkers[WHITE]);
-    assert(/*0 == (king_blockers[WHITE] & pos.pieces (BLACK, QUEN)) &&*/ (attacks_bb<QUEN> (pos.square<KING> (WHITE), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
-    assert(/*0 == (king_blockers[BLACK] & pos.pieces (WHITE, QUEN)) &&*/ (attacks_bb<QUEN> (pos.square<KING> (BLACK), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
+    king_blockers[WHITE] = pos.slider_blockers (pos.square (WHITE|KING), BLACK, 0, king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers (pos.square (BLACK|KING), WHITE, 0, king_checkers[BLACK], king_checkers[WHITE]);
+    assert(/*0 == (king_blockers[WHITE] & pos.pieces (BLACK, QUEN)) &&*/ (attacks_bb<QUEN> (pos.square (WHITE|KING), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
+    assert(/*0 == (king_blockers[BLACK] & pos.pieces (WHITE, QUEN)) &&*/ (attacks_bb<QUEN> (pos.square (BLACK|KING), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
 
-    checks[PAWN] = PawnAttacks[~pos.active][pos.square<KING> (~pos.active)];
-    checks[NIHT] = PieceAttacks[NIHT][pos.square<KING> (~pos.active)];
-    checks[BSHP] = attacks_bb<BSHP> (pos.square<KING> (~pos.active), pos.pieces ());
-    checks[ROOK] = attacks_bb<ROOK> (pos.square<KING> (~pos.active), pos.pieces ());
+    checks[PAWN] = PawnAttacks[~pos.active][pos.square (~pos.active|KING)];
+    checks[NIHT] = PieceAttacks[NIHT][pos.square (~pos.active|KING)];
+    checks[BSHP] = attacks_bb<BSHP> (pos.square (~pos.active|KING), pos.pieces ());
+    checks[ROOK] = attacks_bb<ROOK> (pos.square (~pos.active|KING), pos.pieces ());
     checks[QUEN] = checks[BSHP] | checks[ROOK];
     checks[KING] = 0;
 }

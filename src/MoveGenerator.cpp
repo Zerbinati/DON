@@ -42,7 +42,7 @@ namespace {
     template<GenType GT>
     void generate_promotion_moves (ValMoves &moves, const Position &pos, Bitboard promotion, Delta del)
     {
-        auto ek_sq = pos.square<KING> (~pos.active);
+        auto ek_sq = pos.square (~pos.active|KING);
         while (0 != promotion)
         {
             auto dst = pop_lsq (promotion);
@@ -145,7 +145,7 @@ namespace {
                     }
                     break;
                 case GenType::CHECK:
-                    if (//!contains (PawnAttacks[pos.active][pos.si->enpassant_sq], pos.square<KING> (~pos.active))
+                    if (//!contains (PawnAttacks[pos.active][pos.si->enpassant_sq], pos.square (~pos.active|KING))
                         !contains (pos.si->checks[PAWN], pos.si->enpassant_sq))
                     {
                         // En-passant pawns which give discovered check
@@ -204,7 +204,7 @@ namespace {
                 // Note that a possible discovery check promotion has been already generated among captures.
                 Bitboard dsc_pawns = Rx_pawns
                                    & pos.si->king_blockers[~pos.active]
-                                   & ~file_bb (pos.square<KING> (~pos.active));
+                                   & ~file_bb (pos.square (~pos.active|KING));
                 if (0 != dsc_pawns)
                 {
                     Bitboard dc_pushs_1 = empties & pawn_sgl_pushes_bb (pos.active, dsc_pawns);
@@ -228,7 +228,7 @@ namespace {
     template<GenType GT>
     void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        auto fk_sq = pos.square<KING> (pos.active);
+        auto fk_sq = pos.square (pos.active|KING);
         Bitboard attacks = PieceAttacks[KING][fk_sq] & targets;
         while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
 
@@ -295,7 +295,7 @@ template<> void generate<GenType::EVASION> (ValMoves &moves, const Position &pos
         && 2 >= pop_count (pos.si->checkers));
 
     moves.clear ();
-    auto fk_sq = pos.square<KING> (pos.active);
+    auto fk_sq = pos.square (pos.active|KING);
     Bitboard checks = 0;
     Bitboard ex_checkers = pos.si->checkers & ~pos.pieces (NIHT, PAWN);
     // Squares attacked by slide checkers will remove them from the king evasions
@@ -340,7 +340,7 @@ template<> void generate<GenType::CHECK> (ValMoves &moves, const Position &pos)
         Bitboard attacks = pos.attacks_from (org) & targets;
         if (KING == ptype (pos[org]))
         {
-            attacks &= ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)];
+            attacks &= ~PieceAttacks[QUEN][pos.square (~pos.active|KING)];
         }
         while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
     }
@@ -364,7 +364,7 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
         Bitboard attacks = pos.attacks_from (org) & targets;
         if (KING == ptype (pos[org]))
         {
-            attacks &= ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)];
+            attacks &= ~PieceAttacks[QUEN][pos.square (~pos.active|KING)];
         }
         while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
     }
@@ -388,7 +388,7 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                                  [&pos] (const ValMove &vm)
                                  {
                                      return (   ENPASSANT == mtype (vm)
-                                             || contains (pos.si->king_blockers[pos.active] | pos.square<KING> (pos.active), org_sq (vm)))
+                                             || contains (pos.si->king_blockers[pos.active] | pos.square (pos.active|KING), org_sq (vm)))
                                          && !pos.legal (vm);
                                  }),
                  moves.end ());
@@ -410,7 +410,7 @@ void Perft::classify (Position &pos, Move m)
         ++any_check;
         if (!contains (pos.si->checks[PROMOTE != mtype (m) ? ptype (pos[org_sq (m)]) : ::promote (m)], dst_sq (m)))
         {
-            auto ek_sq = pos.square<KING> (~pos.active);
+            auto ek_sq = pos.square (~pos.active|KING);
             if (   contains (pos.si->king_blockers[~pos.active], org_sq (m))
                 && !sqrs_aligned (org_sq (m), dst_sq (m), ek_sq))
             {

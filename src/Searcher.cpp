@@ -147,7 +147,7 @@ namespace Searcher {
                     std::swap (*itr, *std::max_element (itr, moves.end ()));
                     if (   tt_move != itr->move
                         && (   (   ENPASSANT != mtype (itr->move)
-                                && !contains (pos.si->king_blockers[pos.active] | pos.square<KING> (pos.active), org_sq (itr->move)))
+                                && !contains (pos.si->king_blockers[pos.active] | pos.square (pos.active|KING), org_sq (itr->move)))
                             || pos.legal (itr->move))
                         && filter ())
                     {
@@ -1340,7 +1340,7 @@ namespace Searcher {
                     || (   gives_check
                         && (   pos.exchange (move) >= VALUE_ZERO
                             || (   contains (pos.si->king_blockers[~pos.active], org)
-                                && (   !contains (PieceAttacks[KING][pos.square<KING> (~pos.active)], dst)
+                                && (   !contains (PieceAttacks[KING][pos.square (~pos.active|KING)], dst)
                                     || 0 != (pos.attackers_to (dst) & pos.pieces (pos.active) & ~square_bb (org))))
                             || pos.see_ge (move)))
                     // Shuffle extension

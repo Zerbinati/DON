@@ -214,7 +214,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto fk_sq = pos.square<KING> (Own);
+        auto fk_sq = pos.square (Own|KING);
 
         Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
         if (0 != pinned_pawns)
@@ -250,7 +250,7 @@ namespace {
                                 | pawn_sgl_pushes_bb (Own, pos.pieces ()))));
         mobility[Opp] = SCORE_ZERO;
 
-        auto ek_sq = pos.square<KING> (Opp);
+        auto ek_sq = pos.square (Opp|KING);
         king_ring[Opp] = PieceAttacks[KING][ek_sq];
         if (R_1 == rel_rank (Opp, ek_sq))
         {
@@ -304,7 +304,7 @@ namespace {
 
             if (contains (pos.si->king_blockers[Own], s))
             {
-                attacks &= line_bb (pos.square<KING> (Own), s);
+                attacks &= line_bb (pos.square (Own|KING), s);
             }
 
             switch (PT)
@@ -367,7 +367,7 @@ namespace {
                 }
 
                 // Penalty for distance from the friend king
-                score -= MinorKingProtect * dist (s, pos.square<KING> (Own));
+                score -= MinorKingProtect * dist (s, pos.square (Own|KING));
 
                 b = Outposts_bb[Own]
                   & ~pe->attack_span[Opp];
@@ -439,7 +439,7 @@ namespace {
                 if (   3 >= mob
                     && R_5 > rel_rank (Own, s))
                 {
-                    auto kf = _file (pos.square<KING> (Own));
+                    auto kf = _file (pos.square (Own|KING));
                     if ((kf < F_E) == (_file (s) < kf))
                     {
                         score -= RookTrapped * (CR_NONE != pos.si->castle_right (Own) ? 1 : 2);
@@ -480,7 +480,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto fk_sq = pos.square<KING> (Own);
+        auto fk_sq = pos.square (Own|KING);
 
         // King Safety: friend pawns shelter and enemy pawns storm
         u08 index = pe->king_safety_on<Own> (pos, fk_sq);
@@ -828,7 +828,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto king_proximity = [&](Color c, Square s) { return std::min (dist (pos.square<KING> (c), s), 5); };
+        auto king_proximity = [&](Color c, Square s) { return std::min (dist (pos.square (c|KING), s), 5); };
 
         Score score = SCORE_ZERO;
 
@@ -967,8 +967,8 @@ namespace {
         i32 complexity =   9 * pe->passed_count ()
                        +  11 * pos.count (PAWN)
                         // Outflanking
-                       +   9 * (  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
-                                - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK)))
+                       +   9 * (  dist<File> (pos.square (WHITE|KING), pos.square (BLACK|KING))
+                                - dist<Rank> (pos.square (WHITE|KING), pos.square (BLACK|KING)))
                        - 103;
         // Pawn on both flanks
         if (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
