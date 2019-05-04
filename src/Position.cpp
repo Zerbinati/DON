@@ -22,7 +22,7 @@ namespace {
         auto npm = VALUE_ZERO;
         for (const auto &pt : { NIHT, BSHP, ROOK, QUEN })
         {
-            npm += PieceValues[MG][pt] * pos.count (Own, pt);
+            npm += PieceValues[MG][pt] * pos.count (Own|pt);
         }
         return npm;
     }
@@ -781,8 +781,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th)
             assert(false);
         }
     }
-    assert(1 == count (WHITE, KING)
-        && 1 == count (BLACK, KING));
+    assert(1 == count (WHITE|KING)
+        && 1 == count (BLACK|KING));
 
     // 2. Active color
     iss >> token;
@@ -986,7 +986,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             si->clock_ply = 0;
             remove_piece (cap, pasive|si->capture);
             key ^= RandZob.piece_square[pasive][si->capture][cap];
-            si->matl_key ^= RandZob.piece_square[pasive][si->capture][count (pasive, si->capture)];
+            si->matl_key ^= RandZob.piece_square[pasive][si->capture][count (pasive|si->capture)];
             prefetch (thread->matl_table[si->matl_key]);
         }
 
@@ -1035,8 +1035,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             key ^= RandZob.piece_square[active][PAWN][dst]
                  ^ RandZob.piece_square[active][si->promote][dst];
             si->pawn_key ^= RandZob.piece_square[active][PAWN][dst];
-            si->matl_key ^= RandZob.piece_square[active][PAWN][count (active, PAWN)]
-                          ^ RandZob.piece_square[active][si->promote][count (active, si->promote) - 1];
+            si->matl_key ^= RandZob.piece_square[active][PAWN][count (active|PAWN)]
+                          ^ RandZob.piece_square[active][si->promote][count (active|si->promote) - 1];
             prefetch (thread->matl_table[si->matl_key]);
         }
         else
@@ -1417,14 +1417,14 @@ bool Position::ok () const
         if (   count (c) > 16
             || count (c) != pop_count (pieces (c))
             || 1 != std::count (piece, piece + SQ_NO, (c|KING))
-            || 1 != count (c, KING)
+            || 1 != count (c|KING)
             || !_ok (square (c|KING))
             || piece[square (c|KING)] != (c|KING)
-            || (           (count (c, PAWN)
-                + std::max (count (c, NIHT)-2, 0)
-                + std::max (count (c, BSHP)-2, 0)
-                + std::max (count (c, ROOK)-2, 0)
-                + std::max (count (c, QUEN)-1, 0)) > 8))
+            || (           (count (c|PAWN)
+                + std::max (count (c|NIHT)-2, 0)
+                + std::max (count (c|BSHP)-2, 0)
+                + std::max (count (c|ROOK)-2, 0)
+                + std::max (count (c|QUEN)-1, 0)) > 8))
         {
             assert(false && "Position OK: BASIC");
             return false;

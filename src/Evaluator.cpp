@@ -1013,7 +1013,7 @@ namespace {
                 && pos.si->non_pawn_material () == 2 * VALUE_MG_BSHP ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
                     Scale(16 + 4 * pe->passed_count ()) :
-                    std::min (Scale(40 + (pos.opposite_bishops () ? 2 : 7) * pos.count (color, PAWN)), SCALE_NORMAL);
+                    std::min (Scale(40 + (pos.opposite_bishops () ? 2 : 7) * pos.count (color|PAWN)), SCALE_NORMAL);
         }
         return scl;
     }

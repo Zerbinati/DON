@@ -155,18 +155,18 @@ namespace Material {
         for (const auto &c : { WHITE, BLACK })
         {
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_BSHP
-                //&& pos.count ( c, BSHP) == 1
-                && pos.count ( c, PAWN) != 0)
+                //&& pos.count ( c|BSHP) == 1
+                && pos.count ( c|PAWN) != 0)
             {
                 e->scale_func[c] = &ScaleKBPsKP[c];
             }
             else
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_QUEN
-                //&& pos.count ( c, QUEN) == 1
-                && pos.count ( c, PAWN) == 0
+                //&& pos.count ( c|QUEN) == 1
+                && pos.count ( c|PAWN) == 0
                 && pos.si->non_pawn_material (~c) == VALUE_MG_ROOK
-                //&& pos.count (~c, ROOK) == 1
-                && pos.count (~c, PAWN) != 0)
+                //&& pos.count (~c|ROOK) == 1
+                && pos.count (~c|PAWN) != 0)
             {
                 e->scale_func[c] = &ScaleKQKRPs[c];
             }
@@ -174,7 +174,7 @@ namespace Material {
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
-            if (   pos.count (c, PAWN) == 0
+            if (   pos.count ( c|PAWN) == 0
                 && abs (  pos.si->non_pawn_material ( c)
                         - pos.si->non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {
@@ -190,18 +190,18 @@ namespace Material {
         {
             if (pos.pieces (BLACK, PAWN) == 0)
             {
-                assert(2 <= pos.count (WHITE, PAWN));
+                assert(2 <= pos.count (WHITE|PAWN));
                 e->scale_func[WHITE] = &ScaleKPsK[WHITE];
             }
             else
             if (pos.pieces (WHITE, PAWN) == 0)
             {
-                assert(2 <= pos.count (BLACK, PAWN));
+                assert(2 <= pos.count (BLACK|PAWN));
                 e->scale_func[BLACK] = &ScaleKPsK[BLACK];
             }
             else
-            if (   pos.count (WHITE, PAWN) == 1
-                && pos.count (BLACK, PAWN) == 1)
+            if (   pos.count (WHITE|PAWN) == 1
+                && pos.count (BLACK|PAWN) == 1)
             {
                 e->scale_func[WHITE] = &ScaleKPKP[WHITE];
                 e->scale_func[BLACK] = &ScaleKPKP[BLACK];
@@ -214,14 +214,20 @@ namespace Material {
         i32 piece_count[CLR_NO][NONE] =
         {
             {
-                pos.count (WHITE, PAWN), pos.count (WHITE, NIHT),
-                pos.count (WHITE, BSHP), pos.count (WHITE, ROOK),
-                pos.count (WHITE, QUEN), pos.paired_bishop (WHITE) ? 1 : 0
+                pos.count (WHITE|PAWN),
+                pos.count (WHITE|NIHT),
+                pos.count (WHITE|BSHP),
+                pos.count (WHITE|ROOK),
+                pos.count (WHITE|QUEN),
+                pos.paired_bishop (WHITE) ? 1 : 0
             },
             {
-                pos.count (BLACK, PAWN), pos.count (BLACK, NIHT),
-                pos.count (BLACK, BSHP), pos.count (BLACK, ROOK),
-                pos.count (BLACK, QUEN), pos.paired_bishop (BLACK) ? 1 : 0
+                pos.count (BLACK|PAWN),
+                pos.count (BLACK|NIHT),
+                pos.count (BLACK|BSHP),
+                pos.count (BLACK|ROOK),
+                pos.count (BLACK|QUEN),
+                pos.paired_bishop (BLACK) ? 1 : 0
             }
         };
 

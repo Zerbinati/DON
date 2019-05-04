@@ -480,12 +480,12 @@ namespace TBSyzygy {
             
             // Set the leading color. In case both sides have pawns the leading color
             // is the side with less pawns because this leads to better compression.
-            auto lead_color = pos.count (BLACK, PAWN) == 0
-                           || (   pos.count (WHITE, PAWN) != 0
-                               && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
+            auto lead_color = pos.count (BLACK|PAWN) == 0
+                           || (   pos.count (WHITE|PAWN) != 0
+                               && pos.count (BLACK|PAWN) >= pos.count (WHITE|PAWN)) ? WHITE : BLACK;
 
-            pawn_count[0] = u08(pos.count ( lead_color, PAWN));
-            pawn_count[1] = u08(pos.count (~lead_color, PAWN));
+            pawn_count[0] = u08(pos.count ( lead_color|PAWN));
+            pawn_count[1] = u08(pos.count (~lead_color|PAWN));
 
             key2 = pos.setup (code, BLACK, si).si->matl_key;
         }
@@ -1372,8 +1372,8 @@ namespace TBSyzygy {
             string w, b;
             for (const auto &pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
             {
-                w += string(pos.count (WHITE, pt), PieceChar[pt]);
-                b += string(pos.count (BLACK, pt), PieceChar[pt]);
+                w += string(pos.count (WHITE|pt), PieceChar[pt]);
+                b += string(pos.count (BLACK|pt), PieceChar[pt]);
             }
 
             string code = e.key1 == pos.si->matl_key ? w + b : b + w;
