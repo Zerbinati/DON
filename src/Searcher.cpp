@@ -880,7 +880,7 @@ namespace Searcher {
             // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
             // Later grandchildren start with the last calculated stats of the previous grandchild.
             // This influences the reduction rules in LMR which are based on the stats of parent position.
-            (ss+2)->stats = 0;
+            (ss+(root_node ? 4 : 2))->stats = 0;
 
             // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
@@ -1425,8 +1425,9 @@ namespace Searcher {
                 // If the move fails high will be re-searched at full depth.
                 if (   2 < depth
                     && 1 < move_count
-                    && (   move_picker.skip_quiets
-                        || !capture_or_promotion))
+                    && (  !capture_or_promotion
+                        || move_picker.skip_quiets
+                        || ss->static_eval + PieceValues[EG][std::min (pos.si->capture, pos.si->promote)] <= alfa))
                 {
                     i16 reduct_depth = reduction<PVNode> (improving, depth, move_count);
 
