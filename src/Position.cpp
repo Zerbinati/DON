@@ -158,19 +158,28 @@ bool Position::cycled (i16 pp) const
         if (   (j = H1 (key), key == Cuckoos[j].key)
             || (j = H2 (key), key == Cuckoos[j].key))
         {
-            if (0 == (between_bb (org_sq (Cuckoos[j].move), dst_sq (Cuckoos[j].move)) & pieces()))
+            auto org = org_sq (Cuckoos[j].move);
+            auto dst = dst_sq (Cuckoos[j].move);
+            if (0 == (between_bb (org, dst) & pieces()))
             {
-                //// In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
-                //// Select the legal one by reversing the move variable if necessary.
-                //if (empty (org))
-                //{
-                //    std::swap (org, dst);
-                //}
-
                 if (pp > p)
                 {
                     return true;
                 }
+
+                // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
+                // Select the legal one by reversing the move variable if necessary.
+                if (empty (org))
+                {
+                    std::swap (org, dst);
+                }
+                // For nodes before or at the root, check that the move is a repetition one
+                // rather than a move to the current position
+                if (color (piece[org]) != active)
+                {
+                    continue;
+                }
+
                 // For repetitions before or at the root, require one more
                 const auto *next_psi = psi;
                 for (i16 k = p + 2; k <= end; k += 2)

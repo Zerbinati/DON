@@ -413,11 +413,10 @@ namespace Searcher {
             return (imp ? 2 : 1) * (5 + d * d) / 2;
         }
 
-        template <bool PVNode>
         i16 reduction (bool imp, i16 d, u08 mc)
         {
-            i16 r = 1024 * (d != 0 ? std::log (d) : 0) * (mc != 0 ? std::log (mc) : 0) / 1.95;
-            return ((r + 512) / 1024 + (!imp && r > 1024 ? 1 : 0) - (PVNode ? 1 : 0));
+            i16 r = 525.13 * (d != 0 ? std::log (d) : 0) * (mc != 0 ? std::log (mc) : 0);
+            return (r + 512) / 1024 + (!imp && r > 1024 ? 1 : 0);
         }
 
         i32 BasicContempt = 0;
@@ -1375,7 +1374,7 @@ namespace Searcher {
                         }
 
                         // Reduced depth of the next LMR search.
-                        i16 lmr_depth = i16(std::max (new_depth - reduction<PVNode> (improving, depth, move_count), 0));
+                        i16 lmr_depth = i16(std::max (new_depth - reduction (improving, depth, move_count), 0));
                         // Countermoves based pruning: (~20 ELO)
                         if (   ((0 < (ss-1)->stats || 1 == (ss-1)->move_count) ? 4 : 3) > lmr_depth
                             && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
@@ -1424,17 +1423,17 @@ namespace Searcher {
                 // Step 16. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
                 if (   2 < depth
-                    && 1 < move_count
+                    && (root_node ? 4 : 1) < move_count
                     && (  !capture_or_promotion
                         || move_picker.skip_quiets
                         || ss->static_eval + PieceValues[EG][std::min (pos.si->capture, pos.si->promote)] <= alfa))
                 {
-                    i16 reduct_depth = reduction<PVNode> (improving, depth, move_count);
+                    i16 reduct_depth = reduction (improving, depth, move_count);
 
                     // Decrease reduction if position is or has been on the PV
                     if (tt_pv)
                     {
-                        reduct_depth -= 1;
+                        reduct_depth -= 2;
                     }
 
                     // Decrease reduction if opponent's move count is high (~10 Elo)
@@ -1864,10 +1863,7 @@ void Thread::search ()
                     beta = (alfa + beta) / 2;
                     alfa = std::max (best_value - window, -VALUE_INFINITE);
 
-                    if (0 != failed_high_count)
-                    {
-                        failed_high_count = 0;
-                    }
+                    failed_high_count = 0;
                     if (nullptr != main_thread)
                     {
                         main_thread->stop_on_ponderhit = false;
