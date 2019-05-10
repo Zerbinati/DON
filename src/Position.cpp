@@ -168,7 +168,7 @@ bool Position::cycled (i16 pp) const
                 }
 
                 // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
-                // Select the legal one by reversing the move variable if necessary.
+                // Select the legal one by swaping if necessary.
                 if (empty (org))
                 {
                     std::swap (org, dst);
@@ -599,7 +599,7 @@ bool Position::see_ge (Move m, Value threshold) const
 {
     assert(_ok (m));
 
-    // Only deal with normal and enpassant moves, assume others pass a simple see
+    // Only deal with normal and enpassant moves, assume others pass a simple SEE
     if (   CASTLE == mtype (m)
         || PROMOTE == mtype (m))
     {

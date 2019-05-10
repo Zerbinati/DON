@@ -1465,7 +1465,7 @@ namespace TBSyzygy {
             // the state of probe_wdl_table is wrong. Also in case of only capture
             // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
             // return with ZEROING_BEST_MOVE set.
-            bool completed = (   0 != move_list.size ()
+            bool completed = (   0 != move_count
                               && move_count == move_list.size ());
 
             WDLScore wdl;
@@ -1685,7 +1685,7 @@ namespace TBSyzygy {
             // Calculate dtz for the current move counting from the root position
             if (0 == root_pos.si->clock_ply)
             {
-                // In case of a zeroing move, dtz is one of -101/-1/0/1/101
+                // In case of a zeroing move, dtz is one of -101/-1/0/+1/+101
                 WDLScore wdl = -probe_wdl (root_pos, state);
                 dtz = dtz_before_zeroing (wdl);
             }
