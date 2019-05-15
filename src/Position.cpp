@@ -103,37 +103,19 @@ void Position::initialize ()
 /// It does not detect Insufficient materials and Stalemate.
 bool Position::draw (i16 pp) const
 {
-    // Draw by Clock Ply Rule?
-    // Not in check or in check have legal moves
-    if (   si->clock_ply >= 2*i32(Options["Draw MoveCount"])
-        && (   0 == si->checkers
-            || 0 != MoveList<GenType::LEGAL> (*this).size ()))
-    {
-        return true;
-    }
-
-    // Draw by Repetition?
-    i16 end = std::min (si->clock_ply, si->null_ply);
-    if (end < 4)
-    {
-        return false;
-    }
-    const auto *psi = si->ptr->ptr;
-    for (i16 cnt = 0, p = 4; p <= end; p += 2)
-    {
-        psi = psi->ptr->ptr;
-        if (psi->posi_key == si->posi_key)
-        {
-            // Draw on
-            // - Repeats once earlier but strictly after the root,
-            // - Repeats twice before or at the root.
-            if (2 == ++cnt + (pp > p ? 1 : 0))
-            {
-                return true;
-            }
-        }
-    }
-    return false;
+    return 
+            // Draw by Clock Ply Rule?
+            // Not in check or in check have legal moves
+           (   si->clock_ply >= 2*i32(Options["Draw MoveCount"])
+            && (   0 == si->checkers
+                || 0 != MoveList<GenType::LEGAL> (*this).size ()))
+            // Draw by Repetition?
+            // Return a draw score if a position repeats once earlier but strictly
+            // after the root, or repeats twice before or at the root.
+        || (   0 != si->repetition
+            && si->repetition < pp) ?
+            true :
+            false;
 }
 
 /// Position::cycled() tests if the position has a move which draws by repetition,
@@ -1085,6 +1067,25 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     si->set_check_info (*this);
 
+    // Calculate the repetition info. It is the ply distance from the previous
+    // occurrence of the same position, negative in the 3-fold case, or zero
+    // if the position was not repeated.
+    si->repetition = 0;
+    i16 end = std::min (si->clock_ply, si->null_ply);
+    if (end >= 4)
+    {
+        auto* psi = si->ptr->ptr;
+        for (i16 i = 4; i <= end; i += 2)
+        {
+            psi = psi->ptr->ptr;
+            if (psi->posi_key == si->posi_key)
+            {
+                si->repetition = 0 != psi->repetition ? -i : i;
+                break;
+            }
+        }
+    }
+
     assert(ok ());
 }
 /// Position::undo_move() unmakes a move, and restores the position to exactly the same state as before the move was made.
@@ -1186,6 +1187,8 @@ void Position::do_null_move (StateInfo &nsi)
     prefetch (TT.cluster (si->posi_key)->entries);
 
     si->set_check_info (*this);
+    
+    si->repetition = 0;
 
     assert(ok ());
 }

@@ -76,6 +76,7 @@ public:
     i16         null_ply;
 
     // ---Not copied when making a move---
+    i16         repetition;
     Key         posi_key;       // Hash key of position
     PieceType   capture;        // Piece type captured
     PieceType   promote;        // Piece type promoted
