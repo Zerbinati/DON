@@ -37,11 +37,11 @@ public:
     Move  move       () const { return Move (m16); }
     Value value      () const { return Value(v16); }
     Value eval       () const { return Value(e16); }
-    i16   depth      () const { return i16  (d08 + DepthNone); }
+    i16   depth      () const { return i16  (d08 + DepthEmpty); }
     u08   generation () const { return u08  (g08 & 0xF8); }
     bool  is_pv      () const { return 0 != (g08 & 0x04); }
     Bound bound      () const { return Bound(g08 & 0x03); }
-    bool  empty      () const { return d08 == DepthEmpty; }
+    bool  empty      () const { return 0 == d08; }
     // Due to packed storage format for generation and its cyclic nature
     // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
     // to calculate the entry age correctly even after generation overflows into the next cycle.
@@ -64,8 +64,8 @@ public:
             k16 = u16(k >> 0x30);
             v16 = i16(v);
             e16 = i16(e);
-            assert((d - DepthNone) >= 0);
-            d08 = u08(d - DepthNone);
+            assert((d - DepthEmpty) > 0);
+            d08 = u08(d - DepthEmpty);
             g08 = u08(Generation | pv | b);
         }
         assert(!empty ());
@@ -84,9 +84,6 @@ class TCluster
 public:
     // Cluster entry count
     static constexpr u08 EntryCount = 3;
-    static TCluster Empty;
-
-    static void initialize ();
 
     TEntry entries[EntryCount];
     char padding[2]; // Align to a divisor of the cache line size

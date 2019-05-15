@@ -205,8 +205,8 @@ public:
 
     i16  move_num () const;
     bool draw (i16) const;
-    bool cycled (i16) const;
     bool repeated () const;
+    bool cycled (i16) const;
 
     Bitboard attackers_to (Square, Bitboard) const;
     Bitboard attackers_to (Square) const;

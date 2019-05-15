@@ -12,17 +12,6 @@ using namespace std;
 
 u08 TEntry::Generation;
 
-TCluster TCluster::Empty;
-
-void TCluster::initialize ()
-{
-    std::memset (&Empty, 0x00, sizeof (Empty));
-    for (auto *ite = Empty.entries; ite < Empty.entries + EntryCount; ++ite)
-    {
-        ite->d08 = DepthEmpty;
-    }
-}
-
 TEntry* TCluster::probe (u16 key16, bool &hit)
 {
     // Find an entry to be replaced according to the replacement strategy.
@@ -47,7 +36,7 @@ TEntry* TCluster::probe (u16 key16, bool &hit)
 
 void TCluster::clear ()
 {
-    std::memcpy (this, &Empty, sizeof (*this));
+    std::memset (this, 0, sizeof (*this));
 }
 
 size_t TCluster::fresh_entry_count () const
@@ -179,10 +168,7 @@ void TTable::clear ()
                                             size_t count = idx != thread_count - 1 ?
                                                             stride :
                                                             cluster_count - idx * stride;
-                                            for (auto *itc = pcluster; itc < pcluster + count; ++itc)
-                                            {
-                                                itc->clear ();
-                                            }
+                                            std::memset (pcluster, 0, count * sizeof (TCluster));
                                         }));
     }
     for (auto &th : threads)

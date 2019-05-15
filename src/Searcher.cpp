@@ -1834,13 +1834,13 @@ void Thread::search ()
                 }
             }
 
-            i16 failed_high_count = 0;
+            i16 fail_high_count = 0;
 
             // Start with a small aspiration window and, in case of fail high/low,
             // research with bigger window until not failing high/low anymore.
             do
             {
-                i16 adjusted_depth = i16(std::max (root_depth - failed_high_count, 1));
+                i16 adjusted_depth = i16(std::max (root_depth - fail_high_count, 1));
                 best_value = depth_search<true> (root_pos, stacks+7, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -1873,7 +1873,7 @@ void Thread::search ()
                     beta = (alfa + beta) / 2;
                     alfa = std::max (best_value - window, -VALUE_INFINITE);
 
-                    failed_high_count = 0;
+                    fail_high_count = 0;
                     if (nullptr != main_thread)
                     {
                         main_thread->stop_on_ponderhit = false;
@@ -1886,14 +1886,14 @@ void Thread::search ()
                     // NOTE:: Don't change alfa = (alfa + beta) / 2
                     beta = std::min (best_value + window, +VALUE_INFINITE);
 
-                    ++failed_high_count;
+                    ++fail_high_count;
                 }
                 // Otherwise exit the loop.
                 else
                 {
-                    if (0 != failed_high_count)
+                    if (0 != fail_high_count)
                     {
-                        failed_high_count = 0;
+                        fail_high_count = 0;
                         continue;
                     }
                     break;

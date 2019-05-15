@@ -12,7 +12,7 @@ namespace Pawns {
     namespace {
 
         // Connected pawn bonus
-        constexpr i32 Connected[R_NO] = { 0, 13, 17, 24, 59, 96, 171, 0 };
+        constexpr i32 Connected[R_NO] = { 0, 7, 8, 12, 29, 48, 86, 0 };
 
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
@@ -122,8 +122,8 @@ namespace Pawns {
 
                 if (0 != (supporters | phalanxes))
                 {
-                    i32 v = 17 * pop_count (supporters)
-                          + (((0 != phalanxes ? 3 : 2) * Connected[r]) >> (opposed ? 2 : 1));
+                    i32 v = Connected[r] * (phalanxes ? 3 : 2) / (opposed ? 2 : 1)
+                          + 17 * pop_count (supporters);
                     score += mk_score (v, v * (r - R_3) / 4);
                 }
                 else

@@ -118,6 +118,22 @@ bool Position::draw (i16 pp) const
             false;
 }
 
+/// Position::repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
+bool Position::repeated () const
+{
+    const auto* psi = si;
+    i16 end = std::min (psi->clock_ply, psi->null_ply);
+    while (end-- >= 4)
+    {
+        if (0 != psi->repetition)
+        {
+            return true;
+        }
+        psi = psi->ptr;
+    }
+    return false;
+}
+
 /// Position::cycled() tests if the position has a move which draws by repetition,
 /// or an earlier position has a move that directly reaches the current position.
 bool Position::cycled (i16 pp) const
@@ -161,44 +177,13 @@ bool Position::cycled (i16 pp) const
                 {
                     continue;
                 }
-
                 // For repetitions before or at the root, require one more
-                const auto *next_psi = psi;
-                for (i16 k = p + 2; k <= end; k += 2)
+                if (0 != psi->repetition)
                 {
-                    next_psi = next_psi->ptr->ptr;
-                    if (next_psi->posi_key == psi->posi_key)
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
         }
-    }
-    return false;
-}
-
-/// Position::repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
-bool Position::repeated () const
-{
-    const auto *csi = si;
-    while (nullptr != csi)
-    {
-        i16 end = std::min (csi->clock_ply, csi->null_ply);
-        if (end < 4)
-        {
-            break;
-        }
-        const auto *psi = csi->ptr->ptr;
-        for (i16 p = 4; p <= end; p += 2)
-        {
-            psi = psi->ptr->ptr;
-            if (psi->posi_key == si->posi_key)
-            {
-                return true; // Return first repetition
-            }
-        }
-        csi = csi->ptr;
     }
     return false;
 }
@@ -1074,7 +1059,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     i16 end = std::min (si->clock_ply, si->null_ply);
     if (end >= 4)
     {
-        auto* psi = si->ptr->ptr;
+        const auto* psi = si->ptr->ptr;
         for (i16 i = 4; i <= end; i += 2)
         {
             psi = psi->ptr->ptr;

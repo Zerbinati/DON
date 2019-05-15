@@ -719,7 +719,6 @@ void run (int argc, const char *const *argv)
     UCI::initialize ();
     Endgames::initialize ();
     WinProcGroup::initialize ();
-    TCluster::initialize ();
     Threadpool.configure (option_threads ());
     Book.initialize (string(Options["Book File"]));
     Searcher::initialize ();

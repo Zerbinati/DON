@@ -421,8 +421,7 @@ const Thread* ThreadPool::best_thread () const
     std::map<Move, u64> votes;
     for (const auto *th : *this)
     {
-        u64 s = th->root_moves[0].new_value - min_value + 1;
-        votes[th->root_moves[0].front ()] += 200 + s * s * th->finished_depth;
+        votes[th->root_moves[0].front ()] += i32(th->root_moves[0].new_value - min_value + 14) * th->finished_depth;
     }
     // Select best thread from voting
     auto best_fm = std::max_element (votes.begin (), votes.end (),
