@@ -107,8 +107,8 @@ constexpr i16 DepthQSCheck      =  0;
 constexpr i16 DepthQSNoCheck    = -1;
 constexpr i16 DepthQSRecapture  = -5;
 constexpr i16 DepthNone         = -6;
-constexpr i16 DepthEmpty        = -7;
-constexpr i16 MaxDepth          = 128; // Maximum Plies
+constexpr i16 DepthEmpty        = -13;
+constexpr i16 MaxDepth          = 246; // Maximum Plies
 
 //constexpr i16 MaxMoves          = 256;
 

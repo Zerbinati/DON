@@ -23,7 +23,7 @@ private:
     u16 m16;
     i16 v16;
     i16 e16;
-    i08 d08;
+    u08 d08;
     u08 g08;
 
     friend class TCluster;
@@ -37,7 +37,7 @@ public:
     Move  move       () const { return Move (m16); }
     Value value      () const { return Value(v16); }
     Value eval       () const { return Value(e16); }
-    i16   depth      () const { return i16  (d08); }
+    i16   depth      () const { return i16  (d08 + DepthNone); }
     u08   generation () const { return u08  (g08 & 0xF8); }
     bool  is_pv      () const { return 0 != (g08 & 0x04); }
     Bound bound      () const { return Bound(g08 & 0x03); }
@@ -58,13 +58,14 @@ public:
             m16 = u16(m);
         }
         if (   k16 != (k >> 0x30)
-            || (d08 - 4) < d
+            || d08 < d + 10
             || BOUND_EXACT == b)
         {
             k16 = u16(k >> 0x30);
             v16 = i16(v);
             e16 = i16(e);
-            d08 = i08(d);
+            assert((d - DepthNone) >= 0);
+            d08 = u08(d - DepthNone);
             g08 = u08(Generation | pv | b);
         }
         assert(!empty ());
