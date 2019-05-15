@@ -63,7 +63,7 @@ namespace Pawns {
 
             e->index[Own] = 0;
             std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
-            std::fill_n (e->king_safety[Own], MaxCache, VALUE_ZERO);
+            std::fill_n (e->king_safety[Own], MaxCache, SCORE_ZERO);
             std::fill_n (e->king_pawn_dist[Own], MaxCache, 0);
 
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_G1));
@@ -162,7 +162,7 @@ namespace Pawns {
     /// Entry::evaluate_safety() calculates shelter & storm for a king,
     /// looking at the king file and the two closest files.
     template<Color Own>
-    Value Entry::evaluate_safety (const Position &pos, Square fk_sq) const
+    Score Entry::evaluate_safety (const Position &pos, Square fk_sq) const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr Bitboard BlockSquares = (FA_bb | FH_bb) & (R1_bb | R2_bb | R8_bb | R7_bb);
@@ -171,11 +171,8 @@ namespace Pawns {
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        i32 value = 5;
-        if (contains (pawn_sgl_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq))
-        {
-            value += 369;
-        }
+        i32 mg_value = contains (pawn_sgl_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq) ? 374 : 5,
+            eg_value = 0;
 
         auto kf = clamp (F_B, _file (fk_sq), F_G);
         for (const auto &f : { kf - File(1), kf, kf + File(1) })
@@ -191,18 +188,24 @@ namespace Pawns {
 
             auto ff = std::min (f, ~f);
             assert(ff < F_E);
-            value += Shelter[ff][own_r]
-                   - (   (R_1 != own_r)
-                      && ((own_r + 1) == opp_r) ?
-                        ((R_3 == opp_r) ? 66 : 0) :
-                        Storm[ff][opp_r]);
+            mg_value += Shelter[ff][own_r];
+
+            if (   R_1 != own_r
+                && (own_r + 1) == opp_r)
+            {
+                mg_value -= 82, eg_value -= 82;
+            }
+            else
+            {
+                mg_value -= Storm[ff][opp_r];
+            }
         }
 
-        return Value(value);
+        return mk_score (mg_value, eg_value);
     }
     // Explicit template instantiations
-    template Value Entry::evaluate_safety<WHITE> (const Position&, Square) const;
-    template Value Entry::evaluate_safety<BLACK> (const Position&, Square) const;
+    template Score Entry::evaluate_safety<WHITE> (const Position&, Square) const;
+    template Score Entry::evaluate_safety<BLACK> (const Position&, Square) const;
 
     /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.

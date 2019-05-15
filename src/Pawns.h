@@ -22,7 +22,7 @@ namespace Pawns {
 
         u08      index[CLR_NO];
         Square   king_square[CLR_NO][MaxCache];
-        Value    king_safety[CLR_NO][MaxCache];
+        Score    king_safety[CLR_NO][MaxCache];
         u08      king_pawn_dist[CLR_NO][MaxCache];
 
         i32 passed_count () const
@@ -31,7 +31,7 @@ namespace Pawns {
         }
 
         template<Color Own>
-        Value evaluate_safety (const Position&, Square) const;
+        Score evaluate_safety (const Position&, Square) const;
 
         template<Color Own>
         u08 king_safety_on (const Position &pos, Square fk_sq)

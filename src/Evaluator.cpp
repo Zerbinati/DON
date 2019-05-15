@@ -484,23 +484,23 @@ namespace {
 
         // King Safety: friend pawns shelter and enemy pawns storm
         u08 index = pe->king_safety_on<Own> (pos, fk_sq);
-        Value safety = pe->king_safety[Own][index];
+        Score score = pe->king_safety[Own][index];
         if (   0 != index
             && pos.si->can_castle (Own|CS_KING)
             && pos.expeded_castle (Own, CS_KING)
-            && 0 == (pos.castle_king_path_bb[Own][CS_KING] & ful_attacks[Opp]))
+            && 0 == (pos.castle_king_path_bb[Own][CS_KING] & ful_attacks[Opp])
+            && mg_value (score) < mg_value (pe->king_safety[Own][0]))
         {
-            safety = std::max (pe->king_safety[Own][0], safety);
+            score = pe->king_safety[Own][0];
         }
         if (   1 != index
             && pos.si->can_castle (Own|CS_QUEN)
             && pos.expeded_castle (Own, CS_QUEN)
-            && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & ful_attacks[Opp]))
+            && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & ful_attacks[Opp])
+            && mg_value (score) < mg_value (pe->king_safety[Own][1]))
         {
-            safety = std::max (pe->king_safety[Own][1], safety);
+            score = pe->king_safety[Own][1];
         }
-
-        Score score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
 
         // Main king safety evaluation
         i32 king_danger = 0;
@@ -631,7 +631,7 @@ namespace {
                      + 150 * pop_count (pos.si->king_blockers[Own] | unsafe_check)
                      +   1 * mg_value (mobility[Opp] - mobility[Own])
                      +   5 * tropism * tropism / 16
-                     -   3 * safety / 4
+                     -   3 * mg_value (score) / 4
                      -   7;
 
         Bitboard king_spot = sgl_attacks[Own][KING] | fk_sq;
@@ -947,7 +947,7 @@ namespace {
                             & ~sgl_attacks[Opp][PAWN];
 
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
-        i32 weight = pos.count (Own) - (16 - pos.count (PAWN)) / 4;
+        i32 weight = pos.count (Own) - 1;
         Score score = mk_score (bonus * weight * weight / 16, 0);
 
         if (Trace)
