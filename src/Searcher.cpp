@@ -1216,6 +1216,7 @@ namespace Searcher {
 
             value = best_value;
 
+            i16 singularExtensionLMR = 0;
             u08 move_count = 0;
 
             vector<Move> quiet_moves
@@ -1315,6 +1316,12 @@ namespace Searcher {
                     if (value < singular_beta)
                     {
                         extension = 1;
+
+                        ++singularExtensionLMR;
+                        if (value < singular_beta - std::min (3 * depth, 39))
+                        {
+                            ++singularExtensionLMR;
+                        }
                     }
                     // Multi-cut pruning
                     // Our tt_move is assumed to fail high, and now we failed high also on a reduced
@@ -1441,6 +1448,9 @@ namespace Searcher {
                     {
                         reduct_depth -= 1;
                     }
+
+                    // Decrease reduction if move has been singularly extended
+                    reduct_depth -= singularExtensionLMR;
 
                     if (!capture_or_promotion)
                     {
