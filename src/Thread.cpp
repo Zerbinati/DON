@@ -417,29 +417,30 @@ const Thread* ThreadPool::best_thread () const
                                              return t1->root_moves[0].new_value < t2->root_moves[0].new_value;
                                          }))->root_moves[0].new_value;
 
-    // Vote according to value and depth
+    // Vote according to value and depth, and select the best move
+    Move best_fm = MOVE_NONE;
     std::map<Move, u64> votes;
+    u64 max_vote = 0;
     for (const auto *th : *this)
     {
         votes[th->root_moves[0].front ()] += i32(th->root_moves[0].new_value - min_value + 14) * th->finished_depth;
+
+        if (max_vote < votes[th->root_moves[0].front ()])
+        {
+            max_vote = votes[th->root_moves[0].front ()];
+            best_fm = th->root_moves[0].front ();
+        }
     }
-    // Select best thread from voting
-    auto best_fm = std::max_element (votes.begin (), votes.end (),
-                                     [](const decltype(votes)::value_type &p1, const decltype(votes)::value_type &p2)
-                                     {
-                                         return p1.second < p2.second;
-                                     })->first;
-    
-    i16 best_depth = DepthZero;
+    // Select best thread
     const auto *best_thread = front ();
-    
+    i16 max_depth = DepthZero;
     for (const auto *th : *this)
     {
         if (best_fm == th->root_moves[0].front ())
         {
-            if (best_depth < th->finished_depth)
+            if (max_depth < th->finished_depth)
             {
-                best_depth = th->finished_depth;
+                max_depth = th->finished_depth;
                 best_thread = th;
             }
         }
