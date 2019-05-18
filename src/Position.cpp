@@ -160,17 +160,17 @@ bool Position::cycled (i16 pp) const
             auto dst = dst_sq (Cuckoos[j].move);
             if (0 == (between_bb (org, dst) & pieces()))
             {
-                if (pp > p)
+                if (p < pp)
                 {
                     return true;
                 }
-
                 // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
                 // Select the legal one by swaping if necessary.
                 if (empty (org))
                 {
                     std::swap (org, dst);
                 }
+                assert(!empty (org));
                 // For nodes before or at the root, check that the move is a repetition one
                 // rather than a move to the current position
                 if (color (piece[org]) != active)

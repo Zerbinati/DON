@@ -502,6 +502,8 @@ namespace {
             score = pe->king_safety[Own][1];
         }
 
+        score += mk_score (VALUE_ZERO, -16 * pe->king_pawn_dist[Own][index]);
+
         // Main king safety evaluation
         i32 king_danger = 0;
 
@@ -849,12 +851,12 @@ namespace {
                 i32 w = (r-2) * (r-2) + 2;
 
                 // Adjust bonus based on the king's proximity
-                bonus += mk_score (0, 5*w*king_proximity (Opp, push_sq)
-                                     -2*w*king_proximity (Own, push_sq));
+                bonus += mk_score (0, +5*w*king_proximity (Opp, push_sq)
+                                      -2*w*king_proximity (Own, push_sq));
                 // If block square is not the queening square then consider also a second push.
                 if (R_7 != r)
                 {
-                    bonus -= mk_score (0, 1*w*king_proximity (Own, push_sq + pawn_push (Own)));
+                    bonus += mk_score (0, -1*w*king_proximity (Own, push_sq + pawn_push (Own)));
                 }
 
                 // If the pawn is free to advance.
@@ -867,9 +869,7 @@ namespace {
                     // If there is a rook or queen attacking/defending the pawn from behind, consider front squares.
                     // Otherwise consider only the squares in the pawn's path attacked or occupied by the enemy.
                     Bitboard behind_major = pos.pieces (ROOK, QUEN)
-                                          & front_line_bb (Opp, s)
-                                          & attacks_bb<ROOK> (s, pos.pieces ());
-                    assert(1 >= pop_count (behind_major));
+                                          & front_line_bb (Opp, s);
                     // If there is no friend rook or queen attacking the pawn from behind,
                     // consider only the squares in the pawn's path attacked by the friend.
                     // Otherwise add all X-ray attacks by the friend rook or queen.

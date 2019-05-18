@@ -1216,7 +1216,7 @@ namespace Searcher {
 
             value = best_value;
 
-            i16 singularExtensionLMR = 0;
+            i16 singular_extension_lmr = 0;
             u08 move_count = 0;
 
             vector<Move> quiet_moves
@@ -1317,10 +1317,10 @@ namespace Searcher {
                     {
                         extension = 1;
 
-                        ++singularExtensionLMR;
+                        ++singular_extension_lmr;
                         if (value < singular_beta - std::min (3 * depth, 39))
                         {
-                            ++singularExtensionLMR;
+                            ++singular_extension_lmr;
                         }
                     }
                     // Multi-cut pruning
@@ -1450,7 +1450,7 @@ namespace Searcher {
                     }
 
                     // Decrease reduction if move has been singularly extended
-                    reduct_depth -= singularExtensionLMR;
+                    reduct_depth -= singular_extension_lmr;
 
                     if (!capture_or_promotion)
                     {
