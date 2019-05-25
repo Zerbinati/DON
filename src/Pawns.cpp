@@ -48,9 +48,10 @@ namespace Pawns {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
             Bitboard *const Attack = PawnAttacks[Own];
 
-            Bitboard own_pawns = pos.pieces (Own, PAWN);
-            Bitboard opp_pawns = pos.pieces (Opp, PAWN);
-
+            Bitboard pawns = pos.pieces (PAWN);
+            Bitboard empty = ~pawns;
+            Bitboard own_pawns = pos.pieces (Own) & pawns;
+            Bitboard opp_pawns = pos.pieces (Opp) & pawns;
             Bitboard latt = pawn_l_attacks_bb (Own, own_pawns);
             Bitboard ratt = pawn_r_attacks_bb (Own, own_pawns);
 
@@ -97,19 +98,19 @@ namespace Pawns {
                 assert(!backward
                     || 0 == (pawn_attack_span (Opp, s+pawn_push (Own)) & neighbours));
 
-                // Include also which could become passed after 1 or 2 pawn pushes
-                // when are not attacked more times than defended. 
+                // Include also which could become passed after pawn push
                 if (   stoppers == (levers | escapes)
-                    && (0 != supporters || !more_than_one (levers))
-                    && pop_count (phalanxes) >= pop_count (escapes))
+                    && (   stoppers == levers
+                        || pop_count (phalanxes) >= pop_count (escapes)))
                 {
                     e->passers[Own] |= s;
                 }
                 else
-                if (   stoppers == square_bb (s+pawn_push (Own))
-                    && R_4 < r)
+                if (   R_4 < r
+                    && stoppers == square_bb (s+pawn_push (Own)))
                 {
-                    b = pawn_sgl_pushes_bb (Own, supporters) & ~opp_pawns;
+                    b = pawn_sgl_pushes_bb (Own, supporters)
+                      & empty;
                     while (0 != b)
                     {
                         if (!more_than_one (opp_pawns & Attack[pop_lsq (b)]))

@@ -868,19 +868,25 @@ namespace {
                         ,  unsafe_front_line = front_line;
                     // If there is a rook or queen attacking/defending the pawn from behind, consider front squares.
                     // Otherwise consider only the squares in the pawn's path attacked or occupied by the enemy.
-                    Bitboard behind_major = pos.pieces (ROOK, QUEN)
-                                          & front_line_bb (Opp, s);
+                    Bitboard behind_major = front_line_bb (Opp, s)
+                                          & pos.pieces (ROOK, QUEN);
                     // If there is no friend rook or queen attacking the pawn from behind,
                     // consider only the squares in the pawn's path attacked by the friend.
                     // Otherwise add all X-ray attacks by the friend rook or queen.
-                    if (0 == (behind_major & pos.pieces (Own) & ~pos.si->king_blockers[Own]))
+                    if ((  behind_major
+                         & pos.pieces (Own)
+                         & ~pos.si->king_blockers[Own]
+                         /*& attacks_bb<ROOK> (s, pos.pieces (Own))*/) == 0)
                     {
                         safe_front_line &= sgl_attacks[Own][NONE];
                     }
                     // If there is no enemy rook or queen attacking the pawn from behind,
                     // consider only the squares in the pawn's path attacked or occupied by the enemy,
                     // Otherwise add all X-ray attacks by the enemy rook or queen.
-                    if (0 == (behind_major & pos.pieces (Opp) & ~pos.si->king_blockers[Opp]))
+                    if ((  behind_major
+                         & pos.pieces (Opp)
+                         & ~pos.si->king_blockers[Opp]
+                         /*& attacks_bb<ROOK> (s, pos.pieces (Opp))*/) == 0)
                     {
                         unsafe_front_line &= sgl_attacks[Opp][NONE] | pos.pieces (Opp);
                     }

@@ -337,7 +337,7 @@ namespace Searcher {
                     /* fall through */
                 case Stage::NT_QUIETS:
                     if (   !skip_quiets
-                        && pick ([&]() { return std::find (refutation_moves.begin (), refutation_moves.end (), itr->move) == refutation_moves.end (); }))
+                        && pick ([&]() { return std::count (refutation_moves.begin (), refutation_moves.end (), itr->move) == 0; }))
                     {
                         return (itr-1)->move;
                     }
@@ -415,7 +415,12 @@ namespace Searcher {
 
         i16 reduction (bool imp, i16 d, u08 mc)
         {
-            i16 r = 525.13 * (d != 0 ? std::log (d) : 0) * (mc != 0 ? std::log (mc) : 0);
+            if (   0 == d
+                || 0 == mc)
+            {
+                return 0;
+            }
+            i16 r = 525.13 * std::log (d) * std::log (mc);
             return (r + 512) / 1024 + (!imp && r > 1024 ? 1 : 0);
         }
 
@@ -1221,6 +1226,8 @@ namespace Searcher {
 
             vector<Move> quiet_moves
                 ,        capture_moves;
+            quiet_moves.reserve (32);
+            capture_moves.reserve (32);
 
             bool ttm_capture = MOVE_NONE != tt_move
                             && pos.capture_or_promotion (tt_move);
@@ -1251,22 +1258,13 @@ namespace Searcher {
                     || (   root_node
                            // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
                            // In MultiPV mode we not only skip PV moves which have already been searched and those of lower "TB rank" if we are in a TB root position.
-                        && std::find (thread->root_moves.begin () + thread->pv_cur,
-                                      thread->root_moves.begin () + thread->pv_end, move) == thread->root_moves.end ()))
+                        && std::count (thread->root_moves.begin () + thread->pv_cur,
+                                       thread->root_moves.begin () + thread->pv_end, move) == 0))
                 {
                     continue;
                 }
 
                 ss->move_count = ++move_count;
-
-                auto org = org_sq (move);
-                auto dst = dst_sq (move);
-
-                auto mpc = pos[org];
-                assert(NO_PIECE != mpc);
-
-                bool gives_check = pos.gives_check (move);
-                bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 if (   root_node
                     && Threadpool.main_thread () == thread)
@@ -1279,15 +1277,33 @@ namespace Searcher {
                                   << " currmovenumber " << thread->pv_cur + move_count
                                   << " maxmoves " << thread->root_moves.size ()
                                   << " depth " << depth
-                                  << " seldepth " << (*std::find (thread->root_moves.begin (), thread->root_moves.end (), move)).sel_depth
+                                  << " seldepth " << (*std::find (thread->root_moves.begin () + thread->pv_cur, thread->root_moves.begin () + thread->pv_end, move)).sel_depth
                                   << " time " << elapsed_time << sync_endl;
                     }
+                }
+
+                // In MultiPV mode also skip moves which will be searched later as PV moves
+                if (   root_node
+                    && thread->pv_cur + 1 < Threadpool.pv_limit
+                    && std::count (thread->root_moves.begin () + thread->pv_cur + 1,
+                                   thread->root_moves.begin () + Threadpool.pv_limit, move) != 0)
+                {
+                    continue;
                 }
 
                 if (PVNode)
                 {
                     (ss+1)->pv.clear ();
                 }
+
+                auto org = org_sq (move);
+                auto dst = dst_sq (move);
+
+                auto mpc = pos[org];
+                assert (NO_PIECE != mpc);
+
+                bool gives_check = pos.gives_check (move);
+                bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 // Step 13. Extensions. (~70 ELO)
 
