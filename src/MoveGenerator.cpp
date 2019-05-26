@@ -228,9 +228,9 @@ namespace {
     template<GenType GT>
     void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        auto fk_sq = pos.square (pos.active|KING);
-        Bitboard attacks = PieceAttacks[KING][fk_sq] & targets;
-        while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
+        auto own_k_sq = pos.square (pos.active|KING);
+        Bitboard attacks = PieceAttacks[KING][own_k_sq] & targets;
+        while (0 != attacks) { moves += mk_move<NORMAL> (own_k_sq, pop_lsq (attacks)); }
 
         if (   GenType::NATURAL == GT
             || GenType::QUIET == GT)
@@ -242,7 +242,7 @@ namespace {
                     if (   pos.expeded_castle (pos.active, cs)
                         && pos.si->can_castle (pos.active|cs))
                     {
-                        moves += mk_move<CASTLE> (fk_sq, pos.castle_rook_sq[pos.active][cs]);
+                        moves += mk_move<CASTLE> (own_k_sq, pos.castle_rook_sq[pos.active][cs]);
                     }
                 }
             }
@@ -295,7 +295,7 @@ template<> void generate<GenType::EVASION> (ValMoves &moves, const Position &pos
         && 2 >= pop_count (pos.si->checkers));
 
     moves.clear ();
-    auto fk_sq = pos.square (pos.active|KING);
+    auto own_k_sq = pos.square (pos.active|KING);
     Bitboard checks = 0;
     Bitboard ex_checkers = pos.si->checkers & ~pos.pieces (NIHT, PAWN);
     // Squares attacked by slide checkers will remove them from the king evasions
@@ -303,13 +303,13 @@ template<> void generate<GenType::EVASION> (ValMoves &moves, const Position &pos
     while (0 != ex_checkers)
     {
         auto check_sq = pop_lsq (ex_checkers);
-        checks |= line_bb (check_sq, fk_sq) ^ check_sq;
+        checks |= line_bb (check_sq, own_k_sq) ^ check_sq;
     }
     // Generate evasions for king, capture and non capture moves
-    Bitboard attacks = PieceAttacks[KING][fk_sq]
+    Bitboard attacks = PieceAttacks[KING][own_k_sq]
                      & ~checks
                      & ~pos.pieces (pos.active);
-    while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
+    while (0 != attacks) { moves += mk_move<NORMAL> (own_k_sq, pop_lsq (attacks)); }
 
     // Double-check, only king move can save the day
     if (more_than_one (pos.si->checkers))
@@ -319,7 +319,7 @@ template<> void generate<GenType::EVASION> (ValMoves &moves, const Position &pos
 
     // Generates blocking or captures of the checking piece
     auto check_sq = scan_lsq (pos.si->checkers);
-    Bitboard targets = between_bb (check_sq, fk_sq) | check_sq;
+    Bitboard targets = between_bb (check_sq, own_k_sq) | check_sq;
     
     generate_moves<GenType::EVASION> (moves, pos, targets);
 }

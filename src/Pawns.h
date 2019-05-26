@@ -14,8 +14,6 @@ namespace Pawns {
         Key key;
 
         Score    scores[CLR_NO];
-        Bitboard any_attacks[CLR_NO];
-        Bitboard dbl_attacks[CLR_NO];
         Bitboard attack_span[CLR_NO];
         Bitboard passers[CLR_NO];
         i32      weak_unopposed_count[CLR_NO];
@@ -34,9 +32,9 @@ namespace Pawns {
         Score evaluate_safety (const Position&, Square) const;
 
         template<Color Own>
-        u08 king_safety_on (const Position &pos, Square fk_sq)
+        u08 king_safety_on (const Position &pos, Square own_k_sq)
         {
-            auto idx = std::find (king_square[Own], king_square[Own] + index[Own] + 1, fk_sq) - king_square[Own];
+            auto idx = std::find (king_square[Own], king_square[Own] + index[Own] + 1, own_k_sq) - king_square[Own];
             assert(0 <= idx);
             if (idx <= index[Own])
             {
@@ -53,7 +51,7 @@ namespace Pawns {
             u08 kp_dist;
             if (0 != pawns)
             {
-                if (0 != (pawns & PieceAttacks[KING][fk_sq]))
+                if (0 != (pawns & PieceAttacks[KING][own_k_sq]))
                 {
                     kp_dist = 1;
                 }
@@ -62,7 +60,7 @@ namespace Pawns {
                     kp_dist = 8;
                     while (0 != pawns)
                     {
-                        kp_dist = std::min ((u08)dist (fk_sq, pop_lsq (pawns)), kp_dist);
+                        kp_dist = std::min ((u08)dist (own_k_sq, pop_lsq (pawns)), kp_dist);
                     }
                 }
             }
@@ -71,9 +69,9 @@ namespace Pawns {
                 kp_dist = 0;
             }
 
-            king_square[Own][idx] = fk_sq;
+            king_square[Own][idx] = own_k_sq;
             king_pawn_dist[Own][idx] = kp_dist;
-            king_safety[Own][idx] = evaluate_safety<Own> (pos, fk_sq);
+            king_safety[Own][idx] = evaluate_safety<Own> (pos, own_k_sq);
             return u08(idx);
         }
 

@@ -52,11 +52,7 @@ namespace Pawns {
             Bitboard empty = ~pawns;
             Bitboard own_pawns = pos.pieces (Own) & pawns;
             Bitboard opp_pawns = pos.pieces (Opp) & pawns;
-            Bitboard latt = pawn_l_attacks_bb (Own, own_pawns);
-            Bitboard ratt = pawn_r_attacks_bb (Own, own_pawns);
 
-            e->any_attacks[Own] = latt | ratt;
-            e->dbl_attacks[Own] = latt & ratt;
             e->attack_span[Own] = 0;
             e->passers[Own] = 0;
             
@@ -163,19 +159,19 @@ namespace Pawns {
     /// Entry::evaluate_safety() calculates shelter & storm for a king,
     /// looking at the king file and the two closest files.
     template<Color Own>
-    Score Entry::evaluate_safety (const Position &pos, Square fk_sq) const
+    Score Entry::evaluate_safety (const Position &pos, Square own_k_sq) const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr Bitboard BlockSquares = (FA_bb | FH_bb) & (R1_bb | R2_bb | R8_bb | R7_bb);
 
-        Bitboard front_pawns = ~front_rank_bb (Opp, fk_sq) & pos.pieces (PAWN);
+        Bitboard front_pawns = ~front_rank_bb (Opp, own_k_sq) & pos.pieces (PAWN);
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        i32 mg_value = contains (pawn_sgl_pushes_bb (Opp, opp_front_pawns) & BlockSquares, fk_sq) ? 374 : 5,
+        i32 mg_value = contains (pawn_sgl_pushes_bb (Opp, opp_front_pawns) & BlockSquares, own_k_sq) ? 374 : 5,
             eg_value = 0;
 
-        auto kf = clamp (F_B, _file (fk_sq), F_G);
+        auto kf = clamp (F_B, _file (own_k_sq), F_G);
         for (const auto &f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);

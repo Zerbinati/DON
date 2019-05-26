@@ -349,6 +349,7 @@ namespace Searcher {
                             *idx++ :
                             MOVE_NONE;
                     /* end */
+
                 case Stage::EV_INIT:
                     generate<GenType::EVASION> (moves, pos);
                     value<GenType::EVASION> ();
@@ -360,12 +361,14 @@ namespace Searcher {
                             (itr-1)->move :
                             MOVE_NONE;
                     /* end */
+
                 case Stage::PC_CAPTURES:
                     return pick ([&]() { return pos.exchange (itr->move) >= threshold
                                              || pos.see_ge (itr->move, threshold); }) ?
                             (itr-1)->move :
                             MOVE_NONE;
                     /* end */
+
                 case Stage::QS_CAPTURES:
                     if (pick ([&]() { return DepthQSRecapture < depth
                                           || dst_sq (itr->move) == recap_sq; }))
@@ -392,6 +395,7 @@ namespace Searcher {
                             *itr++ :
                             MOVE_NONE;
                     /* end */
+
                 default:
                     assert(false);
                     break;
@@ -415,12 +419,8 @@ namespace Searcher {
 
         i16 reduction (bool imp, i16 d, u08 mc)
         {
-            if (   0 == d
-                || 0 == mc)
-            {
-                return 0;
-            }
-            i16 r = 525.13 * std::log (d) * std::log (mc);
+            i16 r = 0 == d || 0 == mc ?
+                    0 : 525.13 * std::log (d) * std::log (mc);
             return (r + 512) / 1024 + (!imp && r > 1024 ? 1 : 0);
         }
 
@@ -1118,7 +1118,7 @@ namespace Searcher {
                     if (null_value >= beta)
                     {
                         // Skip verification search
-                        if (   0 != thread->nmp_ply
+                        if (   0 != thread->nmp_ply // Recursive verification is not allowed
                             || (   12 > depth
                                 && abs (beta) < +VALUE_KNOWN_WIN))
                         {
@@ -1126,11 +1126,9 @@ namespace Searcher {
                             return null_value >= +VALUE_MATE_MAX_PLY ? beta : null_value;
                         }
 
-                        // Do verification search at high depths
-                        assert(0 == thread->nmp_ply); // Recursive verification is not allowed
-
+                        // Do verification search at high depths,
+                        // with null move pruning disabled for nmp_color until ply exceeds nmp_ply
                         thread->nmp_color = pos.active;
-
                         thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
                         value = depth_search<false> (pos, ss, beta-1, beta, depth-R, false);
                         thread->nmp_ply = 0;
@@ -1284,7 +1282,7 @@ namespace Searcher {
 
                 // In MultiPV mode also skip moves which will be searched later as PV moves
                 if (   root_node
-                    && thread->pv_cur + 1 < Threadpool.pv_limit
+                    && thread->pv_cur < Threadpool.pv_limit
                     && std::count (thread->root_moves.begin () + thread->pv_cur + 1,
                                    thread->root_moves.begin () + Threadpool.pv_limit, move) != 0)
                 {
