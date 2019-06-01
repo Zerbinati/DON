@@ -73,11 +73,10 @@ namespace Pawns {
             {
                 assert((Own|PAWN) == pos[s]);
 
-                auto f = _file (s);
                 auto r = rel_rank (Own, s);
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
-                Bitboard neighbours = own_pawns & adj_file_bb (f);
+                Bitboard neighbours = own_pawns & adj_file_bb (s);
                 Bitboard supporters = neighbours & rank_bb (s-pawn_push (Own));
                 Bitboard phalanxes  = neighbours & rank_bb (s);
                 Bitboard stoppers   = opp_pawns & pawn_pass_span (Own, s);

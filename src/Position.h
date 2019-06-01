@@ -234,9 +234,8 @@ public:
     bool see_ge (Move, Value = VALUE_ZERO) const;
 
     bool pawn_passed_at (Color, Square) const;
-    bool paired_bishop  (Color) const;
-    bool opposite_bishops () const;
-    bool file_semiopen (Color, File) const;
+    bool bishop_paired  (Color) const;
+    bool semiopenfile_on (Color, Square) const;
 
     void clear ();
 
@@ -536,21 +535,15 @@ inline bool Position::pawn_passed_at (Color c, Square s) const
 {
     return 0 == (pawn_pass_span (c, s) & pieces (~c, PAWN));
 }
-/// Position::paired_bishop() check the side has pair of opposite color bishops.
-inline bool Position::paired_bishop (Color c) const
+/// Position::bishop_paired() check the side has pair of opposite color bishops.
+inline bool Position::bishop_paired (Color c) const
 {
     return 0 != (pieces (c, BSHP) & Color_bb[WHITE])
         && 0 != (pieces (c, BSHP) & Color_bb[BLACK]);
 }
-inline bool Position::opposite_bishops () const
+inline bool Position::semiopenfile_on (Color c, Square s) const
 {
-    return 1 == count (WHITE|BSHP)
-        && 1 == count (BLACK|BSHP)
-        && opposite_colors (square (WHITE|BSHP), square (BLACK|BSHP));
-}
-inline bool Position::file_semiopen (Color c, File f) const
-{
-    return 0 == (pieces (c, PAWN) & file_bb (f));
+    return 0 == (pieces (c, PAWN) & file_bb (s));
 }
 
 inline void Position::do_move (Move m, StateInfo &nsi)

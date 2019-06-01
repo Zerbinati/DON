@@ -192,20 +192,20 @@ namespace BitBoard {
     // front_rank_bb() returns ranks in front of the given square
     constexpr Bitboard front_rank_bb (Color c, Square s) { return front_rank_bb (c, _rank (s)); }
 
-    constexpr Bitboard adj_file_bb (File f)
+    constexpr Bitboard adj_file_bb (Square s)
     {
-        return shift<DEL_E> (file_bb (f))
-             | shift<DEL_W> (file_bb (f));
+        return shift<DEL_E> (file_bb (s))
+             | shift<DEL_W> (file_bb (s));
     }
-    constexpr Bitboard adj_rank_bb (Rank r)
-    {
-        return shift<DEL_N> (rank_bb (r))
-             | shift<DEL_S> (rank_bb (r));
-    }
+    //constexpr Bitboard adj_rank_bb (Square s)
+    //{
+    //    return shift<DEL_N> (rank_bb (s))
+    //         | shift<DEL_S> (rank_bb (s));
+    //}
 
     constexpr Bitboard front_line_bb (Color c, Square s) { return front_rank_bb (c, s) & file_bb (s); }
 
-    constexpr Bitboard pawn_attack_span (Color c, Square s) { return front_rank_bb (c, s) & adj_file_bb (_file (s)); }
+    constexpr Bitboard pawn_attack_span (Color c, Square s) { return front_rank_bb (c, s) & adj_file_bb (s); }
     constexpr Bitboard pawn_pass_span   (Color c, Square s) { return front_line_bb (c, s) | pawn_attack_span (c, s); }
 
     /// dist() functions return the distance between s1 and s2, defined as the

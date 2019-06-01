@@ -133,7 +133,7 @@ namespace Endgames {
 
         if (   0 != pos.count (strong_color|QUEN)
             || 0 != pos.count (strong_color|ROOK)
-            || pos.paired_bishop (strong_color)
+            || pos.bishop_paired (strong_color)
             || (   0 != pos.count (strong_color|BSHP)
                 && 0 != pos.count (strong_color|NIHT))
             || 2 < pos.count (strong_color|NIHT))

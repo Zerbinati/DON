@@ -421,9 +421,9 @@ namespace {
                 }
 
                 // Bonus for rook when on an open or semi-open file
-                if (pos.file_semiopen (Own, _file (s)))
+                if (pos.semiopenfile_on (Own, s))
                 {
-                    score += RookOnFile[pos.file_semiopen (Opp, _file (s)) ? 1 : 0];
+                    score += RookOnFile[pos.semiopenfile_on (Opp, s) ? 1 : 0];
                 }
                 else
                 // Penalty for rook when trapped by the king, even more if the king can't castle
@@ -1006,11 +1006,14 @@ namespace {
         // If don't already have an unusual scale, check for certain types of endgames.
         if (SCALE_NORMAL == scl)
         {
-            return pos.opposite_bishops ()
+            bool bishop_oppose = 1 == pos.count (WHITE|BSHP)
+                              && 1 == pos.count (BLACK|BSHP)
+                              && opposite_colors (pos.square (WHITE|BSHP), pos.square (BLACK|BSHP));
+            return bishop_oppose
                 && pos.si->non_pawn_material () == 2 * VALUE_MG_BSHP ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
                     Scale(16 + 4 * pe->passed_count ()) :
-                    std::min (Scale(40 + (pos.opposite_bishops () ? 2 : 7) * pos.count (color|PAWN)), SCALE_NORMAL);
+                    std::min (Scale(40 + (bishop_oppose ? 2 : 7) * pos.count (color|PAWN)), SCALE_NORMAL);
         }
         return scl;
     }
@@ -1046,7 +1049,7 @@ namespace {
         // Early exit if score is high
         Value v = (mg_value (score) + eg_value (score)) / 2;
 
-        if (abs (v) > Value(1500)) // Lazy Threshold
+        if (abs (v) > (Value(1400) + pos.si->non_pawn_material () / 64)) // Lazy Threshold
         {
             switch (pos.active)
             {
