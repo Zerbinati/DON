@@ -25,7 +25,6 @@ namespace {
         SQ_NO,      //enpassant_sq
         0,          //clock_ply
         0,          //null_ply
-        {VALUE_ZERO, VALUE_ZERO},
 
         0,          //posi_key
         NONE,       //capture
@@ -211,12 +210,12 @@ bool Position::cycled (i16 pp) const
 
 /// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.
 /// King-attack piece can be either pinner or hidden piece.
-Bitboard Position::slider_blockers (Square s, Color c, Bitboard excluds, Bitboard &pinners, Bitboard &hiddens) const
+Bitboard Position::slider_blockers (Square s, Color c, Bitboard excludes, Bitboard &pinners, Bitboard &hiddens) const
 {
     Bitboard blockers = 0;
     // Snipers are attackers to the square 's'
     Bitboard snipers = (  pieces (c)
-                        & ~(excluds | attackers_to (s))) // Remove direct attackers to the square 's'
+                        & ~(excludes | attackers_to (s))) // Remove direct attackers to the square 's'
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     // Occupancy are pieces but removed snipers
@@ -780,6 +779,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th)
     }
     assert(1 == count (WHITE|KING)
         && 1 == count (BLACK|KING));
+    npm[WHITE] = compute_npm<WHITE> (*this);
+    npm[BLACK] = compute_npm<BLACK> (*this);
 
     // 2. Active color
     iss >> token;
@@ -861,8 +862,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th)
     si->posi_key = RandZob.compute_posi_key (*this);
     si->matl_key = RandZob.compute_matl_key (*this);
     si->pawn_key = RandZob.compute_pawn_key (*this);
-    si->npm[WHITE] = compute_npm<WHITE> (*this);
-    si->npm[BLACK] = compute_npm<BLACK> (*this);
     si->checkers = attackers_to (square (active|KING)) & pieces (~active);
     si->set_check_info (*this);
 
@@ -976,7 +975,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             }
             else
             {
-                si->npm[pasive] -= PieceValues[MG][si->capture];
+                npm[pasive] -= PieceValues[MG][si->capture];
             }
 
             // Reset clock ply counter
@@ -1028,7 +1027,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             // Replace the pawn with the promoted piece
             remove_piece (dst, piece[dst]);
             place_piece (dst, active|si->promote);
-            si->npm[active] += PieceValues[MG][si->promote];
+            npm[active] += PieceValues[MG][si->promote];
             key ^= RandZob.piece_square[active][PAWN][dst]
                  ^ RandZob.piece_square[active][si->promote][dst];
             si->pawn_key ^= RandZob.piece_square[active][PAWN][dst];
@@ -1136,6 +1135,7 @@ void Position::undo_move (Move m)
 
             remove_piece (dst, piece[dst]);
             place_piece (dst, active|PAWN);
+            npm[active] -= PieceValues[MG][si->promote];
         }
         // Move the piece
         move_piece (dst, org, piece[dst]);
@@ -1157,6 +1157,10 @@ void Position::undo_move (Move m)
             // Restore the captured piece.
             assert(empty (cap));
             place_piece (cap, ~active|si->capture);
+            if (PAWN != si->capture)
+            {
+                npm[~active] += PieceValues[MG][si->capture];
+            }
         }
     }
 
@@ -1490,8 +1494,10 @@ bool Position::ok () const
         }
     }
 
-    // PSQ
-    if (psq != compute_psq (*this))
+    // PSQ and NPM
+    if (   psq != compute_psq (*this)
+        || npm[WHITE] != compute_npm<WHITE> (*this)
+        || npm[BLACK] != compute_npm<BLACK> (*this))
     {
         assert(false && "Position OK: PSQ");
         return false;
@@ -1542,8 +1548,6 @@ bool Position::ok () const
     if (   si->matl_key != RandZob.compute_matl_key (*this)
         || si->pawn_key != RandZob.compute_pawn_key (*this)
         || si->posi_key != RandZob.compute_posi_key (*this)
-        || si->npm[WHITE] != compute_npm<WHITE> (*this)
-        || si->npm[BLACK] != compute_npm<BLACK> (*this)
         || si->checkers != (attackers_to (square (active|KING)) & pieces (~active))
         || 2 < pop_count (si->checkers)
         || si->clock_ply > 2*i32(Options["Draw MoveCount"])

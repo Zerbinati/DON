@@ -383,7 +383,7 @@ namespace {
                       & pawn_sgl_pushes_bb (Opp, pos.pieces ());
                     score -= BishopPawns
                            * (1 + pop_count (b))
-                           * pos.same_color_pawn_count (Own, color (s));
+                           * pos.color_pawn_count (Own, color (s));
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     if (more_than_one (attacks_bb<BSHP> (s, pos.pieces (PAWN)) & Center_bb))
@@ -928,7 +928,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        if (pos.si->non_pawn_material () < Value(12222)) // Space Threshold
+        if (pos.non_pawn_material () < Value(12222)) // Space Threshold
         {
             return SCORE_ZERO;
         }
@@ -974,7 +974,7 @@ namespace {
         {
             complexity += 18;
         }
-        if (VALUE_ZERO == pos.si->non_pawn_material ())
+        if (VALUE_ZERO == pos.non_pawn_material ())
         {
             complexity += 49;
         }
@@ -1011,7 +1011,7 @@ namespace {
                               && 1 == pos.count (BLACK|BSHP)
                               && opposite_colors (pos.square (WHITE|BSHP), pos.square (BLACK|BSHP));
             return bishop_oppose
-                && pos.si->non_pawn_material () == 2 * VALUE_MG_BSHP ?
+                && pos.non_pawn_material () == 2 * VALUE_MG_BSHP ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
                     Scale(16 + 4 * pe->passed_count ()) :
                     std::min (Scale(40 + (bishop_oppose ? 2 : 7) * pos.count (color|PAWN)), SCALE_NORMAL);
@@ -1050,7 +1050,7 @@ namespace {
         // Early exit if score is high
         Value v = (mg_value (score) + eg_value (score)) / 2;
 
-        if (abs (v) > (Value(1400) + pos.si->non_pawn_material () / 64)) // Lazy Threshold
+        if (abs (v) > (Value(1400) + pos.non_pawn_material () / 64)) // Lazy Threshold
         {
             switch (pos.active)
             {

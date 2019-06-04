@@ -1096,7 +1096,7 @@ namespace Searcher {
                     && MOVE_NULL != (ss-1)->played_move
                     && MOVE_NONE == ss->excluded_move
                     && !Limits.mate_search ()
-                    && VALUE_ZERO != pos.si->non_pawn_material (pos.active)
+                    && VALUE_ZERO != pos.non_pawn_material (pos.active)
                     && 23200 > (ss-1)->stats
                     && eval >= beta
                     && ss->static_eval + 36*depth - 225 >= beta
@@ -1379,7 +1379,7 @@ namespace Searcher {
                 if (   !root_node
                     && -VALUE_MATE_MAX_PLY < best_value
                     && !Limits.mate_search ()
-                    && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
+                    && VALUE_ZERO < pos.non_pawn_material (pos.active))
                 {
                     // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
                     move_picker.skip_quiets = futility_move_count (improving, depth) <= move_count;

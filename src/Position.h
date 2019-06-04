@@ -69,7 +69,6 @@ public:
     Square      enpassant_sq;   // Enpassant -> "In passing"
     i16         clock_ply;      // Number of half moves clock since the last pawn advance or any capture
     i16         null_ply;
-    Value       npm[CLR_NO];
 
     // ---Not copied when making a move---
     Key         posi_key;       // Hash key of position
@@ -83,16 +82,6 @@ public:
     Bitboard    checks[NONE];
 
     StateInfo  *ptr;            // Previous StateInfo pointer.
-
-    Value non_pawn_material () const
-    {
-        return npm[WHITE]
-             + npm[BLACK];
-    }
-    Value non_pawn_material (Color c) const
-    {
-        return npm[c];
-    }
 
     bool can_castle (CastleRight cr) const
     {
@@ -151,6 +140,7 @@ public:
     Bitboard    castle_king_path_bb[CLR_NO][CS_NO];
     Bitboard    castle_rook_path_bb[CLR_NO][CS_NO];
 
+    Value       npm[CLR_NO];
     Score       psq;
     i16         ply;
     Color       active;
@@ -180,10 +170,12 @@ public:
     i32 count (Piece) const;
     i32 count (Color) const;
     i32 count (PieceType) const;
-
-    i32 same_color_pawn_count (Color, Color) const;
+    i32 color_pawn_count (Color, Color) const;
 
     Square square (Piece, u08 = 0) const;
+    
+    Value non_pawn_material () const;
+    Value non_pawn_material (Color) const;
 
     Key pg_key () const;
     Key posi_move_key (Move) const;
@@ -318,7 +310,7 @@ inline i32 Position::count (PieceType pt) const
     return i32(squares[WHITE|pt].size () + squares[BLACK|pt].size ());
 }
 
-inline i32 Position::same_color_pawn_count (Color c, Color s) const
+inline i32 Position::color_pawn_count (Color c, Color s) const
 {
     return pop_count (pieces (c, PAWN) & Color_bb[s]);
 }
@@ -328,6 +320,16 @@ inline Square Position::square (Piece pc, u08 index) const
     assert (_ok (pc));
     assert(squares[pc].size () > index);
     return *std::next (squares[pc].begin (), index);
+}
+
+inline Value Position::non_pawn_material () const
+{
+    return npm[WHITE]
+         + npm[BLACK];
+}
+inline Value Position::non_pawn_material (Color c) const
+{
+    return npm[c];
 }
 
 inline Key Position::pg_key () const

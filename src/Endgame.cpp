@@ -101,7 +101,7 @@ namespace Endgames {
 #if !defined(NDEBUG)
         bool verify_material (const Position &pos, Color c, Value npm, i32 pawn_count)
         {
-            return pos.si->non_pawn_material (c) == npm
+            return pos.non_pawn_material (c) == npm
                 && pos.count (c|PAWN) == pawn_count;
         }
 #endif
@@ -126,7 +126,7 @@ namespace Endgames {
         auto wk_sq = pos.square (  weak_color|KING);
 
         auto value = std::min (pos.count (strong_color|PAWN)*VALUE_EG_PAWN
-                             + pos.si->non_pawn_material (strong_color)
+                             + pos.non_pawn_material (strong_color)
                              + PushToEdge[wk_sq]
                              + PushClose[dist (sk_sq, wk_sq)],
                                +VALUE_KNOWN_WIN - 1);
@@ -755,7 +755,7 @@ namespace Endgames {
     /// are on the same rook file and are blocked by the defending king, it's a draw.
     template<> Scale Endgame<KPsK>::operator() (const Position &pos) const
     {
-        assert(pos.si->non_pawn_material (strong_color) == VALUE_ZERO
+        assert(pos.non_pawn_material (strong_color) == VALUE_ZERO
             && pos.count (strong_color|PAWN) >= 2
             && verify_material (pos, weak_color, VALUE_ZERO, 0));
 
@@ -781,7 +781,7 @@ namespace Endgames {
     /// If not, the return value is SCALE_NONE, i.e. no scaling will be used.
     template<> Scale Endgame<KBPsKP>::operator() (const Position &pos) const
     {
-        assert(pos.si->non_pawn_material (strong_color) == VALUE_MG_BSHP
+        assert(pos.non_pawn_material (strong_color) == VALUE_MG_BSHP
             && pos.count (strong_color|PAWN) != 0
             && pos.count (  weak_color|PAWN) >= 0);
         // No assertions about the material of weak side, because we want draws to
@@ -812,7 +812,7 @@ namespace Endgames {
         // Then potential draw
         if (   contains (FB_bb | FG_bb, sp_sq)
             && 0 == (pos.pieces (PAWN) & ~file_bb (sp_f))
-            && VALUE_ZERO == pos.si->non_pawn_material (weak_color))
+            && VALUE_ZERO == pos.non_pawn_material (weak_color))
         {
             auto sk_sq = pos.square (strong_color|KING);
             auto sb_sq = pos.square (strong_color|BSHP);
@@ -856,7 +856,7 @@ namespace Endgames {
     template<> Scale Endgame<KQKRPs>::operator() (const Position &pos) const
     {
         assert(verify_material (pos, strong_color, VALUE_MG_QUEN, 0)
-            && pos.si->non_pawn_material (weak_color) == VALUE_MG_ROOK
+            && pos.non_pawn_material (weak_color) == VALUE_MG_ROOK
             && pos.count (  weak_color|PAWN) != 0);
 
         auto sk_sq = pos.square (strong_color|KING);

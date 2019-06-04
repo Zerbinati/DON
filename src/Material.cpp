@@ -118,7 +118,7 @@ namespace Material {
         e->key = pos.si->matl_key;
         std::fill_n (e->scale, CLR_NO, SCALE_NORMAL);
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        Value npm = clamp (VALUE_ENDGAME, pos.si->non_pawn_material (), VALUE_MIDGAME);
+        Value npm = clamp (VALUE_ENDGAME, pos.non_pawn_material (), VALUE_MIDGAME);
         e->phase = i32(npm - VALUE_ENDGAME) * PhaseResolution / (VALUE_MIDGAME - VALUE_ENDGAME);
 
         // Let's look if have a specialized evaluation function for this
@@ -132,7 +132,7 @@ namespace Material {
         // Generic evaluation
         for (const auto &c : { WHITE, BLACK })
         {
-            if (   pos.si->non_pawn_material ( c) >= VALUE_MG_ROOK
+            if (   pos.non_pawn_material ( c) >= VALUE_MG_ROOK
                 && pos.count (~c) == 1)
             {
                 e->value_func = &ValueKXK[c];
@@ -156,17 +156,17 @@ namespace Material {
         // generic scaling functions that refer to more than one material distribution.
         for (const auto &c : { WHITE, BLACK })
         {
-            if (   pos.si->non_pawn_material ( c) == VALUE_MG_BSHP
+            if (   pos.non_pawn_material ( c) == VALUE_MG_BSHP
                 //&& pos.count ( c|BSHP) == 1
                 && pos.count ( c|PAWN) != 0)
             {
                 e->scale_func[c] = &ScaleKBPsKP[c];
             }
             else
-            if (   pos.si->non_pawn_material ( c) == VALUE_MG_QUEN
+            if (   pos.non_pawn_material ( c) == VALUE_MG_QUEN
                 //&& pos.count ( c|QUEN) == 1
                 && pos.count ( c|PAWN) == 0
-                && pos.si->non_pawn_material (~c) == VALUE_MG_ROOK
+                && pos.non_pawn_material (~c) == VALUE_MG_ROOK
                 //&& pos.count (~c|ROOK) == 1
                 && pos.count (~c|PAWN) != 0)
             {
@@ -177,17 +177,17 @@ namespace Material {
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
             if (   pos.count ( c|PAWN) == 0
-                && abs (  pos.si->non_pawn_material ( c)
-                        - pos.si->non_pawn_material (~c)) <= VALUE_MG_BSHP)
+                && abs (  pos.non_pawn_material ( c)
+                        - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {
-                e->scale[c] = pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
+                e->scale[c] = pos.non_pawn_material ( c) <  VALUE_MG_ROOK ?
                                 SCALE_DRAW :
-                                Scale(pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ? 4 : 14);
+                                Scale(pos.non_pawn_material (~c) <= VALUE_MG_BSHP ? 4 : 14);
             }
         }
 
         // Only pawns left
-        if (   pos.si->non_pawn_material () == VALUE_ZERO
+        if (   pos.non_pawn_material () == VALUE_ZERO
             && pos.pieces (PAWN) != 0)
         {
             if (pos.pieces (BLACK, PAWN) == 0)
