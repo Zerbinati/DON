@@ -6,6 +6,7 @@
 #include <cctype>
 #include <chrono>
 #include <climits>
+#include <cstdlib>
 #include <functional>
 #include <iomanip>
 #include <iosfwd>

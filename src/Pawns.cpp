@@ -1,6 +1,7 @@
 #include "Pawns.h"
 
 #include <algorithm>
+#include <cassert>
 #include "BitBoard.h"
 #include "Thread.h"
 

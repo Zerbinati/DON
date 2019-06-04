@@ -1,7 +1,8 @@
 #include "Evaluator.h"
 
 #include <algorithm>
-#include <ostream>
+#include <cassert>
+#include <cstring>
 #include "BitBoard.h"
 #include "Material.h"
 #include "Notation.h"

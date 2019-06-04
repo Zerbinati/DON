@@ -1,5 +1,6 @@
 #include "Zobrist.h"
 
+#include <cassert>
 #include "Position.h"
 #include "PRNG.h"
 

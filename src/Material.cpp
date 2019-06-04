@@ -1,5 +1,7 @@
 #include "Material.h"
 
+#include <cassert>
+#include <cstring>
 #include "Thread.h"
 
 namespace Material {

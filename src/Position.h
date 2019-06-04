@@ -1,7 +1,6 @@
 #ifndef _POSITION_H_INC_
 #define _POSITION_H_INC_
 
-#include <cstring>
 #include <deque>
 #include <list>
 #include <memory> // For std::unique_ptr
@@ -66,21 +65,18 @@ public:
     // ---Copied when making a move---
     Key         matl_key;       // Hash key of materials
     Key         pawn_key;       // Hash key of pawns
-
-    Value       npm[CLR_NO];
-
     CastleRight castle_rights;  // Castling-rights information
     Square      enpassant_sq;   // Enpassant -> "In passing"
     i16         clock_ply;      // Number of half moves clock since the last pawn advance or any capture
-                                // Used to determine if a draw can be claimed under the clock-move rule
     i16         null_ply;
+    Value       npm[CLR_NO];
 
     // ---Not copied when making a move---
-    i16         repetition;
     Key         posi_key;       // Hash key of position
     PieceType   capture;        // Piece type captured
     PieceType   promote;        // Piece type promoted
     Bitboard    checkers;       // Checkers
+    i16         repetition;
     // Check info
     Bitboard    king_blockers[CLR_NO];// Absolute and Discover Blockers
     Bitboard    king_checkers[CLR_NO];// Absolute and Discover Checkers
@@ -105,15 +101,6 @@ public:
     CastleRight castle_right (Color c) const
     {
         return castle_rights & (WHITE == c ? CR_WHITE : CR_BLACK);
-    }
-
-    void clear ()
-    {
-        std::memset (this, 0, sizeof (*this));
-        enpassant_sq = SQ_NO;
-        null_ply = 0;
-        capture = NONE;
-        promote = NONE;
     }
 
     void set_check_info (const Position &pos);

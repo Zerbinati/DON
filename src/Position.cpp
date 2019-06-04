@@ -1,5 +1,8 @@
 #include "Position.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cstring>
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "Option.h"
@@ -13,6 +16,27 @@ using namespace BitBoard;
 using namespace TBSyzygy;
 
 namespace {
+
+    constexpr StateInfo EmptyStateInfo =
+    {
+        0,          //matl_key
+        0,          //pawn_key
+        CR_NONE,    //castle_rights
+        SQ_NO,      //enpassant_sq
+        0,          //clock_ply
+        0,          //null_ply
+        {VALUE_ZERO, VALUE_ZERO},
+
+        0,          //posi_key
+        NONE,       //capture
+        NONE,       //promote
+        0,          //checkers
+        0,          //repetition
+        {0, 0},
+        {0, 0},
+        {0, 0, 0, 0, 0, 0},
+        nullptr,
+    };
 
     /// Computes the non-pawn middle game material value for the given side.
     /// Material values are updated incrementally during the search.
@@ -51,7 +75,6 @@ namespace {
     inline u16 H2 (Key key) { return u16((key >> 0x10) & (CuckooSize - 1)); }
 
 }
-
 
 void Position::initialize ()
 {
@@ -113,9 +136,7 @@ bool Position::draw (i16 pp) const
             // Return a draw score if a position repeats once earlier but strictly
             // after the root, or repeats twice before or at the root.
         || (   0 != si->repetition
-            && si->repetition < pp) ?
-            true :
-            false;
+            && si->repetition < pp);
 }
 
 /// Position::repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
@@ -724,7 +745,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th)
     //    It starts at 1, and is incremented after Black's move.
 
     clear ();
-    nsi.clear ();
+    std::memcpy (&nsi, &EmptyStateInfo, sizeof (StateInfo));
     si = &nsi;
 
     istringstream iss (ff);
