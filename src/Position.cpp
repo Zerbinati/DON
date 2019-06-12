@@ -219,7 +219,7 @@ Bitboard Position::slider_blockers (Square s, Color c, Bitboard excludes, Bitboa
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     // Occupancy are pieces but removed snipers
-    Bitboard mocc = pieces () & ~snipers;
+    Bitboard mocc = pieces () ^ snipers;
     while (0 != snipers)
     {
         auto sniper_sq = pop_lsq (snipers);

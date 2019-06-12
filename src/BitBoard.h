@@ -203,10 +203,10 @@ namespace BitBoard {
     //         | shift<DEL_S> (rank_bb (s));
     //}
 
-    constexpr Bitboard front_line_bb (Color c, Square s) { return front_rank_bb (c, s) & file_bb (s); }
+    constexpr Bitboard front_squares_bb (Color c, Square s) { return front_rank_bb (c, s) & file_bb (s); }
 
     constexpr Bitboard pawn_attack_span (Color c, Square s) { return front_rank_bb (c, s) & adj_file_bb (s); }
-    constexpr Bitboard pawn_pass_span   (Color c, Square s) { return front_line_bb (c, s) | pawn_attack_span (c, s); }
+    constexpr Bitboard pawn_pass_span   (Color c, Square s) { return front_squares_bb (c, s) | pawn_attack_span (c, s); }
 
     /// dist() functions return the distance between s1 and s2, defined as the
     /// number of steps for a king in s1 to reach s2.

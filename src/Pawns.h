@@ -16,7 +16,6 @@ namespace Pawns {
         Score    scores[CLR_NO];
         Bitboard attack_span[CLR_NO];
         Bitboard passers[CLR_NO];
-        i32      weak_unopposed_count[CLR_NO];
 
         u08      index[CLR_NO];
         Square   king_square[CLR_NO][MaxCache];

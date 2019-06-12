@@ -710,6 +710,8 @@ namespace Searcher {
                         || (   (DepthZero != depth || 2 < move_count)
                             && -VALUE_MATE_MAX_PLY < best_value
                             && !pos.capture (move)))
+                    && !(   gives_check
+                         && contains (pos.si->king_blockers[~pos.active], org))
                     && !Limits.mate_search ()
                     && pos.exchange (move) < VALUE_ZERO
                     && !pos.see_ge (move))
@@ -900,10 +902,9 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            auto tt_pv = (   tt_hit
-                          && tte->is_pv ())
-                      || (   PVNode
-                          && 4 < depth);
+            auto tt_pv = PVNode 
+                      || (   tt_hit
+                          && tte->is_pv ());
 
             if (   MOVE_NONE != tt_move
                 && (   !pos.pseudo_legal (tt_move)
@@ -1219,7 +1220,7 @@ namespace Searcher {
 
             value = best_value;
 
-            i16 singular_extension_lmr = 0;
+            i16 singular_lmr = 0;
             u08 move_count = 0;
 
             vector<Move> quiet_moves
@@ -1331,10 +1332,10 @@ namespace Searcher {
                     {
                         extension = 1;
 
-                        ++singular_extension_lmr;
+                        ++singular_lmr;
                         if (value < singular_beta - std::min (3 * depth, 39))
                         {
-                            ++singular_extension_lmr;
+                            ++singular_lmr;
                         }
                     }
                     // Multi-cut pruning
@@ -1386,7 +1387,8 @@ namespace Searcher {
 
                     if (   !capture_or_promotion
                         && !gives_check
-                        && !pos.pawn_advance (move))
+                        && !(   pos.pawn_advance (move)
+                             && pos.non_pawn_material (~pos.active) <= VALUE_MG_BSHP))
                     {
                         // Move count based pruning: (~30 ELO)
                         if (move_picker.skip_quiets)
@@ -1422,7 +1424,9 @@ namespace Searcher {
                     {
                         // SEE based pruning: negative SEE (~20 ELO)
                         auto thr = -VALUE_EG_PAWN*i32(depth);
-                        if (   pos.exchange (move) < thr
+                        if (   !(   gives_check
+                                 && contains (pos.si->king_blockers[~pos.active], org))
+                            && pos.exchange (move) < thr
                             && !pos.see_ge (move, thr))
                         {
                             continue;
@@ -1464,7 +1468,7 @@ namespace Searcher {
                     }
 
                     // Decrease reduction if move has been singularly extended
-                    reduct_depth -= singular_extension_lmr;
+                    reduct_depth -= singular_lmr;
 
                     if (!capture_or_promotion)
                     {

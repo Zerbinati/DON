@@ -118,7 +118,7 @@ namespace {
     };
 
     constexpr Score MinorBehindPawn =   S( 18,  3);
-    constexpr Score Outpost =           S(  9,  3);
+    constexpr Score Outpost =           S( 36, 12);
     constexpr Score MinorKingProtect =  S(  7,  8);
     constexpr Score BishopOnDiagonal =  S( 45,  0);
     constexpr Score BishopPawns =       S(  3,  7);
@@ -129,7 +129,6 @@ namespace {
     constexpr Score PawnLessFlank =     S( 17, 95);
     constexpr Score KingTropism =       S(  8,  0);
     constexpr Score PieceRestricted =   S(  7,  6);
-    constexpr Score PawnWeakUnopposed = S( 12, 23);
     constexpr Score PieceHanged =       S( 69, 36);
     constexpr Score PawnThreat =        S(173, 94);
     constexpr Score PawnPushThreat =    S( 48, 39);
@@ -173,9 +172,7 @@ namespace {
 
         Bitboard queen_attacks[CLR_NO][3];
 
-        // Zone around the king which is considered by the king safety evaluation.
-        // The squares directly adjacent to the king, , plus (only for a king on its first rank) the squares two ranks in front.
-        // For instance, if black king is on g8, king_ring[BLACK] is f8, h8, f7, g7, h7, f6, g6 and h6.
+        // The squares adjacent to the king plus some other very near squares, depending on king position.
         Bitboard king_ring[CLR_NO];
         // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
         u08 king_attackers_count[CLR_NO];
@@ -362,16 +359,17 @@ namespace {
                 score -= MinorKingProtect * dist (s, pos.square (Own|KING));
 
                 b = Outposts_bb[Own]
+                  & sgl_attacks[Own][PAWN]
                   & ~pe->attack_span[Opp];
                 // Bonus for knight outpost squares
                 if (contains (b, s))
                 {
-                    score += Outpost * (4 * (contains (sgl_attacks[Own][PAWN], s) ? 2 : 1) / PT);
+                    score += Outpost * 2 / PT;
                 }
                 else
-                if (0 != (b &= attacks & ~pos.pieces (Own)))
+                if (0 != (b & attacks & ~pos.pieces (Own)))
                 {
-                    score += Outpost * (2 * (0 != (sgl_attacks[Own][PAWN] & b) ? 2 : 1) / PT);
+                    score += Outpost * 1 / PT;
                 }
 
                 if (BSHP == PT)
@@ -756,12 +754,6 @@ namespace {
                             &  sgl_attacks[Own][NONE];
         score += PieceRestricted * pop_count (restricted);
 
-        // Bonus for opponent unopposed weak pawns
-        if (0 != pos.pieces (Own, ROOK, QUEN))
-        {
-            score += PawnWeakUnopposed * pe->weak_unopposed_count[Opp];
-        }
-
         Bitboard safe_area;
 
         safe_area =  sgl_attacks[Own][NONE]
@@ -830,7 +822,8 @@ namespace {
         while (0 != psr)
         {
             auto s = pop_lsq (psr);
-            assert(0 == (pos.pieces (Opp, PAWN) & pawn_sgl_pushes_bb (Own, front_line_bb (Own, s))));
+            assert((  pawn_sgl_pushes_bb (Own, front_squares_bb (Own, s))
+                    & pos.pieces (Opp, PAWN)) == 0);
 
             i32 r = rel_rank (Own, s);
             // Base bonus depending on rank.
@@ -854,13 +847,11 @@ namespace {
                 // If the pawn is free to advance.
                 if (pos.empty (push_sq))
                 {
-                    // Squares to queen
-                    Bitboard front_line = front_line_bb (Own, s);
-                    Bitboard safe_front_line = front_line
-                        ,  unsafe_front_line = front_line;
+                    Bitboard defended_squares = front_squares_bb (Own, s)
+                        ,    attacked_squares = front_squares_bb (Own, s);
                     // If there is a rook or queen attacking/defending the pawn from behind, consider front squares.
                     // Otherwise consider only the squares in the pawn's path attacked or occupied by the enemy.
-                    Bitboard behind_major = front_line_bb (Opp, s)
+                    Bitboard behind_major = front_squares_bb (Opp, s)
                                           & pos.pieces (ROOK, QUEN);
                     // If there is no friend rook or queen attacking the pawn from behind,
                     // consider only the squares in the pawn's path attacked by the friend.
@@ -870,7 +861,7 @@ namespace {
                          & ~pos.si->king_blockers[Own]
                          /*& attacks_bb<ROOK> (s, pos.pieces (Own))*/) == 0)
                     {
-                        safe_front_line &= sgl_attacks[Own][NONE];
+                        defended_squares &= sgl_attacks[Own][NONE];
                     }
                     // If there is no enemy rook or queen attacking the pawn from behind,
                     // consider only the squares in the pawn's path attacked or occupied by the enemy,
@@ -880,20 +871,25 @@ namespace {
                          & ~pos.si->king_blockers[Opp]
                          /*& attacks_bb<ROOK> (s, pos.pieces (Opp))*/) == 0)
                     {
-                        unsafe_front_line &= sgl_attacks[Opp][NONE] | pos.pieces (Opp);
+                        attacked_squares &= sgl_attacks[Opp][NONE] | pos.pieces (Opp);
                     }
 
-                    i32 k;
-                    // Give a big bonus if the path to the queen is not attacked,
-                    // a smaller bonus if the block square is not attacked.
-                    k = 0 != unsafe_front_line ?
-                             contains (unsafe_front_line, push_sq) ?
-                                0 : 9 : 20;
-                    // Give a big bonus if the path to the queen is fully defended,
-                    // a smaller bonus if the block square is defended.
-                    k += safe_front_line != front_line ?
-                            !contains (safe_front_line, push_sq) ?
-                                0 : 4 : 6;
+                    i32 k = 0;
+                    // Bonus if the push square is not attacked.
+                    if (!contains (attacked_squares, push_sq))
+                    {
+                        k += 9;
+                        if (0 == attacked_squares)
+                        {
+                            k += 11;
+                        }
+                    }
+
+                    // Bonus if the push square is defended.
+                    if (contains (defended_squares, push_sq))
+                    {
+                        k += 5;
+                    }
 
                     bonus += mk_score (k*w, k*w);
                 }
@@ -902,7 +898,7 @@ namespace {
             // Scale down bonus for candidate passers which need more than one 
             // pawn push to become passed or have a pawn in front of them.
             if (   !pos.pawn_passed_at (Own, push_sq)
-                || 0 != (pos.pieces (PAWN) & front_line_bb (Own, s)))
+                || 0 != (pos.pieces (PAWN) & front_squares_bb (Own, s)))
             {
                 bonus /= 2;
             }
@@ -1050,7 +1046,7 @@ namespace {
         // Early exit if score is high
         Value v = (mg_value (score) + eg_value (score)) / 2;
 
-        if (abs (v) > (Value(1400) + pos.non_pawn_material () / 64)) // Lazy Threshold
+        if (abs (v) > Value(1400) + pos.non_pawn_material () / 64) // Lazy Threshold
         {
             switch (pos.active)
             {

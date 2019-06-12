@@ -344,7 +344,7 @@
     <Node Id="@335" Category="CodeSchema_Method" Bounds="25211.1045525518,23188.4517794633,94.9199999999983,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator-=" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@336" Category="CodeSchema_Method" Bounds="25529.0395528719,23824.27822479,84.2166666666599,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="perft‎&lt;0‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@337" Category="CodeSchema_Method" Bounds="25414.8227559969,23824.27822479,84.2166666666599,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="perft‎&lt;1‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
-    <Node Id="@339" Category="CodeSchema_Method" Bounds="26094.0253206223,25427.2266477307,104.763333333307,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="front_line_bb" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@339" Category="CodeSchema_Method" Bounds="26094.0253206223,25427.2266477307,104.763333333307,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="front_squares_bb" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@34" Category="CodeSchema_Namespace" Bounds="25394.821669674,23723.2834395089,238.433932291664,202.920299999983" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="4" Group="Expanded" Label="Searcher" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@340" Category="CodeSchema_Method" Bounds="26364.0189664556,25427.2266477307,108.916666666686,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="front_rank_bb" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@341" Category="CodeSchema_Method" Bounds="26394.6249951015,25483.1856321057,131.479999999981,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="pawn_attack_span" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
@@ -6512,7 +6512,7 @@
     <Alias n="336" Id="(@1 @33 Member=(Name=perft&lt;0&gt; OverloadingParameters=[@271,@123]))" />
     <Alias n="337" Id="(@1 @33 Member=(Name=perft&lt;1&gt; OverloadingParameters=[@271,@123]))" />
     <Alias n="338" Id="OverloadingParameters=[@56,@127]" />
-    <Alias n="339" Id="(@1 @12 Member=(Name=front_line_bb @338))" />
+    <Alias n="339" Id="(@1 @12 Member=(Name=front_squares_bb @338))" />
     <Alias n="340" Id="(@1 @12 Member=(Name=front_rank_bb @338))" />
     <Alias n="341" Id="(@1 @12 Member=(Name=pawn_attack_span @338))" />
     <Alias n="342" Id="(@1 @12 Member=(Name=pawn_pass_span @338))" />

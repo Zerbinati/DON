@@ -61,10 +61,11 @@ public:
             || d08 < d + 10
             || BOUND_EXACT == b)
         {
+            assert((d - DepthEmpty) > 0);
+
             k16 = u16(k >> 0x30);
             v16 = i16(v);
             e16 = i16(e);
-            assert((d - DepthEmpty) > 0);
             d08 = u08(d - DepthEmpty);
             g08 = u08(Generation | pv | b);
         }

@@ -231,7 +231,7 @@ namespace Endgames {
 
         // If the strong side's king is in front of the pawn, it's a win. or
         // If the weak side's king is too far from the pawn and the rook, it's a win.
-        if (   contains (front_line_bb (WHITE, sk_sq), wp_sq)
+        if (   contains (front_squares_bb (WHITE, sk_sq), wp_sq)
             || (   3 <= dist (wk_sq, wp_sq) - (weak_color == pos.active ? 1 : 0)
                 && 3 <= dist (wk_sq, sr_sq)))
         {
@@ -512,7 +512,7 @@ namespace Endgames {
             // and the defending king is near the corner
             if (   R_6 == sp_r
                 && 1 >= dist (sp_sq + 2*pawn_push (strong_color), wk_sq)
-                && contains (PieceAttacks[BSHP][wb_sq], (sp_sq + pawn_push (strong_color)))
+                && contains (PieceAttacks[BSHP][wb_sq], sp_sq + pawn_push (strong_color))
                 && 2 <= dist<File> (wb_sq, sp_sq))
             {
                 return Scale(8);
@@ -645,19 +645,18 @@ namespace Endgames {
             case 1:
                 if (opposite_colors (wk_sq, sb_sq))
                 {
-                    Bitboard b;
                     if (   wk_sq == block1_sq
                         && (   wb_sq == block2_sq
-                            || (   0 != (b = pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block2_sq])
-                                && 0 != (b & attacks_bb<BSHP> (block2_sq, pos.pieces ())))
+                            || 0 != (  pos.pieces (weak_color, BSHP)
+                                     & attacks_bb<BSHP> (block2_sq, pos.pieces ()))
                             || 2 <= dist<Rank> (sp1_sq, sp2_sq)))
                     {
                         return SCALE_DRAW;
                     }
                     if (   wk_sq == block2_sq
                         && (   wb_sq == block1_sq
-                            || (   0 != (b = pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block1_sq])
-                                && 0 != (b & attacks_bb<BSHP> (block1_sq, pos.pieces ())))))
+                            || 0 != (  pos.pieces (weak_color, BSHP)
+                                     & attacks_bb<BSHP> (block1_sq, pos.pieces ()))))
                     {
                         return SCALE_DRAW;
                     }
@@ -708,9 +707,8 @@ namespace Endgames {
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        Bitboard b;
-        if (   0 != (b = front_line_bb (strong_color, sp_sq) & PieceAttacks[BSHP][sb_sq])
-            && 0 != (b & attacks_bb<BSHP> (sb_sq, pos.pieces ())))
+        if (0 != (  front_squares_bb (strong_color, sp_sq)
+                  & attacks_bb<BSHP> (sb_sq, pos.pieces ())))
         {
             return Scale(dist (wk_sq, sp_sq));
         }

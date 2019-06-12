@@ -40,6 +40,7 @@ namespace Pawns {
         constexpr Score Backward = S( 9,24);
         constexpr Score Blocked =  S(11,56);
         constexpr Score Isolated = S( 5,15);
+        constexpr Score WeakUnopposed = S(13, 27);
 
 #   undef S
 
@@ -57,8 +58,6 @@ namespace Pawns {
             e->attack_span[Own] = 0;
             e->passers[Own] = 0;
             
-            e->weak_unopposed_count[Own] = 0;
-
             e->index[Own] = 0;
             std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
             std::fill_n (e->king_safety[Own], MaxCache, SCORE_ZERO);
@@ -85,7 +84,7 @@ namespace Pawns {
                 Bitboard escapes    = opp_pawns & Attack[s+pawn_push (Own)]; // Push levers
 
                 bool blocked = contains (own_pawns, s-pawn_push (Own));
-                bool opposed = 0 != (opp_pawns & front_line_bb (Own, s));
+                bool opposed = 0 != (opp_pawns & front_squares_bb (Own, s));
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 bool backward = 0 == (own_pawns & pawn_attack_span (Opp, s+pawn_push (Own)))
@@ -112,7 +111,6 @@ namespace Pawns {
                         if (!more_than_one (opp_pawns & Attack[pop_lsq (b)]))
                         {
                             e->passers[Own] |= s;
-                            break;
                         }
                     }
                 }
@@ -129,7 +127,7 @@ namespace Pawns {
                     score -= Isolated;
                     if (!opposed)
                     {
-                        e->weak_unopposed_count[Own]++;
+                        score += WeakUnopposed;
                     }
                 }
                 else
@@ -138,7 +136,7 @@ namespace Pawns {
                     score -= Backward;
                     if (!opposed)
                     {
-                        e->weak_unopposed_count[Own]++;
+                        score += WeakUnopposed;
                     }
                 }
 
