@@ -377,8 +377,7 @@
     <Node Id="@369" Category="CodeSchema_Method" Bounds="25331.6470983468,25524.5717794632,257.716666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@37" Category="CodeSchema_Namespace" Bounds="25392.0223035717,24424.2617760218,694.633138020843,482.723312499977" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="10" Group="Expanded" Label="TBSyzygy" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@370" Category="CodeSchema_Method" Bounds="25663.0688610401,25936.39530011,257.716666666674,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
-    <Node Id="@371" Category="CodeSchema_Method" Bounds="26232.2102164556,24976.9649289807,132.846666666679,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="scan_backmost_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
-    <Node Id="@372" Category="CodeSchema_Method" Bounds="26235.1443570806,25091.4649289807,126.966666666674,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="scan_frntmost_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@372" Category="CodeSchema_Method" Bounds="26235.1443570806,25091.4649289807,126.966666666674,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="scan_frontmost_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@373" Category="CodeSchema_Method" Bounds="25655.4892659348,25256.7637571057,114.92333333334,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="attacks_bb‎&lt;2‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@374" Category="CodeSchema_Method" Bounds="25677.2900471848,25312.7227414807,114.92333333334,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="attacks_bb‎&lt;3‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@375" Category="CodeSchema_Method" Bounds="25921.8125081223,25256.7637571057,114.92333333334,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="attacks_bb‎&lt;4‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
@@ -6544,8 +6543,7 @@
     <Alias n="368" Id="(@1 @3 Member=(Name=&quot;operator&gt;&gt;&lt;char,std::char_traits&lt;char&gt; &gt;&quot; OverloadingParameters=[(Type=&quot;std::basic_istream&lt;char,std::char_traits&lt;char&gt; &gt; &amp;&quot;),(Type=&quot;TTable &amp;&quot;)]))" />
     <Alias n="369" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,(Type=&quot;TTable const &amp;&quot;)]))" />
     <Alias n="370" Id="(@1 @38 Member=(@227 OverloadingParameters=[@208,(Type=&quot;UCI::Option const &amp;&quot;)]))" />
-    <Alias n="371" Id="(@1 @12 Member=(Name=scan_backmost_sq OverloadingParameters=[@56,@163]))" />
-    <Alias n="372" Id="(@1 @12 Member=(Name=scan_frntmost_sq OverloadingParameters=[@56,@163]))" />
+    <Alias n="372" Id="(@1 @12 Member=(Name=scan_frontmost_sq OverloadingParameters=[@56,@163]))" />
     <Alias n="373" Id="(@1 @12 Member=(Name=attacks_bb&lt;2&gt; OverloadingParameters=[@127,@163]))" />
     <Alias n="374" Id="(@1 @12 Member=(Name=attacks_bb&lt;3&gt; OverloadingParameters=[@127,@163]))" />
     <Alias n="375" Id="(@1 @12 Member=(Name=attacks_bb&lt;4&gt; OverloadingParameters=[@127,@163]))" />

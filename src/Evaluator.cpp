@@ -301,23 +301,19 @@ namespace {
             case BSHP:
             {
                 Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
-                Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != bp ? pawn_sgl_attacks_bb (Own, bp) & PieceAttacks[BSHP][s] : 0));
+                                     | (pawn_sgl_attacks_bb (Own, att & front_rank_bb (Own, s) & pos.pieces (PAWN)) & PieceAttacks[BSHP][s]));
             }
                 break;
             case QUEN:
             {
                 Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
-                Bitboard qp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
-                Bitboard qb = att & PieceAttacks[BSHP][s] & pos.pieces (BSHP);
-                Bitboard qr = att & PieceAttacks[ROOK][s] & pos.pieces (ROOK);
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (0 != qp ? pawn_sgl_attacks_bb (Own, qp) & PieceAttacks[BSHP][s] : 0)
-                                     | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
-                                     | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
+                                     | (pawn_sgl_attacks_bb (Own, att & front_rank_bb (Own, s) & pos.pieces (PAWN)) & PieceAttacks[BSHP][s])
+                                     | attacks_bb<BSHP> (s, pos.pieces () ^ (att & PieceAttacks[BSHP][s] & pos.pieces (BSHP)))
+                                     | attacks_bb<ROOK> (s, pos.pieces () ^ (att & PieceAttacks[ROOK][s] & pos.pieces (ROOK))));
             }
                 break;
             default:
@@ -359,8 +355,8 @@ namespace {
                 score -= MinorKingProtect * dist (s, pos.square (Own|KING));
 
                 b = Outposts_bb[Own]
-                  & sgl_attacks[Own][PAWN]
-                  & ~pe->attack_span[Opp];
+                  & ~pe->attack_span[Opp]
+                  & sgl_attacks[Own][PAWN];
                 // Bonus for knight outpost squares
                 if (contains (b, s))
                 {

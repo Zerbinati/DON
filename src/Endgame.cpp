@@ -821,7 +821,7 @@ namespace Endgames {
             if (0 != wpawns)
             {
                 // Get weak side pawn that is closest to home rank
-                auto wp_sq = scan_backmost_sq (weak_color, wpawns);
+                auto wp_sq = scan_frontmost_sq (strong_color, wpawns);
 
                 // There's potential for a draw if weak pawn is blocked on the 7th rank
                 // and the bishop cannot attack it or they only have one pawn left

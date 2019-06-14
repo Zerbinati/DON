@@ -710,10 +710,12 @@ namespace Searcher {
                         || (   (DepthZero != depth || 2 < move_count)
                             && -VALUE_MATE_MAX_PLY < best_value
                             && !pos.capture (move)))
-                    && !(   gives_check
-                         && contains (pos.si->king_blockers[~pos.active], org))
                     && !Limits.mate_search ()
                     && pos.exchange (move) < VALUE_ZERO
+                    && !(   gives_check
+                         && contains (pos.si->king_blockers[~pos.active], org)
+                         && (   !contains (PieceAttacks[KING][pos.square (~pos.active|KING)], dst)
+                             || 0 != (pos.attackers_to (dst) & pos.pieces (pos.active) & ~square_bb (org))))
                     && !pos.see_ge (move))
                 {
                     continue;
@@ -1421,12 +1423,12 @@ namespace Searcher {
                         }
                     }
                     else
+                    if (   !gives_check
+                        || 0 == extension)
                     {
                         // SEE based pruning: negative SEE (~20 ELO)
                         auto thr = -VALUE_EG_PAWN*i32(depth);
-                        if (   !(   gives_check
-                                 && contains (pos.si->king_blockers[~pos.active], org))
-                            && pos.exchange (move) < thr
+                        if (   pos.exchange (move) < thr
                             && !pos.see_ge (move, thr))
                         {
                             continue;

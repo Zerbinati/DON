@@ -553,18 +553,11 @@ namespace BitBoard {
 #endif
 
     // Find the most/least advanced square in the given bitboard relative to the given color.
-
-    inline Square scan_frntmost_sq (Color c, Bitboard bb)
+    inline Square scan_frontmost_sq (Color c, Bitboard bb)
     {
         return WHITE == c ?
                 scan_msq (bb) :
                 scan_lsq (bb);
-    }
-    inline Square scan_backmost_sq (Color c, Bitboard bb)
-    {
-        return WHITE == c ?
-                scan_lsq (bb) :
-                scan_msq (bb);
     }
 
     inline Square pop_lsq (Bitboard &bb)
