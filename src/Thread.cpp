@@ -550,7 +550,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
         }
         else
         {
-            // Assign the same rank to all moves
+            // Clean up if root_probe_dtz() and root_probe_wdl() have failed
             for (auto &rm : root_moves)
             {
                 rm.tb_rank = 0;

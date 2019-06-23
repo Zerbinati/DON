@@ -844,44 +844,28 @@ namespace {
                 if (pos.empty (push_sq))
                 {
                     Bitboard defended_squares = front_squares_bb (Own, s)
-                        ,    attacked_squares = front_squares_bb (Own, s);
-                    // If there is a rook or queen attacking/defending the pawn from behind, consider front squares.
-                    // Otherwise consider only the squares in the pawn's path attacked or occupied by the enemy.
+                        ,    attacked_squares = pawn_pass_span (Own, s);
                     Bitboard behind_major = front_squares_bb (Opp, s)
                                           & pos.pieces (ROOK, QUEN);
-                    // If there is no friend rook or queen attacking the pawn from behind,
-                    // consider only the squares in the pawn's path attacked by the friend.
-                    // Otherwise add all X-ray attacks by the friend rook or queen.
                     if ((  behind_major
                          & pos.pieces (Own)
-                         & ~pos.si->king_blockers[Own]
-                         /*& attacks_bb<ROOK> (s, pos.pieces (Own))*/) == 0)
+                         & ~pos.si->king_blockers[Own]) == 0)
                     {
                         defended_squares &= sgl_attacks[Own][NONE];
                     }
-                    // If there is no enemy rook or queen attacking the pawn from behind,
-                    // consider only the squares in the pawn's path attacked or occupied by the enemy,
-                    // Otherwise add all X-ray attacks by the enemy rook or queen.
                     if ((  behind_major
                          & pos.pieces (Opp)
-                         & ~pos.si->king_blockers[Opp]
-                         /*& attacks_bb<ROOK> (s, pos.pieces (Opp))*/) == 0)
+                         & ~pos.si->king_blockers[Opp]) == 0)
                     {
                         attacked_squares &= sgl_attacks[Opp][NONE] | pos.pieces (Opp);
                     }
 
-                    i32 k = 0;
-                    // Bonus if the push square is not attacked.
-                    if (!contains (attacked_squares, push_sq))
-                    {
-                        k += 9;
-                        if (0 == attacked_squares)
-                        {
-                            k += 11;
-                        }
-                    }
+                    // Bonus according to attacked squares.
+                    i32 k = 0 == attacked_squares                               ? 35 :
+                            0 == (attacked_squares & front_squares_bb (Own, s)) ? 20 :
+                            !contains (attacked_squares, push_sq)               ? 9 : 0;
 
-                    // Bonus if the push square is defended.
+                    // Bonus according to defended squares.
                     if (contains (defended_squares, push_sq))
                     {
                         k += 5;
@@ -954,12 +938,12 @@ namespace {
     Score Evaluator<Trace>::initiative (Value eg) const
     {
         // Compute the initiative bonus for the attacking side
-        i32 complexity =   9 * pe->passed_count ()
-                       +  11 * pos.count (PAWN)
+        i32 complexity = 11 * pos.count (PAWN)
+                       +  9 * pe->passed_count ()
                         // Outflanking
-                       +   9 * (  dist<File> (pos.square (WHITE|KING), pos.square (BLACK|KING))
-                                - dist<Rank> (pos.square (WHITE|KING), pos.square (BLACK|KING)))
-                       - 103;
+                       +  9 * (  dist<File> (pos.square (WHITE|KING), pos.square (BLACK|KING))
+                               - dist<Rank> (pos.square (WHITE|KING), pos.square (BLACK|KING)))
+                       -103;
         // Pawn on both flanks
         if (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
             && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]))
