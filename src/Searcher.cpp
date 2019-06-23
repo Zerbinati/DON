@@ -684,9 +684,9 @@ namespace Searcher {
                     && !gives_check
                     && !Limits.mate_search ()
                     && -VALUE_KNOWN_WIN < futility_base
-                    && !pos.pawn_advance (move))
+                    && !pos.pawn_advance_at (pos.active, org))
                 {
-                    assert(ENPASSANT != mtype (move)); // Due to !pos.pawn_advance
+                    assert(ENPASSANT != mtype (move)); // Due to !pos.pawn_advance_at
 
                     // Futility pruning parent node
                     auto futility_value = futility_base + PieceValues[EG][CASTLE != mtype (move) ? ptype (pos[dst]) : NONE];
@@ -713,6 +713,7 @@ namespace Searcher {
                             && -VALUE_MATE_MAX_PLY < best_value
                             && !pos.capture (move)))
                     && !Limits.mate_search ()
+                    && !(gives_check && pos.discovery_check_blocker_at (org))
                     && pos.exchange (move) < VALUE_ZERO
                     && !pos.see_ge (move))
                 {
@@ -1354,11 +1355,12 @@ namespace Searcher {
                        CASTLE == mtype (move)
                     // Passed pawn extension
                     || (   move == ss->killer_moves[0]
-                        && pos.pawn_advance (move)
+                        && pos.pawn_advance_at (pos.active, org)
                         && pos.pawn_passed_at (pos.active, dst))
                     // Check extension (~2 ELO)
                     || (   gives_check
-                        && (   pos.exchange (move) >= VALUE_ZERO
+                        && (   pos.discovery_check_blocker_at (org)
+                            || pos.exchange (move) >= VALUE_ZERO
                             || pos.see_ge (move)))
                     // Shuffle extension
                     || (   PVNode
@@ -1383,7 +1385,7 @@ namespace Searcher {
 
                     if (   !capture_or_promotion
                         && !gives_check
-                        && !(   pos.pawn_advance (move)
+                        && !(   pos.pawn_advance_at (pos.active, org)
                              && pos.non_pawn_material (~pos.active) <= VALUE_MG_BSHP))
                     {
                         // Move count based pruning: (~30 ELO)

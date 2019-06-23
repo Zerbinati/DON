@@ -87,7 +87,7 @@ namespace Pawns {
                 bool opposed = 0 != (opp_pawns & front_squares_bb (Own, s));
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
-                bool backward = 0 == (own_pawns & pawn_attack_span (Opp, s+pawn_push (Own)))
+                bool backward = 0 == (neighbours & front_rank_bb (Opp, s))
                              && 0 != (stoppers & (escapes | (s+pawn_push (Own))));
 
                 assert(!backward

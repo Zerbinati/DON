@@ -118,7 +118,7 @@ namespace {
     };
 
     constexpr Score MinorBehindPawn =   S( 18,  3);
-    constexpr Score Outpost =           S( 36, 12);
+    constexpr Score Outpost =           S( 18,  6);
     constexpr Score MinorKingProtect =  S(  7,  8);
     constexpr Score BishopOnDiagonal =  S( 45,  0);
     constexpr Score BishopPawns =       S(  3,  7);
@@ -360,12 +360,12 @@ namespace {
                 // Bonus for knight outpost squares
                 if (contains (b, s))
                 {
-                    score += Outpost * 2 / PT;
+                    score += Outpost * 4 / PT;
                 }
                 else
                 if (0 != (b & attacks & ~pos.pieces (Own)))
                 {
-                    score += Outpost * 1 / PT;
+                    score += Outpost * 2 / PT;
                 }
 
                 if (BSHP == PT)

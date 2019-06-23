@@ -205,7 +205,6 @@ public:
     bool legal (Move) const;
     bool capture (Move) const;
     bool capture_or_promotion (Move) const;
-    bool pawn_advance (Move) const;
     bool gives_check (Move) const;
 
     PieceType cap_type (Move) const;
@@ -213,7 +212,10 @@ public:
     Value exchange (Move) const;
     bool see_ge (Move, Value = VALUE_ZERO) const;
 
+    bool pawn_advance_at (Color, Square) const;
     bool pawn_passed_at (Color, Square) const;
+    bool discovery_check_blocker_at (Square) const;
+    
     bool bishop_paired  (Color) const;
     bool semiopenfile_on (Color, Square) const;
 
@@ -500,11 +502,6 @@ inline bool Position::capture_or_promotion (Move m) const
             !empty (dst_sq (m));
 }
 
-inline bool Position::pawn_advance (Move m) const
-{
-    return contains (pieces (PAWN) & Region_bb[~active], org_sq (m));
-}
-
 inline PieceType Position::cap_type (Move m) const
 {
     return ENPASSANT != mtype (m) ?
@@ -520,11 +517,20 @@ inline Value Position::exchange (Move m) const
             VALUE_ZERO;
 }
 
+inline bool Position::pawn_advance_at (Color c, Square s) const
+{
+    return contains (pieces (c, PAWN) & Region_bb[~c], s);
+}
 /// Position::pawn_passed_at() check if pawn passed at the given square.
 inline bool Position::pawn_passed_at (Color c, Square s) const
 {
     return 0 == (pawn_pass_span (c, s) & pieces (~c, PAWN));
 }
+inline bool Position::discovery_check_blocker_at (Square s) const
+{
+    return contains (si->king_blockers[~active], s);
+}
+
 /// Position::bishop_paired() check the side has pair of opposite color bishops.
 inline bool Position::bishop_paired (Color c) const
 {
