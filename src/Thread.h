@@ -81,6 +81,7 @@ public:
     i16   root_depth
         , finished_depth
         , sel_depth;
+    i16   shuffle_ext;
 
     i16   nmp_ply;
     Color nmp_color;

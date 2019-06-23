@@ -1364,7 +1364,7 @@ namespace Searcher {
                     || (   PVNode
                         && depth < 3
                         && pos.si->clock_ply > 18
-                        && ss->ply < 3 * thread->root_depth)) // To avoid too deep searching
+                        && ++thread->shuffle_ext < thread->nodes.load (std::memory_order::memory_order_relaxed) / 4)) // To avoid too deep searching
                 {
                     extension = 1;
                 }
