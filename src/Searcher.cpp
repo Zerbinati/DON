@@ -326,12 +326,14 @@ namespace Searcher {
                     {
                         return *idx++;
                     }
-
-                    generate<GenType::QUIET> (moves, pos);
-                    value<GenType::QUIET> ();
-                    std::for_each (moves.begin (), moves.end (),
-                                   [&](ValMove &vm) { if (vm.value < threshold)
-                                                          vm.value = threshold - 1; });
+                    if (!skip_quiets)
+                    {
+                        generate<GenType::QUIET> (moves, pos);
+                        value<GenType::QUIET> ();
+                        std::for_each (moves.begin (), moves.end (),
+                                       [&](ValMove &vm) { if (vm.value < threshold)
+                                                              vm.value = threshold - 1; });
+                    }
                     ++stage;
                     itr = moves.begin ();
                     /* fall through */
@@ -1021,16 +1023,16 @@ namespace Searcher {
             StateInfo si;
             Move move;
             bool improving;
+            Value eval;
 
             // Step 6. Static evaluation of the position
             if (in_check)
             {
-                ss->static_eval = VALUE_NONE;
+                ss->static_eval = eval = VALUE_NONE;
                 improving = false;
             }
             else
             {
-                Value eval;
                 if (tt_hit)
                 {
                     ss->static_eval = eval = tte->eval ();
@@ -1279,14 +1281,14 @@ namespace Searcher {
                     }
                 }
 
-                // In MultiPV mode also skip moves which will be searched later as PV moves
-                if (   root_node
-                    && thread->pv_cur < Threadpool.pv_limit
-                    && std::count (thread->root_moves.begin () + thread->pv_cur + 1,
-                                   thread->root_moves.begin () + Threadpool.pv_limit, move) != 0)
-                {
-                    continue;
-                }
+                //// In MultiPV mode also skip moves which will be searched later as PV moves
+                //if (   root_node
+                //    && thread->pv_cur < Threadpool.pv_limit
+                //    && std::count (thread->root_moves.begin () + thread->pv_cur + 1,
+                //                   thread->root_moves.begin () + Threadpool.pv_limit, move) != 0)
+                //{
+                //    continue;
+                //}
 
                 if (PVNode)
                 {
@@ -1337,15 +1339,14 @@ namespace Searcher {
                         }
                     }
                     // Multi-cut pruning
-                    // Our tt_move is assumed to fail high, and now we failed high also on a reduced
-                    // search without the tt_move. So we assume this expected Cut-node is not singular,
-                    // that is multiple moves fail high, and we can prune the whole subtree by returning
-                    // the hard beta bound.
+                    // Our tt_move is assumed to fail high, and now failed high also on a reduced
+                    // search without the tt_move. So assume this expected Cut-node is not singular,
+                    // multiple moves fail high, and can prune the whole subtree by returning the soft bound.
                     else
-                    if (   cut_node
-                        && singular_beta > beta)
+                    if (   eval >= beta
+                        && singular_beta >= beta)
                     {
-                        return beta;
+                        return singular_beta;
                     }
                 }
                 else
