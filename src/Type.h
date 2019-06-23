@@ -588,13 +588,13 @@ inline void toggle (std::string &str)
     std::transform (str.begin (), str.end (), str.begin (), [](i32 c) { return char (islower (c) ? ::toupper (c) : ::tolower (c)); });
 }
 
-inline std::string& trim_beg (std::string &str)
+inline std::string& ltrim (std::string &str)
 {
     str.erase (str.begin (),
                std::find_if (str.begin (), str.end (), std::not1 (std::ptr_fun<i32, i32> (std::isspace))));
     return str;
 }
-inline std::string& trim_end (std::string &str)
+inline std::string& rtrim (std::string &str)
 {
     str.erase (std::find_if (str.rbegin (), str.rend (), std::not1 (std::ptr_fun<i32, i32> (std::isspace))).base (),
                str.end ());
@@ -602,7 +602,7 @@ inline std::string& trim_end (std::string &str)
 }
 inline std::string& trim (std::string &str)
 {
-    return trim_beg (trim_end (str));
+    return ltrim (rtrim (str));
 }
 
 inline std::vector<std::string> split (const std::string str, char delimiter = ' ', bool keep_empty = true, bool do_trim = false)

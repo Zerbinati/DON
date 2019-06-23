@@ -1,6 +1,6 @@
 #include "Logger.h"
 
-#include "Thread.h"
+#include <atomic>
 
 Logger Log;
 
@@ -8,11 +8,11 @@ using namespace std;
 
 namespace {
 
-    i64 CondCount;
-    i64 HitCount;
+    atomic<i64> CondCount;
+    atomic<i64> HitCount;
 
-    i64 ItemCount;
-    i64 ItemSum;
+    atomic<i64> ItemCount;
+    atomic<i64> ItemSum;
 }
 
 void debug_init ()
@@ -26,15 +26,11 @@ void debug_init ()
 
 void debug_hit (bool hit)
 {
-    static Mutex mutex;
-
-    mutex.lock ();
     ++CondCount;
     if (hit)
     {
         ++HitCount;
     }
-    mutex.unlock ();
 }
 
 void debug_hit_on (bool cond, bool hit)
@@ -47,12 +43,8 @@ void debug_hit_on (bool cond, bool hit)
 
 void debug_mean_of (i64 item)
 {
-    static Mutex mutex;
-
-    mutex.lock ();
     ++ItemCount;
     ItemSum += item;
-    mutex.unlock ();
 }
 
 void debug_print ()

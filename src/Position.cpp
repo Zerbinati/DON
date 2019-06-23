@@ -627,7 +627,7 @@ bool Position::see_ge (Move m, Value threshold) const
     while (0 != attackers)
     {
         Bitboard mov_attackers = attackers & pieces (mov);
-
+        Bitboard mov_pinneds;
         // Only allow king for defensive capture to evade the discovered check,
         // as long any discoverers are on their original square.
         if (   contains (si->king_blockers[mov] & pieces (~mov), org)
@@ -641,9 +641,9 @@ bool Position::see_ge (Move m, Value threshold) const
         // Don't allow pinned pieces for defensive capture,
         // as long respective pinners are on their original square.
         else
+        if (0 != (mov_pinneds = mov_attackers & si->king_blockers[mov]))
         {
-            Bitboard mov_pinneds = mov_attackers & si->king_blockers[mov];
-            while (0 != mov_pinneds)
+            do
             {
                 auto sq = pop_lsq (mov_pinneds);
                 if ((  si->king_checkers[mov]
@@ -653,7 +653,7 @@ bool Position::see_ge (Move m, Value threshold) const
                 {
                     mov_attackers ^= sq;
                 }
-            }
+            } while (0 != mov_pinneds);
         }
 
         // If mov has no more attackers then give up: mov loses

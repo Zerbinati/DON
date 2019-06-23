@@ -712,10 +712,6 @@ namespace Searcher {
                             && !pos.capture (move)))
                     && !Limits.mate_search ()
                     && pos.exchange (move) < VALUE_ZERO
-                    && !(   gives_check
-                         && contains (pos.si->king_blockers[~pos.active], org)
-                         && (   !contains (PieceAttacks[KING][pos.square (~pos.active|KING)], dst)
-                             || 0 != (pos.attackers_to (dst) & pos.pieces (pos.active) & ~square_bb (org))))
                     && !pos.see_ge (move))
                 {
                     continue;
@@ -1362,9 +1358,6 @@ namespace Searcher {
                     // Check extension (~2 ELO)
                     || (   gives_check
                         && (   pos.exchange (move) >= VALUE_ZERO
-                            || (   contains (pos.si->king_blockers[~pos.active], org)
-                                && (   !contains (PieceAttacks[KING][pos.square (~pos.active|KING)], dst)
-                                    || 0 != (pos.attackers_to (dst) & pos.pieces (pos.active) & ~square_bb (org))))
                             || pos.see_ge (move)))
                     // Shuffle extension
                     || (   PVNode

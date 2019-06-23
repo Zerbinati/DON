@@ -166,8 +166,8 @@
     <Node Id="@146" Category="CodeSchema_Method" Bounds="25463.9725762107,21234.6517794633,81.1366666666654,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="to_lower" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@147" Category="CodeSchema_Method" Bounds="25276.3857441775,22745.5717794633,70.4133333333339,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="toggle" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@148" Category="CodeSchema_Method" Bounds="25341.7304715177,25803.4517794632,57.4833333333336,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="trim" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@149" Category="CodeSchema_Method" Bounds="25278.4430374291,25691.4917794632,82.8600000000006,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="trim_beg" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@150" Category="CodeSchema_Method" Bounds="25285.9563707624,25635.5317794632,82.5966666666682,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="trim_end" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@149" Category="CodeSchema_Method" Bounds="25278.4430374291,25691.4917794632,82.8600000000006,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="ltrim" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@150" Category="CodeSchema_Method" Bounds="25285.9563707624,25635.5317794632,82.5966666666682,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="rtrim" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@152" Category="CodeSchema_Method" Bounds="25481.9422119317,21290.6117794633,104.540000000001,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="month_index" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@153" Category="CodeSchema_Method" Bounds="25495.7202770545,25192.6517794632,104.860000000001,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="white_spaces" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@154" Category="CodeSchema_Method" Bounds="26792.9322025242,21125.5459305737,110.740000000002,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="time_to_string" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6321,8 +6321,8 @@
     <Alias n="146" Id="(@1 @3 Member=(Name=to_lower @144))" />
     <Alias n="147" Id="(@1 @3 Member=(Name=toggle @144))" />
     <Alias n="148" Id="(@1 @3 Member=(Name=trim @144))" />
-    <Alias n="149" Id="(@1 @3 Member=(Name=trim_beg @144))" />
-    <Alias n="150" Id="(@1 @3 Member=(Name=trim_end @144))" />
+    <Alias n="149" Id="(@1 @3 Member=(Name=ltrim @144))" />
+    <Alias n="150" Id="(@1 @3 Member=(Name=rtrim @144))" />
     <Alias n="151" Id="(Type=&quot;std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt; const &amp;&quot;)" />
     <Alias n="152" Id="(@1 @3 Member=(Name=month_index OverloadingParameters=[@151]))" />
     <Alias n="153" Id="(@1 @3 Member=(Name=white_spaces OverloadingParameters=[@151]))" />
