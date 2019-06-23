@@ -377,7 +377,7 @@ namespace {
                       & pawn_sgl_pushes_bb (Opp, pos.pieces ());
                     score -= BishopPawns
                            * (1 + pop_count (b))
-                           * pos.color_pawn_count (Own, color (s));
+                           * pop_count (pos.color_pawns (Own, color (s)));
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     if (more_than_one (attacks_bb<BSHP> (s, pos.pieces (PAWN)) & Center_bb))

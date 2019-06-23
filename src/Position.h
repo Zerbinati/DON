@@ -166,11 +166,12 @@ public:
     template<typename ...PieceTypes>
     Bitboard pieces (Color, PieceTypes...) const;
 
+    Bitboard color_pawns (Color, Color) const;
+
     i32 count () const;
     i32 count (Piece) const;
     i32 count (Color) const;
     i32 count (PieceType) const;
-    i32 color_pawn_count (Color, Color) const;
 
     Square square (Piece, u08 = 0) const;
     
@@ -310,9 +311,9 @@ inline i32 Position::count (PieceType pt) const
     return i32(squares[WHITE|pt].size () + squares[BLACK|pt].size ());
 }
 
-inline i32 Position::color_pawn_count (Color c, Color s) const
+inline Bitboard Position::color_pawns (Color c, Color s) const
 {
-    return pop_count (pieces (c, PAWN) & Color_bb[s]);
+    return pieces (c, PAWN) & Color_bb[s];
 }
 
 inline Square Position::square (Piece pc, u08 index) const
