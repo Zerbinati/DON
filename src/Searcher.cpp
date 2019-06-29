@@ -1282,14 +1282,14 @@ namespace Searcher {
                     }
                 }
 
-                //// In MultiPV mode also skip moves which will be searched later as PV moves
-                //if (   root_node
-                //    && thread->pv_cur < Threadpool.pv_limit
-                //    && std::count (thread->root_moves.begin () + thread->pv_cur + 1,
-                //                   thread->root_moves.begin () + Threadpool.pv_limit, move) != 0)
-                //{
-                //    continue;
-                //}
+                // In MultiPV mode also skip moves which will be searched later as PV moves
+                if (   root_node
+                    //&& thread->pv_cur < Threadpool.pv_limit
+                    && std::count (thread->root_moves.begin () + thread->pv_cur + 1,
+                                   thread->root_moves.begin () + Threadpool.pv_limit, move) != 0)
+                {
+                    continue;
+                }
 
                 if (PVNode)
                 {

@@ -132,6 +132,7 @@ namespace {
     constexpr Score PieceHanged =       S( 69, 36);
     constexpr Score PawnThreat =        S(173, 94);
     constexpr Score PawnPushThreat =    S( 48, 39);
+    constexpr Score SpaceAreaAttcked =  S(  4,  0);
     constexpr Score RankThreat =        S( 13,  0);
     constexpr Score KingThreat =        S( 24, 89);
     constexpr Score KnightOnQueen =     S( 16, 12);
@@ -923,6 +924,8 @@ namespace {
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
         i32 weight = pos.count (Own) - 1;
         Score score = mk_score (bonus * weight * weight / 16, 0);
+
+        score -= SpaceAreaAttcked * pop_count (sgl_attacks[Opp][NONE] & behind & safe_space);
 
         if (Trace)
         {

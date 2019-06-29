@@ -37,10 +37,11 @@ namespace Pawns {
 
 #   define S(mg, eg) mk_score(mg, eg)
 
-        constexpr Score Backward =      S( 9,24);
-        constexpr Score Blocked =       S(11,56);
-        constexpr Score Isolated =      S( 5,15);
-        constexpr Score WeakUnopposed = S(13,27);
+        constexpr Score Backward =           S( 9,24);
+        constexpr Score Blocked =            S(11,56);
+        constexpr Score Isolated =           S( 5,15);
+        constexpr Score WeakUnopposed =      S(13,27);
+        constexpr Score UnsupportedAttcked = S(0, 20);
 
 #   undef S
 
@@ -66,7 +67,11 @@ namespace Pawns {
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_G1));
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_C1));
 
-            Score score = SCORE_ZERO;
+            // Unsupported enemy pawns attacked twice by friend pawns
+            Score score = UnsupportedAttcked
+                        * pop_count (   opp_pawns
+                                     & ~pawn_sgl_attacks_bb (Opp, opp_pawns)
+                                     &  pawn_dbl_attacks_bb (Own, own_pawns));
 
             Bitboard b;
             for (const auto &s : pos.squares[Own|PAWN])
@@ -89,9 +94,6 @@ namespace Pawns {
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 bool backward = 0 == (neighbours & front_rank_bb (Opp, s))
                              && 0 != (stoppers & (escapes | (s+pawn_push (Own))));
-
-                assert(!backward
-                    || 0 == (pawn_attack_span (Opp, s+pawn_push (Own)) & neighbours));
 
                 // Include also which could become passed after pawn push
                 if (   stoppers == (levers | escapes)
