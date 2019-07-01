@@ -337,7 +337,7 @@ namespace {
 
         uci_cmds.push_back ("setoption name Threads value " + threads);
         uci_cmds.push_back ("setoption name Hash value " + hash);
-        uci_cmds.push_back ("setoption name Clear Hash");
+        uci_cmds.push_back ("ucinewgame");
 
         string go = "go " + mode + " " + value;
 
@@ -412,6 +412,7 @@ namespace {
             if (token == "ucinewgame")
             {
                 clear ();
+                elapsed_time = now ();
             }
             else
             {

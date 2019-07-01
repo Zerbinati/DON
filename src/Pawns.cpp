@@ -27,12 +27,13 @@ namespace Pawns {
 
         // Danger of unblocked enemy pawns strom toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
+        // [0][1 - 2] accommodate opponent pawn on edge (likely blocked by king)
         constexpr i32 Storm[F_NO/2][R_NO] =
         {
-            {  89, 107, 123,  93,  57,  45,   51, 0 },
-            {  44, -18, 123,  46,  39,  -7,   23, 0 },
-            {   4,  52, 162,  37,   7, -14,   -2, 0 },
-            { -10, -14,  90,  15,   2,  -7,  -16, 0 }
+            {  89, -285, -185,  93,  57,  45,   51, 0 },
+            {  44,  -18,  123,  46,  39,  -7,   23, 0 },
+            {   4,   52,  162,  37,   7, -14,   -2, 0 },
+            { -10,  -14,   90,  15,   2,  -7,  -16, 0 }
         };
 
 #   define S(mg, eg) mk_score(mg, eg)
@@ -162,14 +163,13 @@ namespace Pawns {
     Score Entry::evaluate_safety (const Position &pos, Square own_k_sq) const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr Bitboard BlockSquares = (FA_bb | FH_bb) & (R1_bb | R2_bb | R8_bb | R7_bb);
 
         Bitboard front_pawns = ~front_rank_bb (Opp, own_k_sq) & pos.pieces (PAWN);
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        i32 mg_value = contains (pawn_sgl_pushes_bb (Opp, opp_front_pawns) & BlockSquares, own_k_sq) ? 374 : 5,
-            eg_value = 0;
+        i32 mg_value = 5,
+            eg_value = 5;
 
         auto kf = clamp (F_B, _file (own_k_sq), F_G);
         for (const auto &f : { kf - File(1), kf, kf + File(1) })
@@ -190,7 +190,8 @@ namespace Pawns {
             if (   R_1 != own_r
                 && (own_r + 1) == opp_r)
             {
-                mg_value -= 82, eg_value -= 82;
+                mg_value -= 82,
+                eg_value -= 82;
             }
             else
             {
