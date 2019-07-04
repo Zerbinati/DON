@@ -1,7 +1,6 @@
 #include "TBsyzygy.h"
 
 #include <algorithm>
-#include <atomic>
 #include <cstdint>
 #include <cstring>   // For std::memset and std::memcpy
 #include <deque>

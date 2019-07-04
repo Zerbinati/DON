@@ -406,6 +406,64 @@ namespace Searcher {
             }
         };
 
+        // Breadcrumbs is used to mark nodes as being searched by a given thread.
+        struct Breadcrumb
+        {
+            std::atomic<Thread*> thread;
+            std::atomic<Key> posi_key;
+        };
+
+        array<Breadcrumb, 1024> Breadcrumbs;
+
+        // ThreadMarking keeps track of which thread left breadcrumbs at the given node for potential reductions.
+        // A free node will be marked upon entering the moves loop, and unmarked upon leaving that loop, by the ctor/dtor of this struct.
+        class ThreadMarking
+        {
+        private:
+            Breadcrumb *breadcrumb;
+
+        public:
+            
+            bool marked;
+
+            explicit ThreadMarking (Thread *thread, Key posi_key, i16 ply)
+                : breadcrumb (nullptr)
+                , marked(false)
+            {
+                auto *bc = ply < 8 ?
+                            &Breadcrumbs[posi_key & (Breadcrumbs.size () - 1)] :
+                            nullptr;
+                if (bc != nullptr)
+                {
+                    // Check if another already marked it, if not, mark it.
+                    auto *th = bc->thread.load (std::memory_order::memory_order_relaxed);
+                    if (th == nullptr)
+                    {
+                        bc->thread.store (thread, std::memory_order::memory_order_relaxed);
+                        bc->posi_key.store (posi_key, std::memory_order::memory_order_relaxed);
+                        breadcrumb = bc;
+                    }
+                    else
+                    {
+                        if (   th != thread
+                            && bc->posi_key.load (std::memory_order::memory_order_relaxed) == posi_key)
+                        {
+                            marked = true;
+                        }
+                    }
+                }
+            }
+
+            ~ThreadMarking ()
+            {
+                if (breadcrumb != nullptr) // free the marked one.
+                {
+                    breadcrumb->thread.store (nullptr, std::memory_order_relaxed);
+                    //breadcrumb->posi_key.store (0, std::memory_order_relaxed);
+                }
+            }
+        };
+
         // Razor margin
         constexpr Value RazorMargin = Value(600);
         // Futility margin
@@ -1224,6 +1282,9 @@ namespace Searcher {
             i16 singular_lmr = 0;
             u08 move_count = 0;
 
+            // Mark this node as being searched.
+            ThreadMarking th_mark (thread, pos.si->posi_key, ss->ply);
+
             vector<Move> quiet_moves
                 ,        capture_moves;
             quiet_moves.reserve (32);
@@ -1452,6 +1513,12 @@ namespace Searcher {
                         || ss->static_eval + PieceValues[EG][std::min (pos.si->capture, pos.si->promote)] <= alfa))
                 {
                     i16 reduct_depth = reduction (improving, depth, move_count);
+
+                    // Reduction if other threads are searching this position.
+                    if (th_mark.marked)
+                    {
+                        reduct_depth += 1;
+                    }
 
                     // Decrease reduction if position is or has been on the PV
                     if (tt_pv)
