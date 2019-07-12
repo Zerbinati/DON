@@ -427,7 +427,7 @@ namespace Searcher {
 
             explicit ThreadMarking (Thread *thread, Key posi_key, i16 ply)
                 : breadcrumb (nullptr)
-                , marked(false)
+                , marked (false)
             {
                 auto *bc = ply < 8 ?
                             &Breadcrumbs[posi_key & (Breadcrumbs.size () - 1)] :
@@ -732,8 +732,6 @@ namespace Searcher {
                 auto dst = dst_sq (move);
 
                 auto mpc = pos[org];
-                assert(NO_PIECE != mpc);
-
                 bool gives_check = pos.gives_check (move);
 
                 // Futility pruning
@@ -1360,8 +1358,6 @@ namespace Searcher {
                 auto dst = dst_sq (move);
 
                 auto mpc = pos[org];
-                assert (NO_PIECE != mpc);
-
                 bool gives_check = pos.gives_check (move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
@@ -1502,14 +1498,17 @@ namespace Searcher {
                 // Step 15. Make the move.
                 pos.do_move (move, si, gives_check);
 
+                bool lmr =
+                    2 < depth
+                    && (root_node ? 4 : 1) < move_count
+                    && (!capture_or_promotion
+                        || move_picker.skip_quiets
+                        || ss->static_eval + PieceValues[EG][std::min (pos.si->capture, pos.si->promote)] <= alfa);
+
                 bool full_search;
                 // Step 16. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
-                if (   2 < depth
-                    && (root_node ? 4 : 1) < move_count
-                    && (  !capture_or_promotion
-                        || move_picker.skip_quiets
-                        || ss->static_eval + PieceValues[EG][std::min (pos.si->capture, pos.si->promote)] <= alfa))
+                if (lmr)
                 {
                     i16 reduct_depth = reduction (improving, depth, move_count);
 
@@ -1595,6 +1594,18 @@ namespace Searcher {
                 if (full_search)
                 {
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node);
+
+                    if (   lmr
+                        && !capture_or_promotion)
+                    {
+                        int bonus = stat_bonus (new_depth) / 2;
+                        if (value <= alfa)
+                        {
+                            bonus = -bonus;
+                        }
+
+                        update_continuation_histories (ss, mpc, dst, bonus);
+                    }
                 }
 
                 // Full PV search.
