@@ -776,8 +776,8 @@ namespace {
         b &= safe_area
           & ~sgl_attacks[Opp][PAWN];
         // Friend pawns push safe attacks an enemies
-        b =  pawn_sgl_attacks_bb (Own, b)
-          &  pos.pieces (Opp);
+        b =  nonpawns_enemies
+          &  pawn_sgl_attacks_bb (Own, b);
         score += PawnPushThreat * pop_count (b);
 
         // Bonus for threats on the next moves against enemy queens

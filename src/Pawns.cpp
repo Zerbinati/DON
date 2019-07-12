@@ -42,7 +42,7 @@ namespace Pawns {
         constexpr Score Blocked =            S(11,56);
         constexpr Score Isolated =           S( 5,15);
         constexpr Score WeakUnopposed =      S(13,27);
-        constexpr Score UnsupportedAttcked = S(0, 20);
+        constexpr Score UnsupportedAttcked = S(0, 56);
 
 #   undef S
 
@@ -69,10 +69,7 @@ namespace Pawns {
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_C1));
 
             // Unsupported enemy pawns attacked twice by friend pawns
-            Score score = UnsupportedAttcked
-                        * pop_count (   opp_pawns
-                                     & ~pawn_sgl_attacks_bb (Opp, opp_pawns)
-                                     &  pawn_dbl_attacks_bb (Own, own_pawns));
+            Score score = SCORE_ZERO;
 
             Bitboard b;
             for (const auto &s : pos.squares[Own|PAWN])
@@ -149,6 +146,12 @@ namespace Pawns {
                     score -= Blocked;
                 }
             }
+            
+            score -= UnsupportedAttcked
+                   * pop_count (   own_pawns
+                                & ~e->passers[Own]
+                                & ~pawn_sgl_attacks_bb (Own, own_pawns)
+                                &  pawn_dbl_attacks_bb (Opp, opp_pawns));
 
             return score;
         }
@@ -168,8 +171,7 @@ namespace Pawns {
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        i32 mg_value = 5,
-            eg_value = 5;
+        Score safety = mk_score (5, 5);
 
         auto kf = clamp (F_B, _file (own_k_sq), F_G);
         for (const auto &f : { kf - File(1), kf, kf + File(1) })
@@ -185,21 +187,23 @@ namespace Pawns {
 
             auto ff = std::min (f, ~f);
             assert(ff < F_E);
-            mg_value += Shelter[ff][own_r];
+            safety += mk_score (Shelter[ff][own_r], 0);
 
             if (   R_1 != own_r
                 && (own_r + 1) == opp_r)
             {
-                mg_value -= 82,
-                eg_value -= 82;
+                if (opp_r == R_3)
+                {
+                    safety -= mk_score (82, 82);
+                }
             }
             else
             {
-                mg_value -= Storm[ff][opp_r];
+                safety -= mk_score (Storm[ff][opp_r], 0);
             }
         }
 
-        return mk_score (mg_value, eg_value);
+        return safety;
     }
     // Explicit template instantiations
     template Score Entry::evaluate_safety<WHITE> (const Position&, Square) const;

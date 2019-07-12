@@ -114,8 +114,8 @@ namespace Searcher {
                     if (GenType::CAPTURE == GT)
                     {
                         assert(pos.capture_or_promotion (m));
-                        m.value = i32(PieceValues[MG][pos.cap_type (m)])
-                                + thread->capture_history[pos[org_sq (m)]][dst_sq (m)][pos.cap_type (m)] / 8;
+                        m.value = i32(PieceValues[MG][pos.cap_type (m)]) * 6
+                                + thread->capture_history[pos[org_sq (m)]][dst_sq (m)][pos.cap_type (m)];
                     }
                     else
                     if (GenType::QUIET == GT)
@@ -1575,7 +1575,7 @@ namespace Searcher {
                         }
 
                         // Decrease/Increase reduction for moves with +/-ve stats (~30 Elo)
-                        reduct_depth -= i16(ss->stats / 20000);
+                        reduct_depth -= i16(ss->stats / 0x4000);
                     }
 
                     i16 d = std::max (new_depth - std::max (reduct_depth, DepthZero), 1);
