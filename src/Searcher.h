@@ -11,13 +11,12 @@
 #include "Type.h"
 
 /// Limit stores information sent by GUI about available time to search the current move.
-///  - Maximum time and increment
-///  - Maximum depth
-///  - Maximum nodes
-///  - Maximum mate
-///  - Search moves
+///  - Time and Increment
+///  - Moves to go
+///  - Depth
+///  - Nodes
+///  - Mate
 ///  - Infinite analysis mode
-///  - Ponder (think while is opponent's side to move) mode
 struct Limit
 {
 public:
@@ -200,7 +199,6 @@ public:
     void operator+= (const RootMove &rm) { push_back (rm); }
     //void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
-    /// initializes with search moves
     void initialize (const Position &pos, const std::vector<Move> &search_moves)
     {
         assert(empty ());

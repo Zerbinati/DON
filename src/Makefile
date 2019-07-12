@@ -44,7 +44,7 @@ endif
 #           thread    --- (thread)         --- Enable threading error checks
 # debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
 # optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
-# arch    = (name)    --- (-arch)          --- Target architecture
+# ARCH    = (name)    --- (-ARCH)          --- Target architecture
 # bits    = 64/32     --- -DBIT64          --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
@@ -71,40 +71,40 @@ lpg  = no
 ### 2.2 Architecture specific
 
 ifeq ($(ARCH), general-32)
-	arch = any
+	ARCH = any
 endif
 
 ifeq ($(ARCH), x86-32-old)
-	arch = i386
+	ARCH = i386
 endif
 
 ifeq ($(ARCH), x86-32)
-	arch = i386
+	ARCH = i386
 	pfch = yes
 	sse  = yes
 endif
 
 ifeq ($(ARCH), x86-32-abm)
-	arch = i386
+	ARCH = i386
 	pfch = yes
 	sse  = yes
 	abm  = yes
 endif
 
 ifeq ($(ARCH), general-64)
-	arch = any
+	ARCH = any
 	bits = 64
 endif
 
 ifeq ($(ARCH), x86-64)
-	arch = x86_64
+	ARCH = x86_64
 	bits = 64
 	pfch = yes
 	sse  = yes
 endif
 
 ifeq ($(ARCH), x86-64-abm)
-	arch = x86_64
+	ARCH = x86_64
 	bits = 64
 	pfch = yes
 	sse  = yes
@@ -113,7 +113,7 @@ ifeq ($(ARCH), x86-64-abm)
 endif
 
 ifeq ($(ARCH), x86-64-bm2)
-	arch = x86_64
+	ARCH = x86_64
 	bits = 64
 	pfch = yes
 	sse  = yes
@@ -123,17 +123,19 @@ ifeq ($(ARCH), x86-64-bm2)
 endif
 
 ifeq ($(ARCH), ppc-32)
-	arch = ppc32
+	ARCH = ppc32
 endif
 
 ifeq ($(ARCH), ppc-64)
-	arch = ppc64
+	ARCH = ppc64
 	bits = 64
+    pfch = yes
+    abm  = yes
 	lpg  = yes
 endif
 
 ifeq ($(ARCH), armv7)
-	arch = armv7
+	ARCH = armv7
 	pfch = yes
 endif
 
@@ -153,7 +155,7 @@ ifeq ($(COMP), )
 endif
 
 ifeq ($(COMP), gcc)
-	comp = gcc
+	COMP = gcc
 	CXX = g++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 	ifeq ($(ARCH), armv7)
@@ -171,7 +173,7 @@ ifeq ($(COMP), gcc)
 endif
 
 ifeq ($(COMP), mingw)
-	comp = mingw
+	COMP = mingw
 	ifeq ($(KERNEL), Linux)
 		ifeq ($(bits), 64)
 			ifeq ($(shell which x86_64-w64-mingw32-c++-posix), )
@@ -195,13 +197,13 @@ ifeq ($(COMP), mingw)
 endif
 
 ifeq ($(COMP), icc)
-	comp = icc
+	COMP = icc
 	CXX = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
 endif
 
 ifeq ($(COMP), clang)
-	comp = clang
+	COMP = clang
 	CXX = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
@@ -222,11 +224,11 @@ ifeq ($(COMP), clang)
 	endif
 endif
 
-ifeq ($(comp), icc)
+ifeq ($(COMP), icc)
 	profile_make = icc-profile-make
 	profile_use = icc-profile-use
 else
-	ifeq ($(comp), clang)
+	ifeq ($(COMP), clang)
 		profile_make = clang-profile-make
 		profile_use = clang-profile-use
 	else
@@ -236,8 +238,8 @@ else
 endif
 
 ifeq ($(KERNEL), Darwin)
-	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.9
-	LDFLAGS += -arch $(arch) -mmacosx-version-min=10.9
+	CXXFLAGS += -arch $(ARCH) -mmacosx-version-min=10.9
+	LDFLAGS += -arch $(ARCH) -mmacosx-version-min=10.9
 endif
 
 ### Travis CI script uses COMPILER to overwrite CXX
@@ -251,7 +253,7 @@ ifdef COMPCXX
 endif
 
 ### On MinGW use Windows threads, otherwise POSIX
-ifneq ($(comp), mingw)
+ifneq ($(COMP), mingw)
 	# On Android Bionic's C library comes with its own pthread implementation bundled in
 	ifneq ($(OS), Android)
 		# Haiku has pthreads in its libroot, so only link it in on other platforms
@@ -278,13 +280,13 @@ endif
 ifeq ($(optimize), yes)
 	CXXFLAGS += -O3
 
-	ifeq ($(comp), gcc)
+	ifeq ($(COMP), gcc)
 		ifeq ($(OS), Android)
 			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 		endif
 	endif
 
-	ifeq ($(comp), $(filter $(comp), gcc clang icc))
+	ifeq ($(COMP), $(filter $(COMP), gcc clang icc))
 		ifeq ($(KERNEL), Darwin)
 			CXXFLAGS += -mdynamic-no-pic
 		endif
@@ -307,18 +309,19 @@ endif
 
 ### 3.6 ABM (Advance Bit Manipulation)
 ifeq ($(abm), yes)
-	CXXFLAGS += -DABM
-	ifeq ($(comp), icc)
-		CXXFLAGS += -msse3
+	ifeq ($(ARCH), ppc64)
+		CXXFLAGS += -DABM
+	else ifeq ($(COMP), icc)
+		CXXFLAGS += -DABM -msse3
 	else
-		CXXFLAGS += -msse3 -mpopcnt
+		CXXFLAGS += -DABM -msse3 -mpopcnt
 	endif
 endif
 
 ### 3.7 BM2 (Bit Manipulation Instruction Set 2)
 ifeq ($(bm2), yes)
 	CXXFLAGS += -DBM2
-	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
+	ifeq ($(COMP), $(filter $(COMP), gcc clang mingw))
 		CXXFLAGS += -mbmi -mbmi2
 	endif
 endif
@@ -333,12 +336,12 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
 	ifeq ($(debug), no)
-		ifeq ($(comp), $(filter $(comp), gcc clang))
+		ifeq ($(COMP), $(filter $(COMP), gcc clang))
 			CXXFLAGS += -flto
 			LDFLAGS += $(CXXFLAGS)
 		endif
 
-		ifeq ($(comp), mingw)
+		ifeq ($(COMP), mingw)
 			ifeq ($(KERNEL), Linux)
 				CXXFLAGS += -flto
 				LDFLAGS += $(CXXFLAGS)
@@ -473,10 +476,11 @@ config-sanity:
 	@echo "debug   : '$(debug)'"
 	@echo "sanitize: '$(sanitize)'"
 	@echo "optimize: '$(optimize)'"
-	@echo "arch    : '$(arch)'"
+	@echo "ARCH    : '$(ARCH)'"
+	@echo "COMP    : '$(COMP)'"
 	@echo "bits    : '$(bits)'"
-	@echo "kernel  : '$(KERNEL)'"
-	@echo "os      : '$(OS)'"
+	@echo "KERNEL  : '$(KERNEL)'"
+	@echo "OS      : '$(OS)'"
 	@echo "pfch    : '$(pfch)'"
 	@echo "sse     : '$(sse)'"
 	@echo "abm     : '$(abm)'"
@@ -494,14 +498,14 @@ config-sanity:
 	@test "$(debug)" = "yes" || test "$(debug)" = "no"
 	@test "$(sanitize)" = "undefined" || test "$(sanitize)" = "thread" || test "$(sanitize)" = "address" || test "$(sanitize)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
-	@test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || test "$(arch)" = "ppc32" || test "$(arch)" = "ppc64" || test "$(arch)" = "armv7"
+	@test "$(ARCH)" = "any" || test "$(ARCH)" = "i386" || test "$(ARCH)" = "x86_64" || test "$(ARCH)" = "ppc32" || test "$(ARCH)" = "ppc64" || test "$(ARCH)" = "armv7"
+	@test "$(COMP)" = "gcc" || test "$(COMP)" = "icc" || test "$(COMP)" = "mingw" || test "$(COMP)" = "clang"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(abm)" = "yes" || test "$(abm)" = "no"
 	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"
 	@test "$(lpg)" = "yes" || test "$(lpg)" = "no"
-	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
 # Generating obj files
 $(EXE): $(OBJS)

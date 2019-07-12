@@ -406,7 +406,6 @@ namespace Searcher {
             }
         };
 
-        // Breadcrumbs is used to mark nodes as being searched by a given thread.
         struct Breadcrumb
         {
             std::atomic<Thread*> thread;
