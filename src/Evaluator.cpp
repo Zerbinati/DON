@@ -830,7 +830,7 @@ namespace {
 
             if (R_3 < r)
             {
-                i32 w = (r-2) * (r-2) + 2;
+                i32 w = 5*r - 13;
 
                 // Adjust bonus based on the king's proximity
                 bonus += mk_score (0, +5*w*king_proximity (Opp, push_sq)
@@ -844,16 +844,9 @@ namespace {
                 // If the pawn is free to advance.
                 if (pos.empty (push_sq))
                 {
-                    Bitboard defended_squares = front_squares_bb (Own, s)
-                        ,    attacked_squares = pawn_pass_span (Own, s);
                     Bitboard behind_major = front_squares_bb (Opp, s)
                                           & pos.pieces (ROOK, QUEN);
-                    if ((  behind_major
-                         & pos.pieces (Own)
-                         & ~pos.si->king_blockers[Own]) == 0)
-                    {
-                        defended_squares &= sgl_attacks[Own][NONE];
-                    }
+                    Bitboard attacked_squares = pawn_pass_span (Own, s);
                     if ((  behind_major
                          & pos.pieces (Opp)
                          & ~pos.si->king_blockers[Opp]) == 0)
@@ -867,7 +860,8 @@ namespace {
                             !contains (attacked_squares, push_sq)               ? 9 : 0;
 
                     // Bonus according to defended squares.
-                    if (contains (defended_squares, push_sq))
+                    if (   0 != (pos.pieces (Own) & behind_major)
+                        || contains (sgl_attacks[Own][NONE], push_sq))
                     {
                         k += 5;
                     }
@@ -879,7 +873,7 @@ namespace {
             // Scale down bonus for candidate passers which need more than one 
             // pawn push to become passed or have a pawn in front of them.
             if (   !pos.pawn_passed_at (Own, push_sq)
-                || 0 != (pos.pieces (PAWN) & front_squares_bb (Own, s)))
+                || contains (pos.pieces (PAWN), push_sq))
             {
                 bonus /= 2;
             }

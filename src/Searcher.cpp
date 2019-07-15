@@ -1598,12 +1598,9 @@ namespace Searcher {
                     if (   lmr
                         && !capture_or_promotion)
                     {
-                        int bonus = stat_bonus (new_depth) / 2;
-                        if (value <= alfa)
-                        {
-                            bonus = -bonus;
-                        }
-
+                        int bonus = alfa < value ?
+                                        +stat_bonus (new_depth) :
+                                        -stat_bonus (new_depth);
                         update_continuation_histories (ss, mpc, dst, bonus);
                     }
                 }
@@ -2058,8 +2055,8 @@ void Thread::search ()
                         main_thread->time_mgr.optimum_time
                         // Best Move Instability factor
                       * (1 + total_pv_changes / Threadpool.size ())
-                        // Time reduction factor - Use part of the gained time from a previous stable move for the current move
-                      * std::pow (main_thread->time_reduction, 0.528) / time_reduction
+                        // Time Reduction factor - Use part of the gained time from a previous stable move for the current move
+                      * (1.25 + main_thread->time_reduction) / (2.25 * time_reduction)
                         // Falling Eval factor
                       * clamp (0.5, (314 + 9 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value: 0)) / 581.0, 1.5)))
                 {
