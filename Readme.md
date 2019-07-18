@@ -1,4 +1,4 @@
-### Overview
+## Overview
 
 [![Build Status](https://www.donchess.net)](https://www.donchess.net)
 
@@ -8,7 +8,7 @@ eboard, Arena, Sigma Chess, Shredder, Chess Partner or Fritz)
 in order to be used comfortably. Read the documentation for GUI
 of your choice for information about how to use engine with it.
 
-### Features
+## Features
 
 DON uses bitboard representations, and is an alfa-beta searcher.
 
@@ -28,7 +28,7 @@ The book file can be selected by setting the *Book File* UCI parameter.
 
 DON has support for Syzygybases.
 
-### Files
+## Files
 
 This distribution of DON consists of the following files:
 
@@ -39,35 +39,100 @@ This distribution of DON consists of the following files:
   * src, a subdirectory containing the full source code, including a Makefile
     that can be used to compile DON on Unix-like systems.
 
-### Syzygybases
 
-**Configuration**
+## UCI parameters
 
-Syzygybases are configured using the UCI options:
-"SyzygyPath", "SyzygyProbeDepth", "SyzygyLimitPiece" and "SyzygyUseRule50".
+Currently, DON has the following UCI options:
 
-"SyzygyPath" option should be set to the directory or directories that contain the .rtbw and .rtbz files.
-Multiple directories should be separated by ";" on Windows and by ":" on Unix-based operating systems.
-**Do not use spaces around the ";" or ":".**
+  * #### Contempt
+    A positive value for contempt favors middle game positions and avoids draws.
 
-Example: `C:\tablebases\wdl345;C:\tablebases\wdl6;D:\tablebases\dtz345;D:\tablebases\dtz6`
+  * #### Analysis Contempt
+    By default, contempt is set to prefer the side to move. Set this option to "White"
+    or "Black" to analyse with contempt for that side, or "Off" to disable contempt.
 
-It is recommended to store '.rtbw' files on an SSD. There is no loss in storing the .rtbz files on a regular HD.
-It is recommended to verify all md5 checksums of the downloaded tablebase files (`md5sum -c checksum.md5`)
-as corruption will lead to engine crashes.
+  * #### Threads
+    The number of CPU threads used for searching a position. For best performance, set
+    this equal to the number of CPU cores available.
 
-"SyzygyProbeDepth" option set the lets the engine probe depth.
-Set this option to a higher value if you experience too much
-slowdown (in terms of nps) due to TB probing.
+  * #### Hash
+    The size of the hash table in MB.
 
-"SyzygyLimitPiece" option normally should be left at its default value.
+  * #### Clear Hash
+    Clear the hash table.
 
-"SyzygyUseRule50" option set the drawn by the 50-move rule to count as win or loss / draw.
-'true' -> draw
-'false' -> win or lose
-This may be useful for correspondence games (because of tablebase adjudication).
+  * #### Ponder
+    Let DON ponder its next move while the opponent is thinking.
 
-**What to expect**
+  * #### MultiPV
+    Output the N best lines (principal variations, PVs) when searching.
+    Leave at 1 for best performance.
+
+  * #### Skill Level
+    Lower the Skill Level in order to make DON play weaker (see also UCI_LimitStrength).
+    Internally, MultiPV is enabled, and with a certain probability depending on the Skill Level a
+    weaker move will be played.
+
+  * #### UCI_LimitStrength
+    Enable weaker play aiming for an Elo rating as set by UCI_Elo. This option overrides Skill Level.
+
+  * #### UCI_Elo
+    If enabled by UCI_LimitStrength, aim for an engine strength of the given Elo.
+    This Elo rating has been calibrated at a time control of 60s+0.6s and anchored to CCRL 40/4.
+
+  * #### Overhead Move Time
+    Assume a time delay of x ms due to network and GUI overheads. This is useful to
+    avoid losses on time in those cases.
+
+  * #### Minimum Move Time
+    Search for at least x ms per move.
+
+  * #### Move Slowness
+    Lower values will make DON take less time in games, higher values will
+    make it think longer.
+
+  * #### Nodes Time
+    Tells the engine to use nodes searched instead of wall time to account for
+    elapsed time. Useful for engine testing.
+
+  * #### UCI_Chess960
+    An option handled by your GUI. If true, DON will play Chess960.
+
+  * #### UCI_AnalyseMode
+    An option handled by your GUI.
+
+  * #### Debug File
+    Write all communication to and from the engine into a text file.
+
+  * #### SyzygyPath
+    Path to the folders/directories storing the Syzygy tablebase files. Multiple
+    directories are to be separated by ";" on Windows and by ":" on Unix-based
+    operating systems. Do not use spaces around the ";" or ":".
+
+    Example: `C:\tablebases\wdl345;C:\tablebases\wdl6;D:\tablebases\dtz345;D:\tablebases\dtz6`
+
+    It is recommended to store .rtbw files on an SSD. There is no loss in storing
+    the .rtbz files on a regular HD. It is recommended to verify all md5 checksums
+    of the downloaded tablebase files (`md5sum -c checksum.md5`) as corruption will
+    lead to engine crashes.
+
+  * #### SyzygyProbeDepth
+    Minimum remaining search depth for which a position is probed. Set this option
+    to a higher value to probe less agressively if you experience too much slowdown
+    (in terms of nps) due to TB probing.
+
+  * #### SyzygyUseRule50
+    Count drawn by the 50-move rule as win or loss / draw
+    'true' -> draw
+    'false' -> win or lose.
+    This is useful for ICCF correspondence games.
+
+  * #### SyzygyLimitPiece
+    Limit Syzygy tablebase probing to positions with at most this many pieces left
+    (including kings and pawns).
+
+## What to expect from Syzygybases?
+
 If the engine is searching a position that is not in the tablebases (e.g.
 a position with 7 pieces), it will access the tablebases during the search.
 If the engine reports a very large score (typically 123.xx), this means
@@ -91,7 +156,7 @@ more compact than Nalimov tablebases, while still storing all information
 needed for optimal play and in addition being able to take into account
 the 50-move rule.
 
-### Compiling it yourself
+## Compiling it yourself
 
 On Unix-like systems, it should be possible to compile DON
 directly from the source code with the included Makefile.
@@ -103,7 +168,7 @@ set/unset some switches in the compiler command line;
 see file *Platform.h* for a quick reference.
 
 
-### Terms of use
+## Terms of use
 
 DON is free, and distributed under the **GNU General Public License** (GPL).
 Essentially, this means that you are free to do almost exactly what

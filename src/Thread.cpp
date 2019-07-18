@@ -162,7 +162,7 @@ PRNG SkillManager::PRNG (now ()); // PRNG sequence should be non-deterministic.
 
 /// SkillManager::pick_best_move() chooses best move among a set of RootMoves when playing with a strength handicap,
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-void SkillManager::pick_best_move (i16 level)
+void SkillManager::pick_best_move ()
 {
     const auto &root_moves = Threadpool.main_thread ()->root_moves;
     assert(!root_moves.empty ());

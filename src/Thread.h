@@ -37,24 +37,25 @@ public:
 // MaxLevel should be <= MaxDepth/4
 const i16 MaxLevel = 24;
 
-inline bool skill_mgr_enabled ()
-{
-    return i16(i32(Options["Skill Level"])) < MaxLevel;
-}
-
 /// Skill Manager class is used to implement strength limit
 class SkillManager
 {
 public:
     static PRNG PRNG;
+    
+    i16 level;
+    Move best_move;
 
-    Move best_move = MOVE_NONE;
-
-    SkillManager () = default;
+    SkillManager ()
+        : level (MaxLevel)
+        , best_move (MOVE_NONE)
+    {}
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
 
-    void pick_best_move (i16);
+    bool enabled () const { return level < MaxLevel; }
+
+    void pick_best_move ();
 };
 
 /// Thread class keeps together all the thread-related stuff.

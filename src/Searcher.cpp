@@ -2022,11 +2022,11 @@ void Thread::search ()
         if (nullptr != main_thread)
         {
             // If skill level is enabled and can pick move, pick a sub-optimal best move.
-            if (   skill_mgr_enabled ()
-                && root_depth == i16(i32(Options["Skill Level"])) + 1)
+            if (   root_depth == main_thread->skill_mgr.level + 1
+                && main_thread->skill_mgr.enabled ())
             {
                 main_thread->skill_mgr.best_move = MOVE_NONE;
-                main_thread->skill_mgr.pick_best_move (i16(i32(Options["Skill Level"])));
+                main_thread->skill_mgr.pick_best_move ();
             }
 
             if (   Limits.time_mgr_used ()
@@ -2201,7 +2201,11 @@ void MainThread::search ()
                 best_move_depth = DepthZero;
             }
 
-            if (skill_mgr_enabled ())
+            skill_mgr.level = bool(Options["UCI_LimitStrength"]) ?
+                                clamp (i16(0), i16(std::pow ((i32(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), MaxLevel) :
+                                i16(i32(Options["Skill Level"]));
+
+            if (skill_mgr.enabled ())
             {
                 skill_mgr.best_move = MOVE_NONE;
             }
@@ -2209,7 +2213,7 @@ void MainThread::search ()
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = std::min (size_t(std::max (i32(Options["MultiPV"]), skill_mgr_enabled () ? 4 : 1)), root_moves.size ());
+            Threadpool.pv_limit = std::min (size_t(std::max (i32(Options["MultiPV"]), skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
             assert(0 < Threadpool.pv_limit);
 
             set_check_count ();
@@ -2225,9 +2229,9 @@ void MainThread::search ()
             Thread::search (); // Let's start searching !
 
             // Swap best PV line with the sub-optimal one if skill level is enabled
-            if (skill_mgr_enabled ())
+            if (skill_mgr.enabled ())
             {
-                skill_mgr.pick_best_move (i16(i32(Options["Skill Level"])));
+                skill_mgr.pick_best_move ();
                 std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
             }
         }
@@ -2258,8 +2262,9 @@ void MainThread::search ()
         }
         // Check if there is better thread than main thread.
         if (   1 == Threadpool.pv_limit
-            //&& DepthZero == Limits.depth // Depth limit search don't use deeper thread
-            && !skill_mgr_enabled ())
+            && DepthZero == Limits.depth // Depth limit search don't use deeper thread
+            && !skill_mgr.enabled ()
+            && !bool(Options["UCI_LimitStrength"]))
         {
             assert(MOVE_NONE != root_moves[0].front ());
 

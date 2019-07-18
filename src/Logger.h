@@ -57,14 +57,14 @@ public:
     Logger ()
         : _inb (std::cin.rdbuf (), _ofs.rdbuf ())
         , _otb (std::cout.rdbuf (), _ofs.rdbuf ())
-        , filename (Empty)
+        , filename ("<empty>")
     {}
     Logger (const Logger&) = delete;
     Logger& operator= (const Logger&) = delete;
 
    ~Logger ()
     {
-        set (Empty);
+        set ("<empty>");
     }
 
     void set (const std::string &fn)

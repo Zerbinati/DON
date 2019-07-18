@@ -566,13 +566,11 @@ template<class T> constexpr const T& clamp (const T &lo, const T &v, const T &hi
     return lo > v ? lo : v > hi ? hi : v;
 }
 
-const std::string Empty = "<empty>";
-
 inline bool white_spaces (const std::string &str)
 {
     return str.empty ()
         || str.find_first_not_of (" \t\n") == std::string::npos
-        || str == Empty;
+        || str == "<empty>";
 }
 
 inline void to_lower (std::string &str)
@@ -605,31 +603,31 @@ inline std::string& trim (std::string &str)
     return ltrim (rtrim (str));
 }
 
-inline std::vector<std::string> split (const std::string str, char delimiter = ' ', bool keep_empty = true, bool do_trim = false)
-{
-    std::vector<std::string> tokens;
-    std::istringstream iss (str);
-    do
-    {
-        std::string token;
-        const bool fail = !std::getline (iss, token, delimiter);
-        if (do_trim)
-        {
-            token = trim (token);
-        }
-        if (   keep_empty
-            || !token.empty ())
-        {
-            tokens.push_back (token);
-        }
-        if (fail)
-        {
-            break;
-        }
-    } while (iss.good ());
-
-    return tokens;
-}
+//inline std::vector<std::string> split (const std::string str, char delimiter = ' ', bool keep_empty = true, bool do_trim = false)
+//{
+//    std::vector<std::string> tokens;
+//    std::istringstream iss (str);
+//    do
+//    {
+//        std::string token;
+//        const bool fail = !std::getline (iss, token, delimiter);
+//        if (do_trim)
+//        {
+//            token = trim (token);
+//        }
+//        if (   keep_empty
+//            || !token.empty ())
+//        {
+//            tokens.push_back (token);
+//        }
+//        if (fail)
+//        {
+//            break;
+//        }
+//    } while (iss.good ());
+//
+//    return tokens;
+//}
 
 //inline void erase_substring (std::string &str, const std::string &sub)
 //{

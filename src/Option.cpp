@@ -114,7 +114,7 @@ namespace UCI {
             {
                 if (white_spaces (val))
                 {
-                    val = Empty;
+                    val = "<empty>";
                 }
             }
             else
@@ -262,12 +262,10 @@ namespace UCI {
         Options["Skill Level"]        << Option (MaxLevel,  0, MaxLevel);
 
         Options["MultiPV"]            << Option (1, 1, 500);
-
+        
         Options["Fixed Contempt"]     << Option (0, -100, 100);
         Options["Contempt Time"]      << Option (60, 0, 1000);
         Options["Contempt Value"]     << Option (10, 0, 1000);
-
-        Options["UCI_AnalyseMode"]    << Option (false);
         Options["Analysis Contempt"]  << Option ("Both var Off var White var Black var Both", "Both");
 
         Options["Draw MoveCount"]     << Option (50, 5, 50);
@@ -278,15 +276,19 @@ namespace UCI {
         Options["Nodes Time"]         << Option (0, 0, 10000);
         Options["Ponder"]             << Option (true);
 
-        Options["SyzygyPath"]         << Option (Empty.c_str (), on_syzygy_path);
+        Options["SyzygyPath"]         << Option ("<empty>", on_syzygy_path);
         Options["SyzygyProbeDepth"]   << Option (TBProbeDepth, 1, 100);
         Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 6);
         Options["SyzygyUseRule50"]    << Option (TBUseRule50);
 
-        Options["Debug File"]         << Option (Empty.c_str (), on_debug_fn);
-        Options["Output File"]        << Option (Empty.c_str ());
+        Options["Debug File"]         << Option ("<empty>", on_debug_fn);
+        Options["Output File"]        << Option ("<empty>");
 
         Options["UCI_Chess960"]       << Option (false);
+        Options["UCI_AnalyseMode"]    << Option (false);
+        Options["UCI_LimitStrength"]  << Option (false);
+        Options["UCI_Elo"]            << Option (1350, 1350, 3100);
+
     }
 
     void deinitialize ()
