@@ -2204,17 +2204,12 @@ void MainThread::search ()
             skill_mgr.level = bool(Options["UCI_LimitStrength"]) ?
                                 clamp (i16(0), i16(std::pow ((i32(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), MaxLevel) :
                                 i16(i32(Options["Skill Level"]));
-
-            if (skill_mgr.enabled ())
-            {
-                skill_mgr.best_move = MOVE_NONE;
-            }
+            skill_mgr.best_move = MOVE_NONE;
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
             Threadpool.pv_limit = std::min (size_t(std::max (i32(Options["MultiPV"]), skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
-            assert(0 < Threadpool.pv_limit);
 
             set_check_count ();
 
