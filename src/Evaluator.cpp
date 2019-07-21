@@ -847,11 +847,9 @@ namespace {
                     Bitboard behind_major = front_squares_bb (Opp, s)
                                           & pos.pieces (ROOK, QUEN);
                     Bitboard attacked_squares = pawn_pass_span (Own, s);
-                    if ((  behind_major
-                         & pos.pieces (Opp)
-                         & ~pos.si->king_blockers[Opp]) == 0)
+                    if (0 == (pos.pieces (Opp) & behind_major))
                     {
-                        attacked_squares &= sgl_attacks[Opp][NONE] | pos.pieces (Opp);
+                        attacked_squares &= sgl_attacks[Opp][NONE];
                     }
 
                     // Bonus according to attacked squares.

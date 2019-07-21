@@ -163,7 +163,7 @@ public:
 
     u32 hash_full () const;
 
-    Move extract_pm (Position&, Move) const;
+    Move extract_opp_move (Position&, Move) const;
 
     void save (const std::string&) const;
     void load (const std::string&);

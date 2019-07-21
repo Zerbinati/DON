@@ -2290,7 +2290,9 @@ void MainThread::search ()
     if (MOVE_NONE != bm)
     {
         auto itr = std::next (rm.begin ());
-        pm = itr != rm.end () ? *itr : TT.extract_pm (root_pos, bm);
+        pm = itr != rm.end () ?
+            *itr :
+            TT.extract_opp_move (root_pos, bm);
     }
 
     if (Output)

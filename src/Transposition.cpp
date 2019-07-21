@@ -203,8 +203,8 @@ u32 TTable::hash_full () const
     return u32(fresh_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
 }
 
-/// TTable::extract_pm() extracts ponder move from TT.
-Move TTable::extract_pm (Position &pos, Move bm) const
+/// TTable::extract_opp_move() extracts opponent's move.
+Move TTable::extract_opp_move (Position &pos, Move bm) const
 {
     assert(MOVE_NONE != bm
         && MoveList<GenType::LEGAL> (pos).contains (bm));

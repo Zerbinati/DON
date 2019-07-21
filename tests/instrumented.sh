@@ -52,7 +52,7 @@ cat << EOF > tsan.supp
  
  race:TTable::probe
  race:TTable::hash_full
- race:TTable::extract_pm
+ race:TTable::extract_opp_move
 
 EOF
 
