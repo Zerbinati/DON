@@ -71,40 +71,40 @@ lpg  = no
 ### 2.2 Architecture specific
 
 ifeq ($(ARCH), general-32)
-	ARCH = any
+	arch = any
 endif
 
 ifeq ($(ARCH), x86-32-old)
-	ARCH = i386
+	arch = i386
 endif
 
 ifeq ($(ARCH), x86-32)
-	ARCH = i386
+	arch = i386
 	pfch = yes
 	sse  = yes
 endif
 
 ifeq ($(ARCH), x86-32-abm)
-	ARCH = i386
+	arch = i386
 	pfch = yes
 	sse  = yes
 	abm  = yes
 endif
 
 ifeq ($(ARCH), general-64)
-	ARCH = any
+	arch = any
 	bits = 64
 endif
 
 ifeq ($(ARCH), x86-64)
-	ARCH = x86_64
+	arch = x86_64
 	bits = 64
 	pfch = yes
 	sse  = yes
 endif
 
 ifeq ($(ARCH), x86-64-abm)
-	ARCH = x86_64
+	arch = x86_64
 	bits = 64
 	pfch = yes
 	sse  = yes
@@ -113,7 +113,7 @@ ifeq ($(ARCH), x86-64-abm)
 endif
 
 ifeq ($(ARCH), x86-64-bm2)
-	ARCH = x86_64
+	arch = x86_64
 	bits = 64
 	pfch = yes
 	sse  = yes
@@ -123,11 +123,11 @@ ifeq ($(ARCH), x86-64-bm2)
 endif
 
 ifeq ($(ARCH), ppc-32)
-	ARCH = ppc32
+	arch = ppc32
 endif
 
 ifeq ($(ARCH), ppc-64)
-	ARCH = ppc64
+	arch = ppc64
 	bits = 64
     pfch = yes
     abm  = yes
@@ -135,7 +135,7 @@ ifeq ($(ARCH), ppc-64)
 endif
 
 ifeq ($(ARCH), armv7)
-	ARCH = armv7
+	arch = armv7
 	pfch = yes
 endif
 
@@ -155,7 +155,7 @@ ifeq ($(COMP), )
 endif
 
 ifeq ($(COMP), gcc)
-	COMP = gcc
+	comp = gcc
 	CXX = g++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 	ifeq ($(ARCH), armv7)
@@ -173,7 +173,7 @@ ifeq ($(COMP), gcc)
 endif
 
 ifeq ($(COMP), mingw)
-	COMP = mingw
+	comp = mingw
 	ifeq ($(KERNEL), Linux)
 		ifeq ($(bits), 64)
 			ifeq ($(shell which x86_64-w64-mingw32-c++-posix), )
@@ -197,13 +197,13 @@ ifeq ($(COMP), mingw)
 endif
 
 ifeq ($(COMP), icc)
-	COMP = icc
+	comp = icc
 	CXX = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
 endif
 
 ifeq ($(COMP), clang)
-	COMP = clang
+	comp = clang
 	CXX = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
@@ -224,22 +224,22 @@ ifeq ($(COMP), clang)
 	endif
 endif
 
-ifeq ($(COMP), icc)
+ifeq ($(comp), icc)
 	profile_make = icc-profile-make
 	profile_use = icc-profile-use
 else
-	ifeq ($(COMP), clang)
-		profile_make = clang-profile-make
-		profile_use = clang-profile-use
-	else
-		profile_make = gcc-profile-make
-		profile_use = gcc-profile-use
-	endif
+ifeq ($(comp), clang)
+	profile_make = clang-profile-make
+	profile_use = clang-profile-use
+else
+	profile_make = gcc-profile-make
+	profile_use = gcc-profile-use
+endif
 endif
 
 ifeq ($(KERNEL), Darwin)
-	CXXFLAGS += -arch $(ARCH) -mmacosx-version-min=10.9
-	LDFLAGS += -arch $(ARCH) -mmacosx-version-min=10.9
+	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.9
+	LDFLAGS += -arch $(arch) -mmacosx-version-min=10.9
 endif
 
 ### Travis CI script uses COMPILER to overwrite CXX
@@ -253,7 +253,7 @@ ifdef COMPCXX
 endif
 
 ### On MinGW use Windows threads, otherwise POSIX
-ifneq ($(COMP), mingw)
+ifneq ($(comp), mingw)
 	# On Android Bionic's C library comes with its own pthread implementation bundled in
 	ifneq ($(OS), Android)
 		# Haiku has pthreads in its libroot, so only link it in on other platforms
@@ -280,13 +280,13 @@ endif
 ifeq ($(optimize), yes)
 	CXXFLAGS += -O3
 
-	ifeq ($(COMP), gcc)
+	ifeq ($(comp), gcc)
 		ifeq ($(OS), Android)
 			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 		endif
 	endif
 
-	ifeq ($(COMP), $(filter $(COMP), gcc clang icc))
+	ifeq ($(comp), $(filter $(comp), gcc clang icc))
 		ifeq ($(KERNEL), Darwin)
 			CXXFLAGS += -mdynamic-no-pic
 		endif
@@ -309,9 +309,9 @@ endif
 
 ### 3.6 ABM (Advance Bit Manipulation)
 ifeq ($(abm), yes)
-	ifeq ($(ARCH), ppc64)
+	ifeq ($(arch), ppc64)
 		CXXFLAGS += -DABM
-	else ifeq ($(COMP), icc)
+	else ifeq ($(comp), icc)
 		CXXFLAGS += -DABM -msse3
 	else
 		CXXFLAGS += -DABM -msse3 -mpopcnt
@@ -321,7 +321,7 @@ endif
 ### 3.7 BM2 (Bit Manipulation Instruction Set 2)
 ifeq ($(bm2), yes)
 	CXXFLAGS += -DBM2
-	ifeq ($(COMP), $(filter $(COMP), gcc clang mingw))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mbmi -mbmi2
 	endif
 endif
@@ -336,12 +336,12 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
 	ifeq ($(debug), no)
-		ifeq ($(COMP), $(filter $(COMP), gcc clang))
+		ifeq ($(comp), $(filter $(comp), gcc clang))
 			CXXFLAGS += -flto
 			LDFLAGS += $(CXXFLAGS)
 		endif
 
-		ifeq ($(COMP), mingw)
+		ifeq ($(comp), mingw)
 			ifeq ($(KERNEL), Linux)
 				CXXFLAGS += -flto
 				LDFLAGS += $(CXXFLAGS)
@@ -476,8 +476,8 @@ config-sanity:
 	@echo "debug   : '$(debug)'"
 	@echo "sanitize: '$(sanitize)'"
 	@echo "optimize: '$(optimize)'"
-	@echo "ARCH    : '$(ARCH)'"
-	@echo "COMP    : '$(COMP)'"
+	@echo "arch    : '$(arch)'"
+	@echo "comp    : '$(comp)'"
 	@echo "bits    : '$(bits)'"
 	@echo "KERNEL  : '$(KERNEL)'"
 	@echo "OS      : '$(OS)'"
@@ -498,8 +498,8 @@ config-sanity:
 	@test "$(debug)" = "yes" || test "$(debug)" = "no"
 	@test "$(sanitize)" = "undefined" || test "$(sanitize)" = "thread" || test "$(sanitize)" = "address" || test "$(sanitize)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
-	@test "$(ARCH)" = "any" || test "$(ARCH)" = "i386" || test "$(ARCH)" = "x86_64" || test "$(ARCH)" = "ppc32" || test "$(ARCH)" = "ppc64" || test "$(ARCH)" = "armv7"
-	@test "$(COMP)" = "gcc" || test "$(COMP)" = "icc" || test "$(COMP)" = "mingw" || test "$(COMP)" = "clang"
+	@test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || test "$(arch)" = "ppc32" || test "$(arch)" = "ppc64" || test "$(arch)" = "armv7"
+	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
