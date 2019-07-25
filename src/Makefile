@@ -44,7 +44,7 @@ endif
 #           thread    --- (thread)         --- Enable threading error checks
 # debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
 # optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
-# ARCH    = (name)    --- (-ARCH)          --- Target architecture
+# arch    = (name)    --- (-arch)          --- Target architecture
 # bits    = 64/32     --- -DBIT64          --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
@@ -170,8 +170,7 @@ ifeq ($(COMP), gcc)
 	ifneq ($(KERNEL), Darwin)
 		LDFLAGS += -Wl,--no-as-needed
 	endif
-endif
-
+else
 ifeq ($(COMP), mingw)
 	comp = mingw
 	ifeq ($(KERNEL), Linux)
@@ -194,14 +193,12 @@ ifeq ($(COMP), mingw)
 
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS += -static
-endif
-
+else
 ifeq ($(COMP), icc)
 	comp = icc
 	CXX = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
-endif
-
+else
 ifeq ($(COMP), clang)
 	comp = clang
 	CXX = clang++
@@ -222,6 +219,9 @@ ifeq ($(COMP), clang)
 		CXXFLAGS += -m$(bits)
 		LDFLAGS += -m$(bits)
 	endif
+endif
+endif
+endif
 endif
 
 ifeq ($(comp), icc)
