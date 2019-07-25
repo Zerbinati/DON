@@ -324,7 +324,7 @@ namespace TBSyzygy {
                     return nullptr;
                 }
 
-                stat statbuf;
+                struct stat statbuf;
                 fstat (fd, &statbuf);
                 if (0 == statbuf.st_size)
                 {

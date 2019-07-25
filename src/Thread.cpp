@@ -158,7 +158,7 @@ void TimeManager::update (Color c)
     }
 }
 
-PRNG SkillManager::PRNG (now ()); // PRNG sequence should be non-deterministic.
+PRNG SkillManager::Prng (now ()); // PRNG sequence should be non-deterministic.
 
 /// SkillManager::pick_best_move() chooses best move among a set of RootMoves when playing with a strength handicap,
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
@@ -179,7 +179,7 @@ void SkillManager::pick_best_move ()
             // One is deterministic with weakness, and one is random with weakness.
             auto value = rm.new_value
                        + (  weakness * i32(root_moves[0].new_value - rm.new_value)
-                          + deviance * i32(PRNG.rand<u32> () % weakness)) / MaxDepth;
+                          + deviance * i32(Prng.rand<u32> () % weakness)) / MaxDepth;
             // Then choose the move with the highest value.
             if (best_value <= value)
             {
@@ -378,10 +378,10 @@ namespace WinProcGroup {
         {
             return;
         }
-        u16 group = Groups[index];
+
 
 #   if defined(_WIN32)
-
+        u16 group = Groups[index];
         auto kernel32 = GetModuleHandle ("Kernel32.dll");
         if (nullptr == kernel32)
         {

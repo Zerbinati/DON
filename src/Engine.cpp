@@ -420,7 +420,7 @@ namespace {
             }
         }
 
-        elapsed_time = std::max (now () - elapsed_time, 1LL);
+        elapsed_time = std::max (now () - elapsed_time, TimePoint(1));
 
         debug_print (); // Just before exiting
 

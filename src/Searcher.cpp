@@ -2328,8 +2328,8 @@ void MainThread::set_check_count ()
 {
     // At low node count increase the checking rate otherwise use a default value.
     check_count = 0 != Limits.nodes ?
-                    clamp (1ULL, Limits.nodes / 1024, 1024ULL) :
-                    1024ULL;
+                    clamp (u64(1), Limits.nodes / 1024, u64(1024)) :
+                    u64(1024);
     assert(0 != check_count);
 }
 /// MainThread::tick() is used as timer function.

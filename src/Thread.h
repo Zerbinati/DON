@@ -41,7 +41,7 @@ const i16 MaxLevel = 24;
 class SkillManager
 {
 public:
-    static PRNG PRNG;
+    static PRNG Prng;
     
     i16 level;
     Move best_move;

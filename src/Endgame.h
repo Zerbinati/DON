@@ -103,6 +103,6 @@ namespace Endgames {
     }
 
     extern void initialize ();
-};
+}
 
 #endif // _ENDGAME_H_INC_

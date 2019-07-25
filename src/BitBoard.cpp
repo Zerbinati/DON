@@ -1,7 +1,8 @@
 #include "BitBoard.h"
 
-#include <memory>
 #include <bitset>
+#include <cmath>
+#include <memory>
 #include "PRNG.h"
 #include "Notation.h"
 

@@ -1,6 +1,7 @@
 #ifndef _TYPE_H_INC_
 #define _TYPE_H_INC_
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cctype>

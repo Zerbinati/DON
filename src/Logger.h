@@ -28,6 +28,7 @@ inline std::string time_to_string (const std::chrono::system_clock::time_point &
     
 #   else
 
+    (void)tp;
 
 #   endif
 
