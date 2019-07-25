@@ -443,15 +443,15 @@ install:
 	-cp $(EXE) $(BINDIR)
 	-strip $(BINDIR)/$(EXE)
 
-#clean all
+# Clean all
 clean: objclean profileclean
 	@rm -f .depend *~ core
 
-# clean binaries and objects
+# Clean binaries and objects
 objclean:
 	@rm -f $(EXE) *.o
 
-# clean auxiliary profiling files
+# Clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno
