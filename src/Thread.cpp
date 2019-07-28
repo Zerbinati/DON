@@ -411,36 +411,45 @@ namespace WinProcGroup {
 
 const Thread* ThreadPool::best_thread () const
 {
+    const auto *best_thread = front ();
+
     auto min_value = (*std::min_element (begin (), end (),
                                          [](Thread* const &t1, Thread* const &t2)
                                          {
                                              return t1->root_moves[0].new_value < t2->root_moves[0].new_value;
                                          }))->root_moves[0].new_value;
 
-    // Vote according to value and depth, and select the best move
-    Move best_fm = MOVE_NONE;
+    // Vote according to value and depth
     std::map<Move, u64> votes;
-    u64 max_vote = 0;
     for (const auto *th : *this)
     {
         votes[th->root_moves[0].front ()] += i32(th->root_moves[0].new_value - min_value + 14) * th->finished_depth;
 
-        if (max_vote < votes[th->root_moves[0].front ()])
+        if (best_thread->root_moves[0].new_value >= VALUE_MATE_MAX_PLY)
         {
-            max_vote = votes[th->root_moves[0].front ()];
-            best_fm = th->root_moves[0].front ();
+            // Make sure we pick the shortest mate
+            if (best_thread->root_moves[0].new_value < th->root_moves[0].new_value)
+            {
+                best_thread = th;
+            }
+        }
+        else
+        {
+            if (   th->root_moves[0].new_value >= VALUE_MATE_MAX_PLY
+                || votes[best_thread->root_moves[0].front ()] < votes[th->root_moves[0].front ()])
+            {
+                best_thread = th;
+            }
         }
     }
-    // Select best thread
-    const auto *best_thread = front ();
-    i16 max_depth = DepthZero;
+    // Select best thread with max depth
+    auto best_fm = best_thread->root_moves[0].front ();
     for (const auto *th : *this)
     {
         if (best_fm == th->root_moves[0].front ())
         {
-            if (max_depth < th->finished_depth)
+            if (best_thread->finished_depth < th->finished_depth)
             {
-                max_depth = th->finished_depth;
                 best_thread = th;
             }
         }

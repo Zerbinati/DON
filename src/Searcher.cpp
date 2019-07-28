@@ -458,7 +458,7 @@ namespace Searcher {
                 if (breadcrumb != nullptr) // free the marked one.
                 {
                     breadcrumb->thread.store (nullptr, std::memory_order_relaxed);
-                    //breadcrumb->posi_key.store (0, std::memory_order_relaxed);
+                    breadcrumb->posi_key.store (0, std::memory_order_relaxed);
                 }
             }
         };
