@@ -39,7 +39,7 @@ namespace {
     /// Under Windows it is not possible for a process to run on more than one logical processor group.
     /// This usually means to be limited to use max 64 cores.
     /// To overcome this, some special platform specific API should be called to set group affinity for each thread.
-    /// Original code from Texel by Peter Österlund.
+    /// Original code from Texel by Peter Osterlund.
 
     /// The needed Windows API for processor groups could be missed from old Windows versions,
     /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
@@ -86,9 +86,9 @@ namespace {
 /// TimeManager::elapsed_time()
 TimePoint TimeManager::elapsed_time () const
 {
-    return TimePoint(0 != nodes_time ?
-                        Threadpool.nodes () :
-                        now () - start_time);
+    return 0 != time_nodes ?
+            TimePoint(Threadpool.nodes ()) :
+            now () - start_time;
 }
 
 /// TimeManager::set() calculates the allowed thinking time out of the time control and current game ply.
@@ -102,22 +102,22 @@ TimePoint TimeManager::elapsed_time () const
 /// Minimum movetime = No matter what, use at least this much time before doing the move, in milli-seconds.
 /// Overhead movetime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
 /// Move Slowness = Move Slowness, in %age.
-void TimeManager::set (Color c, i16 ply, u16 nodes_tm, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
+void TimeManager::set (Color c, i16 ply, u16 tm_nodes, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
 {
-    nodes_time = nodes_tm;
+    time_nodes = tm_nodes;
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
-    if (0 != nodes_time)
+    if (0 != time_nodes)
     {
         // Only once at after ucinewgame
         if (0 == available_nodes)
         {
-            available_nodes = Limits.clock[c].time * nodes_time;
+            available_nodes = Limits.clock[c].time * time_nodes;
         }
         // Convert from milli-seconds to nodes
         Limits.clock[c].time = TimePoint(available_nodes);
-        Limits.clock[c].inc *= nodes_time;
+        Limits.clock[c].inc *= time_nodes;
     }
 
     optimum_time =
@@ -152,7 +152,7 @@ void TimeManager::set (Color c, i16 ply, u16 nodes_tm, TimePoint minimum_movetim
 void TimeManager::update (Color c)
 {
     // When playing in 'Nodes as Time' mode
-    if (0 != nodes_time)
+    if (0 != time_nodes)
     {
         available_nodes += Limits.clock[c].inc - Threadpool.nodes ();
     }

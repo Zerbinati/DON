@@ -1,4 +1,4 @@
-﻿#include "Searcher.h"
+#include "Searcher.h"
 
 #include <cmath>
 #include <stdlib.h>
@@ -2135,7 +2135,7 @@ void MainThread::search ()
         // Set the time manager before searching.
         time_mgr.set (root_pos.active,
                       root_pos.ply,
-                      u16(i32(Options["Nodes Time"])),
+                      u16(i32(Options["Time Nodes"])),
                       TimePoint(i32(Options["Minimum Move Time"])),
                       TimePoint(i32(Options["Overhead Move Time"])),
                       i32(Options["Move Slowness"]) / 100.0,

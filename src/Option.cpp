@@ -273,7 +273,7 @@ namespace UCI {
         Options["Overhead Move Time"] << Option (30, 0, 5000);
         Options["Minimum Move Time"]  << Option (20, 0, 5000);
         Options["Move Slowness"]      << Option (84, 10, 1000);
-        Options["Nodes Time"]         << Option (0, 0, 10000);
+        Options["Time Nodes"]         << Option (0, 0, 10000);
         Options["Ponder"]             << Option (true);
 
         Options["SyzygyPath"]         << Option ("<empty>", on_syzygy_path);

@@ -15,7 +15,7 @@
 class TimeManager
 {
 private:
-    u16 nodes_time;
+    u16 time_nodes;
 
 public:
     TimePoint start_time;
