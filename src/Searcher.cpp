@@ -1601,6 +1601,10 @@ namespace Searcher {
                         int bonus = alfa < value ?
                                         +stat_bonus (new_depth) :
                                         -stat_bonus (new_depth);
+                        if (move == ss->killer_moves[0])
+                        {
+                            bonus += bonus / 4;
+                        }
                         update_continuation_histories (ss, mpc, dst, bonus);
                     }
                 }
