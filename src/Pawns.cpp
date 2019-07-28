@@ -62,9 +62,9 @@ namespace Pawns {
             e->passers[Own] = 0;
             
             e->index[Own] = 0;
-            std::fill_n (e->king_square[Own], std::extent<decltype (e->king_square[Own])>::value, SQ_NO);
-            std::fill_n (e->king_safety[Own], std::extent<decltype (e->king_safety[Own])>::value, SCORE_ZERO);
-            std::fill_n (e->king_pawn_dist[Own], std::extent<decltype (e->king_pawn_dist[Own])>::value, 0);
+            std::fill_n (e->king_square[Own], std::extent<decltype (e->king_square), 1>::value, SQ_NO);
+            std::fill_n (e->king_safety[Own], std::extent<decltype (e->king_safety), 1>::value, SCORE_ZERO);
+            std::fill_n (e->king_pawn_dist[Own], std::extent<decltype (e->king_pawn_dist), 1>::value, 0);
 
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_G1));
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_C1));
