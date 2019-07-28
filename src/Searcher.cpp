@@ -936,7 +936,7 @@ namespace Searcher {
                 && ss->ply < MaxDepth);
 
             assert(MOVE_NONE == (ss+1)->excluded_move);
-            std::fill_n ((ss+2)->killer_moves, _countof ((ss+2)->killer_moves), MOVE_NONE);
+            std::fill_n ((ss+2)->killer_moves, std::extent<decltype ((ss+2)->killer_moves)>::value, MOVE_NONE);
 
             // Initialize stats to zero for the grandchildren of the current position.
             // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
@@ -1855,7 +1855,7 @@ void Thread::search ()
         ss->ply = i16(ss - (stacks+7));
         ss->played_move = MOVE_NONE;
         ss->excluded_move = MOVE_NONE;
-        std::fill_n (ss->killer_moves, _countof (ss->killer_moves), MOVE_NONE);
+        std::fill_n (ss->killer_moves, std::extent<decltype (ss->killer_moves)>::value, MOVE_NONE);
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
         ss->stats = 0;

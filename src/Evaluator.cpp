@@ -271,7 +271,7 @@ namespace {
         sgl_attacks[Own][PT] = 0;
         if (QUEN == PT)
         {
-            std::fill_n (queen_attacks[Own], _countof (queen_attacks[Own]), 0);
+            std::fill_n (queen_attacks[Own], std::extent<decltype (queen_attacks[Own])>::value, 0);
         }
         for (const auto &s : pos.squares[Own|PT])
         {

@@ -53,19 +53,18 @@ namespace Pawns {
             Bitboard *const Attack = PawnAttacks[Own];
 
             Bitboard pawns = pos.pieces (PAWN);
-            Bitboard empty = ~pawns;
             Bitboard own_pawns = pos.pieces (Own) & pawns;
             Bitboard opp_pawns = pos.pieces (Opp) & pawns;
             
-            Bitboard opp_dbl_att = pawn_dbl_attacks_bb (Opp, opp_pawns);
+            Bitboard opp_pawn_dbl_att = pawn_dbl_attacks_bb (Opp, opp_pawns);
 
             e->attack_span[Own] = 0;
             e->passers[Own] = 0;
             
             e->index[Own] = 0;
-            std::fill_n (e->king_square[Own], _countof (e->king_square[Own]), SQ_NO);
-            std::fill_n (e->king_safety[Own], _countof (e->king_safety[Own]), SCORE_ZERO);
-            std::fill_n (e->king_pawn_dist[Own], _countof (e->king_pawn_dist[Own]), 0);
+            std::fill_n (e->king_square[Own], std::extent<decltype (e->king_square[Own])>::value, SQ_NO);
+            std::fill_n (e->king_safety[Own], std::extent<decltype (e->king_safety[Own])>::value, SCORE_ZERO);
+            std::fill_n (e->king_pawn_dist[Own], std::extent<decltype (e->king_pawn_dist[Own])>::value, 0);
 
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_G1));
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_C1));
@@ -105,7 +104,7 @@ namespace Pawns {
                            || (   R_4 < r
                                && stoppers == square_bb (s + pawn_push (Own))
                                && (  pawn_sgl_pushes_bb (Own, supporters)
-                                   & ~(opp_pawns | opp_dbl_att)) != 0);
+                                   & ~(opp_pawns | opp_pawn_dbl_att)) != 0);
 
                 // Passed pawns will be properly scored later in evaluation when we have full attack info.
                 if (passed)
@@ -147,7 +146,7 @@ namespace Pawns {
 
             // Penalize the unsupported and non passed pawns attacked twice by the enemy
             b =   own_pawns
-              & opp_dbl_att
+              & opp_pawn_dbl_att
               & ~(  e->passers[Own]
                   | pawn_sgl_attacks_bb (Own, own_pawns));
 
