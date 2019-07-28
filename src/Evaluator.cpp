@@ -108,10 +108,6 @@ namespace {
         S( 0,24), S(38,71), S(38,61), S( 0,38), S(51,38), S( 0, 0)
     };
 
-    constexpr Score PasserFile[F_NO/2] =
-    {
-        S(-1, 7), S( 0, 9), S(-9,-8), S(-30,-14)
-    };
     constexpr Score PasserRank[R_NO] =
     {
         S( 0, 0), S( 5,18), S(12,23), S(10,31), S(57,62), S(163,167), S(271,250), S( 0, 0)
@@ -127,12 +123,12 @@ namespace {
     constexpr Score RookTrapped =       S( 47,  4);
     constexpr Score QueenWeaken =       S( 49, 15);
     constexpr Score PawnLessFlank =     S( 17, 95);
+    constexpr Score PasserFile =        S( 11,  8);
     constexpr Score KingTropism =       S(  8,  0);
     constexpr Score PieceRestricted =   S(  7,  6);
     constexpr Score PieceHanged =       S( 69, 36);
     constexpr Score PawnThreat =        S(173, 94);
     constexpr Score PawnPushThreat =    S( 48, 39);
-    constexpr Score SpaceAreaAttcked =  S(  4,  0);
     constexpr Score RankThreat =        S( 13,  0);
     constexpr Score KingThreat =        S( 24, 89);
     constexpr Score KnightOnQueen =     S( 16, 12);
@@ -275,7 +271,7 @@ namespace {
         sgl_attacks[Own][PT] = 0;
         if (QUEN == PT)
         {
-            std::fill_n (queen_attacks[Own], 3, 0);
+            std::fill_n (queen_attacks[Own], _countof (queen_attacks[Own]), 0);
         }
         for (const auto &s : pos.squares[Own|PT])
         {
@@ -822,6 +818,7 @@ namespace {
             assert((  pawn_sgl_pushes_bb (Own, front_squares_bb (Own, s))
                     & pos.pieces (Opp, PAWN)) == 0);
 
+            auto f = _file (s);
             i32 r = rel_rank (Own, s);
             // Base bonus depending on rank.
             Score bonus = PasserRank[r];
@@ -876,7 +873,8 @@ namespace {
                 bonus /= 2;
             }
 
-            score += bonus + PasserFile[std::min (_file (s), ~_file (s))];
+            score += bonus;
+            score -= PasserFile * std::min (f, ~f);
         }
 
         if (Trace)
@@ -913,11 +911,12 @@ namespace {
                             & ~pos.pieces (Own, PAWN)
                             & ~sgl_attacks[Opp][PAWN];
 
-        i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
+        i32 bonus = pop_count (safe_space)
+                  + pop_count (  behind
+                               & safe_space
+                               & ~sgl_attacks[Opp][NONE]);
         i32 weight = pos.count (Own) - 1;
         Score score = mk_score (bonus * weight * weight / 16, 0);
-
-        score -= SpaceAreaAttcked * pop_count (sgl_attacks[Opp][NONE] & behind & safe_space);
 
         if (Trace)
         {

@@ -38,11 +38,11 @@ namespace Pawns {
 
 #   define S(mg, eg) mk_score(mg, eg)
 
-        constexpr Score Backward =           S( 9,24);
-        constexpr Score Blocked =            S(11,56);
-        constexpr Score Isolated =           S( 5,15);
-        constexpr Score WeakUnopposed =      S(13,27);
-        constexpr Score UnsupportedAttcked = S(0, 56);
+        constexpr Score Backward =      S( 9,24);
+        constexpr Score Blocked =       S(11,56);
+        constexpr Score Isolated =      S( 5,15);
+        constexpr Score WeakUnopposed = S(13,27);
+        constexpr Score WeakLever =     S(0, 56);
 
 #   undef S
 
@@ -56,14 +56,16 @@ namespace Pawns {
             Bitboard empty = ~pawns;
             Bitboard own_pawns = pos.pieces (Own) & pawns;
             Bitboard opp_pawns = pos.pieces (Opp) & pawns;
+            
+            Bitboard opp_dbl_att = pawn_dbl_attacks_bb (Opp, opp_pawns);
 
             e->attack_span[Own] = 0;
             e->passers[Own] = 0;
             
             e->index[Own] = 0;
-            std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
-            std::fill_n (e->king_safety[Own], MaxCache, SCORE_ZERO);
-            std::fill_n (e->king_pawn_dist[Own], MaxCache, 0);
+            std::fill_n (e->king_square[Own], _countof (e->king_square[Own]), SQ_NO);
+            std::fill_n (e->king_safety[Own], _countof (e->king_safety[Own]), SCORE_ZERO);
+            std::fill_n (e->king_pawn_dist[Own], _countof (e->king_pawn_dist[Own]), 0);
 
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_G1));
             e->king_safety_on<Own> (pos, rel_sq (Own, SQ_C1));
@@ -93,26 +95,22 @@ namespace Pawns {
                 bool backward = 0 == (neighbours & front_rank_bb (Opp, s))
                              && 0 != (stoppers & (escapes | (s+pawn_push (Own))));
 
-                // Include also which could become passed after pawn push
-                if (   stoppers == (levers | escapes)
-                    && (   stoppers == levers
-                        || pop_count (phalanxes) >= pop_count (escapes)))
+                // A pawn is passed if one of the three following conditions is true:
+                // - there is no stoppers except some levers
+                // - the only stoppers are the escapes, but we outnumber them
+                // - there is only one front stopper which can be levered.
+                bool passed = (stoppers == levers)
+                           || (   stoppers == (levers | escapes)
+                               && pop_count (phalanxes) >= pop_count (escapes))
+                           || (   R_4 < r
+                               && stoppers == square_bb (s + pawn_push (Own))
+                               && (  pawn_sgl_pushes_bb (Own, supporters)
+                                   & ~(opp_pawns | opp_dbl_att)) != 0);
+
+                // Passed pawns will be properly scored later in evaluation when we have full attack info.
+                if (passed)
                 {
                     e->passers[Own] |= s;
-                }
-                else
-                if (   R_4 < r
-                    && stoppers == square_bb (s+pawn_push (Own)))
-                {
-                    b = pawn_sgl_pushes_bb (Own, supporters)
-                      & empty;
-                    while (0 != b)
-                    {
-                        if (!more_than_one (opp_pawns & Attack[pop_lsq (b)]))
-                        {
-                            e->passers[Own] |= s;
-                        }
-                    }
                 }
 
                 if (0 != (supporters | phalanxes))
@@ -146,12 +144,14 @@ namespace Pawns {
                     score -= Blocked;
                 }
             }
-            
-            score -= UnsupportedAttcked
-                   * pop_count (   own_pawns
-                                & ~e->passers[Own]
-                                & ~pawn_sgl_attacks_bb (Own, own_pawns)
-                                &  pawn_dbl_attacks_bb (Opp, opp_pawns));
+
+            // Penalize the unsupported and non passed pawns attacked twice by the enemy
+            b =   own_pawns
+              & opp_dbl_att
+              & ~(  e->passers[Own]
+                  | pawn_sgl_attacks_bb (Own, own_pawns));
+
+            score -= WeakLever * pop_count (b);
 
             return score;
         }

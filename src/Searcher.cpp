@@ -936,7 +936,7 @@ namespace Searcher {
                 && ss->ply < MaxDepth);
 
             assert(MOVE_NONE == (ss+1)->excluded_move);
-            std::fill_n ((ss+2)->killer_moves, 2, MOVE_NONE);
+            std::fill_n ((ss+2)->killer_moves, _countof ((ss+2)->killer_moves), MOVE_NONE);
 
             // Initialize stats to zero for the grandchildren of the current position.
             // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
@@ -1467,7 +1467,7 @@ namespace Searcher {
                             continue;
                         }
                         // SEE based pruning: negative SEE (~10 ELO)
-                        auto thr = Value(-29*lmr_depth*lmr_depth);
+                        auto thr = Value(-(31 - std::min (lmr_depth, i16(18)))*lmr_depth*lmr_depth);
                         if (   pos.exchange (move) < thr
                             && !pos.see_ge (move, thr))
                         {
@@ -1554,11 +1554,21 @@ namespace Searcher {
                             reduct_depth -= 2;
                         }
 
-                        ss->stats = thread->butterfly_history[~pos.active][move_pp (move)]
-                                  + (*pd_histories[0])[mpc][dst]
-                                  + (*pd_histories[1])[mpc][dst]
-                                  + (*pd_histories[3])[mpc][dst]
-                                  - 4000;
+                        auto stats = thread->butterfly_history[~pos.active][move_pp (move)]
+                                   + (*pd_histories[0])[mpc][dst]
+                                   + (*pd_histories[1])[mpc][dst]
+                                   + (*pd_histories[3])[mpc][dst]
+                                   - 4000;
+                        // Reset stats to zero if negative and most stats shows >= 0
+                        if (   stats < 0
+                            && (*pd_histories[0])[mpc][dst] >= 0
+                            && (*pd_histories[1])[mpc][dst] >= 0
+                            && thread->butterfly_history[~pos.active][move_pp (move)] >= 0)
+                        {
+                            stats = 0;
+                        }
+
+                        ss->stats = stats;
 
                         // Decrease/Increase reduction by comparing stats (~10 Elo)
                         if (   ss->stats < 0
@@ -1845,7 +1855,7 @@ void Thread::search ()
         ss->ply = i16(ss - (stacks+7));
         ss->played_move = MOVE_NONE;
         ss->excluded_move = MOVE_NONE;
-        std::fill_n (ss->killer_moves, 2, MOVE_NONE);
+        std::fill_n (ss->killer_moves, _countof (ss->killer_moves), MOVE_NONE);
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
         ss->stats = 0;

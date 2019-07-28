@@ -696,14 +696,14 @@ bool Position::see_ge (Move m, Value threshold) const
 /// Position::clear() clear the position.
 void Position::clear ()
 {
-    std::fill_n (piece, SQ_NO, NO_PIECE);
-    std::fill_n (color_bb, CLR_NO, 0);
-    std::fill_n (type_bb, PT_NO, 0);
-    std::fill_n (castle_right, SQ_NO, CR_NONE);
-    std::fill (castle_rook_sq[0], castle_rook_sq[0] + CLR_NO*CS_NO, SQ_NO);
-    std::fill (castle_king_path_bb[0], castle_king_path_bb[0] + CLR_NO*CS_NO, 0);
-    std::fill (castle_rook_path_bb[0], castle_rook_path_bb[0] + CLR_NO*CS_NO, 0);
-    std::for_each (squares, squares + MAX_PIECE, [](std::list<Square> &sq) { sq.clear (); });
+    std::fill_n (piece, _countof (piece), NO_PIECE);
+    std::fill_n (color_bb, _countof (color_bb), 0);
+    std::fill_n (type_bb, _countof (type_bb), 0);
+    std::fill_n (castle_right, _countof (castle_right), CR_NONE);
+    std::fill (&castle_rook_sq[0][0], &castle_rook_sq[0][0] + sizeof (castle_rook_sq) / sizeof (castle_rook_sq[0][0]), SQ_NO);
+    std::fill (&castle_king_path_bb[0][0], &castle_king_path_bb[0][0] + sizeof (castle_king_path_bb) / sizeof (castle_king_path_bb[0][0]), 0);
+    std::fill (&castle_rook_path_bb[0][0], &castle_rook_path_bb[0][0] + sizeof (castle_rook_path_bb) / sizeof (castle_rook_path_bb[0][0]), 0);
+    for (auto &sq : squares) { sq.clear (); }
     psq = SCORE_ZERO;
     ply = 0;
     active = CLR_NO;
