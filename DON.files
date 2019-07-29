@@ -13,6 +13,7 @@ src/Evaluator.h
 src/Logger.cpp
 src/Logger.h
 src/Main.cpp
+src/Makefile
 src/Material.cpp
 src/Material.h
 src/MemoryHandler.cpp

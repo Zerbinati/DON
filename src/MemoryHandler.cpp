@@ -80,7 +80,6 @@ namespace Memory {
 #   else
 
         i32 SHM; // Shared Memory Identifier
-        extern int errno;
 
 #   endif
 
@@ -133,10 +132,10 @@ namespace Memory {
                     sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB, error# = " << errno << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed, error# = " << errno << std::endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
                 }
                 return;
             }
@@ -153,14 +152,14 @@ namespace Memory {
                     sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB, error# = " << errno << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed, error# = " << errno << std::endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
                 }
                 return;
             }
-            std::cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB, error# = " << errno << std::endl;
+            std::cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB" << std::endl;
 
 #       endif
         }
@@ -195,11 +194,11 @@ namespace Memory {
 
             if (shmdt (mem) == -1)
             {
-                std::cerr << "ERROR: shmdt() shared memory detach failed, error# = " << errno << std::endl;
+                std::cerr << "ERROR: shmdt() shared memory detach failed" << std::endl;
             }
             if (shmctl (SHM, IPC_RMID, nullptr) == -1)
             {
-                std::cerr << "ERROR: shmctl(IPC_RMID) failed, error# = " << errno << std::endl;
+                std::cerr << "ERROR: shmctl(IPC_RMID) failed"<< std::endl;
             }
 
 #       endif
