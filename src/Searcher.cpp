@@ -2216,10 +2216,10 @@ void MainThread::search ()
                 best_move_depth = DepthZero;
             }
 
-            skill_mgr.level = bool(Options["UCI_LimitStrength"]) ?
+            skill_mgr.set (bool(Options["UCI_LimitStrength"]) ?
                                 clamp (i16(0), i16(std::pow ((i32(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), MaxLevel) :
-                                i16(i32(Options["Skill Level"]));
-            skill_mgr.best_move = MOVE_NONE;
+                                i16(i32(Options["Skill Level"])),
+                           MOVE_NONE);
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size

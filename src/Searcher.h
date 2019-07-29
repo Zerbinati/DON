@@ -69,7 +69,6 @@ template<typename T, i32 D>
 class StatsEntry
 {
 private:
-
     T entry;
 
 public:

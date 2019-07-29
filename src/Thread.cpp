@@ -193,7 +193,9 @@ void SkillManager::pick_best_move ()
 /// Thread constructor launches the thread and waits until it goes to sleep in idle_loop().
 /// Note that 'busy' and 'dead' should be already set.
 Thread::Thread (size_t idx)
-    : index (idx)
+    : dead (false)
+    , busy (true)
+    , index (idx)
     , native_thread (&Thread::idle_loop, this)
 {
     wait_while_busy ();

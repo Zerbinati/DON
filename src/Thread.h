@@ -47,12 +47,17 @@ public:
     Move best_move;
 
     SkillManager ()
-        : level (MaxLevel)
-        , best_move (MOVE_NONE)
-    {}
+    {
+        set (MaxLevel, MOVE_NONE);
+    }
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
 
+    void set (i16 lvl, Move bm)
+    {
+        level = lvl;
+        best_move = bm;
+    }
     bool enabled () const { return level < MaxLevel; }
 
     void pick_best_move ();
@@ -65,13 +70,13 @@ public:
 class Thread
 {
 protected:
+    bool dead   // false
+       , busy;  // true
+
+    size_t index;
 
     Mutex mutex;
     ConditionVariable condition_var;
-    bool dead = false
-       , busy = true;
-
-    size_t index;
     NativeThread native_thread;
 
 public:
