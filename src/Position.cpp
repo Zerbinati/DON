@@ -696,15 +696,20 @@ bool Position::see_ge (Move m, Value threshold) const
 /// Position::clear() clear the position.
 void Position::clear ()
 {
-    std::fill (std::begin (piece), std::end (piece), NO_PIECE);
-    std::fill (std::begin (color_bb), std::end (color_bb), 0);
-    std::fill (std::begin (type_bb), std::end (type_bb), 0);
-    std::fill (std::begin (castle_right), std::end (castle_right), CR_NONE);
+    piece.fill (NO_PIECE);
+    color_bb.fill (0);
+    type_bb.fill (0);
 
-    std::fill (&castle_rook_sq[0][0], &castle_rook_sq[0][0] + sizeof (castle_rook_sq) / sizeof (castle_rook_sq[0][0]), SQ_NO);
-    std::fill (&castle_king_path_bb[0][0], &castle_king_path_bb[0][0] + sizeof (castle_king_path_bb) / sizeof (castle_king_path_bb[0][0]), 0);
-    std::fill (&castle_rook_path_bb[0][0], &castle_rook_path_bb[0][0] + sizeof (castle_rook_path_bb) / sizeof (castle_rook_path_bb[0][0]), 0);
+    npm.fill(VALUE_ZERO);
+
+    castle_right.fill (CR_NONE);
+
     for (auto &sq : squares) { sq.clear (); }
+
+    for (auto &crs : castle_rook_sq) { crs.fill (SQ_NO); }
+    for (auto &ckp : castle_king_path_bb) { ckp.fill (0); }
+    for (auto &crp : castle_rook_path_bb) { crp.fill (0); }
+
     psq = SCORE_ZERO;
     ply = 0;
     active = CLR_NO;
@@ -1439,7 +1444,7 @@ bool Position::ok () const
     {
         if (   count (c) > 16
             || count (c) != pop_count (pieces (c))
-            || 1 != std::count (piece, piece + SQ_NO, (c|KING))
+            || 1 != std::count (piece.begin (), piece.end (), (c|KING))
             || 1 != count (c|KING)
             || !_ok (square (c|KING))
             || piece[square (c|KING)] != (c|KING)

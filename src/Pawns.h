@@ -1,6 +1,7 @@
 #ifndef _PAWNS_H_INC_
 #define _PAWNS_H_INC_
 
+#include <array>
 #include "Type.h"
 #include "Position.h"
 
@@ -13,14 +14,14 @@ namespace Pawns {
     public:
         Key key;
 
-        Score    scores[CLR_NO];
-        Bitboard attack_span[CLR_NO];
-        Bitboard passers[CLR_NO];
+        std::array<Score, CLR_NO>    scores;
+        std::array<Bitboard, CLR_NO> attack_span;
+        std::array<Bitboard, CLR_NO> passers;
 
-        u08      index[CLR_NO];
-        Square   king_square[CLR_NO][MaxCache];
-        Score    king_safety[CLR_NO][MaxCache];
-        u08      king_pawn_dist[CLR_NO][MaxCache];
+        std::array<u08, CLR_NO>      index;
+        std::array<std::array<Square, MaxCache>, CLR_NO> king_square;
+        std::array<std::array<u08, MaxCache>, CLR_NO>    king_pawn_dist;
+        std::array<std::array<Score, MaxCache>, CLR_NO>  king_safety;
 
         i32 passed_count () const
         {
@@ -33,7 +34,7 @@ namespace Pawns {
         template<Color Own>
         u08 king_safety_on (const Position &pos, Square own_k_sq)
         {
-            auto idx = std::find (king_square[Own], king_square[Own] + index[Own] + 1, own_k_sq) - king_square[Own];
+            auto idx = std::find (king_square[Own].begin (), king_square[Own].begin () + index[Own] + 1, own_k_sq) - king_square[Own].begin ();
             assert(0 <= idx);
             if (idx <= index[Own])
             {

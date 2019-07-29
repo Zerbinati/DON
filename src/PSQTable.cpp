@@ -79,7 +79,7 @@ namespace {
 #   undef S
 }
 
-Score PSQ[MAX_PIECE][SQ_NO];
+std::array<std::array<Score, SQ_NO>, MAX_PIECE> PSQ;
 
 /// Computes the scores for the middle game and the endgame.
 /// These functions are used to initialize the scores when a new position is set up,

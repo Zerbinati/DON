@@ -1,6 +1,7 @@
 #ifndef _MATERIAL_H_INC_
 #define _MATERIAL_H_INC_
 
+#include <array>
 #include "Endgame.h"
 #include "Position.h"
 #include "Type.h"
@@ -16,10 +17,10 @@ namespace Material {
         Key   key;
         i32   phase;
         Score imbalance;
-        Scale scale[CLR_NO];
+        std::array<Scale, CLR_NO> scale;
 
         const Endgames::EndgameBase<Value> *value_func;
-        const Endgames::EndgameBase<Scale> *scale_func[CLR_NO];
+        std::array<const Endgames::EndgameBase<Scale> *, CLR_NO> scale_func;
     };
 
     typedef HashTable<Entry, 0x2000> Table;

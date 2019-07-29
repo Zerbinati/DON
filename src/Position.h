@@ -1,6 +1,7 @@
 #ifndef _POSITION_H_INC_
 #define _POSITION_H_INC_
 
+#include <array>
 #include <deque>
 #include <list>
 #include <memory> // For std::unique_ptr
@@ -77,9 +78,9 @@ public:
     Bitboard    checkers;       // Checkers
     i16         repetition;
     // Check info
-    Bitboard    king_blockers[CLR_NO];// Absolute and Discover Blockers
-    Bitboard    king_checkers[CLR_NO];// Absolute and Discover Checkers
-    Bitboard    checks[NONE];
+    std::array<Bitboard, CLR_NO> king_blockers; // Absolute and Discover Blockers
+    std::array<Bitboard, CLR_NO> king_checkers;// Absolute and Discover Checkers
+    std::array<Bitboard, NONE>   checks;
 
     StateInfo  *ptr;            // Previous StateInfo pointer.
 
@@ -129,18 +130,20 @@ private:
     PieceType pick_next_attacker (Bitboard, Square, Square&, Bitboard&, Bitboard&) const;
 
 public:
-    Piece       piece[SQ_NO];
-    Bitboard    color_bb[CLR_NO];
-    Bitboard    type_bb[PT_NO];
-    std::list<Square> squares[MAX_PIECE];
+    std::array<Piece, SQ_NO>        piece;
+    std::array<Bitboard, CLR_NO>    color_bb;
+    std::array<Bitboard, PT_NO>     type_bb;
 
-    CastleRight castle_right[SQ_NO];
+    std::array<Value, CLR_NO>       npm;
 
-    Square      castle_rook_sq[CLR_NO][CS_NO];
-    Bitboard    castle_king_path_bb[CLR_NO][CS_NO];
-    Bitboard    castle_rook_path_bb[CLR_NO][CS_NO];
+    std::array<CastleRight, SQ_NO>  castle_right;
 
-    Value       npm[CLR_NO];
+    std::array<std::list<Square>, MAX_PIECE> squares;
+
+    std::array<std::array<Square, CS_NO>, CLR_NO>   castle_rook_sq;
+    std::array<std::array<Bitboard, CS_NO>, CLR_NO> castle_king_path_bb;
+    std::array<std::array<Bitboard, CS_NO>, CLR_NO> castle_rook_path_bb;
+
     Score       psq;
     i16         ply;
     Color       active;

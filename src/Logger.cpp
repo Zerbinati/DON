@@ -8,10 +8,10 @@ using namespace std;
 
 namespace {
 
-    atomic<i64> CondCount;
-    atomic<i64> HitCount;
+    atomic<u64> CondCount;
+    atomic<u64> HitCount;
 
-    atomic<i64> ItemCount;
+    atomic<u64> ItemCount;
     atomic<i64> ItemSum;
 }
 

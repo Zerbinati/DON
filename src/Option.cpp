@@ -8,7 +8,7 @@
 #include "Searcher.h"
 #include "TBsyzygy.h"
 
-UCI::NoCaseMap Options;
+UCI::NoCaseLessMap Options;
 
 using namespace std;
 
@@ -120,9 +120,9 @@ namespace UCI {
             else
             if (type == "combo")
             {
-                NoCaseMap comboMap; // To have case insensitive compare
-                string token;
+                NoCaseLessMap comboMap; // To have case insensitive compare
                 std::istringstream ss (default_value);
+                string token;
                 while (ss >> token)
                 {
                     if (token == "var")

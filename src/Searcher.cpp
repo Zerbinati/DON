@@ -57,7 +57,8 @@ namespace Searcher {
             i16   ply;
             Move  played_move;
             Move  excluded_move;
-            Move  killer_moves[2];
+            std::array<Move, 2> killer_moves;
+
             u08   move_count;
             Value static_eval;
             i32   stats;
@@ -166,7 +167,7 @@ namespace Searcher {
             MovePicker& operator= (const MovePicker&) = delete;
 
             /// MovePicker constructor for the main search
-            MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pdhs, const Move *km, Move cm)
+            MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pdhs, const std::array<Move, 2> &km, Move cm)
                 : pos (p)
                 , tt_move (ttm)
                 , depth (d)
@@ -520,7 +521,7 @@ namespace Searcher {
                 ss->killer_moves[1] = ss->killer_moves[0];
                 ss->killer_moves[0] = move;
             }
-            assert(1 == std::count (ss->killer_moves, ss->killer_moves + 2, move));
+            assert(1 == std::count (ss->killer_moves.begin (), ss->killer_moves.end (), move));
 
             if (_ok ((ss-1)->played_move))
             {
@@ -936,7 +937,7 @@ namespace Searcher {
                 && ss->ply < MaxDepth);
 
             assert(MOVE_NONE == (ss+1)->excluded_move);
-            std::fill (std::begin ((ss+2)->killer_moves), std::end ((ss+2)->killer_moves), MOVE_NONE);
+            (ss+2)->killer_moves.fill (MOVE_NONE);
 
             // Initialize stats to zero for the grandchildren of the current position.
             // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
@@ -1855,7 +1856,7 @@ void Thread::search ()
         ss->ply = i16(ss - (stacks+7));
         ss->played_move = MOVE_NONE;
         ss->excluded_move = MOVE_NONE;
-        std::fill (std::begin (ss->killer_moves), std::end (ss->killer_moves), MOVE_NONE);
+        ss->killer_moves.fill (MOVE_NONE);
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
         ss->stats = 0;

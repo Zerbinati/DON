@@ -1,7 +1,6 @@
 #ifndef _ENDGAME_H_INC_
 #define _ENDGAME_H_INC_
 
-#include <cstring>   // For std::memset
 #include <map>
 #include <memory>
 #include <type_traits>

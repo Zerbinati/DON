@@ -1,11 +1,12 @@
 #ifndef _PSQT_H_INC_
 #define _PSQT_H_INC_
 
+#include <array>
 #include "Type.h"
 
 class Position;
 
-extern Score PSQ[MAX_PIECE][SQ_NO];
+extern std::array<std::array<Score, SQ_NO>, MAX_PIECE> PSQ;
 
 extern Score compute_psq (const Position&);
 

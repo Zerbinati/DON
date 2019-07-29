@@ -114,12 +114,15 @@ namespace Material {
             return e;
         }
 
-        std::memset (e, 0x00, sizeof (*e));
         e->key = pos.si->matl_key;
-        std::fill (std::begin (e->scale), std::end (e->scale), SCALE_NORMAL);
+
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        Value npm = clamp (VALUE_ENDGAME, pos.non_pawn_material (), VALUE_MIDGAME);
-        e->phase = i32(npm - VALUE_ENDGAME) * PhaseResolution / (VALUE_MIDGAME - VALUE_ENDGAME);
+        e->phase = i32(clamp (VALUE_ENDGAME, pos.non_pawn_material (), VALUE_MIDGAME) - VALUE_ENDGAME)
+                 * PhaseResolution
+                 / (VALUE_MIDGAME - VALUE_ENDGAME);
+        e->imbalance = SCORE_ZERO;
+        e->scale.fill (SCALE_NORMAL);
+        e->scale_func.fill (nullptr);
 
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed

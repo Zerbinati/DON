@@ -25,7 +25,9 @@ public:
     {
         TimePoint time;
         TimePoint inc;
-    } clock[CLR_NO];        // Search with Clock
+    };
+    std::array<Clock, CLR_NO> clock; // Search with Clock
+
     u08       movestogo;    // Search <x> moves to the next time control
 
     TimePoint movetime;    // Search <x> exact time in milli-seconds
