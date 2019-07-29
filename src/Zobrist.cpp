@@ -193,9 +193,9 @@ Zobrist RandZob;
 Zobrist const PolyZob =
 {
     // PieceSquare (768)
-    {
+    {{
         // White
-        {
+        {{
             // WhitePawn
             {
     U64(0x5355F900C2A82DC7), U64(0x07FB9F855A997142), U64(0x5093417AA8A7ED5E), U64(0x7BCBC38DA25A7F3C),
@@ -310,9 +310,9 @@ Zobrist const PolyZob =
     U64(0xF1BCC3D275AFE51A), U64(0xE728E8C83C334074), U64(0x96FBF83A12884624), U64(0x81A1549FD6573DA5),
     U64(0x5FA7867CAF35E149), U64(0x56986E2EF3ED091B), U64(0x917F1DD5F8886C61), U64(0xD20D8C88C8FFE65F)
             }
-        },
+        }},
         // Black
-        {
+        {{
             // BlackPawn
             {
     U64(0x9D39247E33776D41), U64(0x2AF7398005AAA5C7), U64(0x44DB015024623547), U64(0x9C15F73E62A76AE2),
@@ -427,8 +427,8 @@ Zobrist const PolyZob =
     U64(0xCF05DAF5AC8D77B0), U64(0x49CAD48CEBF4A71E), U64(0x7A4C10EC2158C4A6), U64(0xD9E92AA246BF719E),
     U64(0x13AE978D09FE5557), U64(0x730499AF921549FF), U64(0x4E4B705B92903BA4), U64(0xFF577222C14F0A3A)
             }
-        }
-    },
+        }}
+    }},
     // CastleRights (4)->(16)
     {
     U64(0x0000000000000000),
