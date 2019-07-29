@@ -131,11 +131,11 @@ namespace Endgames {
                              + PushClose[dist (sk_sq, wk_sq)],
                                +VALUE_KNOWN_WIN - 1);
 
-        if (   0 != pos.count (strong_color|QUEN)
-            || 0 != pos.count (strong_color|ROOK)
+        if (   0 < pos.count (strong_color|QUEN)
+            || 0 < pos.count (strong_color|ROOK)
             || pos.bishop_paired (strong_color)
-            || (   0 != pos.count (strong_color|BSHP)
-                && 0 != pos.count (strong_color|NIHT))
+            || (   0 < pos.count (strong_color|BSHP)
+                && 0 < pos.count (strong_color|NIHT))
             || 2 < pos.count (strong_color|NIHT))
         {
             value += +VALUE_KNOWN_WIN;

@@ -103,8 +103,9 @@ struct Stats
         // For standard-layout 'this' points to first struct member
         assert(std::is_standard_layout<stats>::value);
 
-        auto *p = reinterpret_cast<StatsEntry<T, D>*>(this);
-        std::fill (p, p + sizeof (*this) / sizeof (*p), v);
+        typedef StatsEntry<T, D> entry;
+        entry *p = reinterpret_cast<entry*>(this);
+        std::fill (p, p + sizeof (*this) / sizeof (entry), v);
     }
 };
 template <typename T, i32 D, i32 Size>

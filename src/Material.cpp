@@ -116,7 +116,7 @@ namespace Material {
 
         std::memset (e, 0x00, sizeof (*e));
         e->key = pos.si->matl_key;
-        std::fill_n (e->scale, std::extent<decltype (e->scale)>::value, SCALE_NORMAL);
+        std::fill (std::begin (e->scale), std::end (e->scale), SCALE_NORMAL);
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
         Value npm = clamp (VALUE_ENDGAME, pos.non_pawn_material (), VALUE_MIDGAME);
         e->phase = i32(npm - VALUE_ENDGAME) * PhaseResolution / (VALUE_MIDGAME - VALUE_ENDGAME);
