@@ -72,7 +72,6 @@ namespace Pawns {
             // Unsupported enemy pawns attacked twice by friend pawns
             Score score = SCORE_ZERO;
 
-            Bitboard b;
             for (const auto &s : pos.squares[Own|PAWN])
             {
                 assert((Own|PAWN) == pos[s]);
@@ -90,24 +89,18 @@ namespace Pawns {
                 bool blocked = contains (own_pawns, s-pawn_push (Own));
                 bool opposed = 0 != (opp_pawns & front_squares_bb (Own, s));
 
-                // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
-                bool backward = 0 == (neighbours & front_rank_bb (Opp, s))
-                             && 0 != (stoppers & (escapes | (s+pawn_push (Own))));
-
                 // A pawn is passed if one of the three following conditions is true:
                 // - there is no stoppers except some levers
                 // - the only stoppers are the escapes, but we outnumber them
                 // - there is only one front stopper which can be levered.
-                bool passed = (stoppers == levers)
-                           || (   stoppers == (levers | escapes)
-                               && pop_count (phalanxes) >= pop_count (escapes))
-                           || (   R_4 < r
-                               && stoppers == square_bb (s + pawn_push (Own))
-                               && (  pawn_sgl_pushes_bb (Own, supporters)
-                                   & ~(opp_pawns | opp_pawn_dbl_att)) != 0);
-
                 // Passed pawns will be properly scored later in evaluation when we have full attack info.
-                if (passed)
+                if (   (stoppers == levers)
+                    || (   stoppers == (levers | escapes)
+                        && pop_count (phalanxes) >= pop_count (escapes))
+                    || (   R_4 < r
+                        && stoppers == square_bb (s + pawn_push (Own))
+                        && (  pawn_sgl_pushes_bb (Own, supporters)
+                            & ~(opp_pawns | opp_pawn_dbl_att)) != 0))
                 {
                     e->passers[Own] |= s;
                 }
@@ -128,7 +121,9 @@ namespace Pawns {
                     }
                 }
                 else
-                if (backward)
+                // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
+                if (   0 == (neighbours & front_rank_bb (Opp, s))
+                    && 0 != (stoppers & (escapes | (s+pawn_push (Own)))))
                 {
                     score -= Backward;
                     if (!opposed)
@@ -144,13 +139,10 @@ namespace Pawns {
                 }
             }
 
-            // Penalize the unsupported and non passed pawns attacked twice by the enemy
-            b =   own_pawns
-              & opp_pawn_dbl_att
-              & ~(  e->passers[Own]
-                  | pawn_sgl_attacks_bb (Own, own_pawns));
-
-            score -= WeakLever * pop_count (b);
+            // Penalize our unsupported pawns attacked twice by enemy pawns
+            score -= WeakLever * pop_count (  own_pawns
+                                            & opp_pawn_dbl_att
+                                            & ~pawn_sgl_attacks_bb (Own, own_pawns));
 
             return score;
         }
