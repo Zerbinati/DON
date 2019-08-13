@@ -99,11 +99,11 @@ namespace {
 PolyEntry::operator string() const
 {
     ostringstream oss;
-    oss << " key: " << std::setw(16) << std::setfill('0') << std::hex << std::uppercase << key << std::nouppercase << std::dec
-        << " move: " << std::setw( 5) << std::setfill(' ') << std::left << Move(move) << std::right
-        << " weight: " << std::setw( 5) << std::setfill('0') << weight
-        << " learn: " << std::setw( 2) << std::setfill('0') << learn
-        << std::setfill(' ');
+    oss << " key: " << setw(16) << setfill('0') << hex << uppercase << key << nouppercase << dec
+        << " move: " << setw( 5) << setfill(' ') << left << Move(move) << right
+        << " weight: " << setw( 5) << setfill('0') << weight
+        << " learn: " << setw( 2) << setfill('0') << learn
+        << setfill(' ');
     return oss.str ();
 }
 
@@ -211,15 +211,15 @@ void PolyBook::initialize(string const &bk_fn)
 
     book_fn = bk_fn;
     trim(book_fn);
-    convert_path (book_fn);
+    replace(book_fn, '\\', '/');
 
     if (white_spaces(book_fn))
     {
         return;
     }
 
-    ifstream ifs (book_fn, ios_base::in|ios_base::binary);
-    if (!ifs.is_open ())
+    ifstream ifs(book_fn, ios_base::in|ios_base::binary);
+    if (!ifs.is_open())
     {
         return;
     }
@@ -397,10 +397,10 @@ string PolyBook::show(Position const &pos) const
             oss << "\n"
                 << entry
                 << " prob: "
-                << std::setw(7)
-                << std::setfill('0')
-                << std::fixed << std::setprecision(4) << (0 != sum_weight ? 100.0 * entry.weight / sum_weight : 0.0)
-                << std::setfill(' ');
+                << setw(7)
+                << setfill('0')
+                << fixed << setprecision(4) << (0 != sum_weight ? 100.0 * entry.weight / sum_weight : 0.0)
+                << setfill(' ');
         }
     }
     return oss.str ();

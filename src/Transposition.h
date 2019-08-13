@@ -133,8 +133,8 @@ public:
     size_t cluster_count;
 
     TTable() = default;
-    TTable(const TTable&) = delete;
-    TTable& operator=(const TTable&) = delete;
+    TTable(TTable const&) = delete;
+    TTable& operator=(TTable const&) = delete;
    ~TTable()
     {
         free_aligned_memory();

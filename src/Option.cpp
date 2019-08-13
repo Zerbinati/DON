@@ -72,19 +72,19 @@ namespace UCI {
     Option::operator i32 () const
     {
         assert(type == "spin");
-        return stoi (current_value);
+        return stoi(current_value);
     }
     bool Option::operator==(char const *val) const
     {
         assert(type == "combo");
-        return !no_case_less_comparer ()(current_value, val)
-            && !no_case_less_comparer ()(val, current_value);
+        return !no_case_less_comparer()(current_value, val)
+            && !no_case_less_comparer()(val, current_value);
     }
 
     /// Option::operator=() updates value and triggers on_change() action.
-    Option& Option::operator=(const char   *value)
+    Option& Option::operator=(char const *value)
     {
-        return *this = string(value);
+        return *this = {value};
     }
     /// Option::operator=() updates value and triggers on_change() action.
     Option& Option::operator=(string const &value)

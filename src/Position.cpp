@@ -1233,7 +1233,7 @@ void Position::flip()
     for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         std::getline(iss, token, r > R_1 ? '/' : ' ');
-        toggle (token);
+        toggle(token);
         token += r < R_8 ? "/" : " ";
         ff = token + ff;
     }
@@ -1245,7 +1245,7 @@ void Position::flip()
     iss >> token;
     if (token != "-")
     {
-        toggle (token);
+        toggle(token);
     }
     ff += token;
     ff += " ";
@@ -1253,7 +1253,7 @@ void Position::flip()
     iss >> token;
     if (token != "-")
     {
-        token.replace(1, 1, string(1, to_char(~to_rank(token[1]))));
+        token.replace(1, 1, {1, to_char(~to_rank(token[1]))});
     }
     ff += token;
     // 5-6. Halfmove clock and Fullmove number
@@ -1274,13 +1274,13 @@ void Position::mirror()
     {
         std::getline(iss, token, r > R_1 ? '/' : ' ');
         std::reverse(token.begin(), token.end());
-        token += r > R_1 ? "/" : " ";
+        token += r > R_1 ? '/' : ' ';
         ff = ff + token;
     }
     // 2. Active color
     iss >> token;
     ff += token;
-    ff += " ";
+    ff += ' ';
     // 3. Castling availability
     iss >> token;
     if (token != "-")
@@ -1306,12 +1306,12 @@ void Position::mirror()
         }
     }
     ff += token;
-    ff += " ";
+    ff += ' ';
     // 4. Enpassant square
     iss >> token;
     if (token != "-")
     {
-        token.replace(0, 1, string(1, to_char(~to_file(token[0]))));
+        token.replace(0, 1, {1, to_char(~to_file(token[0]))});
     }
     ff += token;
     // 5-6. Halfmove clock and Fullmove number
@@ -1353,7 +1353,7 @@ string Position::fen(bool full) const
         }
     }
 
-    oss << " " << active << " ";
+    oss << ' ' << active << ' ';
 
     if (si->can_castle(CR_ANY))
     {
@@ -1364,14 +1364,14 @@ string Position::fen(bool full) const
     }
     else
     {
-        oss << "-";
+        oss << '-';
     }
 
-    oss << " " << (SQ_NO != si->enpassant_sq ? to_string(si->enpassant_sq) : "-");
+    oss << ' ' << (SQ_NO != si->enpassant_sq ? to_string(si->enpassant_sq) : "-");
 
     if (full)
     {
-        oss << " " << si->clock_ply << " " << move_num();
+        oss << ' ' << si->clock_ply << ' ' << move_num();
     }
 
     return oss.str ();
@@ -1380,6 +1380,7 @@ string Position::fen(bool full) const
 Position::operator std::string() const
 {
     ostringstream oss;
+
     oss << " +---+---+---+---+---+---+---+---+\n";
     for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
@@ -1397,31 +1398,32 @@ Position::operator std::string() const
 
     oss << "\nFEN: " << fen()
         << "\nKey: "
-        << std::setfill('0')
-        << std::hex
-        << std::uppercase
-        << std::setw(16) << si->posi_key
-        << std::nouppercase
-        << std::dec
-        << std::setfill(' ');
+        << setfill('0')
+        << hex
+        << uppercase
+        << setw(16) << si->posi_key
+        << nouppercase
+        << dec
+        << setfill(' ');
     oss << "\nCheckers: ";
     for (Bitboard b = si->checkers; 0 != b; )
     {
-        oss << pop_lsq(b) << " ";
+        oss << pop_lsq(b) << ' ';
     }
     if (Book.enabled)
     {
-        oss << "\n" << Book.show(*this);
+        oss << '\n' << Book.show(*this);
     }
     if (   MaxLimitPiece >= count()
         && !si->can_castle(CR_ANY))
     {
-        ProbeState wdl_state; auto wdl = probe_wdl (*const_cast<Position*>(this), wdl_state);
-        ProbeState dtz_state; auto dtz = probe_dtz (*const_cast<Position*>(this), dtz_state);
-        oss << "\nTablebases WDL: " << std::setw(4) << wdl << " (" << wdl_state << ")"
-            << "\nTablebases DTZ: " << std::setw(4) << dtz << " (" << dtz_state << ")";
+        ProbeState wdl_state; auto wdl = probe_wdl(*const_cast<Position*>(this), wdl_state);
+        ProbeState dtz_state; auto dtz = probe_dtz(*const_cast<Position*>(this), dtz_state);
+        oss << "\nTablebases WDL: " << setw(4) << wdl << " (" << wdl_state << ")"
+            << "\nTablebases DTZ: " << setw(4) << dtz << " (" << dtz_state << ")";
     }
-    oss << "\n";
+    oss << '\n';
+
     return oss.str ();
 }
 

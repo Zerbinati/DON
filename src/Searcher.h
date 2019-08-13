@@ -154,13 +154,13 @@ public:
     i16   tb_rank;
     Value tb_value;
 
-    explicit RootMove (Move m = MOVE_NONE)
-        : std::list<Move>(1, m)
-        , old_value (-VALUE_INFINITE)
-        , new_value (-VALUE_INFINITE)
-        , sel_depth(0)
-        , tb_rank(0)
-        , tb_value (VALUE_ZERO)
+    explicit RootMove(Move m = MOVE_NONE)
+        : std::list<Move>{1, m}
+        , old_value{-VALUE_INFINITE}
+        , new_value{-VALUE_INFINITE}
+        , sel_depth{0}
+        , tb_rank{0}
+        , tb_value{VALUE_ZERO}
     {}
     RootMove& operator=(RootMove const&) = default;
 
@@ -192,8 +192,8 @@ class RootMoves
     : public std::vector<RootMove>
 {
 public:
-    RootMoves () = default;
-    RootMoves (RootMoves const&) = default;
+    RootMoves() = default;
+    RootMoves(RootMoves const&) = default;
     RootMoves& operator=(RootMoves const&) = default;
 
     void operator+=(Move m) { emplace_back(m); }

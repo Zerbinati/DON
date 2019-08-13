@@ -36,7 +36,7 @@
 #       define SHM_HUGETLB     04000
 #   endif
 
-#   define ALLOC_ALIGNED(mem, size, alignment) posix_memalign (&mem, alignment, size)
+#   define ALLOC_ALIGNED(mem, size, alignment) posix_memalign(&mem, alignment, size)
 #   define FREE_ALIGNED(mem)                   free(mem)
 
 #endif
@@ -55,23 +55,23 @@ namespace Memory {
         {
             bool ret = false;
             HANDLE token_handle;
-            if (OpenProcessToken (GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token_handle))
+            if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token_handle))
             {
                 TOKEN_PRIVILEGES token_priv;
-                if (LookupPrivilegeValue (nullptr, privilege_name, &token_priv.Privileges[0].Luid))
+                if (LookupPrivilegeValue(nullptr, privilege_name, &token_priv.Privileges[0].Luid))
                 {
                     token_priv.PrivilegeCount = 1;
                     token_priv.Privileges[0].Attributes = enable ?
                                                             SE_PRIVILEGE_ENABLED :
                                                             SE_PRIVILEGE_DISABLED;
-                    if (AdjustTokenPrivileges (token_handle, false, &token_priv, 0, nullptr, nullptr))
+                    if (AdjustTokenPrivileges(token_handle, false, &token_priv, 0, nullptr, nullptr))
                     {
-                        if (GetLastError () != ERROR_NOT_ALL_ASSIGNED)
+                        if (GetLastError() != ERROR_NOT_ALL_ASSIGNED)
                         {
                             ret = true;
                         }
                     }
-                    CloseHandle (token_handle);
+                    CloseHandle(token_handle);
                 }
             }
             return ret;

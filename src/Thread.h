@@ -60,7 +60,7 @@ public:
         level = lvl;
         best_move = bm;
     }
-    bool enabled () const { return level < MaxLevel; }
+    bool enabled() const { return level < MaxLevel; }
 
     void pick_best_move();
 };
@@ -89,12 +89,12 @@ public:
     i16   root_depth
         , finished_depth
         , sel_depth;
-    size_t shuffle_ext;
+    u32   shuffle_ext;
 
     i16   nmp_ply;
     Color nmp_color;
 
-    size_t pv_beg
+    u32    pv_beg
         ,  pv_cur
         ,  pv_end;
 
@@ -194,7 +194,7 @@ private:
 
 public:
 
-    size_t pv_limit;
+    u32 pv_limit;
 
     std::atomic<bool> stop; // Stop search forcefully
 

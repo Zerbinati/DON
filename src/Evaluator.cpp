@@ -29,7 +29,7 @@ namespace {
         TOTAL,
     };
 
-    std::array<std::array<Score, CLR_NO>, TOTAL + 1> Scores;
+    array<array<Score, CLR_NO>, TOTAL + 1> Scores;
 
     void clear()
     {
@@ -158,29 +158,29 @@ namespace {
         Pawns::Entry *pe;
         Material::Entry *me;
 
-        std::array<Bitboard, CLR_NO> mob_area;
-        std::array<Score, CLR_NO> mobility;
+        array<Bitboard, CLR_NO> mob_area;
+        array<Score, CLR_NO> mobility;
 
         // Contains all squares attacked by the color and piece type.
-        std::array<Bitboard, CLR_NO> ful_attacks;
+        array<Bitboard, CLR_NO> ful_attacks;
         // Contains all squares attacked by the color and piece type with pinned removed.
-        std::array<std::array<Bitboard, PT_NO>, CLR_NO> sgl_attacks;
+        array<array<Bitboard, PT_NO>, CLR_NO> sgl_attacks;
         // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
-        std::array<Bitboard, CLR_NO> dbl_attacks;
+        array<Bitboard, CLR_NO> dbl_attacks;
 
-        std::array<std::array<Bitboard, 3>, CLR_NO> queen_attacks;
+        array<array<Bitboard, 3>, CLR_NO> queen_attacks;
 
         // The squares adjacent to the king plus some other very near squares, depending on king position.
-        std::array<Bitboard, CLR_NO> king_ring;
+        array<Bitboard, CLR_NO> king_ring;
         // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
-        std::array<u08, CLR_NO> king_attackers_count;
+        array<u08, CLR_NO> king_attackers_count;
         // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
         // The weights of the individual piece types are given by the KingAttackerWeight[piece-type]
-        std::array<i32, CLR_NO> king_attackers_weight;
+        array<i32, CLR_NO> king_attackers_weight;
         // Number of attacks by the color to squares directly adjacent to the enemy king.
         // Pieces which attack more than one square are counted multiple times.
         // For instance, if there is a white knight on g5 and black's king is on g8, this white knight adds 2 to king_attacks_count[WHITE]
-        std::array<u08, CLR_NO> king_attacks_count;
+        array<u08, CLR_NO> king_attacks_count;
 
         template<Color> void initialize();
         template<Color, PieceType> Score pieces();
@@ -1108,6 +1108,7 @@ string trace(Position const &pos)
     }
 
     ostringstream oss;
+
     oss << setprecision(2) << fixed
         << "      Eval Term |    White    |    Black    |    Total     \n"
         << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
@@ -1131,5 +1132,6 @@ string trace(Position const &pos)
         << showpos << showpoint
         << "Evaluation: " << value_to_cp(value) / 100.0 << " (white side)\n"
         << noshowpoint << noshowpos;
+
     return oss.str ();
 }

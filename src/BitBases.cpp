@@ -15,7 +15,7 @@ namespace BitBases {
         constexpr u32 MaxIndex = 2*24*SQ_NO*SQ_NO; // stm * p_sq * wk_sq * bk_sq = 196608
 
         // Each u32 entity stores results of 32 positions, one per bit
-        std::array<u32, MaxIndex / 32> KPK_Bitbase;
+        array<u32, MaxIndex / 32> KPK_Bitbase;
 
         // A KPK bitbase index is an integer in [0, MaxIndex] range
         //
@@ -55,7 +55,7 @@ namespace BitBases {
                 ,  p_sq;
 
             template<Color Own>
-            Result classify(const vector<KPK_Position> &db)
+            Result classify(vector<KPK_Position> const &db)
             {
                 // White to Move:
                 // If one move leads to a position classified as WIN, the result of the current position is WIN.
@@ -153,7 +153,7 @@ namespace BitBases {
                 }
             }
 
-            Result classify(const vector<KPK_Position> &db)
+            Result classify(vector<KPK_Position> const &db)
             {
                 return WHITE == active ?
                         classify<WHITE>(db) :
@@ -169,7 +169,7 @@ namespace BitBases {
         // Initialize db with known win / draw positions
         for (u32 idx = 0; idx < MaxIndex; ++idx)
         {
-            db.push_back(KPK_Position(idx));
+            db.emplace_back(idx);
         }
 
         bool repeat;
@@ -183,8 +183,7 @@ namespace BitBases {
                 repeat |= (   Result::UNKNOWN == db[idx].result
                            && Result::UNKNOWN != db[idx].classify(db));
             }
-        }
-        while (repeat);
+        } while (repeat);
 
         // Map 32 results into one KPK_Bitbase[] entry
         for (u32 idx = 0; idx < MaxIndex; ++idx)

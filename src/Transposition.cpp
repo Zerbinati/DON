@@ -142,7 +142,7 @@ void TTable::auto_resize(u32 mem_size)
         }
         msize /= 2;
     }
-    stop (EXIT_FAILURE);
+    stop(EXIT_FAILURE);
 }
 /// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear()
@@ -157,19 +157,19 @@ void TTable::clear()
     auto thread_count = option_threads();
     for (u32 idx = 0; idx < thread_count; ++idx)
     {
-        threads.push_back(NativeThread([this, idx, thread_count]()
-                                       {
-                                           if (8 < thread_count)
-                                           {
-                                               WinProcGroup::bind(idx);
-                                           }
-                                           size_t stride = cluster_count / thread_count;
-                                           auto *pcluster = clusters + idx * stride;
-                                           size_t count = idx != thread_count - 1 ?
-                                                           stride :
-                                                           cluster_count - idx * stride;
-                                           std::memset(pcluster, 0, count * sizeof (TCluster));
-                                       }));
+        threads.emplace_back([this, idx, thread_count]()
+                             {
+                                 if (8 < thread_count)
+                                 {
+                                     WinProcGroup::bind(idx);
+                                 }
+                                 size_t stride = cluster_count / thread_count;
+                                 auto *pcluster = clusters + idx * stride;
+                                 size_t count = idx != thread_count - 1 ?
+                                                 stride :
+                                                 cluster_count - idx * stride;
+                                 std::memset(pcluster, 0, count * sizeof (TCluster));
+                             });
     }
     for (auto &th : threads)
     {
@@ -236,8 +236,8 @@ void TTable::save(string const &hash_fn) const
     {
         return;
     }
-    ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
-    if (!ofs.is_open ())
+    ofstream ofs(hash_fn, ios_base::out|ios_base::binary);
+    if (!ofs.is_open())
     {
         return;
     }
@@ -252,8 +252,8 @@ void TTable::load(string const &hash_fn)
     {
         return;
     }
-    ifstream ifs (hash_fn, ios_base::in|ios_base::binary);
-    if (!ifs.is_open ())
+    ifstream ifs(hash_fn, ios_base::in|ios_base::binary);
+    if (!ifs.is_open())
     {
         return;
     }

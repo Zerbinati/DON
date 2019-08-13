@@ -19,7 +19,7 @@
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-inline void prefetch(const void* addr)
+inline void prefetch(void const* addr)
 {
 #   if defined(__INTEL_COMPILER)
     // This hack prevents prefetches from being optimized away by
@@ -31,7 +31,7 @@ inline void prefetch(const void* addr)
 
 #   else
 
-inline void prefetch(const void* addr)
+inline void prefetch(void const* addr)
 {
     __builtin_prefetch(addr);
 }
@@ -40,7 +40,7 @@ inline void prefetch(const void* addr)
 
 #else
 
-inline void prefetch(const void*)
+inline void prefetch(void const*)
 {}
 
 #endif
@@ -581,7 +581,7 @@ inline void Position::move_piece(Square s1, Square s2, Piece pc)
     color_bb[color(pc)] ^= bb;
     type_bb[ptype(pc)] ^= bb;
     type_bb[NONE] ^= bb;
-    std::replace(squares[pc].begin(), squares[pc].end(), s1, s2);
+    replace(squares[pc], s1, s2);
     psq += PSQ[pc][s2] - PSQ[pc][s1];
     piece[s2] = pc;
     piece[s1] = NO_PIECE;

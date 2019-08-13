@@ -95,16 +95,18 @@ namespace BitBoard {
             static_assert (BSHP == PT || ROOK == PT, "PT incorrect");
 
 #       if !defined(BM2)
-            constexpr i16 MaxIndex = 0x1000;
+
+            i16 constexpr MaxIndex = 0x1000;
             Bitboard occupancy[MaxIndex]
                 ,    reference[MaxIndex];
 
-            constexpr u32 Seeds[R_NO] =
+            u32 constexpr Seeds[R_NO] =
 #           if defined(BIT64)
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
 #           else
                 { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
 #           endif
+
 #       endif
 
             u32 offset = 0;
@@ -138,7 +140,7 @@ namespace BitBoard {
 #           endif
 
 #           if !defined(BM2)
-                u32 size = 0;
+                u16 size = 0;
 #           endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of magics[s].mask
@@ -164,7 +166,7 @@ namespace BitBoard {
 
                 PRNG prng (Seeds[_rank(s)]);
                 
-                u32 i;
+                u16 i;
                 // Find a magic for square picking up an (almost) random number
                 // until found the one that passes the verification test.
                 do
@@ -323,16 +325,17 @@ namespace BitBoard {
     string pretty (Bitboard bb)
     {
         ostringstream oss;
+
         oss << " /---------------\\\n";
         for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
         {
-            oss << to_char(r) << "|";
+            oss << to_char(r) << '|';
             for (auto const &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
             {
-                oss << (contains(bb, f|r) ? "+" : "-");
+                oss << (contains(bb, f|r) ? '+' : '-');
                 if (f < F_H)
                 {
-                    oss << " ";
+                    oss << ' ';
                 }
             }
             oss << "|\n";
@@ -340,9 +343,10 @@ namespace BitBoard {
         oss << " \\---------------/\n ";
         for (auto const &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
-            oss << " " << to_char(f, false);
+            oss << ' ' << to_char(f, false);
         }
-        oss << "\n";
+        oss << '\n';
+
         return oss.str ();
     }
 

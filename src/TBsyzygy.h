@@ -29,63 +29,41 @@ namespace TBSyzygy {
     extern std::string PathString;
     extern i32         MaxLimitPiece;
 
-    extern i32      probe_dtz (Position&, ProbeState&);
-    extern WDLScore probe_wdl (Position&, ProbeState&);
+    extern i32      probe_dtz(Position&, ProbeState&);
+    extern WDLScore probe_wdl(Position&, ProbeState&);
 
-    extern bool root_probe_dtz (Position&, RootMoves&);
-    extern bool root_probe_wdl (Position&, RootMoves&);
+    extern bool root_probe_dtz(Position&, RootMoves&);
+    extern bool root_probe_wdl(Position&, RootMoves&);
 
     extern void initialize(std::string const&);
 
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<<(std::basic_ostream<CharT, Traits> &os, WDLScore wdl)
+        operator<<(std::basic_ostream<CharT, Traits> &os, WDLScore const &wdl)
     {
         switch (wdl)
         {
-        case WDLScore::LOSS:
-            os << "Loss";
-            break;
-        case WDLScore::BLESSED_LOSS:
-            os << "Blessed Loss";
-            break;
-        case WDLScore::DRAW:
-            os << "Draw";
-            break;
-        case WDLScore::CURSED_WIN:
-            os << "Cursed win";
-            break;
-        case WDLScore::WIN:
-            os << "Win";
-            break;
-        default:
-            os << "None";
-            break;
+        case WDLScore::LOSS:         os << "Loss";         break;
+        case WDLScore::BLESSED_LOSS: os << "Blessed Loss"; break;
+        case WDLScore::DRAW:         os << "Draw";         break;
+        case WDLScore::CURSED_WIN:   os << "Cursed win";   break;
+        case WDLScore::WIN:          os << "Win";          break;
+        default:                     os << "None";         break;
         }
         return os;
     }
 
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<<(std::basic_ostream<CharT, Traits> &os, ProbeState ps)
+        operator<<(std::basic_ostream<CharT, Traits> &os, ProbeState const &ps)
     {
         switch (ps)
         {
-        case ProbeState::CHANGE_STM:
-            os << "Probed opponent side";
-            break;
-        case ProbeState::FAILURE:
-            os << "Failure";
-            break;
-        case ProbeState::SUCCESS:
-            os << "Success";
-            break;
-        case ProbeState::ZEROING_BEST_MOVE:
-            os << "Best move zeroes DTZ";
-            break;
-        default:
-            os << "None";
-            break;
+        case ProbeState::CHANGE_STM:        os << "Probed opponent side"; break;
+        case ProbeState::FAILURE:           os << "Failure";              break;
+        case ProbeState::SUCCESS:           os << "Success";              break;
+        case ProbeState::ZEROING_BEST_MOVE: os << "Best move zeroes DTZ"; break;
+        default:                            os << "None";                 break;
         }
         return os;
     }

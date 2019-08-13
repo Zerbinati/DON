@@ -257,7 +257,7 @@ namespace {
                 i16 depth = 1;
                 iss >> depth;
                 bool detail = false;
-                iss >> std::boolalpha >> detail;
+                iss >> boolalpha >> detail;
                 perft<true>(pos, depth, detail);
                 return;
             }
@@ -317,7 +317,7 @@ namespace {
         else
         {
             ifstream ifs(pos_fn, ios_base::in);
-            if (!ifs.is_open ())
+            if (!ifs.is_open())
             {
                 cerr << "ERROR: unable to open file ... \'" << pos_fn << "\'" << endl;
                 return uci_cmds;
@@ -364,10 +364,11 @@ namespace {
 
     /// bench() setup list of UCI commands is setup according to bench parameters,
     /// then it is run one by one printing a summary at the end.
-    void bench (istringstream &iss, Position &pos, StateListPtr &states)
+    void bench(istringstream &iss, Position &pos, StateListPtr &states)
     {
         auto uci_cmds = setup_bench(iss, pos);
-        u16 total = u16(count_if (uci_cmds.begin(), uci_cmds.end(), [](string s) { return s.find("go ") == 0; }));
+        u16 total = u16(std::count_if(uci_cmds.begin(), uci_cmds.end(),
+                                      [](string const &s) { return s.find("go ") == 0; }));
         u16 count = 0;
 
         debug_init();
@@ -379,7 +380,7 @@ namespace {
             istringstream is (cmd);
             string token;
             token.clear();
-            is >> std::skipws >> token;
+            is >> skipws >> token;
 
             if (white_spaces(token))
             {
@@ -436,11 +437,11 @@ namespace {
     /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
-    void loop (i32 argc, char const *const *argv)
+    void process_input(u32 argc, char const *const *argv)
     {
         // Join arguments
         string cmd;
-        for (i32 i = 1; i < argc; ++i)
+        for (u32 i = 1; i < argc; ++i)
         {
             cmd += string(argv[i]) + " ";
         }
@@ -458,7 +459,7 @@ namespace {
         do
         {
             if (   1 == argc
-                && !std::getline(std::cin, cmd, '\n')) // Block here waiting for input or EOF
+                && !std::getline(cin, cmd, '\n')) // Block here waiting for input or EOF
             {
                 cmd = "quit";
             }
@@ -466,7 +467,7 @@ namespace {
             istringstream iss(cmd);
             string token;
             token.clear(); // Avoid a stale if getline() returns empty or blank line
-            iss >> std::skipws >> token;
+            iss >> skipws >> token;
 
             if (white_spaces(token))
             {
@@ -551,13 +552,13 @@ namespace {
                 else
                 if (token == "keys")
                 {
-                    sync_cout << std::hex << std::uppercase << std::setfill('0')
-                              << "FEN: "                        << pos.fen()       << "\n"
-                              << "Posi key: " << std::setw(16) << pos.si->posi_key << "\n"
-                              << "Matl key: " << std::setw(16) << pos.si->matl_key << "\n"
-                              << "Pawn key: " << std::setw(16) << pos.si->pawn_key << "\n"
-                              << "PG key: "   << std::setw(16) << pos.pg_key()
-                              << std::setfill(' ') << std::nouppercase << std::dec << sync_endl;
+                    sync_cout << hex << uppercase << setfill('0')
+                              << "FEN: "                  << pos.fen()        << "\n"
+                              << "Posi key: " << setw(16) << pos.si->posi_key << "\n"
+                              << "Matl key: " << setw(16) << pos.si->matl_key << "\n"
+                              << "Pawn key: " << setw(16) << pos.si->pawn_key << "\n"
+                              << "PG key: "   << setw(16) << pos.pg_key()
+                              << setfill(' ') << nouppercase << dec << sync_endl;
                 }
                 else
                 if (token == "moves")
@@ -566,77 +567,77 @@ namespace {
                     i32 count;
                     if (0 != pos.si->checkers)
                     {
-                        std::cout << "\nEvasion moves: ";
+                        cout << "\nEvasion moves: ";
                         count = 0;
                         for (auto const &vm : MoveList<GenType::EVASION>(pos))
                         {
                             if (pos.legal(vm))
                             {
-                                std::cout << move_to_san(vm, pos) << " ";
+                                cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
-                        std::cout << "(" << count << ")";
+                        cout << "(" << count << ")";
                     }
                     else
                     {
-                        std::cout << "\nQuiet moves: ";
+                        cout << "\nQuiet moves: ";
                         count = 0;
                         for (auto const &vm : MoveList<GenType::QUIET>(pos))
                         {
                             if (pos.legal(vm))
                             {
-                                std::cout << move_to_san(vm, pos) << " ";
+                                cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
-                        std::cout << "(" << count << ")";
+                        cout << "(" << count << ")";
 
-                        std::cout << "\nCheck moves: ";
+                        cout << "\nCheck moves: ";
                         count = 0;
                         for (auto const &vm : MoveList<GenType::CHECK>(pos))
                         {
                             if (pos.legal(vm))
                             {
-                                std::cout << move_to_san(vm, pos) << " ";
+                                cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
-                        std::cout << "(" << count << ")";
+                        cout << "(" << count << ")";
 
-                        std::cout << "\nQuiet Check moves: ";
+                        cout << "\nQuiet Check moves: ";
                         count = 0;
                         for (auto const &vm : MoveList<GenType::QUIET_CHECK>(pos))
                         {
                             if (pos.legal(vm))
                             {
-                                std::cout << move_to_san(vm, pos) << " ";
+                                cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
-                        std::cout << "(" << count << ")";
+                        cout << "(" << count << ")";
 
-                        std::cout << "\nCapture moves: ";
+                        cout << "\nCapture moves: ";
                         count = 0;
                         for (auto const &vm : MoveList<GenType::CAPTURE>(pos))
                         {
                             if (pos.legal(vm))
                             {
-                                std::cout << move_to_san(vm, pos) << " ";
+                                cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
-                        std::cout << "(" << count << ")";
+                        cout << "(" << count << ")";
                     }
 
-                    std::cout << "\nLegal moves: ";
+                    cout << "\nLegal moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<GenType::LEGAL>(pos))
                     {
-                        std::cout << move_to_san(vm, pos) << " ";
+                        cout << move_to_san(vm, pos) << " ";
                         ++count;
                     }
-                    std::cout << "(" << count << ")" << sync_endl;
+                    cout << "(" << count << ")" << sync_endl;
                 }
                 else
                 {
@@ -647,11 +648,11 @@ namespace {
     }
 }
 
-string info ()
+string info()
 {
     ostringstream oss;
 
-    oss << std::setfill('0');
+    oss << setfill('0');
 #if defined(VER)
     oss << VER;
 #else
@@ -661,16 +662,16 @@ string info ()
         istringstream iss(__DATE__);
         string month, day, year;
         iss >> month >> day >> year;
-        oss << std::setw(2) << year.substr (2)
-            << std::setw(2) << month_index(month)
-            << std::setw(2) << day;
+        oss << setw(2) << year.substr (2)
+            << setw(2) << month_index(month)
+            << setw(2) << day;
     }
     else
     {
         oss << Version;
     }
 #endif
-    oss << std::setfill(' ');
+    oss << setfill(' ');
 
     oss <<
 #   if defined(BIT64)
@@ -702,7 +703,7 @@ string info ()
 }
 
 /// run() runs with command arguments
-void run (int argc, char const *const *argv)
+void run(u32 argc, char const *const *argv)
 {
     cout << Name << " " << info () << " by " << Author << endl;
     cout << "info string Processor(s) detected " << NativeThread::hardware_concurrency() << endl;
@@ -724,11 +725,11 @@ void run (int argc, char const *const *argv)
     Searcher::initialize();
     Searcher::clear();
 
-    loop (argc, argv);
+    process_input(argc, argv);
 }
 
 /// stop() exits with a code (in case of some crash).
-void stop (int code)
+void stop(int code)
 {
     Threadpool.stop = true;
     Threadpool.configure(0);

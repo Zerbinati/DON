@@ -61,7 +61,7 @@ Key Zobrist::compute_posi_key(Position const &pos) const
     return posi_key;
 }
 ///// Zobrist::compute_fen_key() computes Hash key of the FEN.
-//Key Zobrist::compute_fen_key (string const &fen) const
+//Key Zobrist::compute_fen_key(string const &fen) const
 //{
 //    assert(!white_spaces(fen));
 //

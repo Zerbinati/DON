@@ -52,37 +52,37 @@ namespace {
             {
             case GenType::NATURAL:
             case GenType::EVASION:
-                moves += make_move_promote(org, dst, QUEN);
+                moves += make_promote_move(org, dst, QUEN);
                 /* fall through */
             case GenType::QUIET:
-                moves += make_move_promote(org, dst, ROOK);
-                moves += make_move_promote(org, dst, BSHP);
-                moves += make_move_promote(org, dst, NIHT);
+                moves += make_promote_move(org, dst, ROOK);
+                moves += make_promote_move(org, dst, BSHP);
+                moves += make_promote_move(org, dst, NIHT);
                 break;
             case GenType::CAPTURE:
-                moves += make_move_promote(org, dst, QUEN);
+                moves += make_promote_move(org, dst, QUEN);
                 break;
             case GenType::CHECK:
                 if (   contains(PieceAttacks[QUEN][dst], ek_sq)
                     && contains(attacks_bb<QUEN>(dst, pos.pieces() ^ org), ek_sq))
                 {
-                    moves += make_move_promote(org, dst, QUEN);
+                    moves += make_promote_move(org, dst, QUEN);
                 }
                 if (   contains(PieceAttacks[ROOK][dst], ek_sq)
                     && contains(attacks_bb<ROOK>(dst, pos.pieces() ^ org), ek_sq))
                 {
-                    moves += make_move_promote(org, dst, ROOK);
+                    moves += make_promote_move(org, dst, ROOK);
                 }
                 if (   contains(PieceAttacks[BSHP][dst], ek_sq)
                     && contains(attacks_bb<BSHP>(dst, pos.pieces() ^ org), ek_sq))
                 {
-                    moves += make_move_promote(org, dst, BSHP);
+                    moves += make_promote_move(org, dst, BSHP);
                 }
                 /* fall through */
             case GenType::QUIET_CHECK:
                 if (contains(PieceAttacks[NIHT][dst], ek_sq))
                 {
-                    moves += make_move_promote(org, dst, NIHT);
+                    moves += make_promote_move(org, dst, NIHT);
                 }
                 break;
             default: assert(false); break;
@@ -464,7 +464,7 @@ void Perft::classify(Position &pos, Move m)
 /// perft() is utility to verify move generation.
 /// All the leaf nodes up to the given depth are generated, and the sum is returned.
 template<bool RootNode>
-Perft perft (Position &pos, i16 depth, bool detail)
+Perft perft(Position &pos, i16 depth, bool detail)
 {
     Perft total_leaf;
     if (RootNode)

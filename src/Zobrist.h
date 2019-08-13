@@ -24,7 +24,7 @@ public:
     Key compute_matl_key(Position const&) const;
     Key compute_pawn_key(Position const&) const;
     Key compute_posi_key(Position const&) const;
-    //Key compute_fen_key (std::string const&) const;
+    //Key compute_fen_key(std::string const&) const;
 };
 
 extern void zobrist_initialize();

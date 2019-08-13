@@ -27,21 +27,21 @@ struct null_binary_functor
 inline bool no_case_less(unsigned char const c1, unsigned char const c2)
 {
     return
-        //toupper (c1) < toupper (c2);
+        //toupper(c1) < toupper(c2);
         tolower(c1) < tolower(c2);
 }
 
 inline bool no_case_more(unsigned char const c1, unsigned char const c2)
 {
     return
-        //toupper (c1) > toupper (c2);
+        //toupper(c1) > toupper(c2);
         tolower(c1) > tolower(c2);
 }
 
 inline bool no_case_equal(unsigned char const c1, unsigned char const c2)
 {
     return
-        //toupper (c1) == toupper (c2);
+        //toupper(c1) == toupper(c2);
         tolower(c1) == tolower(c2);
 }
 

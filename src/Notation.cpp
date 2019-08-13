@@ -63,13 +63,17 @@ namespace {
         ostringstream oss;
         if (abs(v) < +VALUE_MATE - i32(MaxDepth))
         {
-            oss << std::showpos << std::setprecision(2) << std::fixed << value_to_cp(v) / 100.0 << std::noshowpos;
+            oss << showpos << setprecision(2) << fixed
+                << value_to_cp(v) / 100.0
+                << noshowpos;
         }
         else
         {
-            oss << std::showpos << "#" << i32(v > VALUE_ZERO ?
-                                                +(VALUE_MATE - v + 1) :
-                                                -(VALUE_MATE + v + 0)) / 2 << std::noshowpos;
+            oss << showpos << "#"
+                << i32(v > VALUE_ZERO ?
+                        +(VALUE_MATE - v + 1) :
+                        -(VALUE_MATE + v + 0)) / 2
+                << noshowpos;
         }
         return oss.str ();
     }
@@ -89,12 +93,12 @@ namespace {
         time      /= 10;
 
         ostringstream oss;
-        oss << std::setfill('0')
-            << std::setw(2) << hours   << ":"
-            << std::setw(2) << minutes << ":"
-            << std::setw(2) << seconds << "."
-            << std::setw(2) << time
-            << std::setfill(' ');
+        oss << setfill('0')
+            << setw(2) << hours   << ":"
+            << setw(2) << minutes << ":"
+            << setw(2) << seconds << "."
+            << setw(2) << time
+            << setfill(' ');
         return oss.str ();
     }
 }
@@ -106,8 +110,8 @@ namespace {
 /// Internally castle moves are always coded as "king captures rook".
 string move_to_can(Move m)
 {
-    if (MOVE_NONE == m) return "(none)";
-    if (MOVE_NULL == m) return "(null)";
+    if (MOVE_NONE == m) return {"(none)"};
+    if (MOVE_NULL == m) return {"(null)"};
     ostringstream oss;
     oss << to_string(org_sq(m))
         << to_string(fix_dst_sq(m, bool(Options["UCI_Chess960"])));
@@ -142,8 +146,8 @@ Move move_from_can(string const &can, Position const &pos)
 /// Converts a move to a string in short algebraic notation.
 string move_to_san(Move m, Position &pos)
 {
-    if (MOVE_NONE == m) return "(none)";
-    if (MOVE_NULL == m) return "(null)";
+    if (MOVE_NONE == m) return {"(none)"};
+    if (MOVE_NULL == m) return {"(null)"};
     assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
     ostringstream oss;
@@ -161,18 +165,11 @@ string move_to_san(Move m, Position &pos)
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'dst' with a legal move.
                 switch (ambiguity(m, pos))
                 {
-                case Ambiguity::AMB_RANK:
-                    oss << to_char(_file(org));
-                    break;
-                case Ambiguity::AMB_FILE:
-                    oss << to_char(_rank(org));
-                    break;
-                case Ambiguity::AMB_SQUARE:
-                    oss << to_string(org);
-                    break;
+                case Ambiguity::AMB_RANK: oss << to_char(_file(org)); break;
+                case Ambiguity::AMB_FILE: oss << to_char(_rank(org)); break;
+                case Ambiguity::AMB_SQUARE: oss << to_string(org);    break;
                 case Ambiguity::AMB_NONE:
-                default:
-                    break;
+                default: break;
                 }
             }
         }
@@ -204,7 +201,7 @@ string move_to_san(Move m, Position &pos)
     {
         StateInfo si;
         pos.do_move(m, si, true);
-        oss << (0 != MoveList<GenType::LEGAL>(pos).size() ? "+" : "#");
+        oss << (0 != MoveList<GenType::LEGAL>(pos).size() ? '+' : '#');
         pos.undo_move(m);
     }
 
@@ -225,7 +222,7 @@ Move move_from_san(string const &san, Position &pos)
 }
 
 ///// Converts a move to a string in long algebraic notation.
-//string move_to_lan (Move m, Position &pos)
+//string move_to_lan(Move m, Position &pos)
 //{
 //    if (MOVE_NONE == m) return "(none)";
 //    if (MOVE_NULL == m) return "(null)";
@@ -235,7 +232,7 @@ Move move_from_san(string const &san, Position &pos)
 //}
 ///// Converts a string representing a move in long algebraic notation
 ///// to the corresponding legal move, if any.
-//Move move_from_lan (string const &lan, Position &pos)
+//Move move_from_lan(string const &lan, Position &pos)
 //{
 //    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
 //    {
@@ -263,7 +260,7 @@ string multipv_info(Thread const *const &th, i16 depth, Value alfa, Value beta)
     }
 
     ostringstream oss;
-    for (size_t i = 0; i < Threadpool.pv_limit; ++i)
+    for (u32 i = 0; i < Threadpool.pv_limit; ++i)
     {
         bool updated = i <= pv_cur
                     && -VALUE_INFINITE != rms[i].new_value;
@@ -320,44 +317,38 @@ string pretty_pv_info(Thread *const &th)
     u64 nodes = Threadpool.nodes();
 
     ostringstream oss;
-    oss << std::setw( 4) << th->finished_depth
-        << std::setw( 8) << pretty_value (th->root_moves[0].new_value)
-        << std::setw(12) << pretty_time (Threadpool.main_thread()->time_mgr.elapsed_time());
+    oss << setw( 4) << th->finished_depth
+        << setw( 8) << pretty_value (th->root_moves.front().new_value)
+        << setw(12) << pretty_time (Threadpool.main_thread()->time_mgr.elapsed_time());
 
     if (nodes < 10ULL*1000)
-    {
-        oss << std::setw(8) << u16(nodes);
-    }
+        oss << setw(8) << u16(nodes);
     else
     if (nodes < 10ULL*1000*1000)
-    {
-        oss << std::setw(7) << u16(std::round (nodes / 1000.0)) << "K";
-    }
+        oss << setw(7) << u16(std::round(nodes / 1000.0)) << "K";
     else
     if (nodes < 10ULL*1000*1000*1000)
-    {
-        oss << std::setw(7) << u16(std::round (nodes / 1000.0*1000.0)) << "M";
-    }
+        oss << setw(7) << u16(std::round(nodes / 1000.0*1000.0)) << "M";
     else
-    {
-        oss << std::setw(7) << u16(std::round (nodes / 1000.0*1000.0*1000.0)) << "G";
-    }
+        oss << setw(7) << u16(std::round(nodes / 1000.0*1000.0*1000.0)) << "G";
     oss << " ";
 
-    vector<Move> moves;
     StateListPtr states{new deque<StateInfo>(0)};
-    for (auto const &m : th->root_moves[0])
-    {
-        oss << move_to_san(m, th->root_pos) << " ";
-        moves.push_back(m);
-        states->emplace_back();
-        th->root_pos.do_move(m, states->back());
-    }
-    for (size_t i = moves.size(); i > 0; --i)
-    {
-        th->root_pos.undo_move(moves[i-1]);
-        states->pop_back();
-    }
+    std::for_each(th->root_moves.front().begin(),
+                  th->root_moves.front().end(),
+                  [&](Move const &m)
+                  {
+                      oss << move_to_san(m, th->root_pos) << " ";
+                      states->emplace_back();
+                      th->root_pos.do_move(m, states->back());
+                  });
+    std::for_each(th->root_moves.front().rbegin(),
+                  th->root_moves.front().rend(),
+                  [&](Move const &m)
+                  {
+                      th->root_pos.undo_move(m);
+                      states->pop_back();
+                  });
 
     return oss.str ();
 }

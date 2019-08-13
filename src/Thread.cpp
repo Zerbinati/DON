@@ -172,19 +172,18 @@ void SkillManager::pick_best_move()
         i32  weakness = MaxDepth - 4 * level;
         i32  deviance = std::min(root_moves[0].new_value - root_moves[Threadpool.pv_limit - 1].new_value, VALUE_MG_PAWN);
         auto best_value = -VALUE_INFINITE;
-        for (u08 i = 0; i < Threadpool.pv_limit; ++i)
+        for (u32 i = 0; i < Threadpool.pv_limit; ++i)
         {
-            auto const &rm = root_moves[i];
             // First for each move score add two terms, both dependent on weakness.
             // One is deterministic with weakness, and one is random with weakness.
-            auto value = rm.new_value
-                       + (  weakness * i32(root_moves[0].new_value - rm.new_value)
+            auto value = root_moves[i].new_value
+                       + (  weakness * i32(root_moves[0].new_value - root_moves[i].new_value)
                           + deviance * i32(prng.rand<u32>() % weakness)) / MaxDepth;
             // Then choose the move with the highest value.
             if (best_value <= value)
             {
                 best_value = value;
-                best_move = rm.front();
+                best_move = root_moves[i].front();
             }
         }
     }
@@ -202,7 +201,7 @@ Thread::Thread(size_t idx)
 }
 /// Thread destructor wakes up the thread in idle_function() and waits for its termination.
 /// Thread should be already waiting.
-Thread::~Thread ()
+Thread::~Thread()
 {
     assert(!busy);
     dead = true;
@@ -212,15 +211,15 @@ Thread::~Thread ()
 /// Thread::start() wakes up the thread that will start the search.
 void Thread::start()
 {
-    lock_guard<Mutex> lk (mutex);
+    lock_guard<Mutex> guard(mutex);
     busy = true;
-    condition_var.notify_one (); // Wake up the thread in idle_function()
+    condition_var.notify_one(); // Wake up the thread in idle_function()
 }
 /// Thread::wait_while_busy() blocks on the condition variable while the thread is busy.
 void Thread::wait_while_busy()
 {
-    unique_lock<Mutex> lk (mutex);
-    condition_var.wait (lk, [&] { return !busy; });
+    unique_lock<Mutex> lock(mutex);
+    condition_var.wait(lock, [&]{ return !busy; });
 }
 /// Thread::idle_function() is where the thread is parked.
 /// Blocked on the condition variable, when it has no work to do.
@@ -238,15 +237,15 @@ void Thread::idle_function()
 
     do
     {
-        unique_lock<Mutex> lk (mutex);
+        unique_lock<Mutex> lock(mutex);
         busy = false;
-        condition_var.notify_one (); // Wake up anyone waiting for search finished
-        condition_var.wait (lk, [&] { return busy; });
+        condition_var.notify_one(); // Wake up anyone waiting for search finished
+        condition_var.wait(lock, [&]{ return busy; });
         if (dead)
         {
             break;
         }
-        lk.unlock();
+        lock.unlock();
 
         search();
     } while (true);
@@ -403,7 +402,7 @@ namespace WinProcGroup {
             {
                 return;
             }
-            SetThreadGroupAffinity (GetCurrentThread (), &group_affinity, nullptr);
+            SetThreadGroupAffinity (GetCurrentThread(), &group_affinity, nullptr);
         }
 
 #   endif
@@ -416,39 +415,42 @@ const Thread* ThreadPool::best_thread() const
     auto const *best_thread = front();
 
     auto min_value = (*std::min_element (begin(), end(),
-                                         [](Thread* const &t1, Thread* const &t2)
+                                         [](Thread *const &t1, Thread *const &t2)
                                          {
-                                             return t1->root_moves[0].new_value < t2->root_moves[0].new_value;
-                                         }))->root_moves[0].new_value;
+                                             return t1->root_moves.front().new_value
+                                                  < t2->root_moves.front().new_value;
+                                         }))->root_moves.front().new_value;
 
     // Vote according to value and depth
     std::map<Move, u64> votes;
     for (auto const *th : *this)
     {
-        votes[th->root_moves[0].front()] += i32(th->root_moves[0].new_value - min_value + 14) * th->finished_depth;
-
-        if (best_thread->root_moves[0].new_value >= VALUE_MATE_MAX_PLY)
+        votes[th->root_moves.front().front()] += i32(th->root_moves.front().new_value - min_value + 14) * th->finished_depth;
+    }
+    for (auto const *th : *this)
+    {
+        if (best_thread->root_moves.front().new_value >= VALUE_MATE_MAX_PLY)
         {
             // Make sure we pick the shortest mate
-            if (best_thread->root_moves[0].new_value < th->root_moves[0].new_value)
+            if (best_thread->root_moves.front().new_value < th->root_moves.front().new_value)
             {
                 best_thread = th;
             }
         }
         else
         {
-            if (   th->root_moves[0].new_value >= VALUE_MATE_MAX_PLY
-                || votes[best_thread->root_moves[0].front()] < votes[th->root_moves[0].front()])
+            if (   th->root_moves.front().new_value >= VALUE_MATE_MAX_PLY
+                || votes[best_thread->root_moves.front().front()] < votes[th->root_moves.front().front()])
             {
                 best_thread = th;
             }
         }
     }
     // Select best thread with max depth
-    auto best_fm = best_thread->root_moves[0].front();
+    auto best_fm = best_thread->root_moves.front().front();
     for (auto const *th : *this)
     {
-        if (best_fm == th->root_moves[0].front())
+        if (best_fm == th->root_moves.front().front())
         {
             if (best_thread->finished_depth < th->finished_depth)
             {
@@ -485,10 +487,10 @@ void ThreadPool::configure(u32 thread_count)
     // Create new thread(s)
     if (0 != thread_count)
     {
-        push_back(new MainThread (size()));
+        push_back(new MainThread(size()));
         while (size() < thread_count)
         {
-            push_back(new Thread (size()));
+            push_back(new Thread(size()));
         }
         sync_cout << "info string Thread(s) used " << thread_count << sync_endl;
 
@@ -534,12 +536,12 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
         {
             // If the current root position is in the tablebases,
             // then RootMoves contains only moves that preserve the draw or the win.
-            TBHasRoot = root_probe_dtz (pos, root_moves);
+            TBHasRoot = root_probe_dtz(pos, root_moves);
             if (!TBHasRoot)
             {
                 // DTZ tables are missing; try to rank moves using WDL tables
                 dtz_available = false;
-                TBHasRoot = root_probe_wdl (pos, root_moves);
+                TBHasRoot = root_probe_wdl(pos, root_moves);
             }
         }
 
@@ -554,7 +556,7 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
 
             // Probe during search only if DTZ is not available and we are winning
             if (   dtz_available
-                || root_moves[0].tb_value <= VALUE_DRAW)
+                || root_moves.front().tb_value <= VALUE_DRAW)
             {
                 TBLimitPiece = 0;
             }

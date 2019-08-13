@@ -70,7 +70,7 @@ public:
 
     void set(std::string const &fn)
     {
-        if (_ofs.is_open ())
+        if (_ofs.is_open())
         {
             std::cout.rdbuf (_otb.streambuf ());
             std::cin.rdbuf (_inb.streambuf ());

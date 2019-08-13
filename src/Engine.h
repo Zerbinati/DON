@@ -8,9 +8,9 @@ const std::string Name = "DON";
 const std::string Version = "";
 const std::string Author = "Ehsan Rashid";
 
-extern std::string info ();
+extern std::string info();
 
-extern void run (int, char const *const *);
-extern void stop (int);
+extern void run(u32, char const *const *);
+extern void stop(int);
 
 #endif // _ENGINE_H_INC_

@@ -403,7 +403,7 @@ BITWISE_OPERATORS(Bound)
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-constexpr bool       _ok(Color c) { return WHITE == c || BLACK == c; }
+constexpr bool        _ok(Color c) { return WHITE == c || BLACK == c; }
 constexpr Color operator~(Color c) { return Color(c ^ BLACK); }
 
 constexpr bool       _ok(File f) { return F_A <= f && f <= F_H; }
@@ -444,12 +444,7 @@ constexpr CastleRight operator|(Color c, CastleSide cs)
 
 constexpr bool _ok(PieceType pt) { return PAWN <= pt && pt <= KING; }
 
-
-constexpr bool        _ok(Piece p)
-{
-    return (W_PAWN <= p && p <= W_KING)
-        || (B_PAWN <= p && p <= B_KING);
-}
+constexpr bool        _ok(Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
 constexpr PieceType ptype(Piece p) { return PieceType(p & PT_NO); }
 constexpr Color     color(Piece p) { return Color((p >> 3) & BLACK); }
 constexpr Piece operator~(Piece p) { return Piece(p ^ 8); }
@@ -475,14 +470,14 @@ constexpr Move make_move(Square org, Square dst)
     return Move(MT + (org << 6) + dst);
 }
 
-constexpr Move make_move_promote(Square org, Square dst, PieceType pt)
+constexpr Move make_promote_move(Square org, Square dst, PieceType pt)
 {
     return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst);
 }
 template<>
 constexpr Move make_move<PROMOTE>(Square org, Square dst)
 {
-    return make_move_promote(org, dst, QUEN);
+    return make_promote_move(org, dst, QUEN);
 }
 
 constexpr i16   value_to_cp(Value v) { return i16((v*100)/VALUE_EG_PAWN); }
@@ -527,11 +522,11 @@ public:
     i32  value;
 
     ValMove(Move m, i32 v)
-        : move(m)
-        , value(v)
+        : move{m}
+        , value{v}
     {}
     explicit ValMove(Move m = MOVE_NONE)
-        : ValMove(m, 0)
+        : ValMove{m, 0}
     {}
 
     operator Move() const { return move; }
@@ -552,6 +547,7 @@ class ValMoves
     : public std::vector<ValMove>
 {
 public:
+
     void operator+=(Move move) { emplace_back(move); }
     void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
 };
@@ -563,6 +559,7 @@ private:
     std::array<T, Size> table;
 
 public:
+
     void clear()
     {
         table.fill(T());
@@ -605,7 +602,7 @@ inline void toggle(std::string &str)
 {
     std::transform(str.begin(), str.end(), str.begin(),
                    [](std::string::value_type const &c) -> std::string::value_type
-                    { return islower(c) ? toupper (c) : tolower(c); });
+                    { return islower(c) ? toupper(c) : tolower(c); });
 }
 
 inline std::string& ltrim(std::string &str)
@@ -684,9 +681,12 @@ inline std::string append_path(std::string const &base_path, std::string const &
             base_path + file_path;
 }
 
-inline void convert_path(std::string &path)
+template<class Container>
+inline void replace(Container &container,
+                    typename Container::value_type const &old_value,
+                    typename Container::value_type const &new_value)
 {
-    std::replace(path.begin(), path.end(), '\\', '/'); // Replace all '\\' to '/'
+    std::replace(container.begin(), container.end(), old_value, new_value);
 }
 
 constexpr Square SQ[SQ_NO] =

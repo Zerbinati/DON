@@ -164,7 +164,7 @@ namespace BitBoard {
     ///// Rotate Right (toward LSB)
     //constexpr Bitboard rotate_R(Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQ_NO - k)); }
     ///// Rotate Left  (toward MSB)
-    //constexpr Bitboard rotate_L(Bitboard bb, i08 k) { return (bb << k) | (bb >>(SQ_NO - k)); }
+    //constexpr Bitboard rotate_L(Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQ_NO - k)); }
 
     constexpr Bitboard square_bb(Square s) { return Square_bb[s]; }
 

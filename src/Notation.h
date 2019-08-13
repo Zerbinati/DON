@@ -52,8 +52,8 @@ extern Move move_from_can(std::string const&, Position const&);
 extern std::string move_to_san(Move, Position&);
 extern Move move_from_san(std::string const&, Position&);
 
-//extern std::string move_to_lan (Move, Position&);
-//extern Move move_from_lan (std::string const&, Position&);
+//extern std::string move_to_lan(Move, Position&);
+//extern Move move_from_lan(std::string const&, Position&);
 
 extern std::string multipv_info(Thread const *const&, i16, Value, Value);
 

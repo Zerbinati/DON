@@ -88,6 +88,8 @@ public:
         pthread_create(&thread, &attribute, start_routine<T>, new P(obj, fun));
     }
 
+   //~NativeThread() {}
+
     void join() { pthread_join(thread, NULL); }
 };
 

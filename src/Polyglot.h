@@ -27,7 +27,7 @@ struct PolyEntry
         : PolyEntry (0, 0, 0, 0)
     {}
 
-    PolyEntry& operator=(const PolyEntry&) = default;
+    PolyEntry& operator=(PolyEntry const&) = default;
 
     explicit operator Move() const { return Move(move); }
 
