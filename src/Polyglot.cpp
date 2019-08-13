@@ -13,17 +13,17 @@ using namespace std;
 namespace {
 
     template<typename T>
-    ifstream& operator>> (ifstream &ifs, T &t)
+    ifstream& operator>>(ifstream &ifs, T &t)
     {
         t = T();
         for (u08 i = 0; i < sizeof (t) && ifs.good (); ++i)
         {
-            t = T((t << 8) + u08(ifs.get ()));
+            t = T((t << 8) + u08(ifs.get()));
         }
         return ifs;
     }
     //template<typename T>
-    //ofstream& operator<< (ofstream &ofs, const T &t)
+    //ofstream& operator<<(ofstream &ofs, T const &t)
     //{
     //    for (u08 i = 0; i < sizeof (t) && ofs.good (); ++i)
     //    {
@@ -32,7 +32,7 @@ namespace {
     //    return ofs;
     //}
 
-    ifstream& operator>> (ifstream &ifs, PolyEntry &entry)
+    ifstream& operator>>(ifstream &ifs, PolyEntry &entry)
     {
         ifs >> entry.key
             >> entry.move
@@ -40,7 +40,7 @@ namespace {
             >> entry.learn;
         return ifs;
     }
-    //ofstream& operator<< (ofstream &ofs, const PolyEntry &entry)
+    //ofstream& operator<<(ofstream &ofs, PolyEntry const &entry)
     //{
     //    ofs << entry.key
     //        << entry.move
@@ -50,7 +50,7 @@ namespace {
     //}
 
 
-    Move convert_move (const Position &pos, Move m)
+    Move convert_move(Position const &pos, Move m)
     {
         // Polyglot book move is encoded as follows:
         //
@@ -74,7 +74,7 @@ namespace {
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF));
         }
         // Add special move flags and verify it is legal
-        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+        for (auto const &vm : MoveList<GenType::LEGAL>(pos))
         {
             if ((vm.move & ~PROMOTE) == m)
             {
@@ -85,46 +85,46 @@ namespace {
         return MOVE_NONE;
     }
 
-    bool move_draw (Position &pos, Move m)
+    bool move_draw(Position &pos, Move m)
     {
         StateInfo si;
-        pos.do_move (m, si);
-        bool dr = pos.draw (64);
-        pos.undo_move (m);
+        pos.do_move(m, si);
+        bool dr = pos.draw(64);
+        pos.undo_move(m);
         return dr;
     }
 
 }
 
-PolyEntry::operator string () const
+PolyEntry::operator string() const
 {
     ostringstream oss;
-    oss << " key: " << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase << std::dec
-        << " move: " << std::setw ( 5) << std::setfill (' ') << std::left << Move(move) << std::right
-        << " weight: " << std::setw ( 5) << std::setfill ('0') << weight
-        << " learn: " << std::setw ( 2) << std::setfill ('0') << learn
-        << std::setfill (' ');
+    oss << " key: " << std::setw(16) << std::setfill('0') << std::hex << std::uppercase << key << std::nouppercase << std::dec
+        << " move: " << std::setw( 5) << std::setfill(' ') << std::left << Move(move) << std::right
+        << " weight: " << std::setw( 5) << std::setfill('0') << weight
+        << " learn: " << std::setw( 2) << std::setfill('0') << learn
+        << std::setfill(' ');
     return oss.str ();
 }
 
-PolyBook::PolyBook ()
-    : entries (nullptr)
-    , entry_count (0)
-    , fail_counter (0)
-    , do_probe (true)
-    , last_pieces (0)
-    , last_piece_count (0)
-    , enabled (false)
-    , book_fn ("")
+PolyBook::PolyBook()
+    : entries{nullptr}
+    , entry_count{0}
+    , fail_counter{0}
+    , do_probe{true}
+    , last_pieces{0}
+    , last_piece_count{0}
+    , enabled{false}
+    , book_fn{""}
 {
 }
 
-PolyBook::~PolyBook ()
+PolyBook::~PolyBook()
 {
-    clear ();
+    clear();
 }
 
-void PolyBook::clear ()
+void PolyBook::clear()
 {
     enabled = false;
     if (nullptr != entries)
@@ -134,7 +134,7 @@ void PolyBook::clear ()
     }
 }
 
-i64 PolyBook::find_index (Key key) const
+i64 PolyBook::find_index(Key key) const
 {
     i64 beg = i64(0);
     i64 end = i64(entry_count);
@@ -154,8 +154,8 @@ i64 PolyBook::find_index (Key key) const
         }
         else // key == entries[mid].key
         {
-            beg = std::max (mid - 4, i64(0));
-            end = std::min (mid + 4, i64(entry_count));
+            beg = std::max(mid - 4, i64(0));
+            end = std::min(mid + 4, i64(entry_count));
         }
     }
 
@@ -175,26 +175,26 @@ i64 PolyBook::find_index (Key key) const
 
     return -1;
 }
-//i64 PolyBook::find_index (const Position &pos) const
+//i64 PolyBook::find_index(Position const &pos) const
 //{
-//    return find_index (pos.pg_key ());
+//    return find_index(pos.pg_key());
 //}
-//i64 PolyBook::find_index (const string &fen, bool c960) const
+//i64 PolyBook::find_index(string const &fen, bool c960) const
 //{
 //    StateInfo si;
-//    return find_index (Position ().setup (fen, si, nullptr, c960).pg_key ());
+//    return find_index(Position ().setup(fen, si, nullptr, c960).pg_key());
 //}
 
-bool PolyBook::can_probe (const Position &pos)
+bool PolyBook::can_probe(Position const &pos)
 {
-    Bitboard pieces = pos.pieces ();
-    i32 piece_count = pos.count ();
+    Bitboard pieces = pos.pieces();
+    i32 piece_count = pos.count();
 
     if (   pieces != last_pieces
-        //|| pop_count (pieces ^ last_pieces) > 6
+        //|| pop_count(pieces ^ last_pieces) > 6
         || piece_count > last_piece_count
         || piece_count < last_piece_count - 2
-        || U64(0x463B96181691FC9C) == pos.pg_key ())
+        || U64(0x463B96181691FC9C) == pos.pg_key())
     {
         do_probe = true;
     }
@@ -205,15 +205,15 @@ bool PolyBook::can_probe (const Position &pos)
     return do_probe;
 }
 
-void PolyBook::initialize (const string &bk_fn)
+void PolyBook::initialize(string const &bk_fn)
 {
-    clear ();
+    clear();
 
     book_fn = bk_fn;
-    trim (book_fn);
+    trim(book_fn);
     convert_path (book_fn);
 
-    if (white_spaces (book_fn))
+    if (white_spaces(book_fn))
     {
         return;
     }
@@ -243,7 +243,7 @@ void PolyBook::initialize (const string &bk_fn)
     {
         ifs >> entries[i];
     }
-    ifs.close ();
+    ifs.close();
 
     sync_cout << "info string Book entries found " << entry_count << " from file \'" << book_fn << "\'" << sync_endl;
     enabled = true;
@@ -252,21 +252,21 @@ void PolyBook::initialize (const string &bk_fn)
 /// If no move is found returns MOVE_NONE.
 /// If pick_best is true returns always the highest rated move,
 /// otherwise randomly chooses one, based on the move score.
-Move PolyBook::probe (Position &pos, i16 move_num, bool pick_best)
+Move PolyBook::probe(Position &pos, i16 move_num, bool pick_best)
 {
-    static PRNG prng (now ());
+    PRNG static prng (now());
 
     if (   !enabled
         || nullptr == entries
-        || (0 != move_num && move_num < pos.move_num ())
-        || !can_probe (pos))
+        || (0 != move_num && move_num < pos.move_num())
+        || !can_probe(pos))
     {
         return MOVE_NONE;
     }
 
-    auto key = pos.pg_key ();
+    auto key = pos.pg_key();
 
-    auto index = find_index (key);
+    auto index = find_index(key);
     if (0 > index)
     {
         if (4 < ++fail_counter)
@@ -291,7 +291,7 @@ Move PolyBook::probe (Position &pos, i16 move_num, bool pick_best)
         if (MOVE_NONE == entries[i].move) continue;
 
         ++count;
-        max_weight = std::max (entries[i].weight, max_weight);
+        max_weight = std::max(entries[i].weight, max_weight);
         sum_weight += entries[i].weight;
 
         // Choose the move
@@ -307,7 +307,7 @@ Move PolyBook::probe (Position &pos, i16 move_num, bool pick_best)
         {
             // Move with a very high score, has a higher probability of being choosen.
             if (   0 != sum_weight
-                && (prng.rand<u32> () % sum_weight) < entries[i].weight)
+                && (prng.rand<u32>() % sum_weight) < entries[i].weight)
             {
                 pick1_index = i;
             }
@@ -322,15 +322,15 @@ Move PolyBook::probe (Position &pos, i16 move_num, bool pick_best)
         return MOVE_NONE;
     }
 
-    move = convert_move (pos, move);
+    move = convert_move(pos, move);
 
-    if (   !pos.draw (64)
+    if (   !pos.draw(64)
         || 1 >= count)
     {
         return move;
     }
 
-    if (!move_draw (pos, move))
+    if (!move_draw(pos, move))
     {
         return move;
     }
@@ -350,9 +350,9 @@ Move PolyBook::probe (Position &pos, i16 move_num, bool pick_best)
         return MOVE_NONE;
     }
 
-    move = convert_move (pos, move);
+    move = convert_move(pos, move);
 
-    if (!move_draw (pos, move))
+    if (!move_draw(pos, move))
     {
         return move;
     }
@@ -360,7 +360,7 @@ Move PolyBook::probe (Position &pos, i16 move_num, bool pick_best)
     return MOVE_NONE;
 }
 
-string PolyBook::show (const Position &pos) const
+string PolyBook::show(Position const &pos) const
 {
     if (   nullptr == entries
         || !enabled)
@@ -368,9 +368,9 @@ string PolyBook::show (const Position &pos) const
         return "Book entries empty.";
     }
 
-    auto key = pos.pg_key ();
+    auto key = pos.pg_key();
 
-    auto index = find_index (key);
+    auto index = find_index(key);
     if (0 > index)
     {
         return "Book entries not found.";
@@ -382,25 +382,25 @@ string PolyBook::show (const Position &pos) const
     while (   size_t(index) < entry_count
            && key == entries[index].key)
     {
-        list_entries.push_back (entries[index]);
+        list_entries.push_back(entries[index]);
         sum_weight += entries[index].weight;
         ++index;
     }
-    if (!list_entries.empty ())
+    if (!list_entries.empty())
     {
         list_entries.sort ();
-        list_entries.reverse ();
-        oss << "\nBook entries: " << list_entries.size ();
+        list_entries.reverse();
+        oss << "\nBook entries: " << list_entries.size();
         for (auto entry : list_entries)
         {
-            entry.move = convert_move (pos, Move(entry.move));
+            entry.move = convert_move(pos, Move(entry.move));
             oss << "\n"
                 << entry
                 << " prob: "
-                << std::setw (7)
-                << std::setfill ('0')
-                << std::fixed << std::setprecision (4) << (0 != sum_weight ? 100.0 * entry.weight / sum_weight : 0.0)
-                << std::setfill (' ');
+                << std::setw(7)
+                << std::setfill('0')
+                << std::fixed << std::setprecision(4) << (0 != sum_weight ? 100.0 * entry.weight / sum_weight : 0.0)
+                << std::setfill(' ');
         }
     }
     return oss.str ();

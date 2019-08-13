@@ -51,7 +51,7 @@ std::string GetLastErrorString ()
             return message;
         }
     }
-    return std::string ();
+    return std::string();
 }
 
 #else
@@ -132,7 +132,7 @@ namespace TBSyzygy {
         }
         i32 off_A1H8 (Square sq)
         {
-            return i32(_rank (sq)) - i32(_file (sq));
+            return i32(_rank(sq)) - i32(_file(sq));
         }
 
         template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
@@ -149,7 +149,7 @@ namespace TBSyzygy {
             }
         }
         template<>
-        inline void swap_endian<u08> (u08&)
+        inline void swap_endian<u08>(u08&)
         {}
 
         template<typename T, Endian E>
@@ -220,7 +220,7 @@ namespace TBSyzygy {
             u08 lr[3];
 
             template<Side S>
-            Sym get ()
+            Sym get()
             {
                 return S == Side::Left   ? ((lr[1] & 0xF) << 8) | lr[0] :
                        S == Side::Right  ?  (lr[2] << 4) | (lr[1] >> 4) :
@@ -240,12 +240,12 @@ namespace TBSyzygy {
             // Look for and open the file among the Paths directories where the .rtbw and .rtbz files can be found.
             static vector<string> Paths;
 
-            TBFile (const string &code, const string &ext)
+            TBFile (string const &code, string const &ext)
             {
                 auto file = code;
-                file.insert (file.find ('K', 1), "v");
+                file.insert (file.find('K', 1), "v");
                 file += ext;
-                for (const auto &path : Paths)
+                for (auto const &path : Paths)
                 {
                     const auto fname = append_path (path, file);
                     std::ifstream::open (fname);
@@ -261,13 +261,13 @@ namespace TBSyzygy {
             // closed after mapping.
             u08* map (void **base_address, u64 *mapping, TBType type)
             {
-                assert(!white_spaces (filename) && std::ifstream::is_open ());
+                assert(!white_spaces(filename) && std::ifstream::is_open ());
                 
-                std::ifstream::close (); // Need to re-open to get native file descriptor
+                std::ifstream::close(); // Need to re-open to get native file descriptor
 
 #           if defined(_WIN32)
                 HANDLE fd = CreateFile (
-                                filename.c_str (),
+                                filename.c_str(),
                                 GENERIC_READ,
                                 FILE_SHARE_READ,
                                 nullptr,
@@ -285,7 +285,7 @@ namespace TBSyzygy {
                 
                 if (16 != low_size % 64)
                 {
-                    std::cerr << "Corrupt tablebase file " << filename << std::endl;
+                    cerr << "Corrupt tablebase file " << filename << endl;
                     stop (EXIT_FAILURE);
                 }
 
@@ -299,8 +299,8 @@ namespace TBSyzygy {
                 CloseHandle (fd);
                 if (nullptr == mmap)
                 {
-                    std::cerr << "CreateFileMapping() failed, name = " << filename
-                              << ", error = " << GetLastErrorString () << std::endl;
+                    cerr << "CreateFileMapping() failed, name = " << filename
+                         << ", error = " << GetLastErrorString () << endl;
                     stop (EXIT_FAILURE);
                     return nullptr;
                 }
@@ -309,14 +309,13 @@ namespace TBSyzygy {
                 *base_address = MapViewOfFile (mmap, FILE_MAP_READ, 0, 0, 0);
                 if (nullptr == *base_address)
                 {
-                    std::cerr << "MapViewOfFile() failed, name = " << filename
-                              << ", error = " << GetLastErrorString () << std::endl;
+                    cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastErrorString () << endl;
                     stop (EXIT_FAILURE);
                     return nullptr;
                 }
 #           else
                 i32 fd = ::open (
-                            filename.c_str (),
+                            filename.c_str(),
                             O_RDONLY);
                 if (-1 == fd)
                 {
@@ -328,15 +327,15 @@ namespace TBSyzygy {
                 fstat (fd, &statbuf);
                 if (0 == statbuf.st_size)
                 {
-                    std::cerr << "fstat() failed, name = " << filename << std::endl;
-                    ::close (fd);
+                    cerr << "fstat() failed, name = " << filename << endl;
+                    ::close(fd);
                     stop (EXIT_FAILURE);
                     return nullptr;
                 }
                 if (16 != statbuf.st_size % 64)
                 {
-                    std::cerr << "Corrupt tablebase file " << filename << std::endl;
-                    ::close (fd);
+                    cerr << "Corrupt tablebase file " << filename << endl;
+                    ::close(fd);
                     stop (EXIT_FAILURE);
                     return nullptr;
                 }
@@ -350,10 +349,10 @@ namespace TBSyzygy {
                                 fd,
                                 0);
                 madvise (*base_address, statbuf.st_size, MADV_RANDOM);
-                ::close (fd);
+                ::close(fd);
                 if (MAP_FAILED == *base_address)
                 {
-                    std::cerr << "Could not mmap() " << filename << std::endl;
+                    cerr << "Could not mmap() " << filename << endl;
                     stop (EXIT_FAILURE);
                 }
 #           endif
@@ -367,7 +366,7 @@ namespace TBSyzygy {
                 u08 *data = (u08*)(*base_address);
                 if (0 != memcmp (data, TB_MAGIC[WDL == type ? 1 : 0], 4))
                 {
-                    std::cerr << "Corrupted table in file " << filename << std::endl;
+                    cerr << "Corrupted table in file " << filename << endl;
                     unmap (*base_address, *mapping);
                     *base_address = nullptr;
                     return nullptr;
@@ -409,7 +408,7 @@ namespace TBSyzygy {
             vector<u08> sym_len;            // Number of values (-1) represented by a given Huffman symbol: 1..256
             Piece pieces[TBPIECES];         // Position pieces: the order of pieces defines the groups
             u64 group_idx[TBPIECES+1];      // Start index used for the encoding of the group's pieces
-            i32 group_len[TBPIECES+1];      // Number of pieces in a given group: KRKN -> (3, 1)
+            i32 group_len[TBPIECES+1];      // Number of pieces in a given group: KRKN ->(3, 1)
             u16 map_idx[4];                 // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
         };
 
@@ -432,7 +431,7 @@ namespace TBSyzygy {
             u08 pawn_count[CLR_NO]; // [Lead color / other color]
             PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
 
-            PairsData* get (i32 stm, i32 f)
+            PairsData* get(i32 stm, i32 f)
             {
                 return &items[stm % Sides][has_pawns ? f : 0];
             }
@@ -444,7 +443,7 @@ namespace TBSyzygy {
                 //, mapping (0)
             {}
 
-            explicit TBTable (const std::string&);
+            explicit TBTable (std::string const&);
             explicit TBTable (const TBTable<WDL>&);
 
            ~TBTable ()
@@ -457,19 +456,19 @@ namespace TBSyzygy {
         };
 
         template<>
-        TBTable<WDL>::TBTable (const std::string &code)
+        TBTable<WDL>::TBTable (std::string const &code)
             : TBTable ()
         {
             StateInfo si;
             Position pos;
-            key1 = pos.setup (code, WHITE, si).si->matl_key;
-            piece_count = pos.count ();
-            has_pawns = 0 != pos.count (PAWN);
+            key1 = pos.setup(code, WHITE, si).si->matl_key;
+            piece_count = pos.count();
+            has_pawns = 0 != pos.count(PAWN);
             has_unique_pieces = false;
-            for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN,
+            for (auto const &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN,
                                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN })
             {    
-                if (1 == pos.count (pc))
+                if (1 == pos.count(pc))
                 {
                     has_unique_pieces = true;
                     goto break_unique_pieces;
@@ -479,14 +478,14 @@ namespace TBSyzygy {
             
             // Set the leading color. In case both sides have pawns the leading color
             // is the side with less pawns because this leads to better compression.
-            auto lead_color = pos.count (BLACK|PAWN) == 0
-                           || (   pos.count (WHITE|PAWN) != 0
-                               && pos.count (BLACK|PAWN) >= pos.count (WHITE|PAWN)) ? WHITE : BLACK;
+            auto lead_color = pos.count(BLACK|PAWN) == 0
+                           || (   pos.count(WHITE|PAWN) != 0
+                               && pos.count(BLACK|PAWN) >= pos.count(WHITE|PAWN)) ? WHITE : BLACK;
 
-            pawn_count[0] = u08(pos.count ( lead_color|PAWN));
-            pawn_count[1] = u08(pos.count (~lead_color|PAWN));
+            pawn_count[0] = u08(pos.count( lead_color|PAWN));
+            pawn_count[1] = u08(pos.count(~lead_color|PAWN));
 
-            key2 = pos.setup (code, BLACK, si).si->matl_key;
+            key2 = pos.setup(code, BLACK, si).si->matl_key;
         }
 
         template<>
@@ -505,7 +504,7 @@ namespace TBSyzygy {
         class TBTables
         {
         private:
-            static const i32 Size = 1 << 12; // 4K table, indexed by key's 12 lsb
+            static i32 const Size = 1 << 12; // 4K table, indexed by key's 12 lsb
 
             typedef std::tuple<Key, TBTable<WDL>*, TBTable<DTZ>*> Entry;
 
@@ -519,46 +518,46 @@ namespace TBSyzygy {
                 // Ensure last element is empty to avoid overflow when looking up
                 for (auto* entry = &entries[(u32)key & (Size - 1)]; entry - entries < Size - 1; ++entry)
                 {
-                    if (   std::get<KEY> (*entry) == key
-                        || !std::get<WDL> (*entry))
+                    if (   std::get<KEY>(*entry) == key
+                        || !std::get<WDL>(*entry))
                     {
                         *entry = std::make_tuple (key, wdl, dtz);
                         return;
                     }
                 }
-                std::cerr << "HSHMAX too low!" << std::endl;
+                cerr << "HSHMAX too low!" << endl;
                 stop (EXIT_FAILURE);
             }
 
         public:
 
             template<TBType Type>
-            TBTable<Type>* get (Key key)
+            TBTable<Type>* get(Key key)
             {
                 for (const auto* entry = &entries[(u32)key & (Size - 1)]; entry - entries < Size - 1; ++entry)
                 {
-                    if (   std::get<KEY> (*entry) == key
-                        || !std::get<Type> (*entry))
+                    if (   std::get<KEY>(*entry) == key
+                        || !std::get<Type>(*entry))
                     {
-                        return std::get<Type> (*entry);
+                        return std::get<Type>(*entry);
                     }
                 }
                 return nullptr;
             }
 
-            void clear ()
+            void clear()
             {
-                std::memset (entries, 0, sizeof (entries));
-                wdl_table.clear ();
-                dtz_table.clear ();
+                std::memset(entries, 0, sizeof (entries));
+                wdl_table.clear();
+                dtz_table.clear();
             }
 
-            size_t size () const
+            size_t size() const
             {
-                return wdl_table.size ();
+                return wdl_table.size();
             }
 
-            void add (const vector<PieceType> &pieces)
+            void add(const vector<PieceType> &pieces)
             {
                 string code;
                 for (auto pt : pieces)
@@ -571,18 +570,18 @@ namespace TBSyzygy {
                 {
                     return;
                 }
-                file.close ();
+                file.close();
 
-                if (MaxLimitPiece < i32(pieces.size ()))
+                if (MaxLimitPiece < i32(pieces.size()))
                 {
-                    MaxLimitPiece = i32(pieces.size ());
+                    MaxLimitPiece = i32(pieces.size());
                 }
 
-                wdl_table.emplace_back (code);
-                dtz_table.emplace_back (wdl_table.back ());
+                wdl_table.emplace_back(code);
+                dtz_table.emplace_back(wdl_table.back());
 
-                insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
-                insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
+                insert (wdl_table.back().key1, &wdl_table.back(), &dtz_table.back());
+                insert (wdl_table.back().key2, &wdl_table.back(), &dtz_table.back());
             }
         };
 
@@ -629,8 +628,8 @@ namespace TBSyzygy {
             u32 k = idx / d->span;
 
             // Then we read the corresponding SparseIndex[] entry
-            u32 block  = number<u32, Endian::LITTLE> (&d->sparse_index[k].block);
-            i32 offset = number<u16, Endian::LITTLE> (&d->sparse_index[k].offset);
+            u32 block  = number<u32, Endian::LITTLE>(&d->sparse_index[k].block);
+            i32 offset = number<u16, Endian::LITTLE>(&d->sparse_index[k].offset);
 
             // Now compute the difference idx - I(k). From definition of k we know that
             //
@@ -660,7 +659,7 @@ namespace TBSyzygy {
             // Read the first 64 bits in our block, this is a (truncated) sequence of
             // unknown number of symbols of unknown length but we know the first one
             // is at the beginning of this 64 bits sequence.
-            u64 buf64 = number<u64, Endian::BIG> (ptr);
+            u64 buf64 = number<u64, Endian::BIG>(ptr);
             ptr += 2;
             i32 buf64_size = 64;
             Sym sym;
@@ -680,10 +679,10 @@ namespace TBSyzygy {
                 // All the symbols of a given length are consecutive integers (numerical
                 // sequence property), so we can compute the offset of our symbol of
                 // length len, stored at the beginning of buf64.
-                sym = Sym((buf64 - d->base64[len]) >> (64 - len - d->min_sym_len));
+                sym = Sym((buf64 - d->base64[len]) >>(64 - len - d->min_sym_len));
 
                 // Now add the value of the lowest symbol of length len to get our symbol
-                sym += number<Sym, Endian::LITTLE> (&d->lowest_sym[len]);
+                sym += number<Sym, Endian::LITTLE>(&d->lowest_sym[len]);
 
                 // If our offset is within the number of values represented by symbol sym
                 if (offset < d->sym_len[sym] + 1)
@@ -701,7 +700,7 @@ namespace TBSyzygy {
                 { 
                     // Refill the buffer
                     buf64_size += 32;
-                    buf64 |= u64(number<u32, Endian::BIG> (ptr++)) << (64 - buf64_size);
+                    buf64 |= u64(number<u32, Endian::BIG>(ptr++)) << (64 - buf64_size);
                 }
             } while (true);
 
@@ -711,7 +710,7 @@ namespace TBSyzygy {
             // that will store the value we need.
             while (0 != d->sym_len[sym])
             {
-                Sym left = d->btree[sym].get<LR::Side::Left> ();
+                Sym left = d->btree[sym].get<LR::Side::Left>();
 
                 // If a symbol contains 36 sub-symbols (d->sym_len[sym] + 1 = 36) and
                 // expands in a pair (d->sym_len[left] = 23, d->sym_len[right] = 11), then
@@ -724,11 +723,11 @@ namespace TBSyzygy {
                 else
                 {
                     offset -= d->sym_len[left] + 1;
-                    sym = d->btree[sym].get<LR::Right> ();
+                    sym = d->btree[sym].get<LR::Right>();
                 }
             }
 
-            return d->btree[sym].get<LR::Side::Center> ();
+            return d->btree[sym].get<LR::Side::Center>();
         }
 
         bool check_dtz_stm (TBTable<WDL>*, Color, File)
@@ -738,7 +737,7 @@ namespace TBSyzygy {
 
         bool check_dtz_stm (TBTable<DTZ> *entry, Color stm, File f)
         {
-            return (entry->get (stm, f)->flags & TBFlag::STM) == stm
+            return (entry->get(stm, f)->flags & TBFlag::STM) == stm
                 || (   entry->key1 == entry->key2
                     && !entry->has_pawns);
         }
@@ -756,9 +755,9 @@ namespace TBSyzygy {
         {
             constexpr i32 WDLMap[] = { 1, 3, 0, 2, 0 };
 
-            i32 flags = entry->get (0, f)->flags;
+            i32 flags = entry->get(0, f)->flags;
             u08 *map = entry->map;
-            u16* idx = entry->get (0, f)->map_idx;
+            u16* idx = entry->get(0, f)->map_idx;
             if (0 != (flags & TBFlag::MAPPED))
             {
                 value = map[idx[WDLMap[wdl + 2]] + value];
@@ -784,7 +783,7 @@ namespace TBSyzygy {
         ///      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
         ///
         template<typename T, typename Ret = typename T::Ret>
-        Ret do_probe_table (const Position &pos, T *entry, WDLScore wdl, ProbeState &state)
+        Ret do_probe_table (Position const &pos, T *entry, WDLScore wdl, ProbeState &state)
         {
             bool flip =
                 // Black Symmetric
@@ -819,28 +818,28 @@ namespace TBSyzygy {
                 // In all the 4 tables, pawns are at the beginning of the piece sequence and
                 // their color is the reference one. So we just pick the first one.
                 Piece pc = flip ?
-                            ~Piece(entry->get (0, 0)->pieces[0]) :
-                             Piece(entry->get (0, 0)->pieces[0]);
+                            ~Piece(entry->get(0, 0)->pieces[0]) :
+                             Piece(entry->get(0, 0)->pieces[0]);
 
-                assert(PAWN == ptype (pc));
+                assert(PAWN == ptype(pc));
 
-                lead_pawns = pos.pieces (pc);
+                lead_pawns = pos.pieces(pc);
 
                 b = lead_pawns;
                 do
                 {
                     squares[size] = flip ?
-                                     ~pop_lsq (b) :
-                                      pop_lsq (b);
+                                     ~pop_lsq(b) :
+                                      pop_lsq(b);
                     ++size;
                 } while (0 != b);
 
                 std::swap (squares[0], *std::max_element (squares, squares + size, pawns_comp));
 
-                tb_file = _file (squares[0]);
+                tb_file = _file(squares[0]);
                 if (tb_file > F_D)
                 {
-                    tb_file = _file (!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
+                    tb_file = _file(!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
                 }
             }
             else
@@ -860,12 +859,12 @@ namespace TBSyzygy {
                 return Ret();
             }
 
-            // Now we are ready to get all the position pieces (but the lead pawns) and
+            // Now we are ready to get all the position pieces(but the lead pawns) and
             // directly map them to the correct color and square.
-            b = pos.pieces () ^ lead_pawns;
+            b = pos.pieces() ^ lead_pawns;
             do
             {
-                auto s = pop_lsq (b);
+                auto s = pop_lsq(b);
                 squares[size] = flip ?
                                  ~s :
                                   s;
@@ -877,7 +876,7 @@ namespace TBSyzygy {
 
             assert(size >= 2);
 
-            auto *d = entry->get (stm, tb_file);
+            auto *d = entry->get(stm, tb_file);
 
             // Then we reorder the pieces to have the same sequence as the one stored
             // in pieces[i]: the sequence that ensures the best compression.
@@ -896,7 +895,7 @@ namespace TBSyzygy {
 
             // Now we map again the squares so that the square of the lead piece is in
             // the triangle A1-D1-D4.
-            if (_file (squares[0]) > F_D)
+            if (_file(squares[0]) > F_D)
             {
                 for (i32 i = 0; i < size; ++i)
                 {
@@ -922,7 +921,7 @@ namespace TBSyzygy {
             else
             {
                 // Flip the squares to ensure leading piece is below R_5.
-                if (_rank (squares[0]) > R_4)
+                if (_rank(squares[0]) > R_4)
                 {
                     for (i32 i = 0; i < size; ++i)
                     {
@@ -942,7 +941,7 @@ namespace TBSyzygy {
                     {
                         for (i32 j = i; j < size; ++j)
                         {
-                            squares[j] = File(_rank (squares[j])) | Rank(_file (squares[j]));
+                            squares[j] = File(_rank(squares[j])) | Rank(_file(squares[j]));
                         }
                     }
                     break;
@@ -973,7 +972,7 @@ namespace TBSyzygy {
                 // Rs "together" in 62 * 61 / 2 ways (we divide by 2 because rooks can be
                 // swapped and still get the same position.)
                 //
-                // In case we have at least 3 unique pieces (included kings) we encode them together.
+                // In case we have at least 3 unique pieces(included kings) we encode them together.
                 if (entry->has_unique_pieces)
                 {
                     i32 adjust1 = (squares[1] > squares[0] ? 1 : 0);
@@ -995,7 +994,7 @@ namespace TBSyzygy {
                     if (off_A1H8 (squares[1]))
                     {
                         idx = (  6 * 63
-                               + _rank (squares[0]) * 28
+                               + _rank(squares[0]) * 28
                                + MapB1H1H7[squares[1]]) * 62
                             + (squares[2] - adjust2);
                     }
@@ -1005,8 +1004,8 @@ namespace TBSyzygy {
                     {
                         idx = 6 * 63 * 62
                             + 4 * 28 * 62
-                            +  _rank (squares[0]) * 7 * 28
-                            + (_rank (squares[1]) - adjust1) * 28
+                            +  _rank(squares[0]) * 7 * 28
+                            + (_rank(squares[1]) - adjust1) * 28
                             +  MapB1H1H7[squares[2]];
                     }
                     // All 3 pieces on the diagonal a1-h8
@@ -1015,9 +1014,9 @@ namespace TBSyzygy {
                         idx = 6 * 63 * 62
                             + 4 * 28 * 62
                             + 4 *  7 * 28
-                            +  _rank (squares[0]) * 7 * 6
-                            + (_rank (squares[1]) - adjust1) * 6
-                            + (_rank (squares[2]) - adjust2);
+                            +  _rank(squares[0]) * 7 * 6
+                            + (_rank(squares[1]) - adjust1) * 6
+                            + (_rank(squares[2]) - adjust2);
                     }
                 }
                 else
@@ -1065,7 +1064,7 @@ namespace TBSyzygy {
         /// Group together pieces that will be encoded together. The general rule is that
         /// a group contains pieces of same type and color. The exception is the leading
         /// group that, in case of positions without pawns, can be formed by 3 different
-        /// pieces (default) or by the king pair when there is not a unique piece apart
+        /// pieces(default) or by the king pair when there is not a unique piece apart
         /// from the kings. When there are pawns, pawns are always first in pieces[].
         ///
         /// As example KRKN -> KRK + N, KNNK -> KK + NN, KPPKP -> P + PP + K + K
@@ -1148,13 +1147,13 @@ namespace TBSyzygy {
         u08 set_symlen (PairsData *d, Sym s, vector<bool> &visited)
         {
             visited[s] = true; // We can set it now because tree is acyclic
-            Sym sr = d->btree[s].get<LR::Side::Right> ();
+            Sym sr = d->btree[s].get<LR::Side::Right>();
             if (sr == 0xFFF)
             {
                 return 0;
             }
 
-            Sym sl = d->btree[s].get<LR::Side::Left> ();
+            Sym sl = d->btree[s].get<LR::Side::Left>();
 
             if (!visited[sl])
             {
@@ -1184,18 +1183,18 @@ namespace TBSyzygy {
 
             // group_len[] is a zero-terminated list of group lengths, the last group_idx[]
             // element stores the biggest index that is the tb size.
-            u64 tb_size = d->group_idx[std::find (d->group_len, d->group_len + 7, 0) - d->group_len];
+            u64 tb_size = d->group_idx[std::find(d->group_len, d->group_len + 7, 0) - d->group_len];
 
             d->block_size = u64(1) << *data++;
             d->span = u64(1) << *data++;
             d->sparse_index_size = (tb_size + d->span - 1) / d->span; // Round up
-            i32 padding = number<u08, Endian::LITTLE> (data++);
-            d->num_blocks = number<u32, Endian::LITTLE> (data); data += sizeof (u32);
+            i32 padding = number<u08, Endian::LITTLE>(data++);
+            d->num_blocks = number<u32, Endian::LITTLE>(data); data += sizeof (u32);
             d->block_length_size = d->num_blocks + padding; // Padded to ensure SparseIndex[] does not point out of range.
             d->max_sym_len = *data++;
             d->min_sym_len = *data++;
             d->lowest_sym = (Sym*)(data);
-            d->base64.resize (d->max_sym_len - d->min_sym_len + 1);
+            d->base64.resize(d->max_sym_len - d->min_sym_len + 1);
 
             // The canonical code is ordered such that longer symbols (in terms of
             // the number of bits of their Huffman code) have lower numeric value,
@@ -1203,11 +1202,11 @@ namespace TBSyzygy {
             // Starting from this we compute a base64[] table indexed by symbol length
             // and containing 64 bit values so that d->base64[i] >= d->base64[i+1].
             // See http://www.eecs.harvard.edu/~michaelm/E210/huffman.pdf
-            for (i32 i = d->base64.size () - 2; i >= 0; --i)
+            for (i32 i = d->base64.size() - 2; i >= 0; --i)
             {
                 d->base64[i] = (  d->base64[i + 1]
-                                + number<Sym, Endian::LITTLE> (&d->lowest_sym[i])
-                                - number<Sym, Endian::LITTLE> (&d->lowest_sym[i + 1])) / 2;
+                                + number<Sym, Endian::LITTLE>(&d->lowest_sym[i])
+                                - number<Sym, Endian::LITTLE>(&d->lowest_sym[i + 1])) / 2;
 
                 assert(d->base64[i] * 2 >= d->base64[i+1]);
             }
@@ -1216,12 +1215,12 @@ namespace TBSyzygy {
             // than d->base64[i+1] and given the above assert condition, we ensure that
             // d->base64[i] >= d->base64[i+1]. Moreover for any symbol s64 of length i
             // and right-padded to 64 bits holds d->base64[i-1] >= s64 >= d->base64[i].
-            for (size_t i = 0; i < d->base64.size (); ++i)
+            for (size_t i = 0; i < d->base64.size(); ++i)
             {
                 d->base64[i] <<= 64 - i - d->min_sym_len; // Right-padding to 64 bits
             }
-            data += d->base64.size () * sizeof (Sym);
-            d->sym_len.resize (number<u16, Endian::LITTLE> (data)); data += sizeof (u16);
+            data += d->base64.size() * sizeof (Sym);
+            d->sym_len.resize(number<u16, Endian::LITTLE>(data)); data += sizeof (u16);
             d->btree = (LR*)(data);
 
             // The compression scheme used is "Recursive Pairing", that replaces the most
@@ -1229,15 +1228,15 @@ namespace TBSyzygy {
             // reevaluating the frequencies of all of the symbol pairs with respect to
             // the extended alphabet, and then repeating the process.
             // See http://www.larsson.dogma.net/dcc99.pdf
-            vector<bool> visited (d->sym_len.size ());
-            for (Sym sym = 0; sym < d->sym_len.size (); ++sym)
+            vector<bool> visited (d->sym_len.size());
+            for (Sym sym = 0; sym < d->sym_len.size(); ++sym)
             {
                 if (!visited[sym])
                 {
                     d->sym_len[sym] = set_symlen (d, sym, visited);
                 }
             }
-            return data + d->sym_len.size () * sizeof (LR) + (d->sym_len.size () & 1);
+            return data + d->sym_len.size() * sizeof (LR) + (d->sym_len.size() & 1);
         }
 
         u08* set_dtz_map (TBTable<WDL>&, u08*, File)
@@ -1250,12 +1249,12 @@ namespace TBSyzygy {
             e.map = data;
             for (auto f = F_A; f <= max_file; ++f)
             {
-                if (0 != (e.get (0, f)->flags & TBFlag::MAPPED))
+                if (0 != (e.get(0, f)->flags & TBFlag::MAPPED))
                 {
                     for (i32 i = 0; i < 4; ++i)
                     { 
                         // Sequence like 3,x,x,x,1,x,0,2,x,x
-                        e.get (0, f)->map_idx[i] = u16(data - e.map + 1);
+                        e.get(0, f)->map_idx[i] = u16(data - e.map + 1);
                         data += *data + 1;
                     }
                 }
@@ -1264,14 +1263,14 @@ namespace TBSyzygy {
         }
 
         template<typename T>
-        void set (T &e, u08 *data)
+        void set(T &e, u08 *data)
         {
             assert(e.has_pawns        == !!(*data & 2)); // HasPawns
             assert((e.key1 != e.key2) == !!(*data & 1)); // Split
 
             data++; // First byte stores flags
 
-            const i32  Sides = 2 == T::Sides && (e.key1 != e.key2) ? 2 : 1;
+            i32 const  Sides = 2 == T::Sides && (e.key1 != e.key2) ? 2 : 1;
             const File MaxFile = e.has_pawns ? F_D : F_A;
 
             bool pp = e.has_pawns
@@ -1283,7 +1282,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    *e.get (i, f) = PairsData ();
+                    *e.get(i, f) = PairsData ();
                 }
 
                 i32 order[][2] = 
@@ -1298,13 +1297,13 @@ namespace TBSyzygy {
                 {
                     for (i32 i = 0; i < Sides; ++i)
                     {
-                        e.get (i, f)->pieces[k] = tb_piece (i ? *data >> 4 : *data & 0xF);
+                        e.get(i, f)->pieces[k] = tb_piece (i ? *data >> 4 : *data & 0xF);
                     }
                 }
 
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    set_groups (e, e.get (i, f), order[i], f);
+                    set_groups (e, e.get(i, f), order[i], f);
                 }
             }
 
@@ -1314,7 +1313,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    data = set_sizes (e.get (i, f), data);
+                    data = set_sizes (e.get(i, f), data);
                 }
             }
 
@@ -1325,7 +1324,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    (d = e.get (i, f))->sparse_index = (SparseEntry*)(data);
+                    (d = e.get(i, f))->sparse_index = (SparseEntry*)(data);
                     data += d->sparse_index_size * sizeof (SparseEntry);
                 }
             }
@@ -1333,7 +1332,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    (d = e.get (i, f))->block_length = (u16*)(data);
+                    (d = e.get(i, f))->block_length = (u16*)(data);
                     data += d->block_length_size * sizeof (u16);
                 }
             }
@@ -1342,37 +1341,37 @@ namespace TBSyzygy {
                 for (i32 i = 0; i < Sides; ++i)
                 {
                     data = (u08*)(((uintptr_t)data + 0x3F) & ~0x3F); // 64 byte alignment
-                    (d = e.get (i, f))->data = data;
+                    (d = e.get(i, f))->data = data;
                     data += d->num_blocks * d->block_size;
                 }
             }
         }
 
         template<TBType Type>
-        void* mapped (TBTable<Type> &e, const Position &pos)
+        void* mapped (TBTable<Type> &e, Position const &pos)
         {
             static Mutex mutex;
 
             // Use 'acquire' to avoid a thread reading 'ready' == true while
             // another is still working. (compiler reordering may cause this).
-            if (e.ready.load (std::memory_order::memory_order_acquire))
+            if (e.ready.load(std::memory_order::memory_order_acquire))
             {
                 return e.base_address; // Could be nullptr if file does not exist
             }
 
             std::unique_lock<Mutex> lk (mutex);
 
-            if (e.ready.load (std::memory_order::memory_order_relaxed)) // Recheck under lock
+            if (e.ready.load(std::memory_order::memory_order_relaxed)) // Recheck under lock
             {
                 return e.base_address;
             }
 
             // Pieces strings in decreasing order for each color, like ("KPP","KR")
             string w, b;
-            for (const auto &pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
+            for (auto const &pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
             {
-                w += string(pos.count (WHITE|pt), PieceChar[pt]);
-                b += string(pos.count (BLACK|pt), PieceChar[pt]);
+                w += string(pos.count(WHITE|pt), PieceChar[pt]);
+                b += string(pos.count(BLACK|pt), PieceChar[pt]);
             }
 
             string code = e.key1 == pos.si->matl_key ? w + b : b + w;
@@ -1380,21 +1379,21 @@ namespace TBSyzygy {
             u08 *data = file.map (&e.base_address, &e.mapping, Type);
             if (nullptr != data)
             {
-                set (e, data);
+                set(e, data);
             }
-            e.ready.store (true, std::memory_order::memory_order_release);
+            e.ready.store(true, std::memory_order::memory_order_release);
             return e.base_address;
         }
 
         template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
-        Ret probe_table (const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
+        Ret probe_table (Position const &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
         {
-            if (0 == (pos.pieces () ^ pos.pieces (KING)))
+            if (0 == (pos.pieces() ^ pos.pieces(KING)))
             {
                 return Ret(WDLScore::DRAW); // KvK
             }
 
-            auto *entry = TB_Tables.get<Type> (pos.si->matl_key);
+            auto *entry = TB_Tables.get<Type>(pos.si->matl_key);
 
             if (   nullptr == entry
                 || nullptr == mapped (*entry, pos))
@@ -1417,29 +1416,29 @@ namespace TBSyzygy {
         /// probes is the correct state for the position.
         /// DTZ table don't store values when a following move is a zeroing winning move
         /// (winning capture or winning pawn move). Also DTZ store wrong values for positions
-        /// where the best move is an ep-move (even if losing). So in all these cases set
+        /// where the best move is an ep-move(even if losing). So in all these cases set
         /// the state to ZEROING_BEST_MOVE.
         WDLScore search (Position &pos, ProbeState &state, bool check_zeroing)
         {
             auto best_wdl = WDLScore::LOSS;
 
             StateInfo si;
-            auto move_list = MoveList<GenType::LEGAL> (pos);
+            auto move_list = MoveList<GenType::LEGAL>(pos);
             size_t move_count = 0;
-            for (const auto &move : move_list)
+            for (auto const &move : move_list)
             {
-                if (   !pos.capture (move)
+                if (   !pos.capture(move)
                     && (   !check_zeroing
-                        || PAWN != ptype (pos[org_sq (move)])))
+                        || PAWN != ptype(pos[org_sq(move)])))
                 {
                     continue;
                 }
 
                 ++move_count;
 
-                pos.do_move (move, si);
+                pos.do_move(move, si);
                 auto wdl = -search (pos, state, false);
-                pos.undo_move (move);
+                pos.undo_move(move);
 
                 if (ProbeState::FAILURE == state)
                 {
@@ -1465,7 +1464,7 @@ namespace TBSyzygy {
             // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
             // return with ZEROING_BEST_MOVE set.
             bool completed = (   0 != move_count
-                              && move_count == move_list.size ());
+                              && move_count == move_list.size());
 
             WDLScore wdl;
             if (completed)
@@ -1474,7 +1473,7 @@ namespace TBSyzygy {
             }
             else
             {
-                wdl = probe_table<WDL> (pos, state);
+                wdl = probe_table<WDL>(pos, state);
                 if (ProbeState::FAILURE == state)
                 {
                     return WDLScore::DRAW;
@@ -1554,7 +1553,7 @@ namespace TBSyzygy {
             return dtz_before_zeroing (wdl);
         }
 
-        i32 dtz = probe_table<DTZ> (pos, state, wdl);
+        i32 dtz = probe_table<DTZ>(pos, state, wdl);
 
         if (ProbeState::FAILURE == state)
         {
@@ -1564,7 +1563,7 @@ namespace TBSyzygy {
         if (ProbeState::CHANGE_STM != state)
         {
             return (dtz + 100 * (   WDLScore::BLESSED_LOSS == wdl
-                                 || WDLScore::CURSED_WIN   == wdl)) * sign (wdl);
+                                 || WDLScore::CURSED_WIN   == wdl)) * sign(wdl);
         }
 
         // DTZ stores results for the other side, so we need to do a 1-ply search and
@@ -1572,16 +1571,16 @@ namespace TBSyzygy {
         StateInfo si;
         i32 min_dtz = 0xFFFF;
 
-        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+        for (auto const &vm : MoveList<GenType::LEGAL>(pos))
         {
-            bool zeroing = pos.capture (vm)
-                        || PAWN == ptype (pos[org_sq (vm)]);
+            bool zeroing = pos.capture(vm)
+                        || PAWN == ptype(pos[org_sq(vm)]);
 
-            pos.do_move (vm, si);
+            pos.do_move(vm, si);
 
             // For zeroing moves we want the dtz of the move _before_ doing it,
             // otherwise we will get the dtz of the next move sequence. Search the
-            // position after the move to get the score sign (because even in a
+            // position after the move to get the score sign(because even in a
             // winning position we could make a losing capture or going for a draw).
             dtz = zeroing ?
                     -dtz_before_zeroing (search (pos, state, false)) :
@@ -1590,7 +1589,7 @@ namespace TBSyzygy {
             // If the move mates, force minDTZ to 1
             if (   1 == dtz
                 && 0 != pos.si->checkers
-                && 0 == MoveList<LEGAL> (pos).size ())
+                && 0 == MoveList<LEGAL>(pos).size())
             {
                 min_dtz = 1;
             }
@@ -1599,16 +1598,16 @@ namespace TBSyzygy {
             // by dtz_before_zeroing() that returns the DTZ of the previous move.
             if (!zeroing)
             {
-                dtz += sign (dtz);
+                dtz += sign(dtz);
             }
 
             // Skip the draws and if we are winning only pick positive dtz
-            if (sign (dtz) == sign (wdl))
+            if (sign(dtz) == sign(wdl))
             {
-                min_dtz = std::min (dtz, min_dtz);
+                min_dtz = std::min(dtz, min_dtz);
             }
 
-            pos.undo_move (vm);
+            pos.undo_move(vm);
 
             if (ProbeState::FAILURE == state)
             {
@@ -1634,12 +1633,12 @@ namespace TBSyzygy {
         // Probe and rank each move
         for (auto &rm : root_moves)
         {
-            auto move = rm.front ();
-            root_pos.do_move (move, si);
+            auto move = rm.front();
+            root_pos.do_move(move, si);
 
             WDLScore wdl = -probe_wdl (root_pos, state);
 
-            root_pos.undo_move (move);
+            root_pos.undo_move(move);
 
             if (ProbeState::FAILURE == state)
             {
@@ -1663,7 +1662,7 @@ namespace TBSyzygy {
     // A return value false indicates that not all probes were successful.
     bool root_probe_dtz (Position &root_pos, RootMoves &root_moves)
     {
-        assert(0 != root_moves.size ());
+        assert(0 != root_moves.size());
 
         // Obtain 50-move counter for the root position
         i16 clock_ply = root_pos.si->clock_ply;
@@ -1678,8 +1677,8 @@ namespace TBSyzygy {
         // Probe and rank each move
         for (auto &rm : root_moves)
         {
-            auto move = rm.front ();
-            root_pos.do_move (move, si);
+            auto move = rm.front();
+            root_pos.do_move(move, si);
 
             // Calculate dtz for the current move counting from the root position
             if (0 == root_pos.si->clock_ply)
@@ -1699,12 +1698,12 @@ namespace TBSyzygy {
             // Make sure that a mating move is assigned a dtz value of 1
             if (   0 != root_pos.si->checkers
                 && 2 == dtz
-                && 0 == MoveList<LEGAL> (root_pos).size ())
+                && 0 == MoveList<LEGAL>(root_pos).size())
             {
                 dtz = 1;
             }
 
-            root_pos.undo_move (move);
+            root_pos.undo_move(move);
 
             if (ProbeState::FAILURE == state)
             {
@@ -1722,23 +1721,23 @@ namespace TBSyzygy {
             // 1 cp to cursed wins and let it grow to 49 cp as the positions gets
             // closer to a real win.
             rm.tb_value = r >= bound ? +VALUE_MATE - (MaxDepth + 1) :
-                          r >  0     ? (VALUE_EG_PAWN * std::max (+3, r - 800)) / 200 :
+                          r >  0     ? (VALUE_EG_PAWN * std::max(+3, r - 800)) / 200 :
                           r == 0     ? VALUE_DRAW :
-                          r > -bound ? (VALUE_EG_PAWN * std::min (-3, r + 800)) / 200 :
+                          r > -bound ? (VALUE_EG_PAWN * std::min(-3, r + 800)) / 200 :
                                        -VALUE_MATE + (MaxDepth + 1);
         }
         return true;
     }
 
     /// Initializes TB
-    void initialize (const string &paths)
+    void initialize(string const &paths)
     {
         static bool initialized = false;
         if (!initialized)
         {
             // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
             i32 code = 0;
-            for (const auto &s : SQ)
+            for (auto const &s : SQ)
             {
                 if (off_A1H8 (s) < 0)
                 {
@@ -1748,7 +1747,7 @@ namespace TBSyzygy {
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
             code = 0;
             vector<Square> diagonal;
-            for (const auto &s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+            for (auto const &s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
                                    SQ_A2, SQ_B2, SQ_C2, SQ_D2,
                                    SQ_A3, SQ_B3, SQ_C3, SQ_D3,
                                    SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
@@ -1760,7 +1759,7 @@ namespace TBSyzygy {
                 else
                 if (off_A1H8 (s) == 0)
                 {
-                    diagonal.push_back (s);
+                    diagonal.push_back(s);
                 }
             }
             // Diagonal squares are encoded as last ones
@@ -1774,7 +1773,7 @@ namespace TBSyzygy {
             code = 0;
             for (i32 idx = 0; idx < 10; ++idx)
             {
-                for (const auto &s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+                for (auto const &s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
                                         SQ_A2, SQ_B2, SQ_C2, SQ_D2,
                                         SQ_A3, SQ_B3, SQ_C3, SQ_D3,
                                         SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
@@ -1782,9 +1781,9 @@ namespace TBSyzygy {
                     if (   MapA1D1D4[s1] == idx
                         && (0 != idx || SQ_B1 == s1)) // SQ_B1 is mapped to 0
                     {
-                        for (const auto &s2 : SQ)
+                        for (auto const &s2 : SQ)
                         {
-                            if (contains (PieceAttacks[KING][s1] | s1, s2))
+                            if (contains(PieceAttacks[KING][s1] | s1, s2))
                             {
                                 continue; // Illegal position
                             }
@@ -1796,7 +1795,7 @@ namespace TBSyzygy {
                             else
                             if (off_A1H8 (s1) == 0 && off_A1H8 (s2) == 0)
                             {
-                                both_on_diagonal.emplace_back (std::make_pair (idx, s2));
+                                both_on_diagonal.emplace_back(std::make_pair (idx, s2));
                             }
                             else
                             {
@@ -1836,7 +1835,7 @@ namespace TBSyzygy {
             // with 6-men TB can have up to 4 leading pawns (KPPPPK).
             for (i32 lead_pawn_count = 1; lead_pawn_count <= 4; ++lead_pawn_count)
             {
-                for (const auto &f : { F_A, F_B, F_C, F_D })
+                for (auto const &f : { F_A, F_B, F_C, F_D })
                 {
                     // Restart the index at every file because TB table is splitted
                     // by file, so we can reuse the same index for different files.
@@ -1844,7 +1843,7 @@ namespace TBSyzygy {
 
                     // Sum all possible combinations for a given file, starting with
                     // the leading pawn on rank 2 and increasing the rank.
-                    for (const auto &r : { R_2, R_3, R_4, R_5, R_6, R_7 })
+                    for (auto const &r : { R_2, R_3, R_4, R_5, R_6, R_7 })
                     {
                         auto sq = f|r;
 
@@ -1868,11 +1867,11 @@ namespace TBSyzygy {
             initialized = true;
         }
 
-        TB_Tables.clear ();
+        TB_Tables.clear();
         MaxLimitPiece = 0;
 
         PathString = paths;
-        if (white_spaces (PathString))
+        if (white_spaces(PathString))
         {
             return;
         }
@@ -1889,69 +1888,69 @@ namespace TBSyzygy {
 #       endif
 
         //TBFile::Paths = split (PathString, SepChar, false, true);
-        TBFile::Paths.clear ();
+        TBFile::Paths.clear();
         std::stringstream ss (PathString);
         std::string path;
-        while (std::getline (ss, path, SepChar))
+        while (std::getline(ss, path, SepChar))
         {
-            if (!white_spaces (path))
+            if (!white_spaces(path))
             {
-                trim (path);
+                trim(path);
                 convert_path (path);
-                TBFile::Paths.push_back (path);
+                TBFile::Paths.push_back(path);
             }
         }
 
         for (auto p1 = PAWN; p1 < KING; ++p1)
         {
-            TB_Tables.add ({ KING, p1, KING });
+            TB_Tables.add({ KING, p1, KING });
 
             for (auto p2 = PAWN; p2 <= p1; ++p2)
             {
-                TB_Tables.add ({ KING, p1, p2, KING });
-                TB_Tables.add ({ KING, p1, KING, p2 });
+                TB_Tables.add({ KING, p1, p2, KING });
+                TB_Tables.add({ KING, p1, KING, p2 });
 
                 for (auto p3 = PAWN; p3 <= p2; ++p3)
                 {
-                    TB_Tables.add ({ KING, p1, p2, p3, KING });
+                    TB_Tables.add({ KING, p1, p2, p3, KING });
 
                     for (auto p4 = PAWN; p4 <= p3; ++p4)
                     {
-                        TB_Tables.add ({ KING, p1, p2, p3, p4, KING });
+                        TB_Tables.add({ KING, p1, p2, p3, p4, KING });
 
                         //for (auto p5 = PAWN; p5 <= p4; ++p5)
                         //{
-                        //    TB_Tables.add ({ KING, p1, p2, p3, p4, p5, KING });
+                        //    TB_Tables.add({ KING, p1, p2, p3, p4, p5, KING });
                         //}
                         //for (auto p5 = PAWN; p5 < KING; ++p5)
                         //{
-                        //    TB_Tables.add ({ KING, p1, p2, p3, p4, KING, p5 });
+                        //    TB_Tables.add({ KING, p1, p2, p3, p4, KING, p5 });
                         //}
                     }
                     for (auto p4 = PAWN; p4 < KING; ++p4)
                     {
-                        TB_Tables.add ({ KING, p1, p2, p3, KING, p4 });
+                        TB_Tables.add({ KING, p1, p2, p3, KING, p4 });
 
                         //for (auto p5 = PAWN; p5 <= p4; ++p5)
                         //{
-                        //    TB_Tables.add ({ KING, p1, p2, p3, KING, p4, p5 });
+                        //    TB_Tables.add({ KING, p1, p2, p3, KING, p4, p5 });
                         //}
                     }
                 }
                 for (auto p3 = PAWN; p3 < KING; ++p3)
                 {
-                    TB_Tables.add ({ KING, p1, p2, KING, p3 });
+                    TB_Tables.add({ KING, p1, p2, KING, p3 });
                 }
                 for (auto p3 = PAWN; p3 <= p1; ++p3)
                 {
                     for (auto p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
                     {
-                        TB_Tables.add ({ KING, p1, p2, KING, p3, p4 });
+                        TB_Tables.add({ KING, p1, p2, KING, p3, p4 });
                     }
                 }
             }
         }
 
-        sync_cout << "info string Tablebases found " << TB_Tables.size () << sync_endl;
+        sync_cout << "info string Tablebases found " << TB_Tables.size() << sync_endl;
     }
 }

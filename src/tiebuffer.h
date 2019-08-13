@@ -37,7 +37,7 @@ namespace std {
 
         basic_streambuf<Elem, Traits>* streambuf () const { return _strmbuf1; }
 
-        int_type write (int_type c, const Elem *prefix)
+        int_type write(int_type c, const Elem *prefix)
         {
             if ('\n' == last_ch)
             {
@@ -54,7 +54,7 @@ namespace std {
     protected:
 
         basic_tie_buf (const basic_tie_buf&) = delete;
-        basic_tie_buf& operator= (const basic_tie_buf&) = delete;
+        basic_tie_buf& operator=(const basic_tie_buf&) = delete;
 
         int sync () override
         {
@@ -63,7 +63,7 @@ namespace std {
 
         int_type overflow (int_type c) override
         {
-            return write (_strmbuf1->sputc (Elem (c)), "<< ");
+            return write(_strmbuf1->sputc (Elem (c)), "<< ");
         }
 
         int_type underflow () override
@@ -73,7 +73,7 @@ namespace std {
 
         int_type uflow () override
         {
-            return write (_strmbuf1->sbumpc (), ">> ");
+            return write(_strmbuf1->sbumpc (), ">> ");
         }
 
     };

@@ -31,22 +31,22 @@ public:
     u08       movestogo;    // Search <x> moves to the next time control
 
     TimePoint movetime;    // Search <x> exact time in milli-seconds
-    i16       depth;       // Search <x> depth (plies) only
+    i16       depth;       // Search <x> depth(plies) only
     u64       nodes;       // Search <x> nodes only
     u08       mate;        // Search mate in <x> moves
     bool      infinite;    // Search until the "stop" command
 
     Limit ()
         : clock {}
-        , movestogo (0)
-        , movetime (TimePoint(0))
-        , depth (0)
-        , nodes (0)
-        , mate (0)
-        , infinite (false)
+        , movestogo{0}
+        , movetime{0}
+        , depth{0}
+        , nodes{0}
+        , mate{0}
+        , infinite{false}
     {}
 
-    bool time_mgr_used () const
+    bool time_mgr_used() const
     {
         return !infinite
             && 0 == movetime
@@ -55,7 +55,7 @@ public:
             && 0 == mate;
     }
 
-    bool mate_search () const
+    bool mate_on() const
     {
         return 0 != mate;
     }
@@ -73,19 +73,19 @@ private:
 
 public:
 
-    void operator= (const T &v) { entry = v; }
-    T* operator& () { return &entry; }
-    T* operator-> () { return &entry; }
-    operator const T& () const { return entry; }
+    void operator=(T const &v) { entry = v; }
+    T* operator&() { return &entry; }
+    T* operator->() { return &entry; }
+    operator const T&() const { return entry; }
 
-    void operator<< (i32 bonus)
+    void operator<<(i32 bonus)
     {
-        static_assert (D <= std::numeric_limits<T>::max (), "D overflows T");
-        assert(abs (bonus) <= D); // Ensure range is [-D, +D]
+        static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
+        assert(abs(bonus) <= D); // Ensure range is [-D, +D]
 
-        entry += T(bonus - entry * abs (bonus) / D);
+        entry += T(bonus - entry * abs(bonus) / D);
 
-        assert(abs (entry) <= D);
+        assert(abs(entry) <= D);
     }
 };
 
@@ -99,14 +99,14 @@ struct Stats
 {
     typedef Stats<T, D, Size, Sizes...> stats;
 
-    void fill (const T &v)
+    void fill(T const &v)
     {
         // For standard-layout 'this' points to first struct member
         assert(std::is_standard_layout<stats>::value);
 
         typedef StatsEntry<T, D> entry;
         entry *p = reinterpret_cast<entry*>(this);
-        std::fill (p, p + sizeof (*this) / sizeof (entry), v);
+        std::fill(p, p + sizeof (*this) / sizeof (entry), v);
     }
 };
 template <typename T, i32 D, i32 Size>
@@ -155,34 +155,34 @@ public:
     Value tb_value;
 
     explicit RootMove (Move m = MOVE_NONE)
-        : std::list<Move> (1, m)
+        : std::list<Move>(1, m)
         , old_value (-VALUE_INFINITE)
         , new_value (-VALUE_INFINITE)
-        , sel_depth (0)
-        , tb_rank (0)
+        , sel_depth(0)
+        , tb_rank(0)
         , tb_value (VALUE_ZERO)
     {}
-    RootMove& operator= (const RootMove&) = default;
+    RootMove& operator=(RootMove const&) = default;
 
-    bool operator<  (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value >  rm.old_value; }
-    bool operator>  (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value <  rm.old_value; }
-    //bool operator<= (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value >= rm.old_value; }
-    //bool operator>= (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value <= rm.old_value; }
-    //bool operator== (const RootMove &rm) const { return front () == rm.front (); }
-    //bool operator!= (const RootMove &rm) const { return front () != rm.front (); }
+    bool operator< (RootMove const &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value > rm.old_value; }
+    bool operator> (RootMove const &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value < rm.old_value; }
+    //bool operator<=(RootMove const &rm) const { return new_value != rm.new_value ? new_value >= rm.new_value : old_value >= rm.old_value; }
+    //bool operator>=(RootMove const &rm) const { return new_value != rm.new_value ? new_value <= rm.new_value : old_value <= rm.old_value; }
+    //bool operator==(RootMove const &rm) const { return front() == rm.front(); }
+    //bool operator!=(RootMove const &rm) const { return front() != rm.front(); }
 
-    bool operator== (Move m) const { return front () == m; }
-    bool operator!= (Move m) const { return front () != m; }
+    bool operator==(Move m) const { return front() == m; }
+    bool operator!=(Move m) const { return front() != m; }
 
-    void operator+= (Move m) { push_back (m); }
-    //void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
+    void operator+=(Move m) { push_back(m); }
+    //void operator-=(Move m) { erase(std::remove(begin(), end(), m), end()); }
 
-    explicit operator std::string () const;
+    explicit operator std::string() const;
 };
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+    operator<<(std::basic_ostream<CharT, Traits> &os, RootMove const &rm)
 {
     os << std::string(rm);
     return os;
@@ -193,35 +193,37 @@ class RootMoves
 {
 public:
     RootMoves () = default;
-    RootMoves (const RootMoves&) = default;
-    RootMoves& operator= (const RootMoves&) = default;
+    RootMoves (RootMoves const&) = default;
+    RootMoves& operator=(RootMoves const&) = default;
 
-    void operator+= (Move m) { emplace_back (m); }
-    //void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
-    void operator+= (const RootMove &rm) { push_back (rm); }
-    //void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
+    void operator+=(Move m) { emplace_back(m); }
+    //void operator-=(Move m) { erase(std::remove(begin(), end(), m), end()); }
+    void operator+=(RootMove const &rm) { push_back(rm); }
+    //void operator-=(RootMove const &rm) { erase(std::remove(begin(), end(), rm), end()); }
 
-    void initialize (const Position &pos, const std::vector<Move> &search_moves)
+    void initialize(Position const &pos, std::vector<Move> const &search_moves)
     {
-        assert(empty ());
-        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+        assert(empty());
+        for (auto const &vm : MoveList<GenType::LEGAL>(pos))
         {
-            if (   search_moves.empty ()
-                || std::find (search_moves.begin (), search_moves.end (), vm) != search_moves.end ())
+            if (   search_moves.empty()
+                || std::find(search_moves.begin(),
+                             search_moves.end(), vm)
+                          != search_moves.end())
             {
                 *this += vm;
-                assert(back ().tb_rank == 0
-                    && back ().tb_value == VALUE_ZERO);
+                assert(back().tb_rank == 0
+                    && back().tb_value == VALUE_ZERO);
             }
         }
     }
 
-    explicit operator std::string () const;
+    explicit operator std::string() const;
 };
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoves &rms)
+    operator<<(std::basic_ostream<CharT, Traits> &os, RootMoves const &rms)
 {
     os << std::string(rms);
     return os;
@@ -239,9 +241,9 @@ namespace Searcher {
     extern bool TBUseRule50;
     extern bool TBHasRoot;
 
-    extern void initialize ();
+    extern void initialize();
 
-    extern void clear ();
+    extern void clear();
 
 }
 

@@ -11,7 +11,7 @@ namespace UCI {
     class Option
     {
     private:
-        typedef void (*OnChange) (const Option&);
+        typedef void (*OnChange) (Option const&);
 
         std::string type
             ,       default_value
@@ -24,38 +24,38 @@ namespace UCI {
     public:
         size_t index;
 
-        explicit Option (OnChange = nullptr);
-        Option (const char*, OnChange = nullptr);
-        Option (const bool, OnChange = nullptr);
-        Option (const i32, i32, i32, OnChange = nullptr);
-        Option (const char*, const char*, OnChange = nullptr);
-        Option (const Option&) = delete;
+        explicit Option(OnChange = nullptr);
+        Option(char const*, OnChange = nullptr);
+        Option(bool const, OnChange = nullptr);
+        Option(i32 const, i32, i32, OnChange = nullptr);
+        Option(char const*, char const*, OnChange = nullptr);
+        Option(Option const&) = delete;
 
-        explicit operator std::string () const;
+        explicit operator std::string() const;
         explicit operator bool () const;
         explicit operator i32  () const;
-        bool operator==(const char*) const;
+        bool operator==(char const*) const;
 
-        Option& operator=  (const char*);
-        Option& operator=  (const std::string&);
+        Option& operator=  (char const*);
+        Option& operator=  (std::string const&);
 
-        void    operator<< (const Option&);
+        void    operator<<(Option const&);
 
-        std::string operator() ()  const;
+        std::string operator()()  const;
 
     };
 
     /// Options container is actually a std::map of Option
-    typedef std::map<std::string, Option, std::no_case_less_comparer> NoCaseLessMap;
+    typedef std::map<std::string, Option, no_case_less_comparer> NoCaseLessMap;
 
-    extern void initialize ();
-    extern void deinitialize ();
+    extern void initialize();
+    extern void deinitialize();
 
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const Option &opt)
+        operator<<(std::basic_ostream<CharT, Traits> &os, Option const &opt)
     {
-        os << opt.operator() ();
+        os << opt.operator()();
         return os;
     }
 
@@ -63,13 +63,13 @@ namespace UCI {
     /// insertion order and in the format defined by the UCI protocol.
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const NoCaseLessMap &optmap)
+        operator<<(std::basic_ostream<CharT, Traits> &os, const NoCaseLessMap &optmap)
     {
-        for (size_t idx = 0; idx < optmap.size (); ++idx)
+        for (size_t idx = 0; idx < optmap.size(); ++idx)
         {
-            for (const auto &pair : optmap)
+            for (auto const &pair : optmap)
             {
-                const auto &option = pair.second;
+                auto const &option = pair.second;
                 if (idx != option.index)
                 {
                     continue;
@@ -87,6 +87,6 @@ namespace UCI {
 // Global nocase mapping of Options
 extern UCI::NoCaseLessMap Options;
 
-extern u32 option_threads ();
+extern u32 option_threads();
 
 #endif // _UCI_H_INC_

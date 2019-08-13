@@ -8,8 +8,8 @@ class Position;
 
 extern std::array<std::array<Score, SQ_NO>, MAX_PIECE> PSQ;
 
-extern Score compute_psq (const Position&);
+extern Score compute_psq(Position const&);
 
-extern void psq_initialize ();
+extern void psq_initialize();
 
 #endif // _PSQT_H_INC_

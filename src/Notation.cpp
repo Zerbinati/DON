@@ -22,17 +22,17 @@ namespace {
 
     /// Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
     /// NOTE: for pawns it is not needed because 'org' file is explicit.
-    Ambiguity ambiguity (Move m, const Position &pos)
+    Ambiguity ambiguity(Move m, Position const &pos)
     {
-        assert(pos.pseudo_legal (m)
-            && pos.legal (m));
+        assert(pos.pseudo_legal(m)
+            && pos.legal(m));
 
-        auto org = org_sq (m);
-        auto dst = dst_sq (m);
-        auto pt = ptype (pos[org]);
+        auto org = org_sq(m);
+        auto dst = dst_sq(m);
+        auto pt = ptype(pos[org]);
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
-        Bitboard piece = pos.attacks_from (pt, dst) & pos.pieces (pos.active, pt);
+        Bitboard piece = pos.attacks_from(pt, dst) & pos.pieces(pos.active, pt);
 
         Bitboard amb = piece ^ org;
         if (0 == amb)
@@ -42,17 +42,17 @@ namespace {
 
         Bitboard pcs = amb;
                     // If pinned piece is considered as ambiguous
-                    // & ~(pos.si->king_blockers[pos.active] & pos.pieces (pos.active));
+                    // & ~(pos.si->king_blockers[pos.active] & pos.pieces(pos.active));
         while (0 != pcs)
         {
-            auto sq = pop_lsq (pcs);
-            if (!pos.legal (mk_move<NORMAL> (sq, dst)))
+            auto sq = pop_lsq(pcs);
+            if (!pos.legal(make_move<NORMAL>(sq, dst)))
             {
                 amb ^= sq;
             }
         }
-        if (0 == (amb & file_bb (org))) return Ambiguity::AMB_RANK;
-        if (0 == (amb & rank_bb (org))) return Ambiguity::AMB_FILE;
+        if (0 == (amb & file_bb(org))) return Ambiguity::AMB_RANK;
+        if (0 == (amb & rank_bb(org))) return Ambiguity::AMB_FILE;
         return Ambiguity::AMB_SQUARE;
     }
 
@@ -61,9 +61,9 @@ namespace {
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
         ostringstream oss;
-        if (abs (v) < +VALUE_MATE - i32(MaxDepth))
+        if (abs(v) < +VALUE_MATE - i32(MaxDepth))
         {
-            oss << std::showpos << std::setprecision (2) << std::fixed << value_to_cp (v) / 100.0 << std::noshowpos;
+            oss << std::showpos << std::setprecision(2) << std::fixed << value_to_cp(v) / 100.0 << std::noshowpos;
         }
         else
         {
@@ -89,12 +89,12 @@ namespace {
         time      /= 10;
 
         ostringstream oss;
-        oss << std::setfill ('0')
-            << std::setw (2) << hours   << ":"
-            << std::setw (2) << minutes << ":"
-            << std::setw (2) << seconds << "."
-            << std::setw (2) << time
-            << std::setfill (' ');
+        oss << std::setfill('0')
+            << std::setw(2) << hours   << ":"
+            << std::setw(2) << minutes << ":"
+            << std::setw(2) << seconds << "."
+            << std::setw(2) << time
+            << std::setfill(' ');
         return oss.str ();
     }
 }
@@ -104,34 +104,34 @@ namespace {
 ///  - e1g1 notation in normal chess mode,
 ///  - e1h1 notation in chess960 mode.
 /// Internally castle moves are always coded as "king captures rook".
-string move_to_can (Move m)
+string move_to_can(Move m)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
     ostringstream oss;
-    oss << to_string (org_sq (m))
-        << to_string (fix_dst_sq (m, bool(Options["UCI_Chess960"])));
-    if (PROMOTE == mtype (m))
+    oss << to_string(org_sq(m))
+        << to_string(fix_dst_sq(m, bool(Options["UCI_Chess960"])));
+    if (PROMOTE == mtype(m))
     {
-        oss << (BLACK|promote (m));
+        oss << (BLACK|promote(m));
     }
     return oss.str ();
 }
 /// Converts a string representing a move in coordinate algebraic notation
 /// to the corresponding legal move, if any.
-Move move_from_can (const string &can, const Position &pos)
+Move move_from_can(string const &can, Position const &pos)
 {
     //// If promotion piece in uppercase, convert to lowercase
-    //if (   5 == can.length ()
-    //    && isupper (int(can[4])))
+    //if (   5 == can.size()
+    //    && isupper(can[4]))
     //{
-    //    can[4] = char(tolower (int(can[4])));
+    //    can[4] = char(tolower(can[4]));
     //}
-    assert(5 > can.length ()
-        || islower (int(can[4])));
-    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+    assert(5 > can.size()
+        || islower(can[4]));
+    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
     {
-        if (can == move_to_can (vm))
+        if (can == move_to_can(vm))
         {
             return vm;
         }
@@ -140,35 +140,35 @@ Move move_from_can (const string &can, const Position &pos)
 }
 
 /// Converts a move to a string in short algebraic notation.
-string move_to_san (Move m, Position &pos)
+string move_to_san(Move m, Position &pos)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
-    assert(MoveList<GenType::LEGAL> (pos).contains (m));
+    assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
     ostringstream oss;
-    auto org = org_sq (m);
-    auto dst = dst_sq (m);
+    auto org = org_sq(m);
+    auto dst = dst_sq(m);
 
-    if (CASTLE != mtype (m))
+    if (CASTLE != mtype(m))
     {
-        auto pt = ptype (pos[org]);
+        auto pt = ptype(pos[org]);
         if (PAWN != pt)
         {
             oss << (WHITE|pt);
             if (KING != pt)
             {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'dst' with a legal move.
-                switch (ambiguity (m, pos))
+                switch (ambiguity(m, pos))
                 {
                 case Ambiguity::AMB_RANK:
-                    oss << to_char (_file (org));
+                    oss << to_char(_file(org));
                     break;
                 case Ambiguity::AMB_FILE:
-                    oss << to_char (_rank (org));
+                    oss << to_char(_rank(org));
                     break;
                 case Ambiguity::AMB_SQUARE:
-                    oss << to_string (org);
+                    oss << to_string(org);
                     break;
                 case Ambiguity::AMB_NONE:
                 default:
@@ -177,21 +177,21 @@ string move_to_san (Move m, Position &pos)
             }
         }
 
-        if (pos.capture (m))
+        if (pos.capture(m))
         {
             if (PAWN == pt)
             {
-                oss << to_char (_file (org));
+                oss << to_char(_file(org));
             }
             oss << "x";
         }
 
-        oss << to_string (dst);
+        oss << to_string(dst);
 
         if (   PAWN == pt
-            && PROMOTE == mtype (m))
+            && PROMOTE == mtype(m))
         {
-            oss << "=" << (WHITE|promote (m));
+            oss << "=" << (WHITE|promote(m));
         }
     }
     else
@@ -200,23 +200,23 @@ string move_to_san (Move m, Position &pos)
     }
 
     // Move marker for check & checkmate
-    if (pos.gives_check (m))
+    if (pos.gives_check(m))
     {
         StateInfo si;
-        pos.do_move (m, si, true);
-        oss << (0 != MoveList<GenType::LEGAL> (pos).size () ? "+" : "#");
-        pos.undo_move (m);
+        pos.do_move(m, si, true);
+        oss << (0 != MoveList<GenType::LEGAL>(pos).size() ? "+" : "#");
+        pos.undo_move(m);
     }
 
     return oss.str ();
 }
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
-Move move_from_san (const string &san, Position &pos)
+Move move_from_san(string const &san, Position &pos)
 {
-    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
     {
-        if (san == move_to_san (vm, pos))
+        if (san == move_to_san(vm, pos))
         {
             return vm;
         }
@@ -229,15 +229,15 @@ Move move_from_san (const string &san, Position &pos)
 //{
 //    if (MOVE_NONE == m) return "(none)";
 //    if (MOVE_NULL == m) return "(null)";
-//    assert(MoveList<GenType::LEGAL> (pos).contains (m));
+//    assert(MoveList<GenType::LEGAL>(pos).contains(m));
 //    string lan;
 //    return lan;
 //}
 ///// Converts a string representing a move in long algebraic notation
 ///// to the corresponding legal move, if any.
-//Move move_from_lan (const string &lan, Position &pos)
+//Move move_from_lan (string const &lan, Position &pos)
 //{
-//    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+//    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
 //    {
 //        if (lan == move_to_lan (vm, pos))
 //        {
@@ -249,17 +249,17 @@ Move move_from_san (const string &san, Position &pos)
 
 /// multipv_info() formats PV information according to UCI protocol.
 /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
-string multipv_info (const Thread *const &th, i16 depth, Value alfa, Value beta)
+string multipv_info(Thread const *const &th, i16 depth, Value alfa, Value beta)
 {
-    auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), TimePoint(1));
+    auto elapsed_time = std::max(Threadpool.main_thread()->time_mgr.elapsed_time(), TimePoint(1));
     auto &rms = th->root_moves;
     auto pv_cur = th->pv_cur;
 
-    auto total_nodes = Threadpool.nodes ();
-    auto tb_hits = Threadpool.tb_hits ();
+    auto total_nodes = Threadpool.nodes();
+    auto tb_hits = Threadpool.tb_hits();
     if (TBHasRoot)
     {
-        tb_hits += rms.size ();
+        tb_hits += rms.size();
     }
 
     ostringstream oss;
@@ -281,7 +281,7 @@ string multipv_info (const Thread *const &th, i16 depth, Value alfa, Value beta)
                     rms[i].new_value :
                     rms[i].old_value;
         bool tb = TBHasRoot
-                && abs (v) < +VALUE_MATE - i32(MaxDepth);
+                && abs(v) < +VALUE_MATE - i32(MaxDepth);
         if (tb)
         {
             v = rms[i].tb_value;
@@ -291,7 +291,7 @@ string multipv_info (const Thread *const &th, i16 depth, Value alfa, Value beta)
             << " multipv " << i + 1
             << " depth " << d
             << " seldepth " << rms[i].sel_depth
-            << " score " << to_string (v);
+            << " score " << to_string(v);
         if (   !tb
             && i == pv_cur)
         {
@@ -303,7 +303,7 @@ string multipv_info (const Thread *const &th, i16 depth, Value alfa, Value beta)
             << " tbhits " << tb_hits;
         if (elapsed_time > 1000)
         {
-            oss << " hashfull " << TT.hash_full ();
+            oss << " hashfull " << TT.hash_full();
         }
         oss << " pv" << rms[i];
         if (i < Threadpool.pv_limit - 1)
@@ -315,48 +315,48 @@ string multipv_info (const Thread *const &th, i16 depth, Value alfa, Value beta)
 }
 
 /// Returns formated human-readable search information.
-string pretty_pv_info (Thread *const &th)
+string pretty_pv_info(Thread *const &th)
 {
-    u64 nodes = Threadpool.nodes ();
+    u64 nodes = Threadpool.nodes();
 
     ostringstream oss;
-    oss << std::setw ( 4) << th->finished_depth
-        << std::setw ( 8) << pretty_value (th->root_moves[0].new_value)
-        << std::setw (12) << pretty_time (Threadpool.main_thread ()->time_mgr.elapsed_time ());
+    oss << std::setw( 4) << th->finished_depth
+        << std::setw( 8) << pretty_value (th->root_moves[0].new_value)
+        << std::setw(12) << pretty_time (Threadpool.main_thread()->time_mgr.elapsed_time());
 
     if (nodes < 10ULL*1000)
     {
-        oss << std::setw (8) << u16(nodes);
+        oss << std::setw(8) << u16(nodes);
     }
     else
     if (nodes < 10ULL*1000*1000)
     {
-        oss << std::setw (7) << u16(std::round (nodes / 1000.0)) << "K";
+        oss << std::setw(7) << u16(std::round (nodes / 1000.0)) << "K";
     }
     else
     if (nodes < 10ULL*1000*1000*1000)
     {
-        oss << std::setw (7) << u16(std::round (nodes / 1000.0*1000.0)) << "M";
+        oss << std::setw(7) << u16(std::round (nodes / 1000.0*1000.0)) << "M";
     }
     else
     {
-        oss << std::setw (7) << u16(std::round (nodes / 1000.0*1000.0*1000.0)) << "G";
+        oss << std::setw(7) << u16(std::round (nodes / 1000.0*1000.0*1000.0)) << "G";
     }
     oss << " ";
 
     vector<Move> moves;
-    StateListPtr states (new deque<StateInfo> (0));
-    for (const auto &m : th->root_moves[0])
+    StateListPtr states{new deque<StateInfo>(0)};
+    for (auto const &m : th->root_moves[0])
     {
-        oss << move_to_san (m, th->root_pos) << " ";
-        moves.push_back (m);
-        states->emplace_back ();
-        th->root_pos.do_move (m, states->back ());
+        oss << move_to_san(m, th->root_pos) << " ";
+        moves.push_back(m);
+        states->emplace_back();
+        th->root_pos.do_move(m, states->back());
     }
-    for (size_t i = moves.size (); i > 0; --i)
+    for (size_t i = moves.size(); i > 0; --i)
     {
-        th->root_pos.undo_move (moves[i-1]);
-        states->pop_back ();
+        th->root_pos.undo_move(moves[i-1]);
+        states->pop_back();
     }
 
     return oss.str ();

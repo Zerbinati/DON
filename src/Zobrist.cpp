@@ -3,18 +3,17 @@
 #include <cassert>
 #include "Position.h"
 #include "PRNG.h"
-
 using namespace std;
 
 /// Zobrist::compute_matl_key() computes hash key of the material situation.
-Key Zobrist::compute_matl_key (const Position &pos) const
+Key Zobrist::compute_matl_key(Position const &pos) const
 {
     Key matl_key = 0;
-    for (const auto &c : { WHITE, BLACK })
+    for (auto const &c : { WHITE, BLACK })
     {
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (auto const &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (u08 pc = 0; pc < pos.count (c|pt); ++pc)
+            for (u08 pc = 0; pc < pos.count(c|pt); ++pc)
             {
                 matl_key ^= piece_square[c][pt][pc];
             }
@@ -23,13 +22,13 @@ Key Zobrist::compute_matl_key (const Position &pos) const
     return matl_key;
 }
 /// Zobrist::compute_pawn_key() computes hash key of the pawn structure.
-Key Zobrist::compute_pawn_key (const Position &pos) const
+Key Zobrist::compute_pawn_key(Position const &pos) const
 {
     Key pawn_key = 0;
-    for (const auto &c : { WHITE, BLACK })
+    for (auto const &c : { WHITE, BLACK })
     {
         pawn_key ^= piece_square[c][KING][0]; // Include King Key for zero pawns
-        for (const auto &s : pos.squares[c|PAWN])
+        for (auto const &s : pos.squares[c|PAWN])
         {
             pawn_key ^= piece_square[c][PAWN][s];
         }
@@ -37,14 +36,14 @@ Key Zobrist::compute_pawn_key (const Position &pos) const
     return pawn_key;
 }
 /// Zobrist::compute_posi_key() computes hash key of the complete position.
-Key Zobrist::compute_posi_key (const Position &pos) const
+Key Zobrist::compute_posi_key(Position const &pos) const
 {
     Key posi_key = 0;
-    for (const auto &c : { WHITE, BLACK })
+    for (auto const &c : { WHITE, BLACK })
     {
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (auto const &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (const auto &s : pos.squares[c|pt])
+            for (auto const &s : pos.squares[c|pt])
             {
                 posi_key ^= piece_square[c][pt][s];
             }
@@ -57,17 +56,17 @@ Key Zobrist::compute_posi_key (const Position &pos) const
     posi_key ^= castle_right[pos.si->castle_rights];
     if (SQ_NO != pos.si->enpassant_sq)
     {
-        posi_key ^= enpassant[_file (pos.si->enpassant_sq)];
+        posi_key ^= enpassant[_file(pos.si->enpassant_sq)];
     }
     return posi_key;
 }
 ///// Zobrist::compute_fen_key() computes Hash key of the FEN.
-//Key Zobrist::compute_fen_key (const string &fen) const
+//Key Zobrist::compute_fen_key (string const &fen) const
 //{
-//    assert(!white_spaces (fen));
+//    assert(!white_spaces(fen));
 //
 //    Key fen_key = 0;
-//    istringstream iss (fen);
+//    istringstream iss(fen);
 //    iss >> std::noskipws;
 //    u08 token;
 //
@@ -75,7 +74,7 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //    size_t idx;
 //    Square sq = SQ_A8;
 //    while (   (iss >> token)
-//           && !isspace (token))
+//           && !isspace(token))
 //    {
 //        if (isdigit (token))
 //        {
@@ -87,14 +86,14 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //            sq += DEL_S * 2;
 //        }
 //        else
-//        if ((idx = PieceChar.find (token)) != string::npos)
+//        if ((idx = PieceChar.find(token)) != string::npos)
 //        {
 //            auto p = Piece(idx);
-//            if (KING == ptype (p))
+//            if (KING == ptype(p))
 //            {
-//                kf[color (p)] = _file (sq);
+//                kf[color(p)] = _file(sq);
 //            }
-//            fen_key ^= piece_square[color (p)][ptype (p)][sq];
+//            fen_key ^= piece_square[color(p)][ptype(p)][sq];
 //            ++sq;
 //        }
 //        else
@@ -106,22 +105,22 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //        && F_NO != kf[BLACK]);
 //
 //    iss >> token;
-//    if (WHITE == Color(ColorChar.find (token)))
+//    if (WHITE == Color(ColorChar.find(token)))
 //    {
 //        fen_key ^= color;
 //    }
 //
 //    iss >> token;
 //    while (   (iss >> token)
-//           && !isspace (token))
+//           && !isspace(token))
 //    {
 //        if (token == '-')
 //        {
 //            continue;
 //        }
 //
-//        auto c = isupper (token) ? WHITE : BLACK;
-//        token = char(tolower (token));
+//        auto c = isupper(token) ? WHITE : BLACK;
+//        token = char(tolower(token));
 //        if ('k' == token)
 //        {
 //            fen_key ^= castle_right[c|CS_KING];
@@ -135,7 +134,7 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //        // Chess960
 //        if ('a' <= token && token <= 'h')
 //        {
-//            fen_key ^= castle_right[c|(kf[c] < to_file (token) ? CS_KING : CS_QUEN)];
+//            fen_key ^= castle_right[c|(kf[c] < to_file(token) ? CS_KING : CS_QUEN)];
 //        }
 //        else
 //        {
@@ -147,26 +146,26 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //    if (   (iss >> file && ('a' <= file && file <= 'h'))
 //        && (iss >> rank && ('3' == rank || rank == '6')))
 //    {
-//        fen_key ^= enpassant[to_file (file)];
+//        fen_key ^= enpassant[to_file(file)];
 //    }
 //
 //    return fen_key;
 //}
 
-void zobrist_initialize ()
+void zobrist_initialize()
 {
     assert(PolyZob.color == U64(0xF8D626AAAF278509));
 
-    static PRNG prng (0x105524);
+    PRNG static prng(0x105524);
 
     // Initialize Random Zobrist
-    for (const auto &c : { WHITE, BLACK })
+    for (auto const &c : { WHITE, BLACK })
     {
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (auto const &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (const auto &s : SQ)
+            for (auto const &s : SQ)
             {
-                RandZob.piece_square[c][pt][s] = prng.rand<Key> ();
+                RandZob.piece_square[c][pt][s] = prng.rand<Key>();
             }
         }
     }
@@ -176,15 +175,15 @@ void zobrist_initialize ()
         Bitboard b = cr;
         while (0 != b)
         {
-            auto k = RandZob.castle_right[1U << pop_lsq (b)];
-            RandZob.castle_right[cr] ^= 0 != k ? k : prng.rand<Key> ();
+            auto k = RandZob.castle_right[1U << pop_lsq(b)];
+            RandZob.castle_right[cr] ^= 0 != k ? k : prng.rand<Key>();
         }
     }
-    for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+    for (auto const &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
     {
-        RandZob.enpassant[f] = prng.rand<Key> ();
+        RandZob.enpassant[f] = prng.rand<Key>();
     }
-    RandZob.color = prng.rand<Key> ();
+    RandZob.color = prng.rand<Key>();
 }
 
 // Random numbers from PRNG, used to compute position key

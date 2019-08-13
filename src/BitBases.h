@@ -5,9 +5,9 @@
 
 namespace BitBases {
 
-    extern void initialize ();
+    extern void initialize();
 
-    extern bool probe (Color, Square, Square, Square);
+    extern bool probe(Color, Square, Square, Square);
 
 }
 

@@ -22,16 +22,18 @@ public:
     TimePoint optimum_time;
     TimePoint maximum_time;
 
-    u64 available_nodes = 0;
+    u64 available_nodes;
 
-    TimeManager () {}
-    TimeManager (const TimeManager&) = delete;
-    TimeManager& operator= (const TimeManager&) = delete;
+    TimeManager()
+        : available_nodes{0}
+    {}
+    TimeManager(TimeManager const&) = delete;
+    TimeManager& operator=(TimeManager const&) = delete;
 
-    TimePoint elapsed_time () const;
+    TimePoint elapsed_time() const;
 
-    void set (Color, i16, u16, TimePoint, TimePoint, double, bool);
-    void update (Color);
+    void set(Color, i16, u16, TimePoint, TimePoint, double, bool);
+    void update(Color);
 };
 
 // MaxLevel should be <= MaxDepth/4
@@ -41,26 +43,26 @@ const i16 MaxLevel = 24;
 class SkillManager
 {
 public:
-    static PRNG Prng;
+    PRNG static prng;
     
     i16 level;
     Move best_move;
 
     SkillManager ()
     {
-        set (MaxLevel, MOVE_NONE);
+        set(MaxLevel, MOVE_NONE);
     }
     SkillManager (const SkillManager&) = delete;
-    SkillManager& operator= (const SkillManager&) = delete;
+    SkillManager& operator=(const SkillManager&) = delete;
 
-    void set (i16 lvl, Move bm)
+    void set(i16 lvl, Move bm)
     {
         level = lvl;
         best_move = bm;
     }
     bool enabled () const { return level < MaxLevel; }
 
-    void pick_best_move ();
+    void pick_best_move();
 };
 
 /// Thread class keeps together all the thread-related stuff.
@@ -111,20 +113,20 @@ public:
     Pawns::Table        pawn_table;
     Material::Table     matl_table;
 
-    explicit Thread (size_t);
-    Thread () = delete;
-    Thread (const Thread&) = delete;
-    Thread& operator= (const Thread&) = delete;
+    explicit Thread(size_t);
+    Thread() = delete;
+    Thread(Thread const&) = delete;
+    Thread& operator=(Thread const&) = delete;
 
-    virtual ~Thread ();
+    virtual ~Thread();
 
-    void start ();
-    void wait_while_busy ();
+    void start();
+    void wait_while_busy();
 
-    void idle_loop ();
+    void idle_function();
 
-    virtual void clear ();
-    virtual void search ();
+    virtual void clear();
+    virtual void search();
 };
 
 /// MainThread class is derived from Thread class used specific for main thread.
@@ -149,24 +151,24 @@ public:
     Move   best_move;
     i16    best_move_depth;
 
-    explicit MainThread (size_t);
-    MainThread () = delete;
-    MainThread (const MainThread&) = delete;
-    MainThread& operator= (const MainThread&) = delete;
+    explicit MainThread(size_t);
+    MainThread() = delete;
+    MainThread(MainThread const&) = delete;
+    MainThread& operator=(MainThread const&) = delete;
 
-    void clear () override;
-    void search () override;
+    void clear() override;
+    void search() override;
 
-    void set_check_count ();
-    void tick ();
+    void set_check_count();
+    void tick();
 };
 
 namespace WinProcGroup {
 
     extern std::vector<i16> Groups;
 
-    extern void initialize ();
-    extern void bind (size_t);
+    extern void initialize();
+    extern void bind(size_t);
 }
 
 /// ThreadPool class handles all the threads related stuff like,
@@ -180,12 +182,12 @@ private:
     StateListPtr setup_states;
 
     template<typename T>
-    T accumulate (std::atomic<T> Thread::*member) const
+    T accumulate(std::atomic<T> Thread::*member) const
     {
         T sum = 0;
-        for (const auto *th : *this)
+        for (auto const *th : *this)
         {
-            sum += (th->*member).load (std::memory_order::memory_order_relaxed);
+            sum += (th->*member).load(std::memory_order::memory_order_relaxed);
         }
         return sum;
     }
@@ -196,21 +198,21 @@ public:
 
     std::atomic<bool> stop; // Stop search forcefully
 
-    ThreadPool () = default;
-    ThreadPool (const ThreadPool&) = delete;
-    ThreadPool& operator= (const ThreadPool&) = delete;
+    ThreadPool() = default;
+    ThreadPool(ThreadPool const&) = delete;
+    ThreadPool& operator=(ThreadPool const&) = delete;
 
-    MainThread* main_thread () const { return static_cast<MainThread*> (front ()); }
-    u64 nodes () const { return accumulate (&Thread::nodes); }
-    u64 tb_hits () const { return accumulate (&Thread::tb_hits); }
-    u32 pv_change () const { return accumulate (&Thread::pv_change); }
+    MainThread* main_thread() const { return static_cast<MainThread*>(front()); }
+    u64      nodes() const { return accumulate(&Thread::nodes); }
+    u64    tb_hits() const { return accumulate(&Thread::tb_hits); }
+    u32 pv_change () const { return accumulate(&Thread::pv_change); }
 
-    const Thread* best_thread () const;
+    const Thread* best_thread() const;
 
-    void clear ();
-    void configure (u32);
+    void clear();
+    void configure(u32);
 
-    void start_thinking (Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
+    void start_thinking(Position&, StateListPtr&, Limit const&, std::vector<Move> const&, bool = false);
 };
 
 
@@ -223,12 +225,12 @@ enum OutputState : u08
 extern Mutex OutputMutex;
 
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream &os, OutputState state)
+inline std::ostream& operator<<(std::ostream &os, OutputState state)
 {
     switch (state)
     {
-    case OutputState::OS_LOCK:   OutputMutex.lock (); break;
-    case OutputState::OS_UNLOCK: OutputMutex.unlock (); break;
+    case OutputState::OS_LOCK:   OutputMutex.lock();   break;
+    case OutputState::OS_UNLOCK: OutputMutex.unlock(); break;
     default: break;
     }
     return os;

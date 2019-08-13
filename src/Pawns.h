@@ -23,18 +23,19 @@ namespace Pawns {
         std::array<std::array<u08, MaxCache>, CLR_NO>    king_pawn_dist;
         std::array<std::array<Score, MaxCache>, CLR_NO>  king_safety;
 
-        i32 passed_count () const
+        i32 passed_count() const
         {
-            return pop_count (passers[WHITE] | passers[BLACK]);
+            return pop_count(passers[WHITE] | passers[BLACK]);
         }
 
         template<Color Own>
-        Score evaluate_safety (const Position&, Square) const;
+        Score evaluate_safety (Position const&, Square) const;
 
         template<Color Own>
-        u08 king_safety_on (const Position &pos, Square own_k_sq)
+        u08 king_safety_on(Position const &pos, Square own_k_sq)
         {
-            auto idx = std::find (king_square[Own].begin (), king_square[Own].begin () + index[Own] + 1, own_k_sq) - king_square[Own].begin ();
+            auto idx = std::find(king_square[Own].begin(), king_square[Own].begin() + index[Own] + 1, own_k_sq)
+                     - king_square[Own].begin();
             assert(0 <= idx);
             if (idx <= index[Own])
             {
@@ -47,7 +48,7 @@ namespace Pawns {
                 ++index[Own];
             }
 
-            Bitboard pawns = pos.pieces (Own, PAWN);
+            Bitboard pawns = pos.pieces(Own, PAWN);
             u08 kp_dist;
             if (0 != pawns)
             {
@@ -60,7 +61,7 @@ namespace Pawns {
                     kp_dist = 8;
                     while (0 != pawns)
                     {
-                        kp_dist = std::min ((u08)dist (own_k_sq, pop_lsq (pawns)), kp_dist);
+                        kp_dist = std::min((u08)dist(own_k_sq, pop_lsq(pawns)), kp_dist);
                     }
                 }
             }
@@ -71,7 +72,7 @@ namespace Pawns {
 
             king_square[Own][idx] = own_k_sq;
             king_pawn_dist[Own][idx] = kp_dist;
-            king_safety[Own][idx] = evaluate_safety<Own> (pos, own_k_sq);
+            king_safety[Own][idx] = evaluate_safety<Own>(pos, own_k_sq);
             return u08(idx);
         }
 
@@ -79,7 +80,7 @@ namespace Pawns {
 
     typedef HashTable<Entry, 0x20000> Table;
 
-    extern Entry* probe (const Position&);
+    extern Entry* probe(Position const&);
 }
 
 #endif // _PAWNS_H_INC_

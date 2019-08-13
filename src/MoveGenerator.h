@@ -16,9 +16,9 @@ enum GenType : u08
 };
 
 template<GenType>
-extern void generate (ValMoves&, const Position&);
+extern void generate (ValMoves&, Position const&);
 
-extern void filter_illegal (ValMoves&, const Position&);
+extern void filter_illegal(ValMoves&, Position const&);
 
 template<GenType GT, PieceType PT = NONE>
 class MoveList
@@ -26,27 +26,26 @@ class MoveList
 {
 public:
 
-    MoveList () = delete;
-    //MoveList (const MoveList&) = delete;
+    MoveList() = delete;
+    //MoveList(MoveList const&) = delete;
 
-    explicit MoveList (const Position &pos)
+    explicit MoveList(Position const &pos)
     {
-        generate<GT> (*this, pos);
+        generate<GT>(*this, pos);
         //if (NONE != PT)
         //{
-        //    erase (std::remove_if (begin (),
-        //                           end (),
-        //                           [&pos] (const ValMove &vm)
-        //                           {
-        //                               return PT != ptype (pos[org_sq (vm)]);
-        //                           }),
-        //            end ());
+        //    erase(std::remove_if(begin(), end(),
+        //                        [&pos] (ValMove const&vm)
+        //                        {
+        //                            return PT != ptype(pos[org_sq(vm)]);
+        //                        }),
+        //            end());
         //}
     }
 
-    bool contains (Move move) const
+    bool contains(Move move) const
     {
-        return std::find (begin (), end (), move) != end ();
+        return std::find(begin(), end(), move) != end();
     }
 };
 
@@ -60,11 +59,11 @@ struct Perft
     u64 dsc_check;
     u64 dbl_check;
     u64 castle;
-    u64 promote;
+    u64 promotion;
     u64 checkmate;
     //u64 stalemate;
 
-    Perft ()
+    Perft()
     {
         moves     = 0;
         any       = 0;
@@ -74,12 +73,12 @@ struct Perft
         dsc_check = 0;
         dbl_check = 0;
         castle    = 0;
-        promote   = 0;
+        promotion = 0;
         checkmate = 0;
         //stalemate = 0;
     }
 
-    void operator+= (const Perft &p)
+    void operator+=(Perft const &p)
     {
         any       += p.any;
         capture   += p.capture;
@@ -88,11 +87,11 @@ struct Perft
         dsc_check += p.dsc_check;
         dbl_check += p.dbl_check;
         castle    += p.castle;
-        promote   += p.promote;
+        promotion += p.promotion;
         checkmate += p.checkmate;
         //stalemate += p.stalemate;
     }
-    void operator-= (const Perft &p)
+    void operator-=(Perft const &p)
     {
         any       -= p.any;
         capture   -= p.capture;
@@ -101,12 +100,12 @@ struct Perft
         dsc_check -= p.dsc_check;
         dbl_check -= p.dbl_check;
         castle    -= p.castle;
-        promote   -= p.promote;
+        promotion -= p.promotion;
         checkmate -= p.checkmate;
         //stalemate -= p.stalemate;
     }
 
-    void classify (Position&, Move);
+    void classify(Position&, Move);
 };
 
 template<bool RootNode>

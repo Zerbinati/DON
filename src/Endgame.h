@@ -54,14 +54,14 @@ namespace Endgames {
         const Color strong_color
             ,         weak_color;
 
-        explicit EndgameBase (Color c)
-            : strong_color ( c)
-            ,   weak_color (~c)
+        explicit EndgameBase(Color c)
+            : strong_color{ c}
+            ,   weak_color{~c}
         {}
         virtual ~EndgameBase () = default;
-        EndgameBase& operator= (const EndgameBase&) = delete;
+        EndgameBase& operator=(EndgameBase const&) = delete;
 
-        virtual T operator() (const Position&) const = 0;
+        virtual T operator()(Position const&) const = 0;
     };
 
     /// Derived functors for endgame evaluation and scaling functions
@@ -70,13 +70,13 @@ namespace Endgames {
         : public EndgameBase<T>
     {
     public:
-        explicit Endgame (Color c)
-            : EndgameBase<T> (c)
+        explicit Endgame(Color c)
+            : EndgameBase<T>{c}
         {}
         virtual ~Endgame () = default;
-        Endgame& operator= (const Endgame&) = delete;
+        Endgame& operator=(Endgame const&) = delete;
 
-        T operator() (const Position&) const override;
+        T operator()(Position const&) const override;
     };
 
 
@@ -88,20 +88,20 @@ namespace Endgames {
     extern EG_MapPair<Value, Scale> EndgameMapPair;
 
     template<typename T>
-    EG_Map<T>& map ()
+    EG_Map<T>& map()
     {
-        return std::get<std::is_same<T, Scale>::value> (EndgameMapPair);
+        return std::get<std::is_same<T, Scale>::value>(EndgameMapPair);
     }
 
     template<typename T>
-    const EndgameBase<T>* probe (Key matl_key)
+    const EndgameBase<T>* probe(Key matl_key)
     {
-        return map<T> ().count (matl_key) != 0 ?
-                map<T> ()[matl_key].get () :
+        return map<T>().find(matl_key) != map<T>().end() ?
+                map<T>()[matl_key].get() :
                 nullptr;
     }
 
-    extern void initialize ();
+    extern void initialize();
 }
 
 #endif // _ENDGAME_H_INC_

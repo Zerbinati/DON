@@ -32,24 +32,24 @@ public:
     // "Generation" variable distinguish transposition table entries from different searches.
     static u08 Generation;
 
-    TEntry () = default;
+    TEntry() = default;
 
-    Move  move       () const { return Move (m16); }
-    Value value      () const { return Value(v16); }
-    Value eval       () const { return Value(e16); }
-    i16   depth      () const { return i16  (d08 + DepthEmpty); }
-    u08   generation () const { return u08  (g08 & 0xF8); }
-    bool  is_pv      () const { return 0 != (g08 & 0x04); }
-    Bound bound      () const { return Bound(g08 & 0x03); }
-    bool  empty      () const { return 0 == d08; }
+    Move       move() const { return Move (m16); }
+    Value     value() const { return Value(v16); }
+    Value      eval() const { return Value(e16); }
+    i16       depth() const { return i16  (d08 + DepthEmpty); }
+    u08  generation() const { return u08  (g08 & 0xF8); }
+    bool      is_pv() const { return 0 != (g08 & 0x04); }
+    Bound     bound() const { return Bound(g08 & 0x03); }
+    bool      empty() const { return 0 == d08; }
     // Due to packed storage format for generation and its cyclic nature
     // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
     // to calculate the entry age correctly even after generation overflows into the next cycle.
-    i16 worth () const { return d08 - ((Generation - g08 + 0x107) & 0xF8) * 2; }
+    i16 worth() const { return d08 - ((Generation - g08 + 0x107) & 0xF8) * 2; }
 
-    void refresh () { g08 = u08(Generation + (g08 & 0x07)); }
+    void refresh() { g08 = u08(Generation + (g08 & 0x07)); }
 
-    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, u08 pv)
+    void save(u64 k, Move m, Value v, Value e, i16 d, Bound b, u08 pv)
     {
         // Preserve more valuable entries
         if (   MOVE_NONE != m
@@ -69,7 +69,7 @@ public:
             d08 = u08(d - DepthEmpty);
             g08 = u08(Generation | pv | b);
         }
-        assert(!empty ());
+        assert(!empty());
     }
 };
 
@@ -89,17 +89,17 @@ public:
     TEntry entries[EntryCount];
     char padding[2]; // Align to a divisor of the cache line size
 
-    TCluster () = default;
+    TCluster() = default;
 
-    TEntry *probe (u16, bool&);
+    TEntry *probe(u16, bool&);
 
-    void clear ();
+    void clear();
 
-    size_t fresh_entry_count () const;
+    size_t fresh_entry_count() const;
 
 };
 
-/// Size of Transposition cluster (32 bytes)
+/// Size of Transposition cluster(32 bytes)
 static_assert (CacheLineSize % sizeof (TCluster) == 0, "Cluster size incorrect");
 
 /// Transposition::Table consists of a power of 2 number of clusters
@@ -112,97 +112,97 @@ static_assert (CacheLineSize % sizeof (TCluster) == 0, "Cluster size incorrect")
 class TTable
 {
 private:
-    void alloc_aligned_memory (size_t, u32);
-    void free_aligned_memory ();
+    void alloc_aligned_memory(size_t, u32);
+    void free_aligned_memory();
 
 public:
     // Minimum size of Table (MB)
-    static constexpr u32 MinHashSize = 4;
+    u32 static constexpr MinHashSize = 4;
     // Maximum size of Table (MB)
-    static constexpr u32 MaxHashSize =
+    u32 static constexpr MaxHashSize =
 #       if defined(BIT64)
             128 * 1024
 #       else
             2 * 1024
 #       endif
         ;
-    static constexpr u32 BufferSize = 0x10000;
+    u32 static constexpr BufferSize = 0x10000;
 
     void *mem;
     TCluster *clusters;
     size_t cluster_count;
 
-    TTable () = default;
-    TTable (const TTable&) = delete;
-    TTable& operator= (const TTable&) = delete;
-   ~TTable ()
+    TTable() = default;
+    TTable(const TTable&) = delete;
+    TTable& operator=(const TTable&) = delete;
+   ~TTable()
     {
-        free_aligned_memory ();
+        free_aligned_memory();
     }
 
     /// size() returns hash size in MB
-    u32 size () const
+    u32 size() const
     {
         return u32((cluster_count * sizeof (TCluster)) >> 20);
     }
 
     /// cluster() returns a pointer to the cluster of given a key.
     /// Lower 32 bits of the key are used to get the index of the cluster.
-    TCluster* cluster (Key key) const
+    TCluster* cluster(Key key) const
     {
         return &clusters[(u32(key) * u64(cluster_count)) >> 32];
     }
 
-    u32 resize (u32);
+    u32 resize(u32);
 
-    void auto_resize (u32);
+    void auto_resize(u32);
 
-    void clear ();
+    void clear();
 
-    TEntry* probe (Key, bool&) const;
+    TEntry* probe(Key, bool&) const;
 
-    u32 hash_full () const;
+    u32 hash_full() const;
 
-    Move extract_opp_move (Position&, Move) const;
+    Move extract_opp_move(Position&, Move) const;
 
-    void save (const std::string&) const;
-    void load (const std::string&);
+    void save(std::string const&) const;
+    void load(std::string const&);
 
     template<typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const TTable &tt)
+        operator<<(std::basic_ostream<CharT, Traits> &os, TTable const &tt)
     {
-        u32 mem_size = tt.size ();
+        u32 mem_size = tt.size();
         u08 dummy = 0;
-        os.write ((const CharT*)(&mem_size), sizeof (mem_size));
-        os.write ((const CharT*)(&dummy), sizeof (dummy));
-        os.write ((const CharT*)(&dummy), sizeof (dummy));
-        os.write ((const CharT*)(&dummy), sizeof (dummy));
-        os.write ((const CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
-        os.write ((const CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
+        os.write((CharT const*)(&mem_size), sizeof (mem_size));
+        os.write((CharT const*)(&dummy), sizeof (dummy));
+        os.write((CharT const*)(&dummy), sizeof (dummy));
+        os.write((CharT const*)(&dummy), sizeof (dummy));
+        os.write((CharT const*)(&TEntry::Generation), sizeof (TEntry::Generation));
+        os.write((CharT const*)(&tt.cluster_count), sizeof (tt.cluster_count));
         for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
-            os.write ((const CharT*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
+            os.write((CharT const*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
         }
         return os;
     }
 
     template<typename CharT, typename Traits>
     friend std::basic_istream<CharT, Traits>&
-        operator>> (std::basic_istream<CharT, Traits> &is,       TTable &tt)
+        operator>>(std::basic_istream<CharT, Traits> &is, TTable &tt)
     {
         u32 mem_size;
         u08 dummy;
-        is.read ((CharT*)(&mem_size), sizeof (mem_size));
-        is.read ((CharT*)(&dummy), sizeof (dummy));
-        is.read ((CharT*)(&dummy), sizeof (dummy));
-        is.read ((CharT*)(&dummy), sizeof (dummy));
-        is.read ((CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
-        is.read ((CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
-        tt.resize (mem_size);
+        is.read((CharT*)(&mem_size), sizeof (mem_size));
+        is.read((CharT*)(&dummy), sizeof (dummy));
+        is.read((CharT*)(&dummy), sizeof (dummy));
+        is.read((CharT*)(&dummy), sizeof (dummy));
+        is.read((CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
+        is.read((CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
+        tt.resize(mem_size);
         for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
-            is.read ((CharT*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
+            is.read((CharT*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
         }
         return is;
     }

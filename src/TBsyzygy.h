@@ -35,11 +35,11 @@ namespace TBSyzygy {
     extern bool root_probe_dtz (Position&, RootMoves&);
     extern bool root_probe_wdl (Position&, RootMoves&);
 
-    extern void initialize (const std::string&);
+    extern void initialize(std::string const&);
 
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, WDLScore wdl)
+        operator<<(std::basic_ostream<CharT, Traits> &os, WDLScore wdl)
     {
         switch (wdl)
         {
@@ -67,7 +67,7 @@ namespace TBSyzygy {
 
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, ProbeState ps)
+        operator<<(std::basic_ostream<CharT, Traits> &os, ProbeState ps)
     {
         switch (ps)
         {

@@ -33,13 +33,13 @@ private:
     CRITICAL_SECTION cs;
 
 public:
-    Mutex () { InitializeCriticalSection (&cs); }
-    Mutex (const Mutex&) = delete;
-    Mutex& operator= (const Mutex&) = delete;
-   ~Mutex () { DeleteCriticalSection (&cs); }
+    Mutex() { InitializeCriticalSection(&cs); }
+    Mutex(Mutex const&) = delete;
+    Mutex& operator=(Mutex const&) = delete;
+   ~Mutex() { DeleteCriticalSection(&cs); }
 
-    void lock ()   { EnterCriticalSection (&cs); }
-    void unlock () { LeaveCriticalSection (&cs); }
+    void lock()   { EnterCriticalSection(&cs); }
+    void unlock() { LeaveCriticalSection(&cs); }
 };
 
 typedef std::condition_variable_any ConditionVariable;
@@ -68,7 +68,7 @@ private:
     static constexpr size_t TH_STACK_SIZE = 2 * 1024 * 1024;
 
     template <class T, class P = std::pair<T*, void(T::*)()>>
-    static void* start_routine (void *arg)
+    static void* start_routine(void *arg)
     {
         P *p = reinterpret_cast<P*>(arg);
         (p->first->*(p->second))(); // Call member function pointer
@@ -80,15 +80,15 @@ private:
 
 public:
     template<class T, class P = std::pair<T*, void (T::*)()>>
-    explicit NativeThread (void (T::*fun)(), T *obj)
+    explicit NativeThread(void (T::*fun)(), T *obj)
     {
         pthread_attr_t attribute;
-        pthread_attr_init (&attribute);
-        pthread_attr_setstacksize (&attribute, TH_STACK_SIZE);
-        pthread_create (&thread, &attribute, start_routine<T>, new P (obj, fun));
+        pthread_attr_init(&attribute);
+        pthread_attr_setstacksize(&attribute, TH_STACK_SIZE);
+        pthread_create(&thread, &attribute, start_routine<T>, new P(obj, fun));
     }
 
-    void join () { pthread_join (thread, NULL); }
+    void join() { pthread_join(thread, NULL); }
 };
 
 #else // Default case: use STL classes

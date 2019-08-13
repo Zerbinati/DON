@@ -41,35 +41,35 @@ namespace Material {
         // the function maps because they correspond to more than one material hash key.
         Endgame<KXK>    ValueKXK[CLR_NO] =
         {
-            Endgame<KXK> (WHITE),
-            Endgame<KXK> (BLACK)
+            Endgame<KXK>(WHITE),
+            Endgame<KXK>(BLACK)
         };
         // Endgame generic scale functions
         Endgame<KPKP>   ScaleKPKP[CLR_NO] =
         {
-            Endgame<KPKP> (WHITE),
-            Endgame<KPKP> (BLACK)
+            Endgame<KPKP>(WHITE),
+            Endgame<KPKP>(BLACK)
         };
         Endgame<KPsK>   ScaleKPsK[CLR_NO] =
         {
-            Endgame<KPsK> (WHITE),
-            Endgame<KPsK> (BLACK)
+            Endgame<KPsK>(WHITE),
+            Endgame<KPsK>(BLACK)
         };
         Endgame<KBPsKP> ScaleKBPsKP[CLR_NO] =
         {
-            Endgame<KBPsKP> (WHITE),
-            Endgame<KBPsKP> (BLACK)
+            Endgame<KBPsKP>(WHITE),
+            Endgame<KBPsKP>(BLACK)
         };
         Endgame<KQKRPs> ScaleKQKRPs[CLR_NO] =
         {
-            Endgame<KQKRPs> (WHITE),
-            Endgame<KQKRPs> (BLACK)
+            Endgame<KQKRPs>(WHITE),
+            Endgame<KQKRPs>(BLACK)
         } ;
 
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 imbalance (const i32 (*count)[NONE])
+        i32 imbalance(i32 const (*count)[NONE])
         {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -105,7 +105,7 @@ namespace Material {
 
     /// Material::probe() looks up a current position's material configuration in the material hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe (const Position &pos)
+    Entry* probe(Position const &pos)
     {
         auto *e = pos.thread->matl_table[pos.si->matl_key];
 
@@ -117,26 +117,26 @@ namespace Material {
         e->key = pos.si->matl_key;
 
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        e->phase = i32(clamp (VALUE_ENDGAME, pos.non_pawn_material (), VALUE_MIDGAME) - VALUE_ENDGAME)
+        e->phase = i32(clamp(pos.non_pawn_material(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME)
                  * PhaseResolution
-                 / (VALUE_MIDGAME - VALUE_ENDGAME);
+                 / i32(VALUE_MIDGAME - VALUE_ENDGAME);
         e->imbalance = SCORE_ZERO;
-        e->scale.fill (SCALE_NORMAL);
-        e->scale_func.fill (nullptr);
+        e->scale.fill(SCALE_NORMAL);
+        e->scale_func.fill(nullptr);
 
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        e->value_func = Endgames::probe<Value> (pos.si->matl_key);
+        e->value_func = Endgames::probe<Value>(pos.si->matl_key);
         if (nullptr != e->value_func)
         {
             return e;
         }
         // Generic evaluation
-        for (const auto &c : { WHITE, BLACK })
+        for (auto const &c : { WHITE, BLACK })
         {
-            if (   pos.non_pawn_material ( c) >= VALUE_MG_ROOK
-                && pos.count (~c) == 1)
+            if (   pos.non_pawn_material( c) >= VALUE_MG_ROOK
+                && pos.count(~c) == 1)
             {
                 e->value_func = &ValueKXK[c];
                 return e;
@@ -148,7 +148,7 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        const auto *scale_func = Endgames::probe<Scale> (pos.si->matl_key);
+        auto const *scale_func = Endgames::probe<Scale>(pos.si->matl_key);
         if (nullptr != scale_func)
         {
             e->scale_func[scale_func->strong_color] = scale_func;
@@ -157,21 +157,21 @@ namespace Material {
 
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
-        for (const auto &c : { WHITE, BLACK })
+        for (auto const &c : { WHITE, BLACK })
         {
-            if (   pos.non_pawn_material ( c) == VALUE_MG_BSHP
-                //&& pos.count ( c|BSHP) == 1
-                && pos.count ( c|PAWN) != 0)
+            if (   pos.non_pawn_material( c) == VALUE_MG_BSHP
+                //&& pos.count( c|BSHP) == 1
+                && pos.count( c|PAWN) != 0)
             {
                 e->scale_func[c] = &ScaleKBPsKP[c];
             }
             else
-            if (   pos.non_pawn_material ( c) == VALUE_MG_QUEN
-                //&& pos.count ( c|QUEN) == 1
-                && pos.count ( c|PAWN) == 0
-                && pos.non_pawn_material (~c) == VALUE_MG_ROOK
-                //&& pos.count (~c|ROOK) == 1
-                && pos.count (~c|PAWN) != 0)
+            if (   pos.non_pawn_material( c) == VALUE_MG_QUEN
+                //&& pos.count( c|QUEN) == 1
+                && pos.count( c|PAWN) == 0
+                && pos.non_pawn_material(~c) == VALUE_MG_ROOK
+                //&& pos.count(~c|ROOK) == 1
+                && pos.count(~c|PAWN) != 0)
             {
                 e->scale_func[c] = &ScaleKQKRPs[c];
             }
@@ -179,34 +179,34 @@ namespace Material {
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
-            if (   pos.count ( c|PAWN) == 0
-                && abs (  pos.non_pawn_material ( c)
-                        - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
+            if (   pos.count( c|PAWN) == 0
+                && abs(  pos.non_pawn_material( c)
+                       - pos.non_pawn_material(~c)) <= VALUE_MG_BSHP)
             {
-                e->scale[c] = pos.non_pawn_material ( c) <  VALUE_MG_ROOK ?
+                e->scale[c] = pos.non_pawn_material( c) <  VALUE_MG_ROOK ?
                                 SCALE_DRAW :
-                                Scale(pos.non_pawn_material (~c) <= VALUE_MG_BSHP ? 4 : 14);
+                                Scale(pos.non_pawn_material(~c) <= VALUE_MG_BSHP ? 4 : 14);
             }
         }
 
         // Only pawns left
-        if (   pos.non_pawn_material () == VALUE_ZERO
-            && pos.pieces (PAWN) != 0)
+        if (   pos.non_pawn_material() == VALUE_ZERO
+            && pos.pieces(PAWN) != 0)
         {
-            if (pos.pieces (BLACK, PAWN) == 0)
+            if (pos.pieces(BLACK, PAWN) == 0)
             {
-                assert(2 <= pos.count (WHITE|PAWN));
+                assert(2 <= pos.count(WHITE|PAWN));
                 e->scale_func[WHITE] = &ScaleKPsK[WHITE];
             }
             else
-            if (pos.pieces (WHITE, PAWN) == 0)
+            if (pos.pieces(WHITE, PAWN) == 0)
             {
-                assert(2 <= pos.count (BLACK|PAWN));
+                assert(2 <= pos.count(BLACK|PAWN));
                 e->scale_func[BLACK] = &ScaleKPsK[BLACK];
             }
             else
-            if (   pos.count (WHITE|PAWN) == 1
-                && pos.count (BLACK|PAWN) == 1)
+            if (   pos.count(WHITE|PAWN) == 1
+                && pos.count(BLACK|PAWN) == 1)
             {
                 e->scale_func[WHITE] = &ScaleKPKP[WHITE];
                 e->scale_func[BLACK] = &ScaleKPKP[BLACK];
@@ -219,25 +219,25 @@ namespace Material {
         i32 piece_count[CLR_NO][NONE] =
         {
             {
-                pos.count (WHITE|PAWN),
-                pos.count (WHITE|NIHT),
-                pos.count (WHITE|BSHP),
-                pos.count (WHITE|ROOK),
-                pos.count (WHITE|QUEN),
-                pos.bishop_paired (WHITE) ? 1 : 0
+                pos.count(WHITE|PAWN),
+                pos.count(WHITE|NIHT),
+                pos.count(WHITE|BSHP),
+                pos.count(WHITE|ROOK),
+                pos.count(WHITE|QUEN),
+                pos.bishop_paired(WHITE) ? 1 : 0
             },
             {
-                pos.count (BLACK|PAWN),
-                pos.count (BLACK|NIHT),
-                pos.count (BLACK|BSHP),
-                pos.count (BLACK|ROOK),
-                pos.count (BLACK|QUEN),
-                pos.bishop_paired (BLACK) ? 1 : 0
+                pos.count(BLACK|PAWN),
+                pos.count(BLACK|NIHT),
+                pos.count(BLACK|BSHP),
+                pos.count(BLACK|ROOK),
+                pos.count(BLACK|QUEN),
+                pos.bishop_paired(BLACK) ? 1 : 0
             }
         };
 
-        auto value = (imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16; // Imbalance Resolution
-        e->imbalance = mk_score (value, value);
+        auto value = (imbalance<WHITE>(piece_count) - imbalance<BLACK>(piece_count)) / 16; // Imbalance Resolution
+        e->imbalance = make_score(value, value);
 
         return e;
     }

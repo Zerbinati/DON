@@ -23,8 +23,8 @@
 
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
 
-#   define ALLOC_ALIGNED(mem, size, alignment) mem=_aligned_malloc (size, alignment)
-#   define FREE_ALIGNED(mem)                       _aligned_free (mem)
+#   define ALLOC_ALIGNED(mem, size, alignment) mem=_aligned_malloc(size, alignment)
+#   define FREE_ALIGNED(mem)                       _aligned_free(mem)
 
 #else
 
@@ -37,7 +37,7 @@
 #   endif
 
 #   define ALLOC_ALIGNED(mem, size, alignment) posix_memalign (&mem, alignment, size)
-#   define FREE_ALIGNED(mem)                   free (mem)
+#   define FREE_ALIGNED(mem)                   free(mem)
 
 #endif
 
@@ -51,7 +51,7 @@ namespace Memory {
 
 #   if defined(_WIN32)
 
-        bool setup_privilege (const char *privilege_name, bool enable)
+        bool setup_privilege(char const *privilege_name, bool enable)
         {
             bool ret = false;
             HANDLE token_handle;
@@ -85,7 +85,7 @@ namespace Memory {
 
     }
 
-    void alloc_memory (void *&mem_ref, size_t mem_size, u32 alignment)
+    void alloc_memory(void *&mem_ref, size_t mem_size, u32 alignment)
     {
         PagesUsed = false;
 
@@ -93,73 +93,69 @@ namespace Memory {
         {
 #       if defined(_WIN32)
 
-            mem_ref = VirtualAlloc
-                (nullptr,                               // System selects address
-                 mem_size,                              // Size of allocation
-                 MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,// Type of Allocation
-                 PAGE_READWRITE);                       // Protection of Allocation
+            mem_ref = VirtualAlloc(nullptr,                               // System selects address
+                                   mem_size,                              // Size of allocation
+                                   MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,// Type of Allocation
+                                   PAGE_READWRITE);                       // Protection of Allocation
             if (nullptr != mem_ref)
             {
                 PagesUsed = true;
                 sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
-            mem_ref = VirtualAlloc
-                (nullptr,              // System selects address
-                mem_size,              // Size of allocation
-                MEM_COMMIT|MEM_RESERVE,// Type of Allocation
-                PAGE_READWRITE);       // Protection of Allocation
+            mem_ref = VirtualAlloc(nullptr,              // System selects address
+                                   mem_size,              // Size of allocation
+                                   MEM_COMMIT|MEM_RESERVE,// Type of Allocation
+                                   PAGE_READWRITE);       // Protection of Allocation
             if (nullptr != mem_ref)
             {
                 PagesUsed = true;
                 sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
-            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed " << (mem_size >> 20) << " MB" << std::endl;
+            cerr << "ERROR: VirtualAlloc() virtual memory alloc failed " << (mem_size >> 20) << " MB" << endl;
 
 #       else
 
-            SHM = shmget 
-                (IPC_PRIVATE,
-                 mem_size,
-                 IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
+            SHM = shmget(IPC_PRIVATE,
+                         mem_size,
+                         IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
             if (SHM != -1)
             {
-                mem_ref = shmat (SHM, nullptr, 0x00);
+                mem_ref = shmat(SHM, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
                     PagesUsed = true;
                     sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
+                cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
+                    cerr << "ERROR: shmctl(IPC_RMID) failed" << endl;
                 }
                 return;
             }
-            SHM = shmget
-                (IPC_PRIVATE,
-                 mem_size,
-                 IPC_CREAT|SHM_R|SHM_W);
+            SHM = shmget(IPC_PRIVATE,
+                         mem_size,
+                         IPC_CREAT|SHM_R|SHM_W);
             if (SHM != -1)
             {
-                mem_ref = shmat (SHM, nullptr, 0x00);
+                mem_ref = shmat(SHM, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
                     PagesUsed = true;
                     sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
-                if (shmctl (SHM, IPC_RMID, nullptr) == -1)
+                cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << endl;
+                if (shmctl(SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
+                    cerr << "ERROR: shmctl(IPC_RMID) failed" << endl;
                 }
                 return;
             }
-            std::cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB" << std::endl;
+            cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB" << endl;
 
 #       endif
         }
@@ -171,10 +167,10 @@ namespace Memory {
             return;
         }
 
-        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
+        cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << endl;
     }
 
-    void free_memory (void *mem)
+    void free_memory(void *mem)
     {
         if (nullptr == mem)
         {
@@ -187,18 +183,18 @@ namespace Memory {
 
             if (!VirtualFree (mem, 0, MEM_RELEASE))
             {
-                std::cerr << "ERROR: VirtualFree() virtual memory free failed" << std::endl;
+                cerr << "ERROR: VirtualFree() virtual memory free failed" << endl;
             }
 
 #       else
 
             if (shmdt (mem) == -1)
             {
-                std::cerr << "ERROR: shmdt() shared memory detach failed" << std::endl;
+                cerr << "ERROR: shmdt() shared memory detach failed" << endl;
             }
             if (shmctl (SHM, IPC_RMID, nullptr) == -1)
             {
-                std::cerr << "ERROR: shmctl(IPC_RMID) failed"<< std::endl;
+                cerr << "ERROR: shmctl(IPC_RMID) failed"<< endl;
             }
 
 #       endif
@@ -209,22 +205,22 @@ namespace Memory {
         }
     }
 
-    void initialize ()
+    void initialize()
     {
 #   if defined(_WIN32)
 
-        setup_privilege (SE_LOCK_MEMORY_NAME, true);
+        setup_privilege(SE_LOCK_MEMORY_NAME, true);
 
 #   else
 
 #   endif
     }
 
-    void deinitialize ()
+    void deinitialize()
     {
 #   if defined(_WIN32)
 
-        setup_privilege (SE_LOCK_MEMORY_NAME, false);
+        setup_privilege(SE_LOCK_MEMORY_NAME, false);
 
 #   else
 

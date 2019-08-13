@@ -30,7 +30,7 @@ namespace {
 
     /// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
     /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-    const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    string const StartFEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
     const vector<string> DefaultCmds =
     {
@@ -87,10 +87,10 @@ namespace {
         "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
     };
 
-    i32 month_index (const string &month)
+    i32 month_index(string const &month)
     {
         constexpr i08 Months = 12;
-        const string MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        string const MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
         for (auto m = 0; m < Months; ++m)
         {
@@ -103,7 +103,7 @@ namespace {
     }
 
     /// setoption() function updates the UCI option ("name") to the given value ("value").
-    void setoption (istringstream &iss)
+    void setoption(istringstream &iss)
     {
         string token;
         iss >> token; // Consume "name" token
@@ -114,7 +114,7 @@ namespace {
         while (   (iss >> token)
                && token != "value") // Consume "value" token if any
         {
-            name += (white_spaces (name) ? "" : " ") + token;
+            name += (white_spaces(name) ? "" : " ") + token;
         }
 
         //if (token != "value") return;
@@ -122,10 +122,10 @@ namespace {
         // Read option-value (can contain spaces)
         while (iss >> token)
         {
-            value += (white_spaces (value) ? "" : " ") + token;
+            value += (white_spaces(value) ? "" : " ") + token;
         }
 
-        if (Options.count (name) != 0)
+        if (Options.find(name) != Options.end())
         {
             Options[name] = value;
         }
@@ -137,7 +137,7 @@ namespace {
 
     /// position() sets up the starting position "startpos"/"fen <fenstring>" and then
     /// makes the moves given in the move list "moves" also saving the moves on stack.
-    void position (istringstream &iss, Position &pos, StateListPtr &states)
+    void position(istringstream &iss, Position &pos, StateListPtr &states)
     {
         string token;
         iss >> token; // Consume "startpos" or "fen" token
@@ -158,37 +158,37 @@ namespace {
                     break;
                 }
                 fen += token + " ";
-                token.clear ();
+                token.clear();
             }
-            //assert(_ok (fen));
+            //assert(_ok(fen));
         }
         assert(token == "" || token == "moves");
 
-        states = StateListPtr (new std::deque<StateInfo> (1)); // Drop old and create a new one
-        pos.setup (fen, states->back (), pos.thread);
-        //assert(pos.fen() == trim (fen));
+        states = StateListPtr{new std::deque<StateInfo>(1)}; // Drop old and create a new one
+        pos.setup(fen, states->back(), pos.thread);
+        //assert(pos.fen() == trim(fen));
 
         u16 count = 0;
         // Parse and validate moves (if any)
         while (iss >> token)
         {
             ++count;
-            auto m = move_from_can (token, pos);
+            auto m = move_from_can(token, pos);
             if (MOVE_NONE == m)
             {
-                std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
+                cerr << "ERROR: Illegal Move '" << token << "' at " << count << endl;
                 break;
             }
-            states->emplace_back ();
-            pos.do_move (m, states->back ());
+            states->emplace_back();
+            pos.do_move(m, states->back());
         }
     }
 
     /// go() sets the thinking time and other parameters from the input string, then starts the search.
-    void go (istringstream &iss, Position &pos, StateListPtr &states)
+    void go(istringstream &iss, Position &pos, StateListPtr &states)
     {
         Threadpool.stop = true;
-        Threadpool.main_thread ()->wait_while_busy ();
+        Threadpool.main_thread()->wait_while_busy();
 
         Limit limit;
         vector<Move> search_moves; // Restrict search to these root moves only
@@ -224,31 +224,31 @@ namespace {
             {
                 while (iss >> token)
                 {
-                    auto m = move_from_can (token, pos);
+                    auto m = move_from_can(token, pos);
                     if (MOVE_NONE == m)
                     {
-                        std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
+                        cerr << "ERROR: Illegal Rootmove '" << token << "'" << endl;
                         continue;
                     }
-                    search_moves.push_back (m);
+                    search_moves.push_back(m);
                 }
             }
             else
             if (token == "ignoremoves")
             {
-                for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+                for (auto const &vm : MoveList<GenType::LEGAL>(pos))
                 {
-                    search_moves.push_back (vm);
+                    search_moves.push_back(vm);
                 }
                 while (iss >> token)
                 {
-                    auto m = move_from_can (token, pos);
+                    auto m = move_from_can(token, pos);
                     if (MOVE_NONE == m)
                     {
-                        std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
+                        cerr << "ERROR: Illegal Rootmove '" << token << "'" << endl;
                         continue;
                     }
-                    search_moves.erase (std::remove (search_moves.begin (), search_moves.end (), m), search_moves.end ());
+                    search_moves.erase(std::remove(search_moves.begin(), search_moves.end(), m), search_moves.end());
                 }
             }
             else
@@ -258,23 +258,23 @@ namespace {
                 iss >> depth;
                 bool detail = false;
                 iss >> std::boolalpha >> detail;
-                perft<true> (pos, depth, detail);
+                perft<true>(pos, depth, detail);
                 return;
             }
             else
             {
-                std::cerr << "ERROR: Illegal token : " << token << std::endl;
+                cerr << "ERROR: Illegal token : " << token << endl;
                 return;
             }
         }
-        Threadpool.start_thinking (pos, states, limit, search_moves, ponder);
+        Threadpool.start_thinking(pos, states, limit, search_moves, ponder);
     }
 
     /// setup_bench() builds a list of UCI commands to be run by bench.
     /// There are five parameters:
     /// - TT size in MB (default is 16)
-    /// - Threads count (default is 1)
-    /// - limit value spent for each position (default is 13)
+    /// - Threads count(default is 1)
+    /// - limit value (default is 13)
     /// - limit type:
     ///     * depth (default)
     ///     * movetime
@@ -291,23 +291,23 @@ namespace {
     /// bench 64 4 5000 movetime current -> search current position with 4 threads for 5 sec (TT = 64MB)
     /// bench 64 1 100000 nodes -> search default positions for 100K nodes (TT = 64MB)
     /// bench 16 1 5 perft -> run perft 5 on default positions
-    vector<string> setup_bench (istringstream &iss, const Position &pos)
+    vector<string> setup_bench(istringstream &iss, Position const &pos)
     {
         string token;
 
         // Assign default values to missing arguments
-        string hash    = (iss >> token) && !white_spaces (token) ? token : "16";
-        string threads = (iss >> token) && !white_spaces (token) ? token : "1";
-        string value   = (iss >> token) && !white_spaces (token) ? token : "13";
-        string mode    = (iss >> token) && !white_spaces (token) ? token : "depth";
-        string pos_fn  = (iss >> token) && !white_spaces (token) ? token : "default";
+        string    hash = (iss >> token) && !white_spaces(token) ? token : "16";
+        string threads = (iss >> token) && !white_spaces(token) ? token : "1";
+        string   value = (iss >> token) && !white_spaces(token) ? token : "13";
+        string    mode = (iss >> token) && !white_spaces(token) ? token : "depth";
+        string  pos_fn = (iss >> token) && !white_spaces(token) ? token : "default";
 
         vector<string> cmds;
         vector<string> uci_cmds;
 
         if (pos_fn == "current")
         {
-            cmds.push_back (pos.fen ());
+            cmds.push_back(pos.fen());
         }
         else
         if (pos_fn == "default")
@@ -316,48 +316,48 @@ namespace {
         }
         else
         {
-            ifstream ifs (pos_fn, ios_base::in);
+            ifstream ifs(pos_fn, ios_base::in);
             if (!ifs.is_open ())
             {
-                std::cerr << "ERROR: unable to open file ... \'" << pos_fn << "\'" << std::endl;
+                cerr << "ERROR: unable to open file ... \'" << pos_fn << "\'" << endl;
                 return uci_cmds;
             }
             string cmd;
-            while (std::getline (ifs, cmd, '\n'))
+            while (std::getline(ifs, cmd, '\n'))
             {
-                if (!white_spaces (cmd))
+                if (!white_spaces(cmd))
                 {
-                    cmds.push_back (cmd);
+                    cmds.push_back(cmd);
                 }
             }
-            ifs.close ();
+            ifs.close();
         }
 
         bool chess960 = bool(Options["UCI_Chess960"]);
 
-        uci_cmds.push_back ("setoption name Threads value " + threads);
-        uci_cmds.push_back ("setoption name Hash value " + hash);
-        uci_cmds.push_back ("ucinewgame");
+        uci_cmds.push_back("setoption name Threads value " + threads);
+        uci_cmds.push_back("setoption name Hash value " + hash);
+        uci_cmds.push_back("ucinewgame");
 
         string go = "go " + mode + " " + value;
 
-        for (const auto &cmd : cmds)
+        for (auto const &cmd : cmds)
         {
-            if (cmd.find ("setoption") != string::npos)
+            if (cmd.find("setoption") != string::npos)
             {
-                uci_cmds.push_back (cmd);
+                uci_cmds.push_back(cmd);
             }
             else
             {
-                uci_cmds.push_back ("position fen " + cmd);
-                uci_cmds.push_back (go);
+                uci_cmds.push_back("position fen " + cmd);
+                uci_cmds.push_back(go);
             }
         }
 
         if (pos_fn != "current")
         {
-            uci_cmds.push_back ("setoption name UCI_Chess960 value " + string(chess960 ? "true" : "false"));
-            uci_cmds.push_back ("position fen " + pos.fen ());
+            uci_cmds.push_back("setoption name UCI_Chess960 value " + string(chess960 ? "true" : "false"));
+            uci_cmds.push_back("position fen " + pos.fen());
         }
         return uci_cmds;
     }
@@ -366,78 +366,77 @@ namespace {
     /// then it is run one by one printing a summary at the end.
     void bench (istringstream &iss, Position &pos, StateListPtr &states)
     {
-        auto uci_cmds = setup_bench (iss, pos);
-        u16 total = u16(count_if (uci_cmds.begin (), uci_cmds.end (), [](string s) { return s.find ("go ") == 0; }));
+        auto uci_cmds = setup_bench(iss, pos);
+        u16 total = u16(count_if (uci_cmds.begin(), uci_cmds.end(), [](string s) { return s.find("go ") == 0; }));
         u16 count = 0;
 
-        debug_init ();
+        debug_init();
 
-        auto elapsed_time = now ();
+        auto elapsed_time = now();
         u64 total_nodes = 0;
-        for (const auto &cmd : uci_cmds)
+        for (auto const &cmd : uci_cmds)
         {
             istringstream is (cmd);
             string token;
-            token.clear ();
+            token.clear();
             is >> std::skipws >> token;
 
-            if (white_spaces (token))
+            if (white_spaces(token))
             {
                 continue;
             }
 
             if (token == "position")
             {
-                position (is, pos, states);
+                position(is, pos, states);
             }
             else
             if (token == "go")
             {
-                std::cerr
-                    << "\n---------------\n"
-                    << "Position: " << std::right
-                    << std::setw (2) << ++count << '/' << total << " "
-                    << std::left << pos.fen () << std::endl;
+                cerr << "\n---------------\n"
+                     << "Position: " << right
+                     << setw(2) << ++count << '/' << total << " "
+                     << left << pos.fen() << endl;
 
-                go (is, pos, states);
-                Threadpool.main_thread ()->wait_while_busy ();
-                total_nodes += Threadpool.nodes ();
+                go(is, pos, states);
+                Threadpool.main_thread()->wait_while_busy();
+                total_nodes += Threadpool.nodes();
             }
             else
             if (token == "setoption")
             {
-                setoption (is);
+                setoption(is);
             }
             else
             if (token == "ucinewgame")
             {
-                clear ();
-                elapsed_time = now ();
+                clear();
+                elapsed_time = now();
             }
             else
             {
-                std::cerr << "Unknown command: \'" << token << "\'" << std::endl;
+                cerr << "Unknown command: \'" << token << "\'" << endl;
             }
         }
 
-        elapsed_time = std::max (now () - elapsed_time, TimePoint(1));
+        elapsed_time = std::max(now() - elapsed_time, TimePoint(1));
 
-        debug_print (); // Just before exiting
+        debug_print(); // Just before exiting
 
-        std::cerr << std::right
-                    << "\n=================================\n"
-                    << "Total time (ms) :" << std::setw (16) << elapsed_time << "\n"
-                    << "Nodes searched  :" << std::setw (16) << total_nodes  << "\n"
-                    << "Nodes/second    :" << std::setw (16) << total_nodes * 1000 / elapsed_time
-                    << "\n---------------------------------\n"
-                    << std::left << std::endl;
+        cerr << right
+             << "\n=================================\n"
+             << "Total time (ms) :" << setw(16) << elapsed_time << "\n"
+             << "Nodes searched  :" << setw(16) << total_nodes  << "\n"
+             << "Nodes/second    :" << setw(16) << total_nodes * 1000 / elapsed_time
+             << "\n---------------------------------\n"
+             << left << endl;
     }
 
     /// loop() Waits for a command from stdin, parses it and calls the appropriate function.
     /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
-    void loop (i32 argc, const char *const *argv)
+    void loop (i32 argc, char const *const *argv)
     {
         // Join arguments
         string cmd;
@@ -446,30 +445,30 @@ namespace {
             cmd += string(argv[i]) + " ";
         }
 
-        debug_init ();
+        debug_init();
 
         Position pos;
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateListPtr states (new std::deque<StateInfo> (1));
-        auto ui_thread = std::make_shared<Thread> (0);
-        pos.setup (StartFEN, states->back (), ui_thread.get ());
+        StateListPtr states{new std::deque<StateInfo>(1)};
+        auto ui_thread = std::make_shared<Thread>(0);
+        pos.setup(StartFEN, states->back(), ui_thread.get());
 
         do
         {
             if (   1 == argc
-                && !std::getline (std::cin, cmd, '\n')) // Block here waiting for input or EOF
+                && !std::getline(std::cin, cmd, '\n')) // Block here waiting for input or EOF
             {
                 cmd = "quit";
             }
 
-            istringstream iss (cmd);
+            istringstream iss(cmd);
             string token;
-            token.clear (); // Avoid a stale if getline() returns empty or blank line
+            token.clear(); // Avoid a stale if getline() returns empty or blank line
             iss >> std::skipws >> token;
 
-            if (white_spaces (token))
+            if (white_spaces(token))
             {
                 continue;
             }
@@ -485,7 +484,7 @@ namespace {
             // Now should continue searching but switch from pondering to normal search.
             if (token == "ponderhit")
             {
-                Threadpool.main_thread ()->ponder = false; // Switch to normal search
+                Threadpool.main_thread()->ponder = false; // Switch to normal search
             }
             else
             if (token == "isready")
@@ -503,22 +502,22 @@ namespace {
             else
             if (token == "ucinewgame")
             {
-                clear ();
+                clear();
             }
             else
             if (token == "position")
             {
-                position (iss, pos, states);
+                position(iss, pos, states);
             }
             else
             if (token == "go")
             {
-                go (iss, pos, states);
+                go(iss, pos, states);
             }
             else
             if (token == "setoption")
             {
-                setoption (iss);
+                setoption(iss);
             }
             // Additional custom non-UCI commands, useful for debugging
             else
@@ -530,12 +529,12 @@ namespace {
                 else
                 if (token == "flip")
                 {
-                    pos.flip ();
+                    pos.flip();
                 }
                 else
                 if (token == "mirror")
                 {
-                    pos.mirror ();
+                    pos.mirror();
                 }
                 // Print the root position
                 else
@@ -546,19 +545,19 @@ namespace {
                 else
                 if (token == "eval")
                 {
-                    sync_cout << trace (pos) << sync_endl;
+                    sync_cout << trace(pos) << sync_endl;
                 }
                 // Print the root fen and keys
                 else
                 if (token == "keys")
                 {
-                    sync_cout << std::hex << std::uppercase << std::setfill ('0')
-                              << "FEN: "                        << pos.fen ()       << "\n"
-                              << "Posi key: " << std::setw (16) << pos.si->posi_key << "\n"
-                              << "Matl key: " << std::setw (16) << pos.si->matl_key << "\n"
-                              << "Pawn key: " << std::setw (16) << pos.si->pawn_key << "\n"
-                              << "PG key: "   << std::setw (16) << pos.pg_key ()
-                              << std::setfill (' ') << std::nouppercase << std::dec << sync_endl;
+                    sync_cout << std::hex << std::uppercase << std::setfill('0')
+                              << "FEN: "                        << pos.fen()       << "\n"
+                              << "Posi key: " << std::setw(16) << pos.si->posi_key << "\n"
+                              << "Matl key: " << std::setw(16) << pos.si->matl_key << "\n"
+                              << "Pawn key: " << std::setw(16) << pos.si->pawn_key << "\n"
+                              << "PG key: "   << std::setw(16) << pos.pg_key()
+                              << std::setfill(' ') << std::nouppercase << std::dec << sync_endl;
                 }
                 else
                 if (token == "moves")
@@ -569,11 +568,11 @@ namespace {
                     {
                         std::cout << "\nEvasion moves: ";
                         count = 0;
-                        for (const auto &vm : MoveList<GenType::EVASION> (pos))
+                        for (auto const &vm : MoveList<GenType::EVASION>(pos))
                         {
-                            if (pos.legal (vm))
+                            if (pos.legal(vm))
                             {
-                                std::cout << move_to_san (vm, pos) << " ";
+                                std::cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -583,11 +582,11 @@ namespace {
                     {
                         std::cout << "\nQuiet moves: ";
                         count = 0;
-                        for (const auto &vm : MoveList<GenType::QUIET> (pos))
+                        for (auto const &vm : MoveList<GenType::QUIET>(pos))
                         {
-                            if (pos.legal (vm))
+                            if (pos.legal(vm))
                             {
-                                std::cout << move_to_san (vm, pos) << " ";
+                                std::cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -595,11 +594,11 @@ namespace {
 
                         std::cout << "\nCheck moves: ";
                         count = 0;
-                        for (const auto &vm : MoveList<GenType::CHECK> (pos))
+                        for (auto const &vm : MoveList<GenType::CHECK>(pos))
                         {
-                            if (pos.legal (vm))
+                            if (pos.legal(vm))
                             {
-                                std::cout << move_to_san (vm, pos) << " ";
+                                std::cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -607,11 +606,11 @@ namespace {
 
                         std::cout << "\nQuiet Check moves: ";
                         count = 0;
-                        for (const auto &vm : MoveList<GenType::QUIET_CHECK> (pos))
+                        for (auto const &vm : MoveList<GenType::QUIET_CHECK>(pos))
                         {
-                            if (pos.legal (vm))
+                            if (pos.legal(vm))
                             {
-                                std::cout << move_to_san (vm, pos) << " ";
+                                std::cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -619,11 +618,11 @@ namespace {
 
                         std::cout << "\nCapture moves: ";
                         count = 0;
-                        for (const auto &vm : MoveList<GenType::CAPTURE> (pos))
+                        for (auto const &vm : MoveList<GenType::CAPTURE>(pos))
                         {
-                            if (pos.legal (vm))
+                            if (pos.legal(vm))
                             {
-                                std::cout << move_to_san (vm, pos) << " ";
+                                std::cout << move_to_san(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -632,9 +631,9 @@ namespace {
 
                     std::cout << "\nLegal moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+                    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
                     {
-                        std::cout << move_to_san (vm, pos) << " ";
+                        std::cout << move_to_san(vm, pos) << " ";
                         ++count;
                     }
                     std::cout << "(" << count << ")" << sync_endl;
@@ -652,26 +651,26 @@ string info ()
 {
     ostringstream oss;
 
-    oss << std::setfill ('0');
+    oss << std::setfill('0');
 #if defined(VER)
     oss << VER;
 #else
-    if (white_spaces (Version))
+    if (white_spaces(Version))
     {
         // From compiler, format is "Sep 2 1982"
-        istringstream iss (__DATE__);
+        istringstream iss(__DATE__);
         string month, day, year;
         iss >> month >> day >> year;
-        oss << std::setw (2) << year.substr (2)
-            << std::setw (2) << month_index (month)
-            << std::setw (2) << day;
+        oss << std::setw(2) << year.substr (2)
+            << std::setw(2) << month_index(month)
+            << std::setw(2) << day;
     }
     else
     {
         oss << Version;
     }
 #endif
-    oss << std::setfill (' ');
+    oss << std::setfill(' ');
 
     oss <<
 #   if defined(BIT64)
@@ -703,27 +702,27 @@ string info ()
 }
 
 /// run() runs with command arguments
-void run (int argc, const char *const *argv)
+void run (int argc, char const *const *argv)
 {
-    std::cout << Name << " " << info () << " by " << Author << std::endl;
-    std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
+    cout << Name << " " << info () << " by " << Author << endl;
+    cout << "info string Processor(s) detected " << NativeThread::hardware_concurrency() << endl;
 
 #if defined(LPAGES)
-    Memory::initialize ();
+    Memory::initialize();
 #endif
 
-    BitBoard::initialize ();
-    BitBases::initialize ();
-    psq_initialize ();
-    zobrist_initialize ();
-    Position::initialize ();
-    UCI::initialize ();
-    Endgames::initialize ();
-    WinProcGroup::initialize ();
-    Threadpool.configure (option_threads ());
-    Book.initialize (string(Options["Book File"]));
-    Searcher::initialize ();
-    Searcher::clear ();
+    BitBoard::initialize();
+    BitBases::initialize();
+    psq_initialize();
+    zobrist_initialize();
+    Position::initialize();
+    UCI::initialize();
+    Endgames::initialize();
+    WinProcGroup::initialize();
+    Threadpool.configure(option_threads());
+    Book.initialize(string(Options["Book File"]));
+    Searcher::initialize();
+    Searcher::clear();
 
     loop (argc, argv);
 }
@@ -732,10 +731,10 @@ void run (int argc, const char *const *argv)
 void stop (int code)
 {
     Threadpool.stop = true;
-    Threadpool.configure (0);
-    UCI::deinitialize ();
+    Threadpool.configure(0);
+    UCI::deinitialize();
 #if defined(LPAGES)
-    Memory::deinitialize ();
+    Memory::deinitialize();
 #endif
     exit (code);
 }

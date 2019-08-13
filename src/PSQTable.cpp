@@ -4,7 +4,7 @@
 
 namespace {
 
-#   define S(mg, eg) mk_score (mg, eg)
+#   define S(mg, eg) make_score(mg, eg)
     // PieceHalfSQ[piece-type][rank][file/2] table contains half Piece-Square scores (symmetric distribution).
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
@@ -84,13 +84,13 @@ std::array<std::array<Score, SQ_NO>, MAX_PIECE> PSQ;
 /// Computes the scores for the middle game and the endgame.
 /// These functions are used to initialize the scores when a new position is set up,
 /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
-Score compute_psq (const Position &pos)
+Score compute_psq(Position const &pos)
 {
     auto psq = SCORE_ZERO;
-    for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+    for (auto const &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
                             B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
-        for (const auto &s : pos.squares[pc])
+        for (auto const &s : pos.squares[pc])
         {
             psq += PSQ[pc][s];
         }
@@ -99,17 +99,17 @@ Score compute_psq (const Position &pos)
 }
 
 /// psq_initialize() initializes psq lookup tables.
-void psq_initialize ()
+void psq_initialize()
 {
-    for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+    for (auto const &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        Score score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
-        for (const auto &s : SQ)
+        Score score = make_score(PieceValues[MG][pt], PieceValues[EG][pt]);
+        for (auto const &s : SQ)
         {
             Score psq = score
                       + (PAWN == pt ?
-                            PawnFullSQ[_rank (s)][_file (s)] :
-                            PieceHalfSQ[pt][_rank (s)][std::min (_file (s), ~_file (s))]);
+                            PawnFullSQ[_rank(s)][_file(s)] :
+                            PieceHalfSQ[pt][_rank(s)][std::min(_file(s), ~_file(s))]);
             PSQ[WHITE|pt][ s] = +psq;
             PSQ[BLACK|pt][~s] = -psq;
         }
