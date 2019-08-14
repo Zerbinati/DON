@@ -184,12 +184,12 @@ public:
     Key pg_key() const;
     Key posi_move_key(Move) const;
 
-    bool expeded_castle (Color, CastleSide) const;
+    bool expeded_castle(Color, CastleSide) const;
 
     i16  move_num() const;
     bool draw(i16) const;
-    bool repeated () const;
-    bool cycled (i16) const;
+    bool repeated() const;
+    bool cycled(i16) const;
 
     Bitboard attackers_to(Square, Bitboard) const;
     Bitboard attackers_to(Square) const;
@@ -383,7 +383,7 @@ inline Key Position::posi_move_key(Move m) const
          ^ RandZob.castle_right[si->castle_rights & (castle_right[org] | castle_right[dst])];
 }
 
-inline bool Position::expeded_castle (Color c, CastleSide cs) const
+inline bool Position::expeded_castle(Color c, CastleSide cs) const
 {
     return 0 == (castle_rook_path_bb[c][cs] & pieces());
 }

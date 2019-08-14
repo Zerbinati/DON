@@ -325,7 +325,7 @@ namespace {
             string cmd;
             while (std::getline(ifs, cmd, '\n'))
             {
-                if (!white_spaces(cmd))
+                if (!cmd.empty())
                 {
                     cmds.push_back(cmd);
                 }
@@ -377,12 +377,12 @@ namespace {
         u64 total_nodes = 0;
         for (auto const &cmd : uci_cmds)
         {
-            istringstream is (cmd);
+            istringstream is{cmd};
             string token;
             token.clear();
             is >> skipws >> token;
 
-            if (white_spaces(token))
+            if (token.empty())
             {
                 continue;
             }
@@ -464,12 +464,12 @@ namespace {
                 cmd = "quit";
             }
 
-            istringstream iss(cmd);
+            istringstream iss{cmd};
             string token;
             token.clear(); // Avoid a stale if getline() returns empty or blank line
             iss >> skipws >> token;
 
-            if (white_spaces(token))
+            if (token.empty())
             {
                 continue;
             }
@@ -495,7 +495,7 @@ namespace {
             else
             if (token == "uci")
             {
-                sync_cout << "id name " << Name << " " << info () << "\n"
+                sync_cout << "id name " << Name << " " << info() << "\n"
                           << "id author " << Author << "\n"
                           << Options
                           << "uciok" << sync_endl;
@@ -525,7 +525,7 @@ namespace {
             {
                 if (token == "bench")
                 {
-                    bench (iss, pos, states);
+                    bench(iss, pos, states);
                 }
                 else
                 if (token == "flip")
@@ -659,10 +659,10 @@ string info()
     if (white_spaces(Version))
     {
         // From compiler, format is "Sep 2 1982"
-        istringstream iss(__DATE__);
+        istringstream iss{__DATE__};
         string month, day, year;
         iss >> month >> day >> year;
-        oss << setw(2) << year.substr (2)
+        oss << setw(2) << year.substr(2)
             << setw(2) << month_index(month)
             << setw(2) << day;
     }
@@ -699,7 +699,7 @@ string info()
 #   endif
     ;
 
-    return oss.str ();
+    return oss.str();
 }
 
 /// run() runs with command arguments
@@ -737,5 +737,5 @@ void stop(int code)
 #if defined(LPAGES)
     Memory::deinitialize();
 #endif
-    exit (code);
+    std::exit(code);
 }

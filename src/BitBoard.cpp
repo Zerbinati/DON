@@ -164,7 +164,7 @@ namespace BitBoard {
                 
                 assert(size == (1U << mask_popcount));
 
-                PRNG prng (Seeds[_rank(s)]);
+                PRNG prng{Seeds[_rank(s)]};
                 
                 u16 i;
                 // Find a magic for square picking up an (almost) random number
@@ -347,7 +347,7 @@ namespace BitBoard {
         }
         oss << '\n';
 
-        return oss.str ();
+        return oss.str();
     }
 
 #endif

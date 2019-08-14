@@ -18,42 +18,42 @@ namespace UCI {
     using namespace TBSyzygy;
 
     Option::Option(OnChange on_cng)
-        : type ("button")
-        , default_value ("")
-        , current_value ("")
-        , minimum (0)
-        , maximum (0)
-        , on_change (on_cng)
+        : type{"button"}
+        , default_value{""}
+        , current_value{""}
+        , minimum{0}
+        , maximum{0}
+        , on_change{on_cng}
     {}
     Option::Option(char const *val, OnChange on_cng)
-        : type ("string")
-        , minimum (0)
-        , maximum (0)
-        , on_change (on_cng)
+        : type{"string"}
+        , minimum{0}
+        , maximum{0}
+        , on_change{on_cng}
     {
         default_value = current_value = val;
     }
     Option::Option(bool const val, OnChange on_cng)
-        : type ("check")
-        , minimum (0)
-        , maximum (0)
-        , on_change (on_cng)
+        : type{"check"}
+        , minimum{0}
+        , maximum{0}
+        , on_change{on_cng}
     {
         default_value = current_value = (val ? "true" : "false");
     }
     Option::Option(i32 const val, i32 min, i32 max, OnChange on_cng)
-        : type ("spin")
-        , minimum (min)
-        , maximum (max)
-        , on_change (on_cng)
+        : type{"spin"}
+        , minimum{min}
+        , maximum{max}
+        , on_change{on_cng}
     {
         default_value = current_value = std::to_string(val);
     }
     Option::Option(char const* v, char const* cur, OnChange on_cng)
-        : type ("combo")
-        , minimum (0)
-        , maximum (0)
-        , on_change (on_cng)
+        : type{"combo"}
+        , minimum{0}
+        , maximum{0}
+        , on_change{on_cng}
     {
         default_value = v;
         current_value = cur;
@@ -64,12 +64,12 @@ namespace UCI {
         assert(type == "string");
         return current_value;
     }
-    Option::operator bool () const
+    Option::operator bool() const
     {
         assert(type == "check");
         return current_value == "true";
     }
-    Option::operator i32 () const
+    Option::operator i32() const
     {
         assert(type == "spin");
         return stoi(current_value);
@@ -97,7 +97,7 @@ namespace UCI {
 
             if (type == "check")
             {
-                to_lower (val);
+                to_lower(val);
                 if (   val != "true"
                     && val != "false")
                 {
@@ -121,9 +121,9 @@ namespace UCI {
             if (type == "combo")
             {
                 NoCaseLessMap comboMap; // To have case insensitive compare
-                std::istringstream ss (default_value);
+                istringstream iss{default_value};
                 string token;
-                while (ss >> token)
+                while (iss >> token)
                 {
                     if (token == "var")
                     {
@@ -177,7 +177,7 @@ namespace UCI {
             }
             //oss << " current " << current_value;
         }
-        return oss.str ();
+        return oss.str();
     }
 
     /// 'On change' actions, triggered by an option's value change

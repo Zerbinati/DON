@@ -18,13 +18,13 @@ struct PolyEntry
 
 
     PolyEntry (u64 k, u16 m, u16 w, u32 l)
-        : key (k)
-        , move(m)
-        , weight (w)
-        , learn (l)
+        : key{k}
+        , move{m}
+        , weight{w}
+        , learn{l}
     {}
     PolyEntry ()
-        : PolyEntry (0, 0, 0, 0)
+        : PolyEntry{0, 0, 0, 0}
     {}
 
     PolyEntry& operator=(PolyEntry const&) = default;

@@ -239,7 +239,7 @@ namespace {
             {
                 for (auto &cs : { CS_KING, CS_QUEN })
                 {
-                    if (   pos.expeded_castle (pos.active, cs)
+                    if (   pos.expeded_castle(pos.active, cs)
                         && pos.si->can_castle(pos.active|cs))
                     {
                         moves += make_move<CASTLE>(own_k_sq, pos.castle_rook_sq[pos.active][cs]);

@@ -11,7 +11,7 @@ namespace UCI {
     class Option
     {
     private:
-        typedef void (*OnChange) (Option const&);
+        typedef void (*OnChange)(Option const&);
 
         std::string type
             ,       default_value
@@ -36,8 +36,8 @@ namespace UCI {
         explicit operator i32  () const;
         bool operator==(char const*) const;
 
-        Option& operator=  (char const*);
-        Option& operator=  (std::string const&);
+        Option& operator=(char const*);
+        Option& operator=(std::string const&);
 
         void    operator<<(Option const&);
 

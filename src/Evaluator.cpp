@@ -471,7 +471,7 @@ namespace {
         Score score = pe->king_safety[Own][index];
         if (   0 != index
             && pos.si->can_castle(Own|CS_KING)
-            && pos.expeded_castle (Own, CS_KING)
+            && pos.expeded_castle(Own, CS_KING)
             && 0 == (pos.castle_king_path_bb[Own][CS_KING] & ful_attacks[Opp])
             && mg_value(score) < mg_value(pe->king_safety[Own][0]))
         {
@@ -479,7 +479,7 @@ namespace {
         }
         if (   1 != index
             && pos.si->can_castle(Own|CS_QUEN)
-            && pos.expeded_castle (Own, CS_QUEN)
+            && pos.expeded_castle(Own, CS_QUEN)
             && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & ful_attacks[Opp])
             && mg_value(score) < mg_value(pe->king_safety[Own][1]))
         {
@@ -1133,5 +1133,5 @@ string trace(Position const &pos)
         << "Evaluation: " << value_to_cp(value) / 100.0 << " (white side)\n"
         << noshowpoint << noshowpos;
 
-    return oss.str ();
+    return oss.str();
 }

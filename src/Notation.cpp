@@ -75,7 +75,7 @@ namespace {
                         -(VALUE_MATE + v + 0)) / 2
                 << noshowpos;
         }
-        return oss.str ();
+        return oss.str();
     }
     // Time to string
     string pretty_time (u64 time)
@@ -99,7 +99,7 @@ namespace {
             << setw(2) << seconds << "."
             << setw(2) << time
             << setfill(' ');
-        return oss.str ();
+        return oss.str();
     }
 }
 
@@ -119,7 +119,7 @@ string move_to_can(Move m)
     {
         oss << (BLACK|promote(m));
     }
-    return oss.str ();
+    return oss.str();
 }
 /// Converts a string representing a move in coordinate algebraic notation
 /// to the corresponding legal move, if any.
@@ -205,7 +205,7 @@ string move_to_san(Move m, Position &pos)
         pos.undo_move(m);
     }
 
-    return oss.str ();
+    return oss.str();
 }
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
@@ -236,7 +236,7 @@ Move move_from_san(string const &san, Position &pos)
 //{
 //    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
 //    {
-//        if (lan == move_to_lan (vm, pos))
+//        if (lan == move_to_lan(vm, pos))
 //        {
 //            return vm;
 //        }
@@ -308,7 +308,7 @@ string multipv_info(Thread const *const &th, i16 depth, Value alfa, Value beta)
             oss << "\n";
         }
     }
-    return oss.str ();
+    return oss.str();
 }
 
 /// Returns formated human-readable search information.
@@ -318,8 +318,8 @@ string pretty_pv_info(Thread *const &th)
 
     ostringstream oss;
     oss << setw( 4) << th->finished_depth
-        << setw( 8) << pretty_value (th->root_moves.front().new_value)
-        << setw(12) << pretty_time (Threadpool.main_thread()->time_mgr.elapsed_time());
+        << setw( 8) << pretty_value(th->root_moves.front().new_value)
+        << setw(12) << pretty_time(Threadpool.main_thread()->time_mgr.elapsed_time());
 
     if (nodes < 10ULL*1000)
         oss << setw(8) << u16(nodes);
@@ -350,5 +350,5 @@ string pretty_pv_info(Thread *const &th)
                       states->pop_back();
                   });
 
-    return oss.str ();
+    return oss.str();
 }

@@ -154,7 +154,7 @@ namespace Pawns {
     /// Entry::evaluate_safety() calculates shelter & storm for a king,
     /// looking at the king file and the two closest files.
     template<Color Own>
-    Score Entry::evaluate_safety (Position const &pos, Square own_k_sq) const
+    Score Entry::evaluate_safety(Position const &pos, Square own_k_sq) const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 

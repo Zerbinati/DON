@@ -14,8 +14,8 @@ namespace Endgames {
     void add(string const &code)
     {
         StateInfo si;
-        map<T>()[Position ().setup(code, WHITE, si).si->matl_key] = EG_Ptr<T>(new Endgame<C>(WHITE));
-        map<T>()[Position ().setup(code, BLACK, si).si->matl_key] = EG_Ptr<T>(new Endgame<C>(BLACK));
+        map<T>()[Position().setup(code, WHITE, si).si->matl_key] = EG_Ptr<T>(new Endgame<C>(WHITE));
+        map<T>()[Position().setup(code, BLACK, si).si->matl_key] = EG_Ptr<T>(new Endgame<C>(BLACK));
     }
 
     void initialize()
@@ -75,14 +75,14 @@ namespace Endgames {
         // Pawn Rank based scaling.
         constexpr Scale RankScale[R_NO] =
         {
-            Scale (0),
-            Scale (9),
-            Scale (10),
-            Scale (14),
-            Scale (21),
-            Scale (44),
-            Scale (0),
-            Scale (0)
+            Scale(0),
+            Scale(9),
+            Scale(10),
+            Scale(14),
+            Scale(21),
+            Scale(44),
+            Scale(0),
+            Scale(0)
         };
 
         // Map the square as if color is white and square only pawn is on the left half of the board.

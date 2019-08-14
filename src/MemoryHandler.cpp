@@ -181,18 +181,18 @@ namespace Memory {
         {
 #       if defined(_WIN32)
 
-            if (!VirtualFree (mem, 0, MEM_RELEASE))
+            if (!VirtualFree(mem, 0, MEM_RELEASE))
             {
                 cerr << "ERROR: VirtualFree() virtual memory free failed" << endl;
             }
 
 #       else
 
-            if (shmdt (mem) == -1)
+            if (shmdt(mem) == -1)
             {
                 cerr << "ERROR: shmdt() shared memory detach failed" << endl;
             }
-            if (shmctl (SHM, IPC_RMID, nullptr) == -1)
+            if (shmctl(SHM, IPC_RMID, nullptr) == -1)
             {
                 cerr << "ERROR: shmctl(IPC_RMID) failed"<< endl;
             }

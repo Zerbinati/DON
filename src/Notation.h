@@ -43,7 +43,7 @@ inline std::string to_string(Value v)
                             +(VALUE_MATE - v + 1) :
                             -(VALUE_MATE + v + 0)) / 2;
     }
-    return oss.str ();
+    return oss.str();
 }
 
 extern std::string move_to_can(Move);

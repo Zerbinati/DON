@@ -27,14 +27,14 @@ RootMove::operator string() const
         assert(MOVE_NONE != move);
         oss << " " << move;
     }
-    return oss.str ();
+    return oss.str();
 }
 /// RootMoves::operator string()
 RootMoves::operator string() const
 {
     ostringstream oss;
     std::copy(begin(), end(), ostream_iterator<RootMove>(oss, "\n"));
-    return oss.str ();
+    return oss.str();
 }
 
 namespace Searcher {
@@ -143,7 +143,7 @@ namespace Searcher {
             {
                 while (itr != moves.end())
                 {
-                    std::swap (*itr, *std::max_element (itr, moves.end()));
+                    std::swap(*itr, *std::max_element(itr, moves.end()));
                     if (   tt_move != itr->move
                         && (   (   ENPASSANT != mtype(itr->move)
                                 && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(itr->move)))
@@ -161,12 +161,12 @@ namespace Searcher {
 
             bool skip_quiets;
 
-            MovePicker () = delete;
-            MovePicker (MovePicker const&) = delete;
+            MovePicker() = delete;
+            MovePicker(MovePicker const&) = delete;
             MovePicker& operator=(MovePicker const&) = delete;
 
             /// MovePicker constructor for the main search
-            MovePicker (Position const &p, Move ttm, i16 d, PieceDestinyHistory const **pdhs, array<Move, 2> const &km, Move cm)
+            MovePicker(Position const &p, Move ttm, i16 d, PieceDestinyHistory const **pdhs, array<Move, 2> const &km, Move cm)
                 : pos{p}
                 , tt_move{ttm}
                 , depth{d}
@@ -198,7 +198,7 @@ namespace Searcher {
             /// MovePicker constructor for quiescence search
             /// Because the depth <= DepthZero here, only captures, queen promotions
             /// and quiet checks (only if depth >= DepthQSCheck) will be generated.
-            MovePicker (Position const &p, Move ttm, i16 d, PieceDestinyHistory const **pdhs, Square rs)
+            MovePicker(Position const &p, Move ttm, i16 d, PieceDestinyHistory const **pdhs, Square rs)
                 : pos{p}
                 , tt_move{ttm}
                 , depth{d}
@@ -234,7 +234,7 @@ namespace Searcher {
             
             /// MovePicker constructor for ProbCut search.
             /// Generate captures with SEE greater than or equal to the given threshold.
-            MovePicker (Position const &p, Move ttm, Value thr)
+            MovePicker(Position const &p, Move ttm, Value thr)
                 : pos{p}
                 , tt_move{ttm}
                 , threshold{thr}
@@ -330,9 +330,9 @@ namespace Searcher {
                     {
                         generate<GenType::QUIET>(moves, pos);
                         value<GenType::QUIET>();
-                        std::for_each (moves.begin(), moves.end(),
-                                       [&](ValMove &vm) { if (vm.value < threshold)
-                                                              vm.value = threshold - 1; });
+                        std::for_each(moves.begin(), moves.end(),
+                                      [&](ValMove &vm) { if (vm.value < threshold)
+                                                             vm.value = threshold - 1; });
                     }
                     ++stage;
                     itr = moves.begin();
@@ -411,7 +411,7 @@ namespace Searcher {
         struct Breadcrumb
         {
             std::atomic<Thread const*> thread;
-            std::atomic<Key    > posi_key;
+            std::atomic<Key          > posi_key;
 
             void store(Thread const *th, Key key)
             {
@@ -422,9 +422,9 @@ namespace Searcher {
 
         array<Breadcrumb, 1024> Breadcrumbs;
 
-        // ThreadMarking keeps track of which thread left breadcrumbs at the given node for potential reductions.
+        // ThreadMarker keeps track of which thread left breadcrumbs at the given node for potential reductions.
         // A free node will be marked upon entering the moves loop, and unmarked upon leaving that loop, by the ctor/dtor of this struct.
-        class ThreadMarking
+        class ThreadMarker
         {
         private:
             Breadcrumb *breadcrumb;
@@ -433,7 +433,7 @@ namespace Searcher {
 
             bool marked;
 
-            explicit ThreadMarking(Thread const *thread, Key posi_key, i16 ply)
+            explicit ThreadMarker(Thread const *thread, Key posi_key, i16 ply)
                 : breadcrumb{nullptr}
                 , marked{false}
             {
@@ -460,7 +460,7 @@ namespace Searcher {
                 }
             }
 
-           ~ThreadMarking()
+           ~ThreadMarker()
             {
                 if (nullptr != breadcrumb) // free the marked one.
                 {
@@ -539,7 +539,7 @@ namespace Searcher {
         void update_pv(list<Move> &pv, Move move, list<Move> const &child_pv)
         {
             pv.assign(child_pv.begin(), child_pv.end());
-            pv.push_front (move);
+            pv.push_front(move);
             assert(pv.front() == move
                 && (pv.size() == 1
                  || pv.back() == child_pv.back()));
@@ -844,7 +844,7 @@ namespace Searcher {
             if (   !root_node
                 && alfa < VALUE_DRAW
                 && pos.si->clock_ply >= 3
-                && pos.cycled (ss->ply))
+                && pos.cycled(ss->ply))
             {
                 alfa = value_draw(depth);
                 if (alfa >= beta)
@@ -910,7 +910,7 @@ namespace Searcher {
                 // Same logic but with reversed signs applies also in the opposite condition of
                 // being mated instead of giving mate, in this case return a fail-high score.
                 alfa = std::max(mated_in(ss->ply+0), alfa);
-                beta = std::min(mates_in (ss->ply+1), beta);
+                beta = std::min(mates_in(ss->ply+1), beta);
                 if (alfa >= beta)
                 {
                     return alfa;
@@ -1264,7 +1264,7 @@ namespace Searcher {
             u08 move_count = 0;
 
             // Mark this node as being searched.
-            ThreadMarking th_mark{thread, pos.si->posi_key, ss->ply};
+            ThreadMarker thread_marker{thread, pos.si->posi_key, ss->ply};
 
             vector<Move> quiet_moves
                 ,        capture_moves;
@@ -1502,7 +1502,7 @@ namespace Searcher {
                     i16 reduct_depth = reduction(improving, depth, move_count);
 
                     // Reduction if other threads are searching this position.
-                    if (th_mark.marked)
+                    if (thread_marker.marked)
                     {
                         reduct_depth += 1;
                     }
@@ -1812,7 +1812,7 @@ namespace Searcher {
     /// initialize() initializes some lookup tables.
     void initialize()
     {
-        srand ((unsigned int)(time (NULL)));
+        srand((unsigned int)(time(NULL)));
     }
     /// clear() resets search state to its initial value.
     void clear()
@@ -2103,7 +2103,7 @@ void MainThread::search()
     auto output_fn = string(Options["Output File"]);
     if (!white_spaces(output_fn))
     {
-        OutputStream.open (output_fn, ios_base::out|ios_base::app);
+        OutputStream.open(output_fn, ios_base::out|ios_base::app);
         Output = OutputStream.is_open();
         if (Output)
         {
@@ -2164,7 +2164,7 @@ void MainThread::search()
                 if (itr != root_moves.end())
                 {
                     think = false;
-                    std::swap (root_moves.front(), *itr);
+                    std::swap(root_moves.front(), *itr);
                     root_moves.front().new_value = VALUE_NONE;
                     StateInfo si;
                     root_pos.do_move(book_bm, si);
@@ -2234,7 +2234,7 @@ void MainThread::search()
             if (skill_mgr.enabled())
             {
                 skill_mgr.pick_best_move();
-                std::swap (root_moves.front(), *std::find(root_moves.begin(), root_moves.end(), skill_mgr.best_move));
+                std::swap(root_moves.front(), *std::find(root_moves.begin(), root_moves.end(), skill_mgr.best_move));
             }
         }
     }

@@ -16,13 +16,13 @@ inline std::string time_to_string(std::chrono::system_clock::time_point const &t
 
 #   if defined(_WIN32)
 
-    auto time = std::chrono::system_clock::to_time_t (tp);
-    auto const *local_tm = localtime (&time);
+    auto time = std::chrono::system_clock::to_time_t{tp};
+    auto const *local_tm = localtime(&time);
     char const *format = "%Y.%m.%d-%H.%M.%S";
     char buffer[32];
-    strftime (buffer, sizeof (buffer), format, local_tm);
+    strftime(buffer, sizeof (buffer), format, local_tm);
     stime.append(buffer);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(tp - std::chrono::system_clock::from_time_t (time)).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(tp - std::chrono::system_clock::from_time_t(time)).count();
     stime.append(".");
     stime.append(std::to_string(ms));
     
@@ -56,9 +56,9 @@ public:
     std::string filename;
 
     Logger()
-        : _inb (std::cin.rdbuf (), _ofs.rdbuf ())
-        , _otb (std::cout.rdbuf (), _ofs.rdbuf ())
-        , filename ("<empty>")
+        : _inb{std::cin.rdbuf(), _ofs.rdbuf ()}
+        , _otb{std::cout.rdbuf(), _ofs.rdbuf ()}
+        , filename{"<empty>"}
     {}
     Logger(Logger const&) = delete;
     Logger& operator=(Logger const&) = delete;
@@ -72,8 +72,8 @@ public:
     {
         if (_ofs.is_open())
         {
-            std::cout.rdbuf (_otb.streambuf ());
-            std::cin.rdbuf (_inb.streambuf ());
+            std::cout.rdbuf(_otb.streambuf ());
+            std::cin.rdbuf(_inb.streambuf ());
 
             _ofs << "[" << std::chrono::system_clock::now() << "] <-" << std::endl;
             _ofs.close();
@@ -84,8 +84,8 @@ public:
             _ofs.open (filename, std::ios_base::out|std::ios_base::app);
             _ofs << "[" << std::chrono::system_clock::now() << "] ->" << std::endl;
 
-            std::cin.rdbuf (&_inb);
-            std::cout.rdbuf (&_otb);
+            std::cin.rdbuf(&_inb);
+            std::cout.rdbuf(&_otb);
         }
     }
 

@@ -64,7 +64,7 @@ namespace {
     }
 
     template<bool Optimum>
-    TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply, double move_slowness)
+    TimePoint remaining_time(TimePoint time, u08 movestogo, i16 ply, double move_slowness)
     {
         constexpr auto  StepRatio = Optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
         constexpr auto StealRatio = Optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
@@ -414,7 +414,7 @@ const Thread* ThreadPool::best_thread() const
 {
     auto const *best_thread = front();
 
-    auto min_value = (*std::min_element (begin(), end(),
+    auto min_value = (*std::min_element(begin(), end(),
                                          [](Thread *const &t1, Thread *const &t2)
                                          {
                                              return t1->root_moves.front().new_value

@@ -951,12 +951,12 @@ namespace TBSyzygy {
                 // and ensure it is mapped below the diagonal.
                 for (i32 i = 0; i < d->group_len[0]; ++i)
                 {
-                    if (!off_A1H8 (squares[i]))
+                    if (!off_A1H8(squares[i]))
                     {
                         continue;
                     }
 
-                    if (off_A1H8 (squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
+                    if (off_A1H8(squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
                     {
                         for (i32 j = i; j < size; ++j)
                         {
@@ -1000,7 +1000,7 @@ namespace TBSyzygy {
                     // First piece is below a1-h8 diagonal. MapA1D1D4[] maps the b1-d1-d3
                     // triangle to 0...5. There are 63 squares for second piece and and 62
                     // (mapped to 0...61) for the third.
-                    if (off_A1H8 (squares[0]))
+                    if (off_A1H8(squares[0]))
                     {
                         idx = (  MapA1D1D4[squares[0]] * 63
                                + (squares[1] - adjust1)) * 62
@@ -1450,7 +1450,7 @@ namespace TBSyzygy {
         /// (winning capture or winning pawn move). Also DTZ store wrong values for positions
         /// where the best move is an ep-move(even if losing). So in all these cases set
         /// the state to ZEROING_BEST_MOVE.
-        WDLScore search (Position &pos, ProbeState &state, bool check_zeroing)
+        WDLScore search(Position &pos, ProbeState &state, bool check_zeroing)
         {
             auto best_wdl = WDLScore::LOSS;
 
@@ -1469,7 +1469,7 @@ namespace TBSyzygy {
                 ++move_count;
 
                 pos.do_move(move, si);
-                auto wdl = -search (pos, state, false);
+                auto wdl = -search(pos, state, false);
                 pos.undo_move(move);
 
                 if (ProbeState::FAILURE == state)
@@ -1539,7 +1539,7 @@ namespace TBSyzygy {
     ///  2 : win
     WDLScore probe_wdl(Position &pos, ProbeState &state)
     {
-        return search (pos, state, false);
+        return search(pos, state, false);
     }
 
     /// Probe the DTZ table for a particular position.
@@ -1570,7 +1570,7 @@ namespace TBSyzygy {
     i32      probe_dtz(Position &pos, ProbeState &state)
     {
         state = ProbeState::SUCCESS;
-        auto wdl = search (pos, state, true);
+        auto wdl = search(pos, state, true);
 
         if (   ProbeState::FAILURE == state
             || WDLScore::DRAW == wdl) // DTZ tables don't store draws
@@ -1615,7 +1615,7 @@ namespace TBSyzygy {
             // position after the move to get the score sign(because even in a
             // winning position we could make a losing capture or going for a draw).
             dtz = zeroing ?
-                    -dtz_before_zeroing(search (pos, state, false)) :
+                    -dtz_before_zeroing(search(pos, state, false)) :
                     -probe_dtz(pos, state);
 
             // If the move mates, force minDTZ to 1
@@ -1699,7 +1699,7 @@ namespace TBSyzygy {
         // Obtain 50-move counter for the root position
         i16 clock_ply = root_pos.si->clock_ply;
         // Check whether a position was repeated since the last zeroing move.
-        bool rep = root_pos.repeated ();
+        bool rep = root_pos.repeated();
 
         i16 bound = bool(Options["SyzygyUseRule50"]) ? 900 : 1;
         i32 dtz;
@@ -1771,7 +1771,7 @@ namespace TBSyzygy {
             i32 code = 0;
             for (auto const &s : SQ)
             {
-                if (off_A1H8 (s) < 0)
+                if (off_A1H8(s) < 0)
                 {
                     MapB1H1H7[s] = code++;
                 }
@@ -1784,12 +1784,12 @@ namespace TBSyzygy {
                                    SQ_A3, SQ_B3, SQ_C3, SQ_D3,
                                    SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
             {
-                if (off_A1H8 (s) < 0)
+                if (off_A1H8(s) < 0)
                 {
                     MapA1D1D4[s] = code++;
                 }
                 else
-                if (off_A1H8 (s) == 0)
+                if (off_A1H8(s) == 0)
                 {
                     diagonal.push_back(s);
                 }
@@ -1820,12 +1820,12 @@ namespace TBSyzygy {
                                 continue; // Illegal position
                             }
                             else
-                            if (off_A1H8 (s1) == 0 && off_A1H8 (s2) > 0)
+                            if (off_A1H8(s1) == 0 && off_A1H8(s2) > 0)
                             {
                                 continue; // First on diagonal, second above
                             }
                             else
-                            if (off_A1H8 (s1) == 0 && off_A1H8 (s2) == 0)
+                            if (off_A1H8(s1) == 0 && off_A1H8(s2) == 0)
                             {
                                 both_on_diagonal.emplace_back(std::make_pair (idx, s2));
                             }

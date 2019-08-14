@@ -70,8 +70,8 @@ namespace {
 
     // Hash functions for indexing the cuckoo tables
 
-    inline u16 H1 (Key key) { return u16((key >> 0x00) & (CuckooSize - 1)); }
-    inline u16 H2 (Key key) { return u16((key >> 0x10) & (CuckooSize - 1)); }
+    inline u16 H1(Key key) { return u16((key >> 0x00) & (CuckooSize - 1)); }
+    inline u16 H2(Key key) { return u16((key >> 0x10) & (CuckooSize - 1)); }
 
 }
 
@@ -96,10 +96,10 @@ void Position::initialize()
                                    ^ RandZob.color;
                         cuckoo.move = make_move<NORMAL>(org, dst);
 
-                        u16 i = H1 (cuckoo.key);
+                        u16 i = H1(cuckoo.key);
                         do
                         {
-                            std::swap (Cuckoos[i], cuckoo);
+                            std::swap(Cuckoos[i], cuckoo);
                             // Arrived at empty slot ?
                             if (   0 == cuckoo.key
                                 || MOVE_NONE == cuckoo.move)
@@ -107,9 +107,9 @@ void Position::initialize()
                                 break;
                             }
                             // Push victim to alternative slot
-                            i = i == H1 (cuckoo.key) ?
-                                H2 (cuckoo.key) :
-                                H1 (cuckoo.key);
+                            i = i == H1(cuckoo.key) ?
+                                    H2(cuckoo.key) :
+                                    H1(cuckoo.key);
                         } while (true);
 
                         ++count;
@@ -139,7 +139,7 @@ bool Position::draw(i16 pp) const
 }
 
 /// Position::repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
-bool Position::repeated () const
+bool Position::repeated() const
 {
     const auto* psi = si;
     i16 end = std::min(psi->clock_ply, psi->null_ply);
@@ -156,7 +156,7 @@ bool Position::repeated () const
 
 /// Position::cycled() tests if the position has a move which draws by repetition,
 /// or an earlier position has a move that directly reaches the current position.
-bool Position::cycled (i16 pp) const
+bool Position::cycled(i16 pp) const
 {
     i16 end = std::min(si->clock_ply, si->null_ply);
     if (end < 3)
@@ -173,8 +173,8 @@ bool Position::cycled (i16 pp) const
         Key key = posi_key ^ psi->posi_key;
 
         u16 j;
-        if (   (j = H1 (key), key == Cuckoos[j].key)
-            || (j = H2 (key), key == Cuckoos[j].key))
+        if (   (j = H1(key), key == Cuckoos[j].key)
+            || (j = H2(key), key == Cuckoos[j].key))
         {
             auto org = org_sq(Cuckoos[j].move);
             auto dst = dst_sq(Cuckoos[j].move);
@@ -188,7 +188,7 @@ bool Position::cycled (i16 pp) const
                 // Select the legal one by swaping if necessary.
                 if (empty(org))
                 {
-                    std::swap (org, dst);
+                    std::swap(org, dst);
                 }
                 assert(!empty(org));
                 // For nodes before or at the root, check that the move is a repetition one
@@ -263,7 +263,7 @@ bool Position::pseudo_legal(Move m) const
         return (active|KING) == piece[org] //&& contains(pieces(active, KING), org)
             && (active|ROOK) == piece[dst] //&& contains(pieces(active, ROOK), dst)
             && castle_rook_sq[active][dst > org ? CS_KING : CS_QUEN] == dst
-            && expeded_castle (active, dst > org ? CS_KING : CS_QUEN)
+            && expeded_castle(active, dst > org ? CS_KING : CS_QUEN)
             //&& R_1 == rel_rank(active, org)
             //&& R_1 == rel_rank(active, dst)
             && si->can_castle(active|(dst > org ? CS_KING : CS_QUEN))
@@ -390,7 +390,7 @@ bool Position::legal(Move m) const
         assert((active|KING) == piece[org] //&& contains(pieces(active, KING), org)
             && (active|ROOK) == piece[dst] //&& contains(pieces(active, ROOK), dst)
             && castle_rook_sq[active][dst > org ? CS_KING : CS_QUEN] == dst
-            && expeded_castle (active, dst > org ? CS_KING : CS_QUEN)
+            && expeded_castle(active, dst > org ? CS_KING : CS_QUEN)
             //&& R_1 == rel_rank(active, org)
             //&& R_1 == rel_rank(active, dst)
             && si->can_castle(active|(dst > org ? CS_KING : CS_QUEN))
@@ -749,12 +749,14 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
     // 6) Full move number. The number of the full move.
     //    It starts at 1, and is incremented after Black's move.
 
+    assert(!ff.empty());
+
     clear();
-    std::memcpy (&nsi, &EmptyStateInfo, sizeof (StateInfo));
+    std::memcpy(&nsi, &EmptyStateInfo, sizeof (StateInfo));
     si = &nsi;
 
-    istringstream iss(ff);
-    iss >> std::noskipws;
+    istringstream iss{ff};
+    iss >> noskipws;
 
     u08 token;
     // 1. Piece placement on Board
@@ -763,7 +765,8 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
     while (   (iss >> token)
            && !isspace(token))
     {
-        if (isdigit (token))
+        if (isdigit(token)
+        && ('1' <= token && token <= '8'))
         {
             sq += Delta(token - '0');
         }
@@ -850,7 +853,7 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
     }
 
     // 5-6. Half move clock and Full move number.
-    iss >> std::skipws
+    iss >> skipws
         >> si->clock_ply
         >> ply;
 
@@ -884,8 +887,8 @@ Position& Position::setup(string const &code, Color c, StateInfo &nsi)
 
     string sides[CLR_NO] =
     {
-        code.substr (   code.find('K', 1)), // Weak
-        code.substr (0, code.find('K', 1))  // Strong
+        code.substr(   code.find('K', 1)), // Weak
+        code.substr(0, code.find('K', 1))  // Strong
     };
     assert(8 >= sides[WHITE].size()
         && 8 >= sides[BLACK].size());
@@ -908,7 +911,7 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
     auto key = si->posi_key;
 
     // Copy some fields of old state info to new state info object
-    std::memcpy (&nsi, si, offsetof(StateInfo, posi_key));
+    std::memcpy(&nsi, si, offsetof(StateInfo, posi_key));
     nsi.ptr = si;
     si = &nsi;
 
@@ -932,7 +935,7 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
         assert((active|KING) == piece[org] //&& contains(pieces(active, KING), org)
             && (active|ROOK) == piece[dst] //&& contains(pieces(active, ROOK), dst)
             && castle_rook_sq[active][dst > org ? CS_KING : CS_QUEN] == dst
-            && expeded_castle (active, dst > org ? CS_KING : CS_QUEN)
+            && expeded_castle(active, dst > org ? CS_KING : CS_QUEN)
             //&& R_1 == rel_rank(active, org)
             //&& R_1 == rel_rank(active, dst)
             && si->can_castle(active|(dst > org ? CS_KING : CS_QUEN))
@@ -1183,7 +1186,7 @@ void Position::do_null_move(StateInfo &nsi)
     assert(&nsi != si
         && 0 == si->checkers);
 
-    std::memcpy (&nsi, si, sizeof (StateInfo));
+    std::memcpy(&nsi, si, sizeof (StateInfo));
     nsi.ptr = si;
     si = &nsi;
 
@@ -1227,7 +1230,7 @@ void Position::undo_null_move()
 /// This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip()
 {
-    istringstream iss(fen());
+    istringstream iss{fen()};
     string ff, token;
     // 1. Piece placement
     for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
@@ -1267,7 +1270,7 @@ void Position::flip()
 /// Position::mirror() mirrors position mean King and Queen sides swaped.
 void Position::mirror()
 {
-    istringstream iss(fen());
+    istringstream iss{fen()};
     string ff, token;
     // 1. Piece placement
     for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
@@ -1374,7 +1377,7 @@ string Position::fen(bool full) const
         oss << ' ' << si->clock_ply << ' ' << move_num();
     }
 
-    return oss.str ();
+    return oss.str();
 }
 /// Position::operator string() returns an ASCII representation of the position.
 Position::operator std::string() const
@@ -1424,7 +1427,7 @@ Position::operator std::string() const
     }
     oss << '\n';
 
-    return oss.str ();
+    return oss.str();
 }
 
 #if !defined(NDEBUG)

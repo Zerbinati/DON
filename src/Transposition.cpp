@@ -21,12 +21,12 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
         if (   ite->empty()
             || ite->k16 == key16)
         {
-            ite->refresh (); // Refresh entry.
+            ite->refresh(); // Refresh entry.
             return hit = !ite->empty(), ite;
         }
         // Replacement strategy.
-        if (  rte->worth ()
-            > ite->worth ())
+        if (  rte->worth()
+            > ite->worth())
         {
             rte = ite;
         }
@@ -44,7 +44,7 @@ size_t TCluster::fresh_entry_count() const
     size_t count = 0;
     for (auto const *ite = entries; ite < entries + EntryCount; ++ite)
     {
-        if (ite->generation () == TEntry::Generation)
+        if (ite->generation() == TEntry::Generation)
         {
             ++count;
         }

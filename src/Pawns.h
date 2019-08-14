@@ -29,7 +29,7 @@ namespace Pawns {
         }
 
         template<Color Own>
-        Score evaluate_safety (Position const&, Square) const;
+        Score evaluate_safety(Position const&, Square) const;
 
         template<Color Own>
         u08 king_safety_on(Position const &pos, Square own_k_sq)

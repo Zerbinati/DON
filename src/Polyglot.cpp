@@ -104,7 +104,7 @@ PolyEntry::operator string() const
         << " weight: " << setw( 5) << setfill('0') << weight
         << " learn: " << setw( 2) << setfill('0') << learn
         << setfill(' ');
-    return oss.str ();
+    return oss.str();
 }
 
 PolyBook::PolyBook()
@@ -182,7 +182,7 @@ i64 PolyBook::find_index(Key key) const
 //i64 PolyBook::find_index(string const &fen, bool c960) const
 //{
 //    StateInfo si;
-//    return find_index(Position ().setup(fen, si, nullptr, c960).pg_key());
+//    return find_index(Position().setup(fen, si, nullptr, c960).pg_key());
 //}
 
 bool PolyBook::can_probe(Position const &pos)
@@ -224,9 +224,9 @@ void PolyBook::initialize(string const &bk_fn)
         return;
     }
 
-    ifs.seekg (size_t(0), ios_base::end);
-    size_t filesize = ifs.tellg ();
-    ifs.seekg (size_t(0), ios_base::beg);
+    ifs.seekg(size_t(0), ios_base::end);
+    size_t filesize = ifs.tellg();
+    ifs.seekg(size_t(0), ios_base::beg);
 
     entry_count = (filesize - HeaderSize) / sizeof (PolyEntry);
     entries = new PolyEntry[entry_count];
@@ -248,14 +248,18 @@ void PolyBook::initialize(string const &bk_fn)
     sync_cout << "info string Book entries found " << entry_count << " from file \'" << book_fn << "\'" << sync_endl;
     enabled = true;
 }
+
+namespace {
+
+    PRNG prng{u64(now())};
+
+}
 /// PolyBook::probe() tries to find a book move for the given position.
 /// If no move is found returns MOVE_NONE.
 /// If pick_best is true returns always the highest rated move,
 /// otherwise randomly chooses one, based on the move score.
 Move PolyBook::probe(Position &pos, i16 move_num, bool pick_best)
 {
-    PRNG static prng (now());
-
     if (   !enabled
         || nullptr == entries
         || (0 != move_num && move_num < pos.move_num())
@@ -388,7 +392,7 @@ string PolyBook::show(Position const &pos) const
     }
     if (!list_entries.empty())
     {
-        list_entries.sort ();
+        list_entries.sort();
         list_entries.reverse();
         oss << "\nBook entries: " << list_entries.size();
         for (auto entry : list_entries)
@@ -403,5 +407,5 @@ string PolyBook::show(Position const &pos) const
                 << setfill(' ');
         }
     }
-    return oss.str ();
+    return oss.str();
 }
