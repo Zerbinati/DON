@@ -84,7 +84,7 @@ namespace UCI {
     /// Option::operator=() updates value and triggers on_change() action.
     Option& Option::operator=(char const *value)
     {
-        return *this = {value};
+        return *this = string(value);
     }
     /// Option::operator=() updates value and triggers on_change() action.
     Option& Option::operator=(string const &value)

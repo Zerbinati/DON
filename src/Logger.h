@@ -16,7 +16,7 @@ inline std::string time_to_string(std::chrono::system_clock::time_point const &t
 
 #   if defined(_WIN32)
 
-    auto time = std::chrono::system_clock::to_time_t{tp};
+    auto time = std::chrono::system_clock::to_time_t(tp);
     auto const *local_tm = localtime(&time);
     char const *format = "%Y.%m.%d-%H.%M.%S";
     char buffer[32];

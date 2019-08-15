@@ -28,11 +28,18 @@ namespace {
     using namespace Searcher;
     using namespace TBSyzygy;
 
+    // Engine Name
+    string const Name{ "DON" };
+    // Version number. If version is left empty, then show compile date in the format YY-MM-DD.
+    string const Version{ "" };
+    // Author Name
+    string const Author{ "Ehsan Rashid" };
+    
     /// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
     /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-    string const StartFEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
+    string const StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
 
-    const vector<string> DefaultCmds =
+    vector<string> const DefaultCmds =
     {
         // ---Chess Normal---
         "setoption name UCI_Chess960 value false",
@@ -100,6 +107,60 @@ namespace {
             }
         }
         return 0;
+    }
+
+    string version_info()
+    {
+        ostringstream oss;
+
+        oss << setfill('0');
+#    if defined(VER)
+        oss << VER;
+#    else
+        if (white_spaces(Version))
+        {
+            // From compiler, format is "Sep 2 1982"
+            istringstream iss{__DATE__};
+            string month, day, year;
+            iss >> month >> day >> year;
+            oss << setw(2) << year.substr(2)
+                << setw(2) << month_index(month)
+                << setw(2) << day;
+        }
+        else
+        {
+            oss << Version;
+        }
+#    endif
+        oss << setfill(' ');
+
+        oss <<
+#       if defined(BIT64)
+            ".64"
+#       else
+            ".32"
+#       endif
+        ;
+
+        oss <<
+#       if defined(BM2)
+            ".BM2"
+#       elif defined(ABM)
+            ".ABM"
+#       else
+            ""
+#       endif
+        ;
+
+        oss <<
+#       if defined(LPAGES)
+            ".LP"
+#       else
+            ""
+#       endif
+        ;
+
+        return oss.str();
     }
 
     /// setoption() function updates the UCI option ("name") to the given value ("value").
@@ -495,7 +556,7 @@ namespace {
             else
             if (token == "uci")
             {
-                sync_cout << "id name " << Name << " " << info() << "\n"
+                sync_cout << "id name " << Name << " " << version_info() << "\n"
                           << "id author " << Author << "\n"
                           << Options
                           << "uciok" << sync_endl;
@@ -648,64 +709,10 @@ namespace {
     }
 }
 
-string info()
-{
-    ostringstream oss;
-
-    oss << setfill('0');
-#if defined(VER)
-    oss << VER;
-#else
-    if (white_spaces(Version))
-    {
-        // From compiler, format is "Sep 2 1982"
-        istringstream iss{__DATE__};
-        string month, day, year;
-        iss >> month >> day >> year;
-        oss << setw(2) << year.substr(2)
-            << setw(2) << month_index(month)
-            << setw(2) << day;
-    }
-    else
-    {
-        oss << Version;
-    }
-#endif
-    oss << setfill(' ');
-
-    oss <<
-#   if defined(BIT64)
-        ".64"
-#   else
-        ".32"
-#   endif
-    ;
-
-    oss <<
-#   if defined(BM2)
-        ".BM2"
-#   elif defined(ABM)
-        ".ABM"
-#   else
-        ""
-#   endif
-    ;
-
-    oss <<
-#   if defined(LPAGES)
-        ".LP"
-#   else
-        ""
-#   endif
-    ;
-
-    return oss.str();
-}
-
 /// run() runs with command arguments
 void run(u32 argc, char const *const *argv)
 {
-    cout << Name << " " << info () << " by " << Author << endl;
+    cout << Name << " " << version_info() << " by " << Author << endl;
     cout << "info string Processor(s) detected " << NativeThread::hardware_concurrency() << endl;
 
 #if defined(LPAGES)
@@ -729,7 +736,7 @@ void run(u32 argc, char const *const *argv)
 }
 
 /// stop() exits with a code (in case of some crash).
-void stop(int code)
+void stop(i32 code)
 {
     Threadpool.stop = true;
     Threadpool.configure(0);
