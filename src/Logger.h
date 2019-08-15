@@ -81,7 +81,7 @@ public:
         filename = fn;
         if (!white_spaces(filename))
         {
-            _ofs.open (filename, std::ios_base::out|std::ios_base::app);
+            _ofs.open(filename, std::ios_base::out|std::ios_base::app);
             _ofs << "[" << std::chrono::system_clock::now() << "] ->" << std::endl;
 
             std::cin.rdbuf(&_inb);

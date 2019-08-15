@@ -408,6 +408,7 @@ namespace Searcher {
             }
         };
 
+        /// Breadcrumbs are used to pair thread and position key
         struct Breadcrumb
         {
             std::atomic<Thread const*> thread;
@@ -422,8 +423,9 @@ namespace Searcher {
 
         array<Breadcrumb, 1024> Breadcrumbs;
 
-        // ThreadMarker keeps track of which thread left breadcrumbs at the given node for potential reductions.
-        // A free node will be marked upon entering the moves loop, and unmarked upon leaving that loop, by the ctor/dtor of this struct.
+        /// ThreadMarker structure keeps track of which thread left breadcrumbs at the given
+        /// node for potential reductions. A free node will be marked upon entering the moves
+        /// loop by the constructor, and unmarked upon leaving that loop by the destructor.
         class ThreadMarker
         {
         private:
@@ -462,7 +464,7 @@ namespace Searcher {
 
            ~ThreadMarker()
             {
-                if (nullptr != breadcrumb) // free the marked one.
+                if (nullptr != breadcrumb) // Free the marked one.
                 {
                     breadcrumb->store(nullptr, 0);
                 }

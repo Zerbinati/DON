@@ -57,7 +57,7 @@ namespace {
     }
 
     // Value to string
-    string pretty_value (Value v)
+    string pretty_value(Value v)
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
         ostringstream oss;
@@ -78,7 +78,7 @@ namespace {
         return oss.str();
     }
     // Time to string
-    string pretty_time (u64 time)
+    string pretty_time(u64 time)
     {
         constexpr u32 SecondMilliSec = 1000;
         constexpr u32 MinuteMilliSec = 60*SecondMilliSec;
@@ -338,6 +338,7 @@ string pretty_pv_info(Thread *const &th)
                   th->root_moves.front().end(),
                   [&](Move const &m)
                   {
+                      assert(MOVE_NONE != m);
                       oss << move_to_san(m, th->root_pos) << " ";
                       states->emplace_back();
                       th->root_pos.do_move(m, states->back());
@@ -346,6 +347,7 @@ string pretty_pv_info(Thread *const &th)
                   th->root_moves.front().rend(),
                   [&](Move const &m)
                   {
+                      assert(MOVE_NONE != m);
                       th->root_pos.undo_move(m);
                       states->pop_back();
                   });

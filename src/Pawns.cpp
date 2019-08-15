@@ -169,9 +169,11 @@ namespace Pawns {
         {
             assert(F_A <= f && f <= F_H);
             Bitboard own_front_f_pawns = own_front_pawns & file_bb(f);
-            auto own_r = 0 != own_front_f_pawns ? rel_rank(Own, scan_frontmost_sq(Opp, own_front_f_pawns)) : R_1;
+            auto own_r = 0 != own_front_f_pawns ?
+                        rel_rank(Own, scan_frontmost_sq(Opp, own_front_f_pawns)) : R_1;
             Bitboard opp_front_f_pawns = opp_front_pawns & file_bb(f);
-            auto opp_r = 0 != opp_front_f_pawns ? rel_rank(Own, scan_frontmost_sq(Opp, opp_front_f_pawns)) : R_1;
+            auto opp_r = 0 != opp_front_f_pawns ?
+                        rel_rank(Own, scan_frontmost_sq(Opp, opp_front_f_pawns)) : R_1;
             assert((R_1 == own_r
                  && R_1 == opp_r)
                 || (own_r != opp_r));

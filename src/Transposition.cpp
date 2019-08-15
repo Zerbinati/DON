@@ -204,13 +204,13 @@ u32 TTable::hash_full() const
 }
 
 /// TTable::extract_opp_move() extracts opponent's move.
-Move TTable::extract_opp_move(Position &pos, Move bm) const
+Move TTable::extract_opp_move(Position &pos, Move own_move) const
 {
-    assert(MOVE_NONE != bm
-        && MoveList<GenType::LEGAL>(pos).contains(bm));
+    assert(MOVE_NONE != own_move
+        && MoveList<GenType::LEGAL>(pos).contains(own_move));
 
     StateInfo si;
-    pos.do_move(bm, si);
+    pos.do_move(own_move, si);
     bool tt_hit;
     auto *tte = probe(pos.si->posi_key, tt_hit);
     auto pm = tt_hit ?
@@ -224,7 +224,7 @@ Move TTable::extract_opp_move(Position &pos, Move bm) const
     }
     assert(MOVE_NONE == pm
         || MoveList<GenType::LEGAL>(pos).contains(pm));
-    pos.undo_move(bm);
+    pos.undo_move(own_move);
 
     return pm;
 }

@@ -486,7 +486,7 @@ namespace {
             score = pe->king_safety[Own][1];
         }
 
-        score += make_score(VALUE_ZERO, -16 * pe->king_pawn_dist[Own][index]);
+        score += make_score(0, -16 * pe->king_pawn_dist[Own][index]);
 
         // Main king safety evaluation
         i32 king_danger = 0;
@@ -506,20 +506,22 @@ namespace {
 
         Bitboard unsafe_check = 0;
 
-        //// Enemy pawn checks
-        //Bitboard pawn_check = PawnAttacks[Own][own_k_sq]
-        //                    & sgl_attacks[Opp][PAWN];
-        //// Enemy pawn safe checks
-        //Bitboard pawn_safe_check = pawn_check
-        //                         & safe_area;
-        //if (0 != pawn_safe_check)
-        //{
-        //    king_danger += pop_count(pawn_safe_check) * SafeCheckWeight[PAWN];
-        //}
-        //else
-        //{
-        //    unsafe_check |= pawn_check;
-        //}
+        /*
+        // Enemy pawn checks
+        Bitboard pawn_check = PawnAttacks[Own][own_k_sq]
+                            & sgl_attacks[Opp][PAWN];
+        // Enemy pawn safe checks
+        Bitboard pawn_safe_check = pawn_check
+                                 & safe_area;
+        if (0 != pawn_safe_check)
+        {
+            king_danger += pop_count(pawn_safe_check) * SafeCheckWeight[PAWN];
+        }
+        else
+        {
+            unsafe_check |= pawn_check;
+        }
+        */
 
         // Enemy knight safe checks
         Bitboard niht_safe_check = PieceAttacks[NIHT][own_k_sq]
@@ -527,7 +529,7 @@ namespace {
                                  & safe_area;
         if (0 != niht_safe_check)
         {
-            king_danger += pop_count(niht_safe_check) * SafeCheckWeight[NIHT];
+            king_danger += SafeCheckWeight[NIHT] * pop_count(niht_safe_check);
         }
         else
         {
@@ -535,11 +537,11 @@ namespace {
                           & sgl_attacks[Opp][NIHT];
         }
 
-        Bitboard bshp_attack = attacks_bb<BSHP>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
-        Bitboard rook_attack = attacks_bb<ROOK>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
+        Bitboard bshp_check = attacks_bb<BSHP>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
+        Bitboard rook_check = attacks_bb<ROOK>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
 
         // Enemy queen safe checks
-        Bitboard quen_safe_check = (bshp_attack | rook_attack)
+        Bitboard quen_safe_check = (bshp_check | rook_check)
                                  &  sgl_attacks[Opp][QUEN]
                                  & ~sgl_attacks[Own][QUEN]
                                  & safe_area;
@@ -547,58 +549,56 @@ namespace {
         Bitboard b;
 
         // Enemy bishop safe checks
-        Bitboard bshp_safe_check = bshp_attack
+        Bitboard bshp_safe_check = bshp_check
                                  & sgl_attacks[Opp][BSHP]
                                  & safe_area;
         b =  bshp_safe_check
           & ~quen_safe_check;
         if (0 != b)
         {
-            king_danger += pop_count(b) * SafeCheckWeight[BSHP];
+            king_danger += SafeCheckWeight[BSHP] * pop_count(b);
         }
         else
         {
-            unsafe_check |= bshp_attack
+            unsafe_check |= bshp_check
                           & sgl_attacks[Opp][BSHP];
         }
 
         // Enemy rook safe checks
-        Bitboard rook_safe_check = rook_attack
+        Bitboard rook_safe_check = rook_check
                                  & sgl_attacks[Opp][ROOK]
                                  & safe_area;
         b =  rook_safe_check
           & ~quen_safe_check;
         if (0 != b)
         {
-            king_danger += pop_count(b) * SafeCheckWeight[ROOK];
+            king_danger += SafeCheckWeight[ROOK] * pop_count(b);
         }
         else
         {
-            unsafe_check |= rook_attack
+            unsafe_check |= rook_check
                           & sgl_attacks[Opp][ROOK];
         }
 
         if (0 != quen_safe_check)
         {
-            king_danger += pop_count(quen_safe_check) * SafeCheckWeight[QUEN];
+            king_danger += SafeCheckWeight[QUEN] * pop_count(quen_safe_check);
         }
-        //else
-        //{
-        //    unsafe_check |= (bshp_attack | rook_attack)
-        //                  &  sgl_attacks[Opp][QUEN]
-        //                  & ~sgl_attacks[Own][QUEN];
-        //}
+        /*
+        else
+        {
+            unsafe_check |= (bshp_check | rook_check)
+                          &  sgl_attacks[Opp][QUEN]
+                          & ~sgl_attacks[Own][QUEN];
+        }
+        */
 
         b =  quen_safe_check
           & (bshp_safe_check | rook_safe_check);
         if (0 != b)
         {
-            king_danger += pop_count(b) * 200;
+            king_danger += 200 * pop_count(b);
         }
-
-        // Unsafe or occupied checking squares will also be considered, as long as
-        // the square is in the attacker's mobility area.
-        unsafe_check &= mob_area[Opp];
 
         b = KingFlank_bb[_file(own_k_sq)]
           & Camp_bb[Own]
@@ -607,6 +607,7 @@ namespace {
         i32 tropism = pop_count(b)                    // Squares attacked by enemy in friend king flank
                     + pop_count(b & dbl_attacks[Opp]);// Squares attacked by enemy twice in friend king flank.
 
+        Bitboard king_spot = sgl_attacks[Own][KING] | own_k_sq;
         // Initialize the king danger, which will be transformed later into a score.
         // - number and types of the enemy's attacking pieces,
         // - number of attacked and undefended squares around friend king,
@@ -614,29 +615,18 @@ namespace {
         king_danger +=   1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
                      +  69 * king_attacks_count[Opp]
                      + 185 * pop_count(king_ring[Own] & weak_area)
-                     + 150 * pop_count(pos.si->king_blockers[Own] | unsafe_check)
+                        // Friend knight is near by to defend king
+                     - 100 * (0 != (sgl_attacks[Own][NIHT] & king_spot))
+                        // Friend bishop is near by to defend king
+                     -  35 * (0 != (sgl_attacks[Own][BSHP] & king_spot))
+                     + 148 * pop_count(unsafe_check)
+                     +  98 * pop_count(pos.si->king_blockers[Own])
+                        // Enemy queen is gone
+                     - 873 * (0 == pos.pieces(Opp, QUEN))
                      +   1 * mg_value(mobility[Opp] - mobility[Own])
                      +   5 * tropism * tropism / 16
                      -   3 * mg_value(score) / 4
                      -   7;
-
-        Bitboard king_spot = sgl_attacks[Own][KING] | own_k_sq;
-        
-        // If friend knight is near by to defend king
-        if (0 != (king_spot & sgl_attacks[Own][NIHT]))
-        {
-            king_danger -= 100;
-        }
-        // If friend bishop is near by to defend king
-        if (0 != (king_spot & sgl_attacks[Own][BSHP]))
-        {
-            king_danger -= 35;
-        }
-        // If no enemy queen
-        if (0 == pos.pieces(Opp, QUEN))
-        {
-            king_danger -= 873;
-        }
 
         // Transform the king danger into a score
         if (100 < king_danger)
@@ -750,6 +740,7 @@ namespace {
 
         Bitboard safe_area;
 
+        // Defended or Unattacked squares
         safe_area =  sgl_attacks[Own][NONE]
                   | ~sgl_attacks[Opp][NONE];
         // Safe friend pawns
@@ -764,12 +755,12 @@ namespace {
         // Friend pawns who can push on the next move
         b =  pos.pieces(Own, PAWN)
           & ~pos.si->king_blockers[Own];
-        // Friend pawns push
+        // Friend pawns push (squares where friend pawns can push on the next move)
         b =  pawn_sgl_pushes_bb(Own, b)
           & ~pos.pieces();
         b |= pawn_sgl_pushes_bb(Own, b & rank_bb(rel_rank(Own, R_3)))
           & ~pos.pieces();
-        // Friend pawns push safe
+        // Friend pawns push safe (only the squares which are relatively safe)
         b &= safe_area
           & ~sgl_attacks[Opp][PAWN];
         // Friend pawns push safe attacks an enemies
