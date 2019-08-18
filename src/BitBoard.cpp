@@ -97,12 +97,11 @@ namespace BitBoard {
             static_assert (BSHP == PT || ROOK == PT, "PT incorrect");
 
 #       if !defined(BM2)
+            //             Max Index
+            array<Bitboard, 0x1000> occupancy
+                ,                   reference;
 
-            i16 constexpr MaxIndex = 0x1000;
-            Bitboard occupancy[MaxIndex]
-                ,    reference[MaxIndex];
-
-            u32 constexpr Seeds[R_NO] =
+            array<u32, R_NO> constexpr Seeds
 #           if defined(BIT64)
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
 #           else
@@ -181,7 +180,7 @@ namespace BitBoard {
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct slide attack in the magics[s].attacks database.
                     // Note that build up the database for square as a side effect of verifying the magic.
-                    auto used = new bool[size]();
+                    vector<bool> used(size, false);
                     for (i = 0; i < size; ++i)
                     {
                         u16 idx = magic.index(occupancy[i]);
@@ -197,7 +196,6 @@ namespace BitBoard {
                         used[idx] = true;
                         magic.attacks[idx] = reference[i];
                     }
-                    delete[] used;
                 } while (i < size);
 #           endif
                 offset += (1U << mask_popcount);

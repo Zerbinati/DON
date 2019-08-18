@@ -896,7 +896,7 @@ Position& Position::setup(string const &code, Color c, StateInfo &nsi)
         && code[0] == 'K'
         && code.find('K', 1) != string::npos);
 
-    string sides[CLR_NO] =
+    array<string, CLR_NO> sides
     {
         code.substr(   code.find('K', 1)), // Weak
         code.substr(0, code.find('K', 1))  // Strong

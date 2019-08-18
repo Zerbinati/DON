@@ -41,25 +41,27 @@ const i16 MaxLevel = 24;
 /// Skill Manager class is used to implement strength limit
 class SkillManager
 {
+private:
+
 public:
     static PRNG prng;
     
     i16 level;
     Move best_move;
 
-    SkillManager ()
-    {
-        set(MaxLevel, MOVE_NONE);
-    }
-    SkillManager (const SkillManager&) = delete;
-    SkillManager& operator=(const SkillManager&) = delete;
+    SkillManager()
+        : level{MaxLevel}
+        , best_move{MOVE_NONE}
+    {}
+    SkillManager (SkillManager const&) = delete;
+    SkillManager& operator=(SkillManager const&) = delete;
 
-    void set(i16 lvl, Move bm)
+    bool enabled() const { return level < MaxLevel; }
+
+    void set_level(i16 lvl)
     {
         level = lvl;
-        best_move = bm;
     }
-    bool enabled() const { return level < MaxLevel; }
 
     void pick_best_move();
 };

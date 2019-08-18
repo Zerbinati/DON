@@ -82,7 +82,7 @@ namespace Searcher {
             Move    tt_move;
             i16     depth;
 
-            PieceDestinyHistory const **pd_histories;
+            array<PieceDestinyHistory const*, 6> pd_histories;
 
             Value   threshold;
             Square  recap_sq;
@@ -119,7 +119,7 @@ namespace Searcher {
                     else
                     if (GenType::QUIET == GT)
                     {
-                        m.value = thread->butterfly_history[pos.active][move_pp(m)]
+                        m.value = thread->butterfly_history[pos.active][move_index(m)]
                                 + (*pd_histories[0])[pos[org_sq(m)]][dst_sq(m)]
                                 + (*pd_histories[1])[pos[org_sq(m)]][dst_sq(m)]
                                 + (*pd_histories[3])[pos[org_sq(m)]][dst_sq(m)]
@@ -130,7 +130,7 @@ namespace Searcher {
                         m.value = pos.capture(m) ?
                                       i32(PieceValues[MG][pos.cap_type(m)])
                                     - ptype(pos[org_sq(m)]) :
-                                      thread->butterfly_history[pos.active][move_pp(m)]
+                                      thread->butterfly_history[pos.active][move_index(m)]
                                     + (*pd_histories[0])[pos[org_sq(m)]][dst_sq(m)]
                                     - (0x10000000);
                     }
@@ -166,7 +166,7 @@ namespace Searcher {
             MovePicker& operator=(MovePicker const&) = delete;
 
             /// MovePicker constructor for the main search
-            MovePicker(Position const &p, Move ttm, i16 d, PieceDestinyHistory const **pdhs, array<Move, 2> const &km, Move cm)
+            MovePicker(Position const &p, Move ttm, i16 d, array<PieceDestinyHistory const*, 6> const &pdhs, array<Move, 2> const &km, Move cm)
                 : pos{p}
                 , tt_move{ttm}
                 , depth{d}
@@ -198,7 +198,7 @@ namespace Searcher {
             /// MovePicker constructor for quiescence search
             /// Because the depth <= DepthZero here, only captures, queen promotions
             /// and quiet checks (only if depth >= DepthQSCheck) will be generated.
-            MovePicker(Position const &p, Move ttm, i16 d, PieceDestinyHistory const **pdhs, Square rs)
+            MovePicker(Position const &p, Move ttm, i16 d, array<PieceDestinyHistory const*, 6> const &pdhs, Square rs)
                 : pos{p}
                 , tt_move{ttm}
                 , depth{d}
@@ -533,7 +533,7 @@ namespace Searcher {
 
             if (_ok((ss-1)->played_move))
             {
-                pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] = move;
+                pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][move_index((ss-1)->played_move)] = move;
             }
         }
 
@@ -694,7 +694,7 @@ namespace Searcher {
             Move move;
             u08 move_count = 0;
 
-            PieceDestinyHistory const *pd_histories[6] =
+            array<PieceDestinyHistory const*, 6> const pd_histories
             {
                 (ss-1)->pd_history,
                 (ss-2)->pd_history,
@@ -972,7 +972,7 @@ namespace Searcher {
                         {
                             update_killers(ss, pos, tt_move);
                             auto bonus = stat_bonus(depth);
-                            thread->butterfly_history[pos.active][move_pp(tt_move)] << bonus;
+                            thread->butterfly_history[pos.active][move_index(tt_move)] << bonus;
                             update_continuation_histories(ss, pos[org_sq(tt_move)], dst_sq(tt_move), bonus);
                         }
 
@@ -989,7 +989,7 @@ namespace Searcher {
                     if (!pos.capture_or_promotion(tt_move))
                     {
                         auto bonus = stat_bonus(depth);
-                        thread->butterfly_history[pos.active][move_pp(tt_move)] << -bonus;
+                        thread->butterfly_history[pos.active][move_index(tt_move)] << -bonus;
                         update_continuation_histories(ss, pos[org_sq(tt_move)], dst_sq(tt_move), -bonus);
                     }
                 }
@@ -1276,7 +1276,7 @@ namespace Searcher {
             bool ttm_capture = MOVE_NONE != tt_move
                             && pos.capture_or_promotion(tt_move);
 
-            PieceDestinyHistory const *pd_histories[6] =
+            array<PieceDestinyHistory const*, 6> const pd_histories
             {
                 (ss-1)->pd_history,
                 (ss-2)->pd_history,
@@ -1286,7 +1286,7 @@ namespace Searcher {
                 (ss-6)->pd_history,
             };
             auto counter_move = _ok((ss-1)->played_move) ?
-                                    thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] :
+                                    thread->move_history[pos[dst_sq((ss-1)->played_move)]][move_index((ss-1)->played_move)] :
                                     MOVE_NONE;
             // Initialize movepicker (1) for the current position
             MovePicker move_picker{pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move};
@@ -1545,7 +1545,7 @@ namespace Searcher {
                             reduct_depth -= 2;
                         }
 
-                        auto stats = thread->butterfly_history[~pos.active][move_pp(move)]
+                        auto stats = thread->butterfly_history[~pos.active][move_index(move)]
                                    + (*pd_histories[0])[mpc][dst]
                                    + (*pd_histories[1])[mpc][dst]
                                    + (*pd_histories[3])[mpc][dst]
@@ -1554,7 +1554,7 @@ namespace Searcher {
                         if (   stats < 0
                             && (*pd_histories[0])[mpc][dst] >= 0
                             && (*pd_histories[1])[mpc][dst] >= 0
-                            && thread->butterfly_history[~pos.active][move_pp(move)] >= 0)
+                            && thread->butterfly_history[~pos.active][move_index(move)] >= 0)
                         {
                             stats = 0;
                         }
@@ -1740,12 +1740,12 @@ namespace Searcher {
                     auto qbonus = stat_bonus(depth + (best_value > beta + VALUE_MG_PAWN ? 1 : 0));
 
                     update_killers(ss, pos, best_move);
-                    thread->butterfly_history[pos.active][move_pp(best_move)] << qbonus;
+                    thread->butterfly_history[pos.active][move_index(best_move)] << qbonus;
                     update_continuation_histories(ss, pos[org_sq(best_move)], dst_sq(best_move), qbonus);
                     // Decrease all the other played quiet moves.
                     for (auto qm : quiet_moves)
                     {
-                        thread->butterfly_history[pos.active][move_pp(qm)] << -qbonus;
+                        thread->butterfly_history[pos.active][move_index(qm)] << -qbonus;
                         update_continuation_histories(ss, pos[org_sq(qm)], dst_sq(qm), -qbonus);
                     }
                 }
@@ -2210,10 +2210,9 @@ void MainThread::search()
                 best_move_depth = DepthZero;
             }
 
-            skill_mgr.set(bool(Options["UCI_LimitStrength"]) ?
+            skill_mgr.set_level(bool(Options["UCI_LimitStrength"]) ?
                                 clamp(i16(std::pow((i32(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), i16(0), MaxLevel) :
-                                i16(i32(Options["Skill Level"])),
-                           MOVE_NONE);
+                                i16(i32(Options["Skill Level"])));
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size

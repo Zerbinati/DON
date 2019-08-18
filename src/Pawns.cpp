@@ -13,28 +13,28 @@ namespace Pawns {
     namespace {
 
         // Connected pawn bonus
-        constexpr i32 Connected[R_NO] = { 0, 7, 8, 12, 29, 48, 86, 0 };
+        array<i32, R_NO> constexpr Connected { 0, 7, 8, 12, 29, 48, 86, 0 };
 
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
-        constexpr i32 Shelter[F_NO/2][R_NO] =
-        {
+        array<array<i32, R_NO>, F_NO/2> constexpr Shelter
+        {{
             {  -6,  81,  93,  58,  39,  18,   25, 0 },
             { -43,  61,  35, -49, -29, -11,  -63, 0 },
             { -10,  75,  23,  -2,  32,   3,  -45, 0 },
             { -39, -13, -29, -52, -48, -67, -166, 0 }
-        };
+        }};
 
         // Danger of unblocked enemy pawns strom toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
         // [0][1 - 2] accommodate opponent pawn on edge (likely blocked by king)
-        constexpr i32 Storm[F_NO/2][R_NO] =
-        {
+        array<array<i32, R_NO>, F_NO/2> constexpr Storm
+        {{
             {  89, -285, -185,  93,  57,  45,   51, 0 },
             {  44,  -18,  123,  46,  39,  -7,   23, 0 },
             {   4,   52,  162,  37,   7, -14,   -2, 0 },
             { -10,  -14,   90,  15,   2,  -7,  -16, 0 }
-        };
+        }};
 
 #   define S(mg, eg) make_score(mg, eg)
 

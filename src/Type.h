@@ -454,7 +454,7 @@ constexpr Square     dst_sq(Move m) { return Square((m >> 0) & SQ_H8); }
 constexpr bool          _ok(Move m) { return org_sq(m) != dst_sq(m); }
 constexpr PieceType promote(Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 constexpr MoveType    mtype(Move m) { return MoveType(m & PROMOTE); }
-constexpr u16       move_pp(Move m) { return u16(m & 0x0FFF); }
+constexpr u16    move_index(Move m) { return u16(m & 0x0FFF); }
 constexpr Square fix_dst_sq(Move m, bool chess960 = false)
 {
     return CASTLE != mtype(m)
@@ -637,7 +637,7 @@ inline std::string append_path(std::string const &base_path, std::string const &
             base_path + file_path;
 }
 
-Square constexpr SQ[SQ_NO] =
+std::array<Square, SQ_NO> constexpr SQ
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -648,11 +648,11 @@ Square constexpr SQ[SQ_NO] =
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
 };
-Value constexpr PieceValues[CLR_NO][PT_NO] =
-{
+std::array<std::array<Value, PT_NO>, CLR_NO> constexpr PieceValues
+{{
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
-};
+}};
 
 //inline std::vector<std::string> split(const std::string str, char delimiter = ' ', bool keep_empty = true, bool do_trim = false)
 //{

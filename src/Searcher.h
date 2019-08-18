@@ -108,9 +108,9 @@ struct Stats
         // For standard-layout 'this' points to first struct member
         assert(std::is_standard_layout<stats>::value);
 
-        typedef StatsEntry<T, D> entry;
-        entry *p = reinterpret_cast<entry*>(this);
-        std::fill(p, p + sizeof (*this) / sizeof (entry), v);
+        typedef StatsEntry<T, D> Entry;
+        Entry *p = reinterpret_cast<Entry*>(this);
+        std::fill(p, p + sizeof (*this) / sizeof (Entry), v);
     }
 };
 template <typename T, i32 D, i32 Size>
@@ -130,7 +130,8 @@ typedef Stats<i16, 29952, MAX_PIECE, SQ_NO>                 PieceDestinyHistory;
 /// The nested history table is based on PieceDestinyHistory, indexed by [piece][square]
 typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO>     ContinuationHistory;
 /// MoveHistory stores moves, indexed by [piece][square]
-typedef Stats<Move, 0, MAX_PIECE, SQ_NO>                    MoveHistory;
+//typedef Stats<Move, 0, MAX_PIECE, SQ_NO>                    MoveHistory;
+typedef Stats<Move, 0, MAX_PIECE, SQ_NO*SQ_NO>              MoveHistory;
 
 /// The root of the tree is a PV node.
 /// At a PV node all the children have to be investigated.

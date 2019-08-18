@@ -448,7 +448,7 @@ namespace BitBoard {
 
     // * @author Kim Walisch (2012)
     constexpr u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
-    constexpr u08 BSF_Table[SQ_NO] =
+    std::array<u08, SQ_NO> constexpr BSF_Table
     {
          0, 47,  1, 56, 48, 27,  2, 60,
         57, 49, 41, 37, 28, 16,  3, 61,
@@ -463,7 +463,7 @@ namespace BitBoard {
 #   else
 
     constexpr u32 DeBruijn_32 = U32(0x783A9B23);
-    constexpr u08 BSF_Table[SQ_NO] =
+    std::array<u08, SQ_NO> constexpr BSF_Table
     {
         63, 30,  3, 32, 25, 41, 22, 33,
         15, 50, 42, 13, 11, 53, 19, 34,
@@ -475,7 +475,7 @@ namespace BitBoard {
         38, 28, 58, 20, 37, 17, 36,  8
     };
 
-    constexpr u08 MSB_Table[(1 << 8)] =
+    std::array<u08, (1 << 8)> constexpr MSB_Table[]
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
