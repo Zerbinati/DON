@@ -1,5 +1,4 @@
-#ifndef _MEMORY_HANDLER_H_INC_
-#define _MEMORY_HANDLER_H_INC_
+#pragma once
 
 #if defined(LPAGES)
 
@@ -17,5 +16,3 @@ namespace Memory {
 }
 
 #endif // LPAGES
-
-#endif // _MEMORY_HANDLER_H_INC_

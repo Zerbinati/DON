@@ -1,5 +1,4 @@
-#ifndef _PRNG_H_INC_
-#define _PRNG_H_INC_
+#pragma once
 
 #include "Type.h"
 
@@ -51,5 +50,3 @@ public:
 #endif
 
 };
-
-#endif // _PRNG_H_INC_

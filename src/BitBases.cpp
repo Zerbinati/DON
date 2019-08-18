@@ -50,9 +50,9 @@ namespace BitBases {
         struct KPK_Position
         {
         private:
-            Color  active;
-            Square k_sq[CLR_NO]
-                ,  p_sq;
+            Color                 active;
+            array<Square, CLR_NO> k_sq;
+            Square                p_sq;
 
             template<Color Own>
             Result classify(vector<KPK_Position> const &db)
@@ -67,9 +67,9 @@ namespace BitBases {
                 // If all moves lead to positions classified as WIN, the result of the current position is WIN
                 // otherwise the current position is classified as UNKNOWN.
 
-                constexpr auto  Opp = WHITE == Own ? BLACK : WHITE;
-                constexpr auto Good = WHITE == Own ? Result::WIN : Result::DRAW;
-                constexpr auto  Bad = WHITE == Own ? Result::DRAW : Result::WIN;
+                auto constexpr  Opp = WHITE == Own ? BLACK : WHITE;
+                auto constexpr Good = WHITE == Own ? Result::WIN : Result::DRAW;
+                auto constexpr  Bad = WHITE == Own ? Result::DRAW : Result::WIN;
 
                 Result r = Result::NONE;
                 Bitboard b = PieceAttacks[KING][k_sq[Own]];

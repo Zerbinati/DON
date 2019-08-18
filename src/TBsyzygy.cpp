@@ -417,7 +417,7 @@ namespace TBSyzygy {
         {
             typedef typename conditional<WDL == Type, WDLScore, i32>::type Ret;
 
-            static constexpr i32 Sides = WDL == Type ? 2 : 1;
+            static i32 constexpr Sides = WDL == Type ? 2 : 1;
 
             atomic<bool> ready;
             void *base_address;
@@ -503,8 +503,8 @@ namespace TBSyzygy {
         class TBTables
         {
         private:
-            i32 static constexpr Size = 1 << 12; // 4K table, indexed by key's 12 lsb
-            i32 static constexpr Overflow = 1;   // Number of elements allowed to map to the last bucket
+            static i32 constexpr Size = 1 << 12; // 4K table, indexed by key's 12 lsb
+            static i32 constexpr Overflow = 1;   // Number of elements allowed to map to the last bucket
 
             typedef tuple<Key, TBTable<WDL>*, TBTable<DTZ>*> Entry;
 

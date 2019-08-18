@@ -1,5 +1,6 @@
 #include "Endgame.h"
 
+#include <array>
 #include "BitBases.h"
 #include "MoveGenerator.h"
 
@@ -45,7 +46,7 @@ namespace Endgames {
     namespace {
 
         // Table used to drive the weak king towards the edge of the board.
-        constexpr i32 PushToEdge[SQ_NO] =
+        array<i32, SQ_NO> constexpr PushToEdge
         {
             100, 90, 80, 70, 70, 80, 90, 100,
              90, 70, 60, 50, 50, 60, 70,  90,
@@ -57,7 +58,7 @@ namespace Endgames {
             100, 90, 80, 70, 70, 80, 90, 100
         };
         // Table used to drive the weak king towards a corner square of the right color.
-        constexpr i32 PushToCorner[SQ_NO] =
+        array<i32, SQ_NO> constexpr PushToCorner
         {
             200, 190, 180, 170, 160, 150, 140, 130,
             190, 180, 170, 160, 150, 140, 130, 140,
@@ -69,11 +70,11 @@ namespace Endgames {
             130, 140, 150, 160, 170, 180, 190, 200
         };
         // Tables used to drive a piece towards or away from another piece.
-        constexpr i32 PushClose[8] = { 0, 100,  70,  50,  35,  20,  10,   0 };
-        constexpr i32 PushAway [8] = { 0,   0,  30,  50,  65,  80,  90, 100 };
+        array<i32, 8> constexpr PushClose { 0, 100,  70,  50,  35,  20,  10,   0 };
+        array<i32, 8> constexpr PushAway  { 0,   0,  30,  50,  65,  80,  90, 100 };
 
         // Pawn Rank based scaling.
-        constexpr Scale RankScale[R_NO] =
+        array<Scale, R_NO> constexpr RankScale
         {
             Scale(0),
             Scale(9),

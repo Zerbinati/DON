@@ -1,6 +1,6 @@
-#ifndef _BITBOARD_H_INC_
-#define _BITBOARD_H_INC_
+#pragma once
 
+#include <array>
 #include "Type.h"
 
 namespace BitBoard {
@@ -47,18 +47,18 @@ namespace BitBoard {
     //constexpr Bitboard Diagonals_bb = U64(0x8142241818244281); // A1..H8 | H1..A8
     constexpr Bitboard Center_bb = (FD_bb|FE_bb) & (R4_bb|R5_bb);
 
-    constexpr Bitboard Color_bb[CLR_NO] =
+    std::array<Bitboard, CLR_NO> constexpr Color_bb
     {
         U64(0x55AA55AA55AA55AA),
         U64(0xAA55AA55AA55AA55)
     };
-    constexpr Bitboard Side_bb[3] =
+    std::array<Bitboard, 3> constexpr Side_bb
     {
         FE_bb|FF_bb|FG_bb|FH_bb,
         FA_bb|FB_bb|FC_bb|FD_bb,
         FC_bb|FD_bb|FE_bb|FF_bb
     };
-    constexpr Bitboard KingFlank_bb[F_NO] =
+    std::array<Bitboard, F_NO> constexpr KingFlank_bb
     {
         Side_bb[CS_QUEN] ^ FD_bb,
         Side_bb[CS_QUEN],
@@ -69,22 +69,22 @@ namespace BitBoard {
         Side_bb[CS_KING],
         Side_bb[CS_KING] ^ FE_bb
     };
-    constexpr Bitboard Outposts_bb[CLR_NO] =
+    std::array<Bitboard, CLR_NO> constexpr Outposts_bb
     {
         R4_bb|R5_bb|R6_bb,
         R5_bb|R4_bb|R3_bb
     };
-    constexpr Bitboard Camp_bb[CLR_NO] =
+    std::array<Bitboard, CLR_NO> constexpr Camp_bb
     {
         R1_bb|R2_bb|R3_bb|R4_bb|R5_bb,
         R8_bb|R7_bb|R6_bb|R5_bb|R4_bb
     };
-    constexpr Bitboard LowRanks_bb[CLR_NO] =
+    std::array<Bitboard, CLR_NO> constexpr LowRanks_bb
     {
         R2_bb|R3_bb,
         R7_bb|R6_bb
     };
-    constexpr Bitboard Region_bb[CLR_NO] =
+    std::array<Bitboard, CLR_NO> constexpr Region_bb
     {
         R2_bb|R3_bb|R4_bb,
         R7_bb|R6_bb|R5_bb
@@ -94,7 +94,7 @@ namespace BitBoard {
 #   define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
 #   define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
 #   define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
-    constexpr Bitboard Square_bb[SQ_NO] =
+    std::array<Bitboard, SQ_NO> constexpr Square_bb
     {
         S_16(0), S_16(1), S_16(2), S_16(3),
     };
@@ -103,10 +103,10 @@ namespace BitBoard {
 #   undef S_04
 #   undef S_02
 
-    extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
-    extern Bitboard PieceAttacks[NONE][SQ_NO];
+    extern std::array<std::array<Bitboard, SQ_NO>, CLR_NO> PawnAttacks;
+    extern std::array<std::array<Bitboard, SQ_NO>, NONE> PieceAttacks;
 
-    extern Bitboard Line_bb[SQ_NO][SQ_NO];
+    extern std::array<std::array<Bitboard, SQ_NO>, SQ_NO> Line_bb;
 
     // Magic holds all magic relevant data for a single square
     struct Magic
@@ -139,11 +139,11 @@ namespace BitBoard {
         }
     };
 
-    extern Magic BMagics[SQ_NO]
-        ,        RMagics[SQ_NO];
+    extern std::array<Magic, SQ_NO> BMagics
+        ,                           RMagics;
 
 #if !defined(ABM)
-    extern u08 PopCount16[1 << 16];
+    extern std::array<u08, 1 << 16> PopCount16;
 #endif
 
     /// Shift the bitboard using delta
@@ -306,12 +306,12 @@ namespace BitBoard {
         union
         {
             Bitboard b;
-            u16 u16[4];
+            u16      u_16[4];
         } v = { bb };
-        return PopCount16[v.u16[0]]
-             + PopCount16[v.u16[1]]
-             + PopCount16[v.u16[2]]
-             + PopCount16[v.u16[3]];
+        return PopCount16[v.u_16[0]]
+             + PopCount16[v.u_16[1]]
+             + PopCount16[v.u_16[2]]
+             + PopCount16[v.u_16[3]];
     }
 
 #else
@@ -583,5 +583,3 @@ namespace BitBoard {
 #endif
 
 }
-
-#endif // _BITBOARD_H_INC_

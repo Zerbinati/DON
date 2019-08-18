@@ -1,8 +1,6 @@
-#ifndef _TYPE_H_INC_
-#define _TYPE_H_INC_
+#pragma once
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cctype>
 #include <chrono>
@@ -13,6 +11,7 @@
 #include <iosfwd>
 #include <sstream>
 #include <string>
+#include <array>
 #include <vector>
 
 /// Compiling:
@@ -363,7 +362,7 @@ BASIC_OPERATORS(Value)
 ARTHMAT_OPERATORS(Value)
 INC_DEC_OPERATORS(Value)
 
-constexpr Score make_score(i32 mg, i32 eg)
+Score constexpr make_score(i32 mg, i32 eg)
 {
     return Score(i32(u32(eg) << 0x10) + mg);
 }
@@ -704,5 +703,3 @@ Value constexpr PieceValues[CLR_NO][PT_NO] =
 //        filename.erase(pos, std::string::npos);
 //    }
 //}
-
-#endif // _TYPE_H_INC_

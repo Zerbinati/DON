@@ -17,6 +17,8 @@ namespace UCI {
     using namespace Searcher;
     using namespace TBSyzygy;
 
+    size_t Option::InsertOrder = 0;
+
     Option::Option(OnChange on_cng)
         : type{"button"}
         , default_value{""}
@@ -141,7 +143,7 @@ namespace UCI {
 
         if (nullptr != on_change)
         {
-            on_change (*this);
+            on_change ();
         }
 
         return *this;
@@ -150,9 +152,8 @@ namespace UCI {
     /// Option::operator<<() inits options and assigns idx in the correct printing order
     void Option::operator<<(Option const &opt)
     {
-        static size_t insert_order = 0;
         *this = opt;
-        index = insert_order++;
+        index = InsertOrder++;
     }
     /// Option::operator()() is to string method of option
     string Option::operator()()  const
@@ -184,33 +185,33 @@ namespace UCI {
 
     namespace {
 
-        void on_hash(Option const &o)
+        void on_hash()
         {
-            TT.auto_resize(i32(o));
+            TT.auto_resize(i32(Options["Hash"]));
         }
 
 #   if defined(LPAGES)
-        void on_large_pages(Option const&)
+        void on_large_pages()
         {
             TT.auto_resize(i32(Options["Hash"]));
         }
 #   endif
 
-        void on_clear_hash(Option const&)
+        void on_clear_hash()
         {
             clear();
         }
 
-        void on_save_hash(Option const&)
+        void on_save_hash()
         {
             TT.save(string(Options["Hash File"]));
         }
-        void on_load_hash(Option const&)
+        void on_load_hash()
         {
             TT.load(string(Options["Hash File"]));
         }
 
-        void on_threads(Option const&)
+        void on_threads()
         {
             auto threads = option_threads();
             if (threads != Threadpool.size())
@@ -219,19 +220,19 @@ namespace UCI {
             }
         }
 
-        void on_book_fn(Option const &o)
+        void on_book_fn()
         {
-            Book.initialize(string(o));
+            Book.initialize(string(Options["Book.bin"]));
         }
 
-        void on_debug_fn(Option const &o)
+        void on_debug_fn()
         {
-            Log.set(string(o));
+            Log.set(string(Options["Debug File"]));
         }
 
-        void on_syzygy_path(Option const &o)
+        void on_syzygy_path()
         {
-            TBSyzygy::initialize(string(o));
+            TBSyzygy::initialize(string(Options["SyzygyPath"]));
         }
 
     }

@@ -1,9 +1,12 @@
 #include "Zobrist.h"
 
 #include <cassert>
+#include "BitBoard.h"
 #include "Position.h"
 #include "PRNG.h"
+
 using namespace std;
+using namespace BitBoard;
 
 /// Zobrist::compute_matl_key() computes hash key of the material situation.
 Key Zobrist::compute_matl_key(Position const &pos) const

@@ -4,7 +4,6 @@
 #include <iostream>
 #include "MoveGenerator.h"
 #include "Notation.h"
-#include "PRNG.h"
 
 PolyBook Book;
 
@@ -106,6 +105,8 @@ PolyEntry::operator string() const
         << setfill(' ');
     return oss.str();
 }
+
+PRNG PolyBook::prng{u64(now())};
 
 PolyBook::PolyBook()
     : entries{nullptr}
@@ -249,11 +250,6 @@ void PolyBook::initialize(string const &bk_fn)
     enabled = true;
 }
 
-namespace {
-
-    PRNG prng{u64(now())};
-
-}
 /// PolyBook::probe() tries to find a book move for the given position.
 /// If no move is found returns MOVE_NONE.
 /// If pick_best is true returns always the highest rated move,

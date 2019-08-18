@@ -17,26 +17,6 @@ using namespace TBSyzygy;
 
 namespace {
 
-    constexpr StateInfo EmptyStateInfo =
-    {
-        0,          //matl_key
-        0,          //pawn_key
-        CR_NONE,    //castle_rights
-        SQ_NO,      //enpassant_sq
-        0,          //clock_ply
-        0,          //null_ply
-
-        0,          //posi_key
-        NONE,       //capture
-        NONE,       //promote
-        0,          //checkers
-        0,          //repetition
-        {0, 0},
-        {0, 0},
-        {0, 0, 0, 0, 0, 0},
-        nullptr,
-    };
-
     /// Computes the non-pawn middle game material value for the given side.
     /// Material values are updated incrementally during the search.
     template<Color Own>
@@ -62,23 +42,56 @@ namespace {
     {
         Key key;    // Zobrist key
         Move move;  // Valid reversible move
+
+        Cuckoo(Key k, Move m)
+            : key{k}
+            , move{m}
+        {}
+        Cuckoo()
+            : Cuckoo(0, MOVE_NONE)
+        {}
+
+        bool empty() const
+        {
+            return key == 0
+                || move == MOVE_NONE;
+        }
     };
 
-    constexpr u16 CuckooSize = 0x2000;
     // Cuckoo table
-    Cuckoo Cuckoos[CuckooSize];
+    array<Cuckoo, 0x2000> Cuckoos;
 
     // Hash functions for indexing the cuckoo tables
 
-    inline u16 H1(Key key) { return u16((key >> 0x00) & (CuckooSize - 1)); }
-    inline u16 H2(Key key) { return u16((key >> 0x10) & (CuckooSize - 1)); }
+    inline u16 H1(Key key) { return u16((key >> 0x00) & (Cuckoos.size() - 1)); }
+    inline u16 H2(Key key) { return u16((key >> 0x10) & (Cuckoos.size() - 1)); }
 
 }
+
+StateInfo const StateInfo::Empty
+{
+    0,          //matl_key
+    0,          //pawn_key
+    CR_NONE,    //castle_rights
+    SQ_NO,      //enpassant_sq
+    0,          //clock_ply
+    0,          //null_ply
+
+    0,          //posi_key
+    NONE,       //capture
+    NONE,       //promote
+    0,          //checkers
+    0,          //repetition
+    {0, 0},
+    {0, 0},
+    {0, 0, 0, 0, 0, 0},
+    nullptr,
+};
 
 void Position::initialize()
 {
     // Prepare the Cuckoo tables
-    std::memset(Cuckoos, 0, sizeof (Cuckoos));
+    Cuckoos.fill({0, MOVE_NONE});
     u16 count = 0;
     for (auto const &c : { WHITE, BLACK })
     {
@@ -90,19 +103,17 @@ void Position::initialize()
                 {
                     if (contains(PieceAttacks[pt][org], dst))
                     {
-                        Cuckoo cuckoo;
-                        cuckoo.key = RandZob.piece_square[c][pt][org]
-                                   ^ RandZob.piece_square[c][pt][dst]
-                                   ^ RandZob.color;
-                        cuckoo.move = make_move<NORMAL>(org, dst);
+                        Cuckoo cuckoo{ RandZob.piece_square[c][pt][org]
+                                     ^ RandZob.piece_square[c][pt][dst]
+                                     ^ RandZob.color,
+                                       make_move<NORMAL>(org, dst)};
 
                         u16 i = H1(cuckoo.key);
                         do
                         {
                             std::swap(Cuckoos[i], cuckoo);
                             // Arrived at empty slot ?
-                            if (   0 == cuckoo.key
-                                || MOVE_NONE == cuckoo.move)
+                            if (cuckoo.empty())
                             {
                                 break;
                             }
@@ -752,7 +763,7 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
     assert(!ff.empty());
 
     clear();
-    std::memcpy(&nsi, &EmptyStateInfo, sizeof (StateInfo));
+    std::memcpy(&nsi, &StateInfo::Empty, sizeof (StateInfo));
     si = &nsi;
 
     istringstream iss{ff};

@@ -168,7 +168,7 @@ void TTable::clear()
                                  size_t count = idx != thread_count - 1 ?
                                                  stride :
                                                  cluster_count - idx * stride;
-                                 std::memset(pcluster, 0, count * sizeof (TCluster));
+                                 std::memset(pcluster, 0, count * sizeof (*pcluster));
                              });
     }
     for (auto &th : threads)

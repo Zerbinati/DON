@@ -1,5 +1,6 @@
 #include "Material.h"
 
+#include <array>
 #include <cassert>
 #include <cstring>
 #include "Thread.h"
@@ -13,8 +14,8 @@ namespace Material {
 
         // Polynomial material imbalance parameters
 
-        constexpr i32 OwnQuadratic[NONE][NONE] =
-        {
+        array<array<i32, NONE>, NONE> OwnQuadratic
+        {{
             //          Own Pieces
             //  P    N    B     R   Q    BP
             {  38,   0,   0,    0,  0,   40 }, // P
@@ -23,10 +24,10 @@ namespace Material {
             {  -2,  47, 105, -208,  0,  -26 }, // R
             {  24, 117, 133, -134, -6, -189 }, // Q
             {   0,   0,   0,    0,  0, 1438 }  // BP
-        };
+        }};
 
-        constexpr i32 OppQuadratic[NONE][NONE] =
-        {
+        array<array<i32, NONE>, NONE> constexpr OppQuadratic
+        {{
             //          Opp Pieces
             //  P    N    B     R   Q    BP
             {   0,   0,   0,    0,  0,   36 }, // P
@@ -35,32 +36,32 @@ namespace Material {
             {  39,  24, -24,    0,  0,   46 }, // R
             { 100, -42, 137,  268,  0,   97 }, // Q
             {   0,   0,   0,    0,  0,    0 }  // BP
-        };
+        }};
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
-        Endgame<KXK>    ValueKXK[CLR_NO] =
+        array<Endgame<KXK>, CLR_NO>    ValueKXK
         {
             Endgame<KXK>(WHITE),
             Endgame<KXK>(BLACK)
         };
         // Endgame generic scale functions
-        Endgame<KPKP>   ScaleKPKP[CLR_NO] =
+        array<Endgame<KPKP>, CLR_NO>   ScaleKPKP
         {
             Endgame<KPKP>(WHITE),
             Endgame<KPKP>(BLACK)
         };
-        Endgame<KPsK>   ScaleKPsK[CLR_NO] =
+        array<Endgame<KPsK>, CLR_NO>   ScaleKPsK
         {
             Endgame<KPsK>(WHITE),
             Endgame<KPsK>(BLACK)
         };
-        Endgame<KBPsKP> ScaleKBPsKP[CLR_NO] =
+        array<Endgame<KBPsKP>, CLR_NO> ScaleKBPsKP
         {
             Endgame<KBPsKP>(WHITE),
             Endgame<KBPsKP>(BLACK)
         };
-        Endgame<KQKRPs> ScaleKQKRPs[CLR_NO] =
+        array<Endgame<KQKRPs>, CLR_NO> ScaleKQKRPs
         {
             Endgame<KQKRPs>(WHITE),
             Endgame<KQKRPs>(BLACK)
@@ -69,9 +70,9 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 imbalance(i32 const (*count)[NONE])
+        i32 imbalance(array<array<i32, NONE>, CLR_NO> const &count)
         {
-            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+            auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
             i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"
@@ -216,8 +217,8 @@ namespace Material {
         // Evaluate the material imbalance.
         // Use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        i32 piece_count[CLR_NO][NONE] =
-        {
+        array<array<i32, NONE>, CLR_NO> piece_count
+        {{
             {
                 pos.count(WHITE|PAWN),
                 pos.count(WHITE|NIHT),
@@ -234,7 +235,7 @@ namespace Material {
                 pos.count(BLACK|QUEN),
                 pos.bishop_paired(BLACK) ? 1 : 0
             }
-        };
+        }};
 
         auto value = (imbalance<WHITE>(piece_count) - imbalance<BLACK>(piece_count)) / 16; // Imbalance Resolution
         e->imbalance = make_score(value, value);

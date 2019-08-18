@@ -10,69 +10,71 @@ namespace BitBoard {
 
     using namespace std;
 
-    Bitboard PawnAttacks[CLR_NO][SQ_NO];
-    Bitboard PieceAttacks[NONE][SQ_NO];
+    array<array<Bitboard, SQ_NO>, CLR_NO> PawnAttacks;
+    array<array<Bitboard, SQ_NO>, NONE> PieceAttacks;
 
-    Bitboard Line_bb[SQ_NO][SQ_NO];
+    array<array<Bitboard, SQ_NO>, SQ_NO> Line_bb;
 
-    Magic BMagics[SQ_NO]
-        , RMagics[SQ_NO];
+    array<Magic, SQ_NO> BMagics
+        ,               RMagics;
 
 #if !defined(ABM)
     
-    u08 PopCount16[1 << 16];
+    array<u08, 1 << 16> PopCount16;
 
-    //// Counts the non-zero bits using SWAR-Popcount algorithm
-    //u08 pop_count16(u32 u)
-    //{
-    //    u -= (u >> 1) & 0x5555U;
-    //    u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
-    //    u = ((u >> 4) + u) & 0x0F0FU;
-    //    return u08((u * 0x0101U) >> 8);
-    //}
-
+    /*
+    // Counts the non-zero bits using SWAR-Popcount algorithm
+    u08 pop_count16(u32 u)
+    {
+        u -= (u >> 1) & 0x5555U;
+        u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
+        u = ((u >> 4) + u) & 0x0F0FU;
+        return u08((u * 0x0101U) >> 8);
+    }
+    */
 #endif
 
     namespace {
 
-        constexpr Delta PawnDeltas[CLR_NO][2] =
-        {
+        array<array<Delta, 2>, CLR_NO> constexpr PawnDeltas
+        {{
             { DEL_NW, DEL_NE },
             { DEL_SE, DEL_SW },
-        };
-        constexpr Delta PieceDeltas[NONE][8] =
-        {
+        }};
+        array<array<Delta, 8>, NONE> constexpr PieceDeltas
+        {{
             { },
             { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
             { DEL_SW, DEL_SE, DEL_NW, DEL_NE },
             { DEL_S , DEL_W , DEL_E , DEL_N  },
             { DEL_SW, DEL_S , DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
             { DEL_SW, DEL_S , DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
-        };
+        }};
+/*
+        // De Bruijn sequences.
+#   if defined(BIT64)
+        constexpr u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
+#   else
+        constexpr u32 DeBruijn_32 = U32(0x783A9B23);
+#   endif
 
-//        // De Bruijn sequences.
-//#   if defined(BIT64)
-//        constexpr u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
-//#   else
-//        constexpr u32 DeBruijn_32 = U32(0x783A9B23);
-//#   endif
-//
-//        Square BSF_Table[SQ_NO];
-//        unsigned bsf_index(Bitboard bb)
-//        {
-//            assert(0 != bb);
-//            bb ^= (bb - 1);
-//            return
-//#       if defined(BIT64)
-//            // Use Kim Walisch extending trick for 64-bit
-//            (bb * DeBruijn_64) >> 58;
-//#       else
-//            // Use Matt Taylor's folding trick for 32-bit
-//            (u32 ((bb >> 0) ^ (bb >> 32)) * DeBruijn_32) >> 26;
-//#       endif
-//        }
-//
-//        u08 MSB_Table[(1 << 8)];
+        array<Square, SQ_NO> BSF_Table;
+        unsigned bsf_index(Bitboard bb)
+        {
+            assert(0 != bb);
+            bb ^= (bb - 1);
+            return
+#       if defined(BIT64)
+            // Use Kim Walisch extending trick for 64-bit
+            (bb * DeBruijn_64) >> 58;
+#       else
+            // Use Matt Taylor's folding trick for 32-bit
+            (u32 ((bb >> 0) ^ (bb >> 32)) * DeBruijn_32) >> 26;
+#       endif
+        }
+
+        array<u08, (1 << 8)> MSB_Table;
+*/
 
         // Max Bishop Table Size
         // 4 * 2^6 + 12 * 2^7 + 44 * 2^5 + 4 * 2^9
@@ -90,7 +92,7 @@ namespace BitBoard {
         /// Magic bitboards are used to look up attacks of sliding pieces.
         /// In particular, here we use the so called "fancy" approach.
         template<PieceType PT>
-        void initialize_magic(Bitboard *attacks, Magic *magics)
+        void initialize_magic(Bitboard *attacks, array<Magic, SQ_NO> &magics)
         {
             static_assert (BSHP == PT || ROOK == PT, "PT incorrect");
 
@@ -203,8 +205,8 @@ namespace BitBoard {
         }
         /// Explicit template instantiations
         /// --------------------------------
-        template void initialize_magic<BSHP>(Bitboard*, Magic*);
-        template void initialize_magic<ROOK>(Bitboard*, Magic*);
+        template void initialize_magic<BSHP>(Bitboard*, array<Magic, SQ_NO>&);
+        template void initialize_magic<ROOK>(Bitboard*, array<Magic, SQ_NO>&);
     }
 
     template<PieceType PT>
@@ -239,13 +241,13 @@ namespace BitBoard {
         //    //Square_bb[s] = U64(1) << s;
         //    BSF_Table[bsf_index(square_bb(s))] = s;
         //}
-        //for (u32 b = 2; b < (1 << 8); ++b)
+        //for (u32 b = 1; b < MSB_Table.size(); ++b)
         //{
         //    MSB_Table[b] =  MSB_Table[b - 1] + !more_than_one(b);
         //}
 
 #   if !defined(ABM)
-        for (u32 i = 0; i < (1 << 16); ++i)
+        for (u32 i = 0; i < PopCount16.size(); ++i)
         {
             PopCount16[i] = std::bitset<16>(i).count(); //pop_count16(i);
         }

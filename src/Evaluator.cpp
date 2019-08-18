@@ -70,8 +70,8 @@ namespace {
 
 #define S(mg, eg) make_score(mg, eg)
 
-    constexpr Score Mobility[4][28] =
-    {
+    array<array<Score, 28>, 4> constexpr Mobility =
+    {{
         { // Knight
             S(-62,-81), S(-53,-56), S(-12,-30), S( -4,-14), S(  3,  8), S( 13, 15),
             S( 22, 23), S( 28, 27), S( 33, 33)
@@ -93,56 +93,56 @@ namespace {
             S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
             S(106,184), S(109,191), S(113,206), S(116,212)
         }
-    };
+    }};
 
-    constexpr Score RookOnFile[2] =
+    array<Score, 2> constexpr RookOnFile =
     {
         S(18, 7), S(44,20)
     };
 
-    constexpr Score MinorThreat[NONE] =
+    array<Score, NONE> constexpr MinorThreat =
     {
         S( 0,31), S(39,42), S(57,44), S(68,112), S(62,120), S( 0, 0)
     };
-    constexpr Score MajorThreat[NONE] =
+    array<Score, NONE> constexpr MajorThreat =
     {
         S( 0,24), S(38,71), S(38,61), S( 0,38), S(51,38), S( 0, 0)
     };
 
-    constexpr Score PasserRank[R_NO] =
+    array<Score, R_NO> constexpr PasserRank =
     {
         S( 0, 0), S( 5,18), S(12,23), S(10,31), S(57,62), S(163,167), S(271,250), S( 0, 0)
     };
 
-    constexpr Score MinorBehindPawn =   S( 18,  3);
-    constexpr Score Outpost =           S( 18,  6);
-    constexpr Score MinorKingProtect =  S(  7,  8);
-    constexpr Score BishopOnDiagonal =  S( 45,  0);
-    constexpr Score BishopPawns =       S(  3,  7);
-    constexpr Score BishopTrapped =     S( 50, 50);
-    constexpr Score RookOnPawns =       S( 10, 32);
-    constexpr Score RookTrapped =       S( 47,  4);
-    constexpr Score QueenWeaken =       S( 49, 15);
-    constexpr Score PawnLessFlank =     S( 17, 95);
-    constexpr Score PasserFile =        S( 11,  8);
-    constexpr Score KingTropism =       S(  8,  0);
-    constexpr Score PieceRestricted =   S(  7,  6);
-    constexpr Score PieceHanged =       S( 69, 36);
-    constexpr Score PawnThreat =        S(173, 94);
-    constexpr Score PawnPushThreat =    S( 48, 39);
-    constexpr Score RankThreat =        S( 13,  0);
-    constexpr Score KingThreat =        S( 24, 89);
-    constexpr Score KnightOnQueen =     S( 16, 12);
-    constexpr Score SliderOnQueen =     S( 59, 18);
+    Score constexpr MinorBehindPawn =   S( 18,  3);
+    Score constexpr Outpost =           S( 18,  6);
+    Score constexpr MinorKingProtect =  S(  7,  8);
+    Score constexpr BishopOnDiagonal =  S( 45,  0);
+    Score constexpr BishopPawns =       S(  3,  7);
+    Score constexpr BishopTrapped =     S( 50, 50);
+    Score constexpr RookOnPawns =       S( 10, 32);
+    Score constexpr RookTrapped =       S( 47,  4);
+    Score constexpr QueenWeaken =       S( 49, 15);
+    Score constexpr PawnLessFlank =     S( 17, 95);
+    Score constexpr PasserFile =        S( 11,  8);
+    Score constexpr KingTropism =       S(  8,  0);
+    Score constexpr PieceRestricted =   S(  7,  6);
+    Score constexpr PieceHanged =       S( 69, 36);
+    Score constexpr PawnThreat =        S(173, 94);
+    Score constexpr PawnPushThreat =    S( 48, 39);
+    Score constexpr RankThreat =        S( 13,  0);
+    Score constexpr KingThreat =        S( 24, 89);
+    Score constexpr KnightOnQueen =     S( 16, 12);
+    Score constexpr SliderOnQueen =     S( 59, 18);
 
 #undef S
 
-    constexpr i32 SafeCheckWeight[NONE] =
+    array<i32, NONE> constexpr SafeCheckWeight =
     {
         30, 790, 635, 880, 980, 0
     };
 
-    constexpr i32 KingAttackerWeight[NONE] =
+    array<i32, NONE> constexpr KingAttackerWeight =
     {
         0, 77, 55, 44, 10, 0
     };
@@ -208,7 +208,7 @@ namespace {
     template<bool Trace> template<Color Own>
     void Evaluator<Trace>::initialize()
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
         auto own_k_sq = pos.square(Own|KING);
 
@@ -265,7 +265,7 @@ namespace {
     {
         static_assert (NIHT <= PT && PT <= QUEN, "PT incorrect");
 
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
         Score score = SCORE_ZERO;
 
@@ -462,7 +462,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::king() const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
         auto own_k_sq = pos.square(Own|KING);
 
@@ -655,7 +655,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::threats() const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
         Score score = SCORE_ZERO;
 
@@ -797,7 +797,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::passers() const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
         auto king_proximity = [&](Color c, Square s) { return std::min(dist(pos.square(c|KING), s), 5); };
 
@@ -885,7 +885,7 @@ namespace {
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::space() const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
         if (pos.non_pawn_material() < Value(12222)) // Space Threshold
         {

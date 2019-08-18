@@ -1,5 +1,4 @@
-#ifndef _UCI_H_INC_
-#define _UCI_H_INC_
+#pragma once
 
 #include <map>
 #include "functor.h"
@@ -11,7 +10,7 @@ namespace UCI {
     class Option
     {
     private:
-        typedef void (*OnChange)(Option const&);
+        typedef void (*OnChange)();
 
         std::string type
             ,       default_value
@@ -22,6 +21,8 @@ namespace UCI {
         OnChange on_change = nullptr;
 
     public:
+        static size_t InsertOrder;
+
         size_t index;
 
         explicit Option(OnChange = nullptr);
@@ -88,5 +89,3 @@ namespace UCI {
 extern UCI::NoCaseLessMap Options;
 
 extern u32 option_threads();
-
-#endif // _UCI_H_INC_

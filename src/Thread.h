@@ -1,5 +1,4 @@
-#ifndef _THREAD_H_INC_
-#define _THREAD_H_INC_
+#pragma once
 
 #include <atomic>
 #include "Material.h"
@@ -43,7 +42,7 @@ const i16 MaxLevel = 24;
 class SkillManager
 {
 public:
-    PRNG static prng;
+    static PRNG prng;
     
     i16 level;
     Move best_move;
@@ -205,7 +204,7 @@ public:
     MainThread* main_thread() const { return static_cast<MainThread*>(front()); }
     u64      nodes() const { return accumulate(&Thread::nodes); }
     u64    tb_hits() const { return accumulate(&Thread::tb_hits); }
-    u32 pv_change () const { return accumulate(&Thread::pv_change); }
+    u32  pv_change() const { return accumulate(&Thread::pv_change); }
 
     const Thread* best_thread() const;
 
@@ -241,5 +240,3 @@ inline std::ostream& operator<<(std::ostream &os, OutputState state)
 
 // Global ThreadPool
 extern ThreadPool Threadpool;
-
-#endif // _THREAD_H_INC_

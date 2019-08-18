@@ -1,7 +1,7 @@
-#ifndef _POLYGLOT_H_INC_
-#define _POLYGLOT_H_INC_
+#pragma once
 
 #include "Position.h"
+#include "PRNG.h"
 #include "Type.h"
 
 /// Polyglot::Entry needs 16 bytes to be stored.
@@ -96,6 +96,7 @@ inline std::basic_ostream<CharT, Traits>&
 class PolyBook
 {
 private:
+    static PRNG prng;
 
     PolyEntry   *entries;
     size_t      entry_count;
@@ -132,5 +133,3 @@ public:
 
 // Global Polyglot Book
 extern PolyBook Book;
-
-#endif // _POLYGLOT_H_INC_

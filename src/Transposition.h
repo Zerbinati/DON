@@ -1,5 +1,4 @@
-#ifndef _TRANSPOSITION_H_INC_
-#define _TRANSPOSITION_H_INC_
+#pragma once
 
 #include "Type.h"
 #include "Thread.h"
@@ -84,7 +83,7 @@ class TCluster
 {
 public:
     // Cluster entry count
-    static constexpr u08 EntryCount = 3;
+    static u08 constexpr EntryCount = 3;
 
     TEntry entries[EntryCount];
     char padding[2]; // Align to a divisor of the cache line size
@@ -117,22 +116,27 @@ private:
 
 public:
     // Minimum size of Table (MB)
-    u32 static constexpr MinHashSize = 4;
+    static u32 constexpr MinHashSize = 4;
     // Maximum size of Table (MB)
-    u32 static constexpr MaxHashSize =
+    static u32 constexpr MaxHashSize =
 #       if defined(BIT64)
             128 * 1024
 #       else
             2 * 1024
 #       endif
         ;
+
     u32 static constexpr BufferSize = 0x10000;
 
     void *mem;
     TCluster *clusters;
     size_t cluster_count;
 
-    TTable() = default;
+    TTable()
+        : mem{nullptr}
+        , clusters{nullptr}
+        , cluster_count{0}
+    {}
     TTable(TTable const&) = delete;
     TTable& operator=(TTable const&) = delete;
    ~TTable()
@@ -143,7 +147,7 @@ public:
     /// size() returns hash size in MB
     u32 size() const
     {
-        return u32((cluster_count * sizeof (TCluster)) >> 20);
+        return u32((u64(cluster_count) * sizeof (TCluster)) >> 20);
     }
 
     /// cluster() returns a pointer to the cluster of given a key.
@@ -210,5 +214,3 @@ public:
 
 // Global Transposition Table
 extern TTable TT;
-
-#endif // _TRANSPOSITION_H_INC_

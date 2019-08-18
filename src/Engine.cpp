@@ -1,5 +1,6 @@
 #include "Engine.h"
 
+#include <array>
 #include <cstdarg>
 #include <iostream>
 #include <fstream>
@@ -39,7 +40,7 @@ namespace {
     /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
     string const StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
 
-    vector<string> const DefaultCmds =
+    vector<string> const DefaultCmds
     {
         // ---Chess Normal---
         "setoption name UCI_Chess960 value false",
@@ -94,14 +95,13 @@ namespace {
         "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
     };
 
+    array<string, 12> const Months { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
     i32 month_index(string const &month)
     {
-        constexpr i08 Months = 12;
-        string const MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-
-        for (auto m = 0; m < Months; ++m)
+        for (u32 m = 0; m < Months.size(); ++m)
         {
-            if (month == MonthStr[m])
+            if (month == Months[m])
             {
                 return m+1;
             }

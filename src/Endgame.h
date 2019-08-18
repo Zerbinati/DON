@@ -1,5 +1,4 @@
-#ifndef _ENDGAME_H_INC_
-#define _ENDGAME_H_INC_
+#pragma once
 
 #include <map>
 #include <memory>
@@ -103,5 +102,3 @@ namespace Endgames {
 
     extern void initialize();
 }
-
-#endif // _ENDGAME_H_INC_

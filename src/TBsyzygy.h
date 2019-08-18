@@ -1,5 +1,4 @@
-#ifndef _TB_SYZYGY_H_INC_
-#define _TB_SYZYGY_H_INC_
+#pragma once
 
 #include "Type.h"
 #include "Searcher.h"
@@ -68,5 +67,3 @@ namespace TBSyzygy {
         return os;
     }
 }
-
-#endif // _TB_SYZYGY_H_INC_

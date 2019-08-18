@@ -38,19 +38,19 @@ namespace Pawns {
 
 #   define S(mg, eg) make_score(mg, eg)
 
-        constexpr Score Backward =      S( 9,24);
-        constexpr Score Blocked =       S(11,56);
-        constexpr Score Isolated =      S( 5,15);
-        constexpr Score WeakUnopposed = S(13,27);
-        constexpr Score WeakLever =     S(0, 56);
+        Score constexpr Backward =      S( 9,24);
+        Score constexpr Blocked =       S(11,56);
+        Score constexpr Isolated =      S( 5,15);
+        Score constexpr WeakUnopposed = S(13,27);
+        Score constexpr WeakLever =     S(0, 56);
 
 #   undef S
 
         template<Color Own>
         Score evaluate(Position const &pos, Entry *e)
         {
-            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-            Bitboard *const Attack = PawnAttacks[Own];
+            auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
+            auto const Attack = PawnAttacks[Own];
 
             Bitboard pawns = pos.pieces(PAWN);
             Bitboard own_pawns = pos.pieces(Own) & pawns;
@@ -156,7 +156,7 @@ namespace Pawns {
     template<Color Own>
     Score Entry::evaluate_safety(Position const &pos, Square own_k_sq) const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
         Bitboard front_pawns = ~front_rank_bb(Opp, own_k_sq) & pos.pieces(PAWN);
         Bitboard own_front_pawns = pos.pieces(Own) & front_pawns;

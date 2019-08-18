@@ -1,5 +1,4 @@
-#ifndef _THREAD_WIN32_OSX_H_INC_
-#define _THREAD_WIN32_OSX_H_INC_
+#pragma once
 
 /// STL thread library used by mingw and gcc when cross compiling for Windows
 /// relies on libwinpthread. Currently libwinpthread implements mutexes directly
@@ -65,7 +64,7 @@ typedef std::mutex              Mutex;
 class NativeThread
 {
 private:
-    static constexpr size_t TH_STACK_SIZE = 2 * 1024 * 1024;
+    static size_t constexpr TH_STACK_SIZE = 2 * 1024 * 1024;
 
     template <class T, class P = std::pair<T*, void(T::*)()>>
     static void* start_routine(void *arg)
@@ -100,5 +99,3 @@ public:
 typedef std::thread NativeThread;
 
 #endif
-
-#endif // _THREAD_WIN32_OSX_H_INC_

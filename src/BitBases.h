@@ -1,5 +1,4 @@
-#ifndef _BITBASES_H_INC_
-#define _BITBASES_H_INC_
+#pragma once
 
 #include "Type.h"
 
@@ -10,5 +9,3 @@ namespace BitBases {
     extern bool probe(Color, Square, Square, Square);
 
 }
-
-#endif // _BITBASES_H_INC_

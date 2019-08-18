@@ -1,5 +1,4 @@
-#ifndef _PSQT_H_INC_
-#define _PSQT_H_INC_
+#pragma once
 
 #include <array>
 #include "Type.h"
@@ -11,5 +10,3 @@ extern std::array<std::array<Score, SQ_NO>, MAX_PIECE> PSQ;
 extern Score compute_psq(Position const&);
 
 extern void psq_initialize();
-
-#endif // _PSQT_H_INC_

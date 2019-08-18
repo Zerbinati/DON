@@ -1,5 +1,4 @@
-#ifndef _MATERIAL_H_INC_
-#define _MATERIAL_H_INC_
+#pragma once
 
 #include <array>
 #include "Endgame.h"
@@ -27,5 +26,3 @@ namespace Material {
 
     extern Entry* probe(Position const&);
 }
-
-#endif // _MATERIAL_H_INC_

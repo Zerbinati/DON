@@ -1,5 +1,4 @@
-#ifndef _LOGGER_H_INC_
-#define _LOGGER_H_INC_
+#pragma once
 
 #include <fstream>
 #include <iostream>
@@ -100,5 +99,3 @@ extern void debug_hit(bool);
 extern void debug_hit_on(bool, bool);
 extern void debug_mean_of(i64);
 extern void debug_print();
-
-#endif // _LOGGER_H_INC_

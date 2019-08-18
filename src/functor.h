@@ -1,5 +1,4 @@
-#ifndef _FUNCTOR_H_INC_
-#define _FUNCTOR_H_INC_
+#pragma once
 
 #include <cctype>
 #include <string>
@@ -76,5 +75,3 @@ struct no_case_equal_comparer
         return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), no_case_equal);
     }
 };
-
-#endif // _FUNCTOR_H_INC_

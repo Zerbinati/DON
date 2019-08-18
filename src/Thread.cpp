@@ -66,8 +66,8 @@ namespace {
     template<bool Optimum>
     TimePoint remaining_time(TimePoint time, u08 movestogo, i16 ply, double move_slowness)
     {
-        constexpr auto  StepRatio = Optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
-        constexpr auto StealRatio = Optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
+        auto constexpr  StepRatio = Optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
+        auto constexpr StealRatio = Optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
 
         auto move_imp1 = move_importance(ply) * move_slowness;
         auto move_imp2 = 0.0;

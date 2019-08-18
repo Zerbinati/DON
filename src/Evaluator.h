@@ -1,5 +1,4 @@
-#ifndef _EVALUATOR_H_INC_
-#define _EVALUATOR_H_INC_
+#pragma once
 
 #include "Position.h"
 #include "Type.h"
@@ -10,5 +9,3 @@ constexpr Value Tempo = Value(28);
 extern Value evaluate(Position const&);
 
 extern std::string trace(Position const&);
-
-#endif // _EVALUATOR_H_INC_

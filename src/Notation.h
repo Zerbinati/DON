@@ -1,5 +1,4 @@
-#ifndef _NOTATION_H_INC_
-#define _NOTATION_H_INC_
+#pragma once
 
 #include "Position.h"
 #include "Thread.h"
@@ -116,5 +115,3 @@ inline std::ostream& operator<<(std::ostream &os, Score const &score)
        << std::noshowpoint << std::noshowpos;
     return os;
 }
-
-#endif // _NOTATION_H_INC_

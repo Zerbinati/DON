@@ -1,5 +1,4 @@
-#ifndef _SEARCHER_H_INC_
-#define _SEARCHER_H_INC_
+#pragma once
 
 #include <array>
 #include <list>
@@ -25,6 +24,11 @@ public:
     {
         TimePoint time;
         TimePoint inc;
+
+        Clock()
+            : time{0}
+            , inc{0}
+        {}
     };
     std::array<Clock, CLR_NO> clock; // Search with Clock
 
@@ -246,5 +250,3 @@ namespace Searcher {
     extern void clear();
 
 }
-
-#endif // _SEARCHER_H_INC_

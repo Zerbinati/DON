@@ -1,5 +1,4 @@
-#ifndef _TIE_BUFFER_H_INC_
-#define _TIE_BUFFER_H_INC_
+#pragma once
 
 #include <streambuf>
 #include <cstring>
@@ -81,5 +80,3 @@ namespace std {
     typedef basic_tie_buf<char,    char_traits<char> >     tie_buf;
     typedef basic_tie_buf<wchar_t, char_traits<wchar_t> >  tie_wbuf;
 }
-
-#endif // _TIE_BUFFER_H_INC_

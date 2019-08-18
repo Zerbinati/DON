@@ -1,5 +1,4 @@
-#ifndef _ZOBRIST_H_INC_
-#define _ZOBRIST_H_INC_
+#pragma once
 
 #include <array>
 #include "Type.h"
@@ -31,5 +30,3 @@ extern void zobrist_initialize();
 
 extern Zobrist RandZob;
 extern Zobrist const PolyZob;
-
-#endif // _ZOBRIST_H_INC_

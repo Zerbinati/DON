@@ -1,5 +1,4 @@
-#ifndef _POSITION_H_INC_
-#define _POSITION_H_INC_
+#pragma once
 
 #include <array>
 #include <deque>
@@ -45,8 +44,6 @@ inline void prefetch(void const*)
 
 #endif
 
-using namespace BitBoard;
-
 /// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
 ///
 ///  - Castling-rights information.
@@ -63,6 +60,8 @@ using namespace BitBoard;
 struct StateInfo
 {
 public:
+    static StateInfo const Empty;
+
     // ---Copied when making a move---
     Key         matl_key;       // Hash key of materials
     Key         pawn_key;       // Hash key of pawns
@@ -318,7 +317,7 @@ inline i32 Position::count(PieceType pt) const
 
 inline Bitboard Position::color_pawns(Color c, Color s) const
 {
-    return pieces(c, PAWN) & Color_bb[s];
+    return pieces(c, PAWN) & BitBoard::Color_bb[s];
 }
 
 inline Square Position::square(Piece pc, u08 index) const
@@ -396,12 +395,12 @@ inline i16 Position::move_num() const
 /// Position::attackers_to() finds attackers to the square on occupancy.
 inline Bitboard Position::attackers_to(Square s, Bitboard occ) const
 {
-    return (pieces(BLACK, PAWN) & PawnAttacks[WHITE][s])
-         | (pieces(WHITE, PAWN) & PawnAttacks[BLACK][s])
-         | (pieces(NIHT)        & PieceAttacks[NIHT][s])
-         | (pieces(BSHP, QUEN)  & attacks_bb<BSHP>(s, occ))
-         | (pieces(ROOK, QUEN)  & attacks_bb<ROOK>(s, occ))
-         | (pieces(KING)        & PieceAttacks[KING][s]);
+    return (pieces(BLACK, PAWN) & BitBoard::PawnAttacks[WHITE][s])
+         | (pieces(WHITE, PAWN) & BitBoard::PawnAttacks[BLACK][s])
+         | (pieces(NIHT)        & BitBoard::PieceAttacks[NIHT][s])
+         | (pieces(BSHP, QUEN)  & BitBoard::attacks_bb<BSHP>(s, occ))
+         | (pieces(ROOK, QUEN)  & BitBoard::attacks_bb<ROOK>(s, occ))
+         | (pieces(KING)        & BitBoard::PieceAttacks[KING][s]);
 }
 /// Position::attackers_to() finds attackers to the square.
 inline Bitboard Position::attackers_to(Square s) const
@@ -435,11 +434,11 @@ inline Bitboard Position::attacks_from(PieceType pt, Square s, Bitboard occ) con
     assert(PAWN != pt);
     switch (pt)
     {
-    case NIHT: return PieceAttacks[NIHT][s];
-    case BSHP: return attacks_bb<BSHP>(s, occ);
-    case ROOK: return attacks_bb<ROOK>(s, occ);
-    case QUEN: return attacks_bb<QUEN>(s, occ);
-    case KING: return PieceAttacks[KING][s];
+    case NIHT: return BitBoard::PieceAttacks[NIHT][s];
+    case BSHP: return BitBoard::attacks_bb<BSHP>(s, occ);
+    case ROOK: return BitBoard::attacks_bb<ROOK>(s, occ);
+    case QUEN: return BitBoard::attacks_bb<QUEN>(s, occ);
+    case KING: return BitBoard::PieceAttacks[KING][s];
     default: assert(false); return 0;
     }
 }
@@ -453,12 +452,12 @@ inline Bitboard Position::attacks_from(Square s, Bitboard occ) const
 {
     switch (ptype(piece[s]))
     {
-    case PAWN: return PawnAttacks[color(piece[s])][s];
-    case NIHT: return PieceAttacks[NIHT][s];
-    case BSHP: return attacks_bb<BSHP>(s, occ);
-    case ROOK: return attacks_bb<ROOK>(s, occ);
-    case QUEN: return attacks_bb<QUEN>(s, occ);
-    case KING: return PieceAttacks[KING][s];
+    case PAWN: return BitBoard::PawnAttacks[color(piece[s])][s];
+    case NIHT: return BitBoard::PieceAttacks[NIHT][s];
+    case BSHP: return BitBoard::attacks_bb<BSHP>(s, occ);
+    case ROOK: return BitBoard::attacks_bb<ROOK>(s, occ);
+    case QUEN: return BitBoard::attacks_bb<QUEN>(s, occ);
+    case KING: return BitBoard::PieceAttacks[KING][s];
     default: assert(false); return 0;
     }
 }
@@ -473,22 +472,22 @@ inline Bitboard Position::attacks_from(Square s) const
 template<>
 inline Bitboard Position::xattacks_from<NIHT>(Square s, Color) const
 {
-    return PieceAttacks[NIHT][s];
+    return BitBoard::PieceAttacks[NIHT][s];
 }
 template<>
 inline Bitboard Position::xattacks_from<BSHP>(Square s, Color c) const
 {
-    return attacks_bb<BSHP>(s, pieces() ^ ((pieces(c, QUEN, BSHP) & ~si->king_blockers[c]) | pieces(~c, QUEN)));
+    return BitBoard::attacks_bb<BSHP>(s, pieces() ^ ((pieces(c, QUEN, BSHP) & ~si->king_blockers[c]) | pieces(~c, QUEN)));
 }
 template<>
 inline Bitboard Position::xattacks_from<ROOK>(Square s, Color c) const
 {
-    return attacks_bb<ROOK>(s, pieces() ^ ((pieces(c, QUEN, ROOK) & ~si->king_blockers[c]) | pieces(~c, QUEN)));
+    return BitBoard::attacks_bb<ROOK>(s, pieces() ^ ((pieces(c, QUEN, ROOK) & ~si->king_blockers[c]) | pieces(~c, QUEN)));
 }
 template<>
 inline Bitboard Position::xattacks_from<QUEN>(Square s, Color c) const
 {
-    return attacks_bb<QUEN>(s, pieces() ^ ((pieces(c, QUEN)       & ~si->king_blockers[c])));
+    return BitBoard::attacks_bb<QUEN>(s, pieces() ^ ((pieces(c, QUEN)       & ~si->king_blockers[c])));
 }
 
 inline bool Position::capture(Move m) const
@@ -522,27 +521,27 @@ inline Value Position::exchange(Move m) const
 
 inline bool Position::pawn_advance_at(Color c, Square s) const
 {
-    return contains(pieces(c, PAWN) & Region_bb[~c], s);
+    return BitBoard::contains(pieces(c, PAWN) & BitBoard::Region_bb[~c], s);
 }
 /// Position::pawn_passed_at() check if pawn passed at the given square.
 inline bool Position::pawn_passed_at(Color c, Square s) const
 {
-    return 0 == (pawn_pass_span(c, s) & pieces(~c, PAWN));
+    return 0 == (BitBoard::pawn_pass_span(c, s) & pieces(~c, PAWN));
 }
 inline bool Position::discovery_check_blocker_at(Square s) const
 {
-    return contains(si->king_blockers[~active], s);
+    return BitBoard::contains(si->king_blockers[~active], s);
 }
 
 /// Position::bishop_paired() check the side has pair of opposite color bishops.
 inline bool Position::bishop_paired(Color c) const
 {
-    return 0 != (pieces(c, BSHP) & Color_bb[WHITE])
-        && 0 != (pieces(c, BSHP) & Color_bb[BLACK]);
+    return 0 != (pieces(c, BSHP) & BitBoard::Color_bb[WHITE])
+        && 0 != (pieces(c, BSHP) & BitBoard::Color_bb[BLACK]);
 }
 inline bool Position::semiopenfile_on(Color c, Square s) const
 {
-    return 0 == (pieces(c, PAWN) & file_bb(s));
+    return 0 == (pieces(c, PAWN) & BitBoard::file_bb(s));
 }
 
 inline void Position::do_move(Move m, StateInfo &nsi)
@@ -554,9 +553,10 @@ inline void Position::place_piece(Square s, Piece pc)
 {
     assert(_ok(pc)
         && std::count(squares[pc].begin(), squares[pc].end(), s) == 0);
-    color_bb[color(pc)] |= s;
-    type_bb[ptype(pc)] |= s;
-    type_bb[NONE] |= s;
+    Bitboard bb = BitBoard::square_bb(s);
+    color_bb[color(pc)] |= bb;
+    type_bb[ptype(pc)] |= bb;
+    type_bb[NONE] |= bb;
     squares[pc].push_back(s);
     psq += PSQ[pc][s];
     piece[s] = pc;
@@ -565,9 +565,10 @@ inline void Position::remove_piece(Square s, Piece pc)
 {
     assert(_ok(pc)
         && std::count(squares[pc].begin(), squares[pc].end(), s) == 1);
-    color_bb[color(pc)] ^= s;
-    type_bb[ptype(pc)] ^= s;
-    type_bb[NONE] ^= s;
+    Bitboard bb = BitBoard::square_bb(s);
+    color_bb[color(pc)] ^= bb;
+    type_bb[ptype(pc)] ^= bb;
+    type_bb[NONE] ^= bb;
     squares[pc].remove(s);
     psq -= PSQ[pc][s];
     //piece[s] = NO_PIECE; // Not needed, overwritten by the capturing one
@@ -577,7 +578,7 @@ inline void Position::move_piece(Square s1, Square s2, Piece pc)
     assert(_ok(pc)
         && std::count(squares[pc].begin(), squares[pc].end(), s1) == 1
         && std::count(squares[pc].begin(), squares[pc].end(), s2) == 0);
-    Bitboard bb = square_bb(s1) | square_bb(s2);
+    Bitboard bb = BitBoard::square_bb(s1) | BitBoard::square_bb(s2);
     color_bb[color(pc)] ^= bb;
     type_bb[ptype(pc)] ^= bb;
     type_bb[NONE] ^= bb;
@@ -602,13 +603,13 @@ inline void StateInfo::set_check_info(Position const &pos)
     king_checkers[BLACK] = 0;
     king_blockers[WHITE] = pos.slider_blockers(pos.square(WHITE|KING), BLACK, 0, king_checkers[WHITE], king_checkers[BLACK]);
     king_blockers[BLACK] = pos.slider_blockers(pos.square(BLACK|KING), WHITE, 0, king_checkers[BLACK], king_checkers[WHITE]);
-    assert(/*0 == (king_blockers[WHITE] & pos.pieces(BLACK, QUEN)) &&*/ (attacks_bb<QUEN>(pos.square(WHITE|KING), pos.pieces()) & king_blockers[WHITE]) == king_blockers[WHITE]);
-    assert(/*0 == (king_blockers[BLACK] & pos.pieces(WHITE, QUEN)) &&*/ (attacks_bb<QUEN>(pos.square(BLACK|KING), pos.pieces()) & king_blockers[BLACK]) == king_blockers[BLACK]);
+    assert(/*0 == (king_blockers[WHITE] & pos.pieces(BLACK, QUEN)) &&*/ (BitBoard::attacks_bb<QUEN>(pos.square(WHITE|KING), pos.pieces()) & king_blockers[WHITE]) == king_blockers[WHITE]);
+    assert(/*0 == (king_blockers[BLACK] & pos.pieces(WHITE, QUEN)) &&*/ (BitBoard::attacks_bb<QUEN>(pos.square(BLACK|KING), pos.pieces()) & king_blockers[BLACK]) == king_blockers[BLACK]);
 
-    checks[PAWN] = PawnAttacks[~pos.active][pos.square(~pos.active|KING)];
-    checks[NIHT] = PieceAttacks[NIHT][pos.square(~pos.active|KING)];
-    checks[BSHP] = attacks_bb<BSHP>(pos.square(~pos.active|KING), pos.pieces());
-    checks[ROOK] = attacks_bb<ROOK>(pos.square(~pos.active|KING), pos.pieces());
+    checks[PAWN] = BitBoard::PawnAttacks[~pos.active][pos.square(~pos.active|KING)];
+    checks[NIHT] = BitBoard::PieceAttacks[NIHT][pos.square(~pos.active|KING)];
+    checks[BSHP] = BitBoard::attacks_bb<BSHP>(pos.square(~pos.active|KING), pos.pieces());
+    checks[ROOK] = BitBoard::attacks_bb<ROOK>(pos.square(~pos.active|KING), pos.pieces());
     checks[QUEN] = checks[BSHP] | checks[ROOK];
     checks[KING] = 0;
 }
@@ -623,5 +624,3 @@ inline bool _ok(std::string const &fen)
         && pos.setup(fen, si, nullptr).ok();
 }
 #endif
-
-#endif // _POSITION_H_INC_
