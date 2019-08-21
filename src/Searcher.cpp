@@ -476,7 +476,7 @@ namespace Searcher {
         // Futility margin
         constexpr Value futility_margin(bool imp, i16 d)
         {
-            return Value((imp ? 117 : 168) * d);
+            return Value(198 * d - (imp ? 178 : 0));
         }
         // Futility move count threshold
         constexpr i16 futility_move_count(bool imp, i16 d)
@@ -486,9 +486,9 @@ namespace Searcher {
 
         i16 reduction(bool imp, i16 d, u08 mc)
         {
-            auto r = 0 == d || 0 == mc ?
-                        i16(0) :
-                        i16(547.56 * std::log(d) * std::log(mc));
+            auto r = i16(0 == d || 0 == mc ?
+                        0 :
+                        547.56 * std::log(d) * std::log(mc));
             return (r + 520) / 1024 + (!imp && r > 999 ? 1 : 0);
         }
 
@@ -1492,7 +1492,8 @@ namespace Searcher {
                 bool lmr =
                     2 < depth
                     && (root_node ? 4 : 1) < move_count
-                    && (!capture_or_promotion
+                    && (   cut_node
+                        || !capture_or_promotion
                         || move_picker.skip_quiets
                         || ss->static_eval + PieceValues[EG][std::min(pos.si->capture, pos.si->promote)] <= alfa);
 

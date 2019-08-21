@@ -1,7 +1,7 @@
 @REM @SET PATH=C:/MinGW/32/bin/;C:/MinGW/msys/bin/;
-
 @SET PATH=C:/MinGW/64/bin/;C:/MinGW/msys/bin/;
 
-@REM make -f MakeFile strip
-strip DON.exe
+make -f Makefile strip COMP=mingw
+@REM make -f Makefile strip COMP=gcc
+
 @PAUSE

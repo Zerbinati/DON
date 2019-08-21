@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -80,7 +80,7 @@ namespace Endgames {
 
 
     template<typename T> using EG_Ptr = std::unique_ptr<EndgameBase<T>>;
-    template<typename T> using EG_Map = std::map<Key, EG_Ptr<T>>;
+    template<typename T> using EG_Map = std::unordered_map<Key, EG_Ptr<T>>;
     template<typename T1, typename T2> using EG_MapPair = std::pair<EG_Map<T1>, EG_Map<T2>>;
 
     // Stores the pointers to endgame evaluation and scaling base objects in two std::map
@@ -95,8 +95,9 @@ namespace Endgames {
     template<typename T>
     const EndgameBase<T>* probe(Key matl_key)
     {
-        return map<T>().find(matl_key) != map<T>().end() ?
-                map<T>()[matl_key].get() :
+        auto itr = map<T>().find(matl_key);
+        return itr != map<T>().end() ?
+                itr->second.get() :
                 nullptr;
     }
 
