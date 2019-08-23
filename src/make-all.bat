@@ -1,20 +1,22 @@
-@REM @SET PATH=C:/MinGW/32/bin/;C:/MinGW/msys/bin/;
+REM SET PATH=C:/MinGW/32/bin/;C:/MinGW/msys/bin/;
 
-@REM make -f Makefile build         ARCH=general-32 COMP=mingw
-@REM make -f Makefile build         ARCH=x86-32-old COMP=mingw
-@REM make -f Makefile build         ARCH=x86-32     COMP=mingw
+REM make -f Makefile build         ARCH=general-32 COMP=mingw debug=no
+REM make -f Makefile profile-build ARCH=general-32 COMP=mingw debug=no
 
-@REM make -f Makefile profile-build ARCH=x86-32     COMP=mingw
+REM make -f Makefile build         ARCH=x86-32-old COMP=mingw debug=no
+REM make -f Makefile profile-build ARCH=x86-32-old COMP=mingw debug=no
 
-@REM -----------------------------------------------------
+REM make -f Makefile build         ARCH=x86-32     COMP=mingw debug=no
+REM make -f Makefile profile-build ARCH=x86-32     COMP=mingw debug=no
 
-@SET PATH=C:/MinGW/64/bin/;C:/MinGW/msys/bin/;
+REM -----------------------------------------------------
 
-@REM make -f Makefile build         ARCH=general-64 COMP=mingw
-@REM make -f Makefile build         ARCH=x86-64     COMP=mingw
-@REM make -f Makefile profile-build ARCH=general-64 COMP=mingw
-@REM make -f Makefile profile-build ARCH=x86-64     COMP=mingw
+SET PATH=C:/MinGW/64/bin/;C:/MinGW/msys/bin/;
 
-make -f Makefile build         ARCH=x86-64     COMP=mingw debug=yes
+REM make -f Makefile build         ARCH=general-64 COMP=mingw debug=no
+REM make -f Makefile profile-build ARCH=general-64 COMP=mingw debug=no
 
-@PAUSE
+REM make -f Makefile build         ARCH=x86-64     COMP=mingw debug=no
+REM make -f Makefile profile-build ARCH=x86-64     COMP=mingw debug=no
+
+PAUSE
