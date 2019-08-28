@@ -88,7 +88,7 @@ namespace Searcher {
             Square  recap_sq;
 
             ValMoves moves;
-            ValMoves::iterator itr;
+            ValMoves::iterator vmItr;
 
             std::vector<Move> refutation_moves
                 ,             bad_capture_moves;
@@ -141,18 +141,19 @@ namespace Searcher {
             template<typename Pred>
             bool pick(Pred filter)
             {
-                while (itr != moves.end())
+                while (vmItr != moves.end())
                 {
-                    std::swap(*itr, *std::max_element(itr, moves.end()));
-                    if (   tt_move != itr->move
-                        && (   (   ENPASSANT != mtype(itr->move)
-                                && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(itr->move)))
-                            || pos.legal(itr->move))
+                    std::swap(*vmItr, *std::max_element(vmItr, moves.end()));
+                    if (   tt_move != vmItr->move
+                        && (   (   ENPASSANT != mtype(vmItr->move)
+                                && !contains(  pos.si->king_blockers[pos.active]
+                                             | pos.square(pos.active|KING), org_sq(vmItr->move)))
+                            || pos.legal(vmItr->move))
                         && filter ())
                     {
-                        return ++itr, true;
+                        return ++vmItr, true;
                     }
-                    ++itr;
+                    ++vmItr;
                 }
                 return false;
             }
@@ -283,25 +284,25 @@ namespace Searcher {
                     generate<GenType::CAPTURE>(moves, pos);
                     value<GenType::CAPTURE>();
                     ++stage;
-                    itr = moves.begin();
+                    vmItr = moves.begin();
                     // Re-branch at the top of the switch
                     goto restage;
 
                 case Stage::NT_GOOD_CAPTURES:
-                    if (pick([&]() { auto thr = Value(-(itr->value) * 55 / 1024);
-                                     if (   pos.exchange(itr->move) >= thr
-                                         || pos.see_ge(itr->move, thr))
+                    if (pick([&]() { auto thr = Value(-(vmItr->value) * 55 / 1024);
+                                     if (   pos.exchange(vmItr->move) >= thr
+                                         || pos.see_ge(vmItr->move, thr))
                                      {
                                          return true;
                                      }
                                      else
                                      {
                                          // Put losing capture to bad_capture_moves to be tried later
-                                         bad_capture_moves.push_back(itr->move);
+                                         bad_capture_moves.push_back(vmItr->move);
                                          return false;
                                      }}))
                     {
-                        return (itr-1)->move;
+                        return (vmItr-1)->move;
                     }
                     // If the countermove is the same as a killers, skip it
                     if (   MOVE_NONE != refutation_moves[2]
@@ -335,15 +336,15 @@ namespace Searcher {
                                                              vm.value = threshold - 1; });
                     }
                     ++stage;
-                    itr = moves.begin();
+                    vmItr = moves.begin();
                     /* fall through */
                 case Stage::NT_QUIETS:
                     if (   !skip_quiets
                         && pick([&]() { return std::find(refutation_moves.begin(),
-                                                         refutation_moves.end(), itr->move)
+                                                         refutation_moves.end(), vmItr->move)
                                                       == refutation_moves.end(); }))
                     {
-                        return (itr-1)->move;
+                        return (vmItr-1)->move;
                     }
                     ++stage;
                     idx = bad_capture_moves.begin();
@@ -358,26 +359,26 @@ namespace Searcher {
                     generate<GenType::EVASION>(moves, pos);
                     value<GenType::EVASION>();
                     ++stage;
-                    itr = moves.begin();
+                    vmItr = moves.begin();
                     /* fall through */
                 case Stage::EV_MOVES:
                     return pick([]() { return true; }) ?
-                            (itr-1)->move :
+                            (vmItr-1)->move :
                             MOVE_NONE;
                     /* end */
 
                 case Stage::PC_CAPTURES:
-                    return pick([&]() { return pos.exchange(itr->move) >= threshold
-                                            || pos.see_ge(itr->move, threshold); }) ?
-                            (itr-1)->move :
+                    return pick([&]() { return pos.exchange(vmItr->move) >= threshold
+                                            || pos.see_ge(vmItr->move, threshold); }) ?
+                            (vmItr-1)->move :
                             MOVE_NONE;
                     /* end */
 
                 case Stage::QS_CAPTURES:
                     if (pick([&]() { return DepthQSRecapture < depth
-                                         || dst_sq(itr->move) == recap_sq; }))
+                                         || dst_sq(vmItr->move) == recap_sq; }))
                     {
-                        return (itr-1)->move;
+                        return (vmItr-1)->move;
                     }
                     // If did not find any move then do not try checks, finished.
                     if (DepthQSCheck > depth)
@@ -392,11 +393,11 @@ namespace Searcher {
                                                                       || !pos.legal(vm); }),
                                  moves.end());
                     ++stage;
-                    itr = moves.begin();
+                    vmItr = moves.begin();
                     /* fall through */
                 case Stage::QS_CHECKS:
-                    return itr != moves.end() ?
-                            *itr++ :
+                    return vmItr != moves.end() ?
+                            *vmItr++ :
                             MOVE_NONE;
                     /* end */
 
@@ -476,7 +477,7 @@ namespace Searcher {
         // Futility margin
         constexpr Value futility_margin(bool imp, i16 d)
         {
-            return Value(198 * d - (imp ? 178 : 0));
+            return Value(198 * (d - imp ? 1 : 0));
         }
         // Futility move count threshold
         constexpr i16 futility_move_count(bool imp, i16 d)
@@ -1142,7 +1143,8 @@ namespace Searcher {
                     && VALUE_ZERO != pos.non_pawn_material(pos.active)
                     && 22661 > (ss-1)->stats
                     && eval >= beta
-                    && ss->static_eval >= beta - 33 * depth + 299
+                    && eval >= ss->static_eval
+                    && ss->static_eval >= beta - 33 * depth + 299 - (improving ? 30 : 0)
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != pos.active))
                 {
@@ -1491,7 +1493,9 @@ namespace Searcher {
 
                 bool lmr =
                     2 < depth
-                    && (root_node ? 4 : 1) < move_count
+                    && (root_node ? 3 : 1) < move_count
+                    && (   !root_node
+                        || thread->move_best_count(move) == 0)
                     && (   cut_node
                         || !capture_or_promotion
                         || move_picker.skip_quiets
@@ -1994,6 +1998,8 @@ void Thread::search()
                         fail_high_count = 0;
                         continue;
                     }
+
+                    ++root_moves[pv_cur].best_count;
                     break;
                 }
 
@@ -2163,11 +2169,11 @@ void MainThread::search()
             auto book_bm = Book.probe(root_pos, i16(i32(Options["Book Move Num"])), bool(Options["Book Pick Best"]));
             if (MOVE_NONE != book_bm)
             {
-                auto itr = std::find(root_moves.begin(), root_moves.end(), book_bm);
-                if (itr != root_moves.end())
+                auto rmItr = std::find(root_moves.begin(), root_moves.end(), book_bm);
+                if (rmItr != root_moves.end())
                 {
                     think = false;
-                    std::swap(root_moves.front(), *itr);
+                    std::swap(root_moves.front(), *rmItr);
                     root_moves.front().new_value = VALUE_NONE;
                     StateInfo si;
                     root_pos.do_move(book_bm, si);
@@ -2298,9 +2304,9 @@ void MainThread::search()
     auto pm = MOVE_NONE;
     if (MOVE_NONE != bm)
     {
-        auto itr = std::next(rm.begin());
-        pm = itr != rm.end() ?
-            *itr :
+        auto mItr = std::next(rm.begin());
+        pm = mItr != rm.end() ?
+            *mItr :
             TT.extract_opp_move(root_pos, bm);
     }
 

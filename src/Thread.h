@@ -78,9 +78,9 @@ protected:
 
     size_t index;
 
-    Mutex mutex;
+    Mutex             mutex;
     ConditionVariable condition_var;
-    NativeThread native_thread;
+    NativeThread      native_thread;
 
 public:
 
@@ -125,6 +125,8 @@ public:
     void wait_while_busy();
 
     void idle_function();
+
+    int move_best_count(Move) const;
 
     virtual void clear();
     virtual void search();

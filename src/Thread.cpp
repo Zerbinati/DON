@@ -250,6 +250,12 @@ void Thread::idle_function()
         search();
     } while (true);
 }
+
+int Thread::move_best_count(Move move) const
+{
+    return root_moves.move_best_count(pv_cur, pv_end, move);
+}
+
 /// Thread::clear() clears all the thread related stuff.
 void Thread::clear()
 {

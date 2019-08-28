@@ -155,6 +155,7 @@ public:
     Value old_value
         , new_value;
 
+    i16   best_count;
     i16   sel_depth;
     i16   tb_rank;
     Value tb_value;
@@ -163,6 +164,7 @@ public:
         : std::list<Move>{1, m}
         , old_value{-VALUE_INFINITE}
         , new_value{-VALUE_INFINITE}
+        , best_count{0}
         , sel_depth{0}
         , tb_rank{0}
         , tb_value{VALUE_ZERO}
@@ -221,6 +223,15 @@ public:
                     && back().tb_value == VALUE_ZERO);
             }
         }
+    }
+
+    int move_best_count(int sIdx, int eIdx, Move move) const
+    {
+        auto rmItr = std::find(begin() + sIdx,
+                               begin() + eIdx, move);
+        return rmItr != begin() + eIdx ?
+                    rmItr->best_count :
+                    0;
     }
 
     explicit operator std::string() const;

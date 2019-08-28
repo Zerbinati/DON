@@ -47,6 +47,7 @@ namespace Pawns {
                 ++index[Own];
             }
 
+            // In endgame, king near to closest pawn
             Bitboard pawns = pos.pieces(Own, PAWN);
             u08 kp_dist;
             if (0 != pawns)

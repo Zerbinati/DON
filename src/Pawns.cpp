@@ -38,6 +38,8 @@ namespace Pawns {
 
 #   define S(mg, eg) make_score(mg, eg)
 
+        Score constexpr BlockedStorm =  S(82, 82);
+
         Score constexpr Backward =      S( 9,24);
         Score constexpr Blocked =       S(11,56);
         Score constexpr Isolated =      S( 5,15);
@@ -187,7 +189,7 @@ namespace Pawns {
             {
                 if (opp_r == R_3)
                 {
-                    safety -= make_score(82, 82);
+                    safety -= BlockedStorm;
                 }
             }
             else
