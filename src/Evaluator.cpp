@@ -70,7 +70,7 @@ namespace {
 
 #define S(mg, eg) make_score(mg, eg)
 
-    array<array<Score, 28>, 4> constexpr Mobility =
+    array<array<Score, 28>, 4> constexpr Mobility
     {{
         { // Knight
             S(-62,-81), S(-53,-56), S(-12,-30), S( -4,-14), S(  3,  8), S( 13, 15),
@@ -95,21 +95,21 @@ namespace {
         }
     }};
 
-    array<Score, 2> constexpr RookOnFile =
+    array<Score, 2> constexpr RookOnFile
     {
         S(18, 7), S(44,20)
     };
 
-    array<Score, NONE> constexpr MinorThreat =
+    array<Score, NONE> constexpr MinorThreat
     {
         S( 0,31), S(39,42), S(57,44), S(68,112), S(62,120), S( 0, 0)
     };
-    array<Score, NONE> constexpr MajorThreat =
+    array<Score, NONE> constexpr MajorThreat
     {
         S( 0,24), S(38,71), S(38,61), S( 0,38), S(51,38), S( 0, 0)
     };
 
-    array<Score, R_NO> constexpr PasserRank =
+    array<Score, R_NO> constexpr PasserRank
     {
         S( 0, 0), S( 5,18), S(12,23), S(10,31), S(57,62), S(163,167), S(271,250), S( 0, 0)
     };
@@ -137,12 +137,12 @@ namespace {
 
 #undef S
 
-    array<i32, NONE> constexpr SafeCheckWeight =
+    array<i32, NONE> constexpr SafeCheckWeight
     {
         30, 790, 635, 880, 980, 0
     };
 
-    array<i32, NONE> constexpr KingAttackerWeight =
+    array<i32, NONE> constexpr KingAttackerWeight
     {
         0, 77, 55, 44, 10, 0
     };

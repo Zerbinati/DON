@@ -103,14 +103,7 @@ typedef        uint64_t    u64;
 typedef u64 Key;
 typedef u64 Bitboard;
 
-constexpr i16 DepthZero         =  0;
-constexpr i16 DepthQSCheck      =  0;
-constexpr i16 DepthQSNoCheck    = -1;
-constexpr i16 DepthQSRecapture  = -5;
-constexpr i16 DepthNone         = -6;
-constexpr i16 DepthEmpty        = -7;
-
-constexpr i16 MaxDepth          = 246; // Maximum Plies
+typedef i16 Depth;
 
 //constexpr i16 MaxMoves          = 256;
 
@@ -168,6 +161,16 @@ enum Delta : i08
     DEL_WWN = DEL_WW + DEL_N,
     DEL_WWS = DEL_WW + DEL_S,
 };
+
+
+Depth constexpr DEP_ZERO        =  0;
+Depth constexpr DEP_QS_CHECK    =  0;
+Depth constexpr DEP_QS_NO_CHECK = -1;
+Depth constexpr DEP_QS_RECAP    = -5;
+Depth constexpr DEP_NONE        = -6;
+Depth constexpr DEP_EMPTY       = -7;
+
+Depth constexpr DEP_MAX         = 128; // Maximum Plies
 
 enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NO };
 
@@ -253,7 +256,7 @@ enum Value : i32
     VALUE_INFINITE  = VALUE_NONE - 1,
     VALUE_MATE      = VALUE_INFINITE - 1,
 
-    VALUE_MATE_MAX_PLY = VALUE_MATE - 2*MaxDepth,
+    VALUE_MATE_MAX_PLY = VALUE_MATE - 2*DEP_MAX,
 
     VALUE_KNOWN_WIN = 10000,
 
@@ -571,12 +574,14 @@ public:
 };
 
 // Return the sign of a number (-1, 0, 1)
-template<class T> i32 sign(T val)
+template<class T>
+i32 sign(T val)
 {
     return (T(0) < val) - (val < T(0));
 }
 
-template<class T> constexpr const T& clamp(T const &v, T const &minimum, T const &maximum)
+template<class T>
+constexpr const T& clamp(T const &v, T const &minimum, T const &maximum)
 {
     return (minimum > v) ? minimum :
            (v > maximum) ? maximum : v;
@@ -599,11 +604,11 @@ inline bool white_spaces(std::string const &str)
 
 inline void to_lower(std::string &str)
 {
-    std::transform(str.begin(), str.end(), str.begin(), tolower);
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 }
 inline void to_upper(std::string &str)
 {
-    std::transform(str.begin(), str.end(), str.begin(), toupper);
+    std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 }
 inline void toggle(std::string &str)
 {
@@ -616,13 +621,13 @@ inline std::string& ltrim(std::string &str)
 {
     str.erase(str.begin(),
               std::find_if(str.begin(), str.end(),
-                           std::not1(std::function<bool(std::string::value_type const&)>(isspace))));
+                           std::not1(std::function<bool(std::string::value_type const&)>(::isspace))));
     return str;
 }
 inline std::string& rtrim(std::string &str)
 {
     str.erase(std::find_if(str.rbegin(), str.rend(),
-                           std::not1(std::function<bool(std::string::value_type const&)>(isspace))).base (),
+                           std::not1(std::function<bool(std::string::value_type const&)>(::isspace))).base (),
                str.end());
     return str;
 }

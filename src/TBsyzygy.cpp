@@ -110,11 +110,11 @@ namespace TBSyzygy {
         };
         constexpr Value WDL_To_Value[] =
         {
-            -VALUE_MATE + (MaxDepth + 1),
+            -VALUE_MATE + (DEP_MAX + 1),
             VALUE_DRAW - 2,
             VALUE_DRAW,
             VALUE_DRAW + 2,
-            +VALUE_MATE - (MaxDepth + 1)
+            +VALUE_MATE - (DEP_MAX + 1)
         };
 
         i32 MapPawns[SQ_NO];
@@ -1697,7 +1697,7 @@ namespace TBSyzygy {
         assert(0 != root_moves.size());
 
         // Obtain 50-move counter for the root position
-        i16 clock_ply = root_pos.si->clock_ply;
+        auto clock_ply = root_pos.si->clock_ply;
         // Check whether a position was repeated since the last zeroing move.
         bool rep = root_pos.repeated();
 
@@ -1752,11 +1752,11 @@ namespace TBSyzygy {
             // Determine the score to be displayed for this move. Assign at least
             // 1 cp to cursed wins and let it grow to 49 cp as the positions gets
             // closer to a real win.
-            rm.tb_value = r >= bound ? +VALUE_MATE - (MaxDepth + 1) :
+            rm.tb_value = r >= bound ? +VALUE_MATE - (DEP_MAX + 1) :
                           r >  0     ? (VALUE_EG_PAWN * std::max(+3, r - 800)) / 200 :
                           r == 0     ? VALUE_DRAW :
                           r > -bound ? (VALUE_EG_PAWN * std::min(-3, r + 800)) / 200 :
-                                       -VALUE_MATE + (MaxDepth + 1);
+                                       -VALUE_MATE + (DEP_MAX + 1);
         }
         return true;
     }

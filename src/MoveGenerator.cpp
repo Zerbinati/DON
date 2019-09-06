@@ -464,7 +464,7 @@ void Perft::classify(Position &pos, Move m)
 /// perft() is utility to verify move generation.
 /// All the leaf nodes up to the given depth are generated, and the sum is returned.
 template<bool RootNode>
-Perft perft(Position &pos, i16 depth, bool detail)
+Perft perft(Position &pos, Depth depth, bool detail)
 {
     Perft total_leaf;
     if (RootNode)
@@ -633,5 +633,5 @@ Perft perft(Position &pos, i16 depth, bool detail)
 }
 /// Explicit template instantiations
 /// --------------------------------
-template Perft perft<true >(Position&, i16, bool);
-template Perft perft<false>(Position&, i16, bool);
+template Perft perft<true >(Position&, Depth, bool);
+template Perft perft<false>(Position&, Depth, bool);

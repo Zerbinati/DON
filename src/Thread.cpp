@@ -57,14 +57,14 @@ namespace {
     // "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from the CCRL game database with some simple filtering criteria.
-    double move_importance(i16 ply)
+    double move_importance(Depth ply)
     {
         //                                                 Shift    Scale   Skew
         return std::max(std::pow(1.00 + std::exp((ply - 64.50) / 6.85), -0.171), DBL_MIN); // Ensure non-zero
     }
 
     template<bool Optimum>
-    TimePoint remaining_time(TimePoint time, u08 movestogo, i16 ply, double move_slowness)
+    TimePoint remaining_time(TimePoint time, u08 movestogo, Depth ply, double move_slowness)
     {
         auto constexpr  StepRatio = Optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
         auto constexpr StealRatio = Optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
@@ -102,7 +102,7 @@ TimePoint TimeManager::elapsed_time() const
 /// Minimum movetime = No matter what, use at least this much time before doing the move, in milli-seconds.
 /// Overhead movetime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
 /// Move Slowness = Move Slowness, in %age.
-void TimeManager::set(Color c, i16 ply, u16 tm_nodes, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
+void TimeManager::set(Color c, Depth ply, u16 tm_nodes, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
 {
     time_nodes = tm_nodes;
 
@@ -169,7 +169,7 @@ void SkillManager::pick_best_move()
     if (MOVE_NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
-        i32  weakness = MaxDepth - 4 * level;
+        i32  weakness = DEP_MAX - 4 * level;
         i32  deviance = std::min(root_moves[0].new_value - root_moves[Threadpool.pv_limit - 1].new_value, VALUE_MG_PAWN);
         auto best_value = -VALUE_INFINITE;
         for (u32 i = 0; i < Threadpool.pv_limit; ++i)
@@ -178,7 +178,7 @@ void SkillManager::pick_best_move()
             // One is deterministic with weakness, and one is random with weakness.
             auto value = root_moves[i].new_value
                        + (  weakness * i32(root_moves[0].new_value - root_moves[i].new_value)
-                          + deviance * i32(prng.rand<u32>() % weakness)) / MaxDepth;
+                          + deviance * i32(prng.rand<u32>() % weakness)) / DEP_MAX;
             // Then choose the move with the highest value.
             if (best_value <= value)
             {
@@ -521,7 +521,7 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
 
     if (!root_moves.empty())
     {
-        TBProbeDepth = i16(i32(Options["SyzygyProbeDepth"]));
+        TBProbeDepth = Depth(i32(Options["SyzygyProbeDepth"]));
         TBLimitPiece = i32(Options["SyzygyLimitPiece"]);
         TBUseRule50 = bool(Options["SyzygyUseRule50"]);
         TBHasRoot = false;
@@ -532,7 +532,7 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
         if (TBLimitPiece > MaxLimitPiece)
         {
             TBLimitPiece = MaxLimitPiece;
-            TBProbeDepth = DepthZero;
+            TBProbeDepth = DEP_ZERO;
         }
 
         // Rank moves using DTZ tables
@@ -594,8 +594,8 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
     auto back_si = setup_states->back();
     for (auto *th : *this)
     {
-        th->root_depth = DepthZero;
-        th->finished_depth = DepthZero;
+        th->root_depth = DEP_ZERO;
+        th->finished_depth = DEP_ZERO;
         th->shuffle_ext = 0;
         th->nodes = 0;
         th->tb_hits = 0;

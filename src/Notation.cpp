@@ -61,7 +61,7 @@ namespace {
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
         ostringstream oss;
-        if (abs(v) < +VALUE_MATE - i32(MaxDepth))
+        if (abs(v) < +VALUE_MATE - i32(DEP_MAX))
         {
             oss << showpos << setprecision(2) << fixed
                 << value_to_cp(v) / 100.0
@@ -246,7 +246,7 @@ Move move_from_san(string const &san, Position &pos)
 
 /// multipv_info() formats PV information according to UCI protocol.
 /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
-string multipv_info(Thread const *const &th, i16 depth, Value alfa, Value beta)
+string multipv_info(Thread const *const &th, Depth depth, Value alfa, Value beta)
 {
     auto elapsed_time = std::max(Threadpool.main_thread()->time_mgr.elapsed_time(), TimePoint(1));
     auto &rms = th->root_moves;
@@ -271,14 +271,14 @@ string multipv_info(Thread const *const &th, i16 depth, Value alfa, Value beta)
             continue;
         }
 
-        i16 d = updated ?
+        Depth d = updated ?
                     depth :
                     depth - 1;
         auto v = updated ?
                     rms[i].new_value :
                     rms[i].old_value;
         bool tb = TBHasRoot
-                && abs(v) < +VALUE_MATE - i32(MaxDepth);
+                && abs(v) < +VALUE_MATE - i32(DEP_MAX);
         if (tb)
         {
             v = rms[i].tb_value;

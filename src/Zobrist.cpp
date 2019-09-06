@@ -200,7 +200,7 @@ void zobrist_initialize()
 // Random numbers from PRNG, used to compute position key
 Zobrist RandZob;
 // Constant numbers from Polyglot, used to compute polyglot book hash key
-Zobrist const PolyZob =
+Zobrist const PolyZob
 {
     // PieceSquare (768)
     {{

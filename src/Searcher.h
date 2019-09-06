@@ -35,7 +35,7 @@ public:
     u08       movestogo;    // Search <x> moves to the next time control
 
     TimePoint movetime;    // Search <x> exact time in milli-seconds
-    i16       depth;       // Search <x> depth(plies) only
+    Depth     depth;       // Search <x> depth(plies) only
     u64       nodes;       // Search <x> nodes only
     u08       mate;        // Search mate in <x> moves
     bool      infinite;    // Search until the "stop" command
@@ -44,7 +44,7 @@ public:
         : clock {}
         , movestogo{0}
         , movetime{0}
-        , depth{0}
+        , depth{DEP_ZERO}
         , nodes{0}
         , mate{0}
         , infinite{false}
@@ -54,7 +54,7 @@ public:
     {
         return !infinite
             && 0 == movetime
-            && DepthZero == depth
+            && DEP_ZERO == depth
             && 0 == nodes
             && 0 == mate;
     }
@@ -252,10 +252,10 @@ namespace Searcher {
     
     extern Limit Limits;
 
-    extern i16 TBProbeDepth;
-    extern i32 TBLimitPiece;
-    extern bool TBUseRule50;
-    extern bool TBHasRoot;
+    extern Depth TBProbeDepth;
+    extern i32   TBLimitPiece;
+    extern bool  TBUseRule50;
+    extern bool  TBHasRoot;
 
     extern void initialize();
 

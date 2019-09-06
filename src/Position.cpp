@@ -134,7 +134,7 @@ void Position::initialize()
 
 /// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 /// It does not detect Insufficient materials and Stalemate.
-bool Position::draw(i16 pp) const
+bool Position::draw(Depth pp) const
 {
     return 
             // Draw by Clock Ply Rule?
@@ -153,7 +153,7 @@ bool Position::draw(i16 pp) const
 bool Position::repeated() const
 {
     const auto* psi = si;
-    i16 end = std::min(psi->clock_ply, psi->null_ply);
+    Depth end = std::min(psi->clock_ply, psi->null_ply);
     while (end-- >= 4)
     {
         if (0 != psi->repetition)
@@ -167,9 +167,9 @@ bool Position::repeated() const
 
 /// Position::cycled() tests if the position has a move which draws by repetition,
 /// or an earlier position has a move that directly reaches the current position.
-bool Position::cycled(i16 pp) const
+bool Position::cycled(Depth pp) const
 {
-    i16 end = std::min(si->clock_ply, si->null_ply);
+    auto end = std::min(si->clock_ply, si->null_ply);
     if (end < 3)
     {
         return false;
@@ -178,7 +178,7 @@ bool Position::cycled(i16 pp) const
     Key posi_key = si->posi_key;
     auto const *psi = si->ptr;
 
-    for (i16 p = 3; p <= end; p += 2)
+    for (Depth p = 3; p <= end; p += 2)
     {
         psi = psi->ptr->ptr;
         Key key = posi_key ^ psi->posi_key;
@@ -875,7 +875,7 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
     // Rule 50 draw case.
     assert(100 >= si->clock_ply);
     // Convert from moves starting from 1 to ply starting from 0.
-    ply = i16(std::max(2*(ply - 1), 0) + (BLACK == active ? 1 : 0));
+    ply = Depth(std::max(2*(ply - 1), 0) + (BLACK == active ? 1 : 0));
 
     thread = th;
 
@@ -1096,11 +1096,11 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
     // occurrence of the same position, negative in the 3-fold case, or zero
     // if the position was not repeated.
     si->repetition = 0;
-    i16 end = std::min(si->clock_ply, si->null_ply);
+    auto end = std::min(si->clock_ply, si->null_ply);
     if (end >= 4)
     {
         const auto* psi = si->ptr->ptr;
-        for (i16 i = 4; i <= end; i += 2)
+        for (Depth i = 4; i <= end; i += 2)
         {
             psi = psi->ptr->ptr;
             if (psi->posi_key == si->posi_key)

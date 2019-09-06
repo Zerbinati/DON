@@ -67,15 +67,15 @@ public:
     Key         pawn_key;       // Hash key of pawns
     CastleRight castle_rights;  // Castling-rights information
     Square      enpassant_sq;   // Enpassant -> "In passing"
-    i16         clock_ply;      // Number of half moves clock since the last pawn advance or any capture
-    i16         null_ply;
+    Depth       clock_ply;      // Number of half moves clock since the last pawn advance or any capture
+    Depth       null_ply;
 
     // ---Not copied when making a move---
     Key         posi_key;       // Hash key of position
     PieceType   capture;        // Piece type captured
     PieceType   promote;        // Piece type promoted
     Bitboard    checkers;       // Checkers
-    i16         repetition;
+    Depth       repetition;
     // Check info
     std::array<Bitboard, CLR_NO> king_blockers; // Absolute and Discover Blockers
     std::array<Bitboard, CLR_NO> king_checkers;// Absolute and Discover Checkers
@@ -144,7 +144,7 @@ public:
     std::array<std::array<Bitboard, CS_NO>, CLR_NO> castle_rook_path_bb;
 
     Score       psq;
-    i16         ply;
+    Depth       ply;
     Color       active;
     Thread      *thread;
 

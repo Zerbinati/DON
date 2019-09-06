@@ -32,7 +32,7 @@ inline std::string to_string(Value v)
 
     std::ostringstream oss;
 
-    if (abs(v) < +VALUE_MATE - i32(MaxDepth))
+    if (abs(v) < +VALUE_MATE - i32(DEP_MAX))
     {
         oss << "cp " << value_to_cp(v);
     }

@@ -181,3 +181,6 @@ $RECYCLE.BIN/
 *.opendb
 *.db
 *.exp
+src/DON
+
+\.vscode/

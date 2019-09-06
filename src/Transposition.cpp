@@ -81,7 +81,7 @@ void TTable::alloc_aligned_memory(size_t mem_size, u32 alignment)
     // Then checking for error returned by malloc, if it returns NULL then 
     // alloc_aligned_memory will fail and return NULL or exit().
 
-    alignment = std::max(u32(sizeof (void *)), alignment);
+    alignment = std::max(u32(sizeof (void*)), alignment);
 
     mem = malloc(mem_size + alignment-1);
     if (nullptr == mem)

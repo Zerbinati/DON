@@ -107,4 +107,4 @@ struct Perft
 };
 
 template<bool RootNode>
-extern Perft perft (Position&, i16, bool = false);
+extern Perft perft (Position&, Depth, bool = false);
