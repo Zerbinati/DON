@@ -33,8 +33,8 @@ namespace UCI {
         Option(Option const&) = delete;
 
         explicit operator std::string() const;
-        explicit operator bool () const;
-        explicit operator i32  () const;
+        explicit operator bool() const;
+        explicit operator i32() const;
         bool operator==(char const*) const;
 
         Option& operator=(char const*);

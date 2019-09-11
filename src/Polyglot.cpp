@@ -15,7 +15,7 @@ namespace {
     ifstream& operator>>(ifstream &ifs, T &t)
     {
         t = T();
-        for (u08 i = 0; i < sizeof (t) && ifs.good (); ++i)
+        for (u08 i = 0; i < sizeof (t) && ifs.good(); ++i)
         {
             t = T((t << 8) + u08(ifs.get()));
         }
@@ -24,7 +24,7 @@ namespace {
     //template<typename T>
     //ofstream& operator<<(ofstream &ofs, T const &t)
     //{
-    //    for (u08 i = 0; i < sizeof (t) && ofs.good (); ++i)
+    //    for (u08 i = 0; i < sizeof (t) && ofs.good(); ++i)
     //    {
     //        ofs.put (u08(t >> (8*(sizeof (t) - 1 - i))));
     //    }

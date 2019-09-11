@@ -53,7 +53,7 @@ public:
         : level{MaxLevel}
         , best_move{MOVE_NONE}
     {}
-    SkillManager (SkillManager const&) = delete;
+    SkillManager(SkillManager const&) = delete;
     SkillManager& operator=(SkillManager const&) = delete;
 
     bool enabled() const { return level < MaxLevel; }
@@ -87,12 +87,12 @@ public:
     Position  root_pos;
     RootMoves root_moves;
 
-    i16   root_depth
+    Depth root_depth
         , finished_depth
         , sel_depth;
     u32   shuffle_ext;
 
-    i16   nmp_ply;
+    Depth nmp_ply;
     Color nmp_color;
 
     u32    pv_beg
@@ -126,7 +126,7 @@ public:
 
     void idle_function();
 
-    int move_best_count(Move) const;
+    i16 move_best_count(Move) const;
 
     virtual void clear();
     virtual void search();
@@ -185,14 +185,14 @@ private:
     StateListPtr setup_states;
 
     template<typename T>
-    T accumulate(std::atomic<T> Thread::*member) const
+    T sum(std::atomic<T> Thread::*member) const
     {
-        T sum = 0;
+        T s = 0;
         for (auto const *th : *this)
         {
-            sum += (th->*member).load(std::memory_order::memory_order_relaxed);
+            s += (th->*member).load(std::memory_order::memory_order_relaxed);
         }
-        return sum;
+        return s;
     }
 
 public:
@@ -206,9 +206,9 @@ public:
     ThreadPool& operator=(ThreadPool const&) = delete;
 
     MainThread* main_thread() const { return static_cast<MainThread*>(front()); }
-    u64      nodes() const { return accumulate(&Thread::nodes); }
-    u64    tb_hits() const { return accumulate(&Thread::tb_hits); }
-    u32  pv_change() const { return accumulate(&Thread::pv_change); }
+    u64      nodes() const { return sum(&Thread::nodes); }
+    u64    tb_hits() const { return sum(&Thread::tb_hits); }
+    u32  pv_change() const { return sum(&Thread::pv_change); }
 
     const Thread* best_thread() const;
 

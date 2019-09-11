@@ -125,22 +125,22 @@ namespace BitBoard {
                            & ~(((FA_bb|FH_bb) & ~file_bb(s)) | ((R1_bb|R8_bb) & ~rank_bb(s)));
 
                 auto mask_popcount = pop_count(magic.mask);
+                assert(mask_popcount < 32);
 
                 // magics[s].attacks is a pointer to the beginning of the attacks table for square
                 //magic.attacks = new Bitboard[(1U << mask_popcount)];
                 magic.attacks = &attacks[offset];
 
 #           if !defined(BM2)
-                magic.shift = u08(
-#               if defined(BIT64)
-                    64
-#               else
-                    32
-#               endif
-                    - mask_popcount);
-#           endif
+                auto bits =
+#                   if defined(BIT64)
+                        64
+#                   else
+                        32
+#                   endif
+                    ;
+                magic.shift = bits - mask_popcount;
 
-#           if !defined(BM2)
                 u16 size = 0;
 #           endif
 
@@ -198,6 +198,7 @@ namespace BitBoard {
                     }
                 } while (i < size);
 #           endif
+
                 offset += (1U << mask_popcount);
             }
         }
@@ -322,7 +323,7 @@ namespace BitBoard {
 
     /// Returns an ASCII representation of a bitboard to print on console output
     /// Bitboard in an easily readable format. This is sometimes useful for debugging.
-    string pretty (Bitboard bb)
+    string pretty(Bitboard bb)
     {
         ostringstream oss;
 

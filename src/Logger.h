@@ -55,8 +55,8 @@ public:
     std::string filename;
 
     Logger()
-        : _inb{std::cin.rdbuf(), _ofs.rdbuf ()}
-        , _otb{std::cout.rdbuf(), _ofs.rdbuf ()}
+        : _inb{std::cin.rdbuf(), _ofs.rdbuf()}
+        , _otb{std::cout.rdbuf(), _ofs.rdbuf()}
         , filename{"<empty>"}
     {}
     Logger(Logger const&) = delete;
@@ -71,8 +71,8 @@ public:
     {
         if (_ofs.is_open())
         {
-            std::cout.rdbuf(_otb.streambuf ());
-            std::cin.rdbuf(_inb.streambuf ());
+            std::cout.rdbuf(_otb.streambuf());
+            std::cin.rdbuf(_inb.streambuf());
 
             _ofs << "[" << std::chrono::system_clock::now() << "] <-" << std::endl;
             _ofs.close();

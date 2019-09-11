@@ -67,8 +67,9 @@ namespace {
         }}
     }};
 
+    // PawnFullSQ table contains full Pawn-Square score (asymmetric distribution)
     array<array<Score, F_NO>, R_NO> constexpr PawnFullSQ
-    {{ // Pawn (asymmetric distribution)
+    {{
         { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) },
         { S(  3,-10), S(  3, -6), S( 10, 10), S( 19,  0), S( 16, 14), S( 19,  7), S(  7, -5), S( -5,-19) },
         { S( -9,-10), S(-15,-10), S( 11,-10), S( 15,  4), S( 32,  4), S( 22,  3), S(  5, -6), S(-22, -4) },

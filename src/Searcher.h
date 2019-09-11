@@ -40,8 +40,8 @@ public:
     u08       mate;        // Search mate in <x> moves
     bool      infinite;    // Search until the "stop" command
 
-    Limit ()
-        : clock {}
+    Limit()
+        : clock{}
         , movestogo{0}
         , movetime{0}
         , depth{DEP_ZERO}
@@ -156,7 +156,7 @@ public:
         , new_value;
 
     i16   best_count;
-    i16   sel_depth;
+    Depth sel_depth;
     i16   tb_rank;
     Value tb_value;
 
@@ -225,7 +225,7 @@ public:
         }
     }
 
-    int move_best_count(int sIdx, int eIdx, Move move) const
+    i16 move_best_count(int sIdx, int eIdx, Move move) const
     {
         auto rmItr = std::find(begin() + sIdx,
                                begin() + eIdx, move);

@@ -412,7 +412,7 @@ void Perft::classify(Position &pos, Move m)
         {
             auto ek_sq = pos.square(~pos.active|KING);
             if (   contains(pos.si->king_blockers[~pos.active], org_sq(m))
-                && !sqrs_aligned(org_sq(m), dst_sq(m), ek_sq))
+                && !squares_aligned(org_sq(m), dst_sq(m), ek_sq))
             {
                 ++dsc_check;
             }

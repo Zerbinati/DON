@@ -153,7 +153,7 @@ bool Position::draw(Depth pp) const
 bool Position::repeated() const
 {
     const auto* psi = si;
-    Depth end = std::min(psi->clock_ply, psi->null_ply);
+    auto end = std::min(psi->clock_ply, psi->null_ply);
     while (end-- >= 4)
     {
         if (0 != psi->repetition)
@@ -394,7 +394,7 @@ bool Position::legal(Move m) const
         // - not pinned
         // - moving along the ray from the king
         return !contains(si->king_blockers[active], org)
-            || sqrs_aligned(org, dst, square(active|KING));
+            || squares_aligned(org, dst, square(active|KING));
         break;
     case CASTLE:
     {
@@ -455,7 +455,7 @@ bool Position::gives_check(Move m) const
            contains(si->checks[PROMOTE != mtype(m) ? ptype(piece[org]) : promote(m)], dst)
             // Discovered check ?
         || (   contains(si->king_blockers[~active], org)
-            && !sqrs_aligned(org, dst, square(~active|KING))))
+            && !squares_aligned(org, dst, square(~active|KING))))
     {
         return true;
     }
@@ -856,10 +856,9 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
     if (   (iss >> file && ('a' <= file && file <= 'h'))
         && (iss >> rank && ('3' == rank || rank == '6')))
     {
-        si->enpassant_sq = to_square(file, rank);
-        if (!can_enpassant(active, si->enpassant_sq))
+        if (can_enpassant(active, to_square(file, rank)))
         {
-            si->enpassant_sq = SQ_NO;
+            si->enpassant_sq = to_square(file, rank);
         }
     }
 
@@ -1060,13 +1059,9 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
         if (dst == org + 2*pawn_push(active))
         {
             // Set enpassant square if the moved pawn can be captured
-            si->enpassant_sq = org + pawn_push(active);
-            if (!can_enpassant(pasive, si->enpassant_sq))
+            if (can_enpassant(pasive, org + pawn_push(active)))
             {
-                si->enpassant_sq = SQ_NO;
-            }
-            if (SQ_NO != si->enpassant_sq)
-            {
+                si->enpassant_sq = org + pawn_push(active);
                 key ^= RandZob.enpassant[_file(si->enpassant_sq)];
             }
         }

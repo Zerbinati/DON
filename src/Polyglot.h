@@ -17,13 +17,13 @@ struct PolyEntry
     u32 learn;
 
 
-    PolyEntry (u64 k, u16 m, u16 w, u32 l)
+    PolyEntry(u64 k, u16 m, u16 w, u32 l)
         : key{k}
         , move{m}
         , weight{w}
         , learn{l}
     {}
-    PolyEntry ()
+    PolyEntry()
         : PolyEntry{0, 0, 0, 0}
     {}
 
@@ -43,7 +43,7 @@ struct PolyEntry
             || move != entry.move
             || weight != entry.weight;
     }
-    bool operator> (PolyEntry const &entry) const
+    bool operator>(PolyEntry const &entry) const
     {
         return key != entry.key ?
                     key > entry.key :
@@ -51,7 +51,7 @@ struct PolyEntry
                         weight > entry.weight :
                         move > entry.move;
     }
-    bool operator< (PolyEntry const &entry) const
+    bool operator<(PolyEntry const &entry) const
     {
         return key != entry.key ?
                     key < entry.key :

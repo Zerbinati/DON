@@ -47,7 +47,7 @@ namespace std {
                 }
             }
 
-            return last_ch = _strmbuf2->sputc(Elem (c));
+            return last_ch = _strmbuf2->sputc(Elem(c));
         }
 
     protected:

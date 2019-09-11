@@ -251,7 +251,7 @@ void Thread::idle_function()
     } while (true);
 }
 
-int Thread::move_best_count(Move move) const
+i16 Thread::move_best_count(Move move) const
 {
     return root_moves.move_best_count(pv_cur, pv_end, move);
 }
@@ -555,7 +555,8 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
         {
             // Sort moves according to TB rank
             sort (root_moves.begin(), root_moves.end(),
-                [](decltype(root_moves)::value_type const &rm1, decltype(root_moves)::value_type const &rm2)
+                [](decltype(root_moves)::value_type const &rm1,
+                   decltype(root_moves)::value_type const &rm2)
                 {
                     return rm1.tb_rank > rm2.tb_rank;
                 });

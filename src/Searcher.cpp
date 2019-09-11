@@ -87,7 +87,7 @@ namespace Searcher {
             Value   threshold;
             Square  recap_sq;
 
-            ValMoves moves;
+            ValMoves vmoves;
             ValMoves::iterator vmItr;
 
             std::vector<Move> refutation_moves
@@ -108,31 +108,33 @@ namespace Searcher {
 
                 auto *thread = pos.thread;
 
-                for (auto &m : moves)
+                for (auto &vm : vmoves)
                 {
                     if (GenType::CAPTURE == GT)
                     {
-                        assert(pos.capture_or_promotion(m));
-                        m.value = i32(PieceValues[MG][pos.cap_type(m)]) * 6
-                                + thread->capture_history[pos[org_sq(m)]][dst_sq(m)][pos.cap_type(m)];
+                        assert(pos.capture_or_promotion(vm.move));
+                        vm.value = i32(PieceValues[MG][pos.cap_type(vm.move)]) * 6
+                                 + thread->capture_history[pos[org_sq(vm.move)]][dst_sq(vm.move)][pos.cap_type(vm.move)];
                     }
                     else
                     if (GenType::QUIET == GT)
                     {
-                        m.value = thread->butterfly_history[pos.active][move_index(m)]
-                                + (*pd_histories[0])[pos[org_sq(m)]][dst_sq(m)]
-                                + (*pd_histories[1])[pos[org_sq(m)]][dst_sq(m)]
-                                + (*pd_histories[3])[pos[org_sq(m)]][dst_sq(m)]
-                                + (*pd_histories[5])[pos[org_sq(m)]][dst_sq(m)] / 2;
+                        vm.value = thread->butterfly_history[pos.active][move_index(vm.move)]
+                                 + (*pd_histories[0])[pos[org_sq(vm.move)]][dst_sq(vm.move)]
+                                 + (*pd_histories[1])[pos[org_sq(vm.move)]][dst_sq(vm.move)]
+                                 + (*pd_histories[3])[pos[org_sq(vm.move)]][dst_sq(vm.move)]
+                                 + (*pd_histories[5])[pos[org_sq(vm.move)]][dst_sq(vm.move)] / 2;
+                        if (vm.value < threshold)
+                            vm.value = threshold - 1;
                     }
                     else // GenType::EVASION == GT
                     {
-                        m.value = pos.capture(m) ?
-                                      i32(PieceValues[MG][pos.cap_type(m)])
-                                    - ptype(pos[org_sq(m)]) :
-                                      thread->butterfly_history[pos.active][move_index(m)]
-                                    + (*pd_histories[0])[pos[org_sq(m)]][dst_sq(m)]
-                                    - (0x10000000);
+                        vm.value = pos.capture(vm.move) ?
+                                       i32(PieceValues[MG][pos.cap_type(vm.move)])
+                                     - ptype(pos[org_sq(vm.move)]) :
+                                       thread->butterfly_history[pos.active][move_index(vm.move)]
+                                     + (*pd_histories[0])[pos[org_sq(vm.move)]][dst_sq(vm.move)]
+                                     - (0x10000000);
                     }
                 }
             }
@@ -141,9 +143,9 @@ namespace Searcher {
             template<typename Pred>
             bool pick(Pred filter)
             {
-                while (vmItr != moves.end())
+                while (vmItr != vmoves.end())
                 {
-                    std::swap(*vmItr, *std::max_element(vmItr, moves.end()));
+                    std::swap(*vmItr, *std::max_element(vmItr, vmoves.end()));
                     if (   tt_move != vmItr->move
                         && (   (   ENPASSANT != mtype(vmItr->move)
                                 && !contains(  pos.si->king_blockers[pos.active]
@@ -179,7 +181,7 @@ namespace Searcher {
                 assert(MOVE_NONE == tt_move
                    || (pos.pseudo_legal(tt_move)
                     && pos.legal(tt_move)));
-                assert(DepthConst::Zero < depth);
+                assert(DEP_ZERO < depth);
 
                 if (0 != pos.si->checkers)
                 {
@@ -281,10 +283,10 @@ namespace Searcher {
                 case Stage::NT_INIT:
                 case Stage::PC_INIT:
                 case Stage::QS_INIT:
-                    generate<GenType::CAPTURE>(moves, pos);
+                    generate<GenType::CAPTURE>(vmoves, pos);
                     value<GenType::CAPTURE>();
+                    vmItr = vmoves.begin();
                     ++stage;
-                    vmItr = moves.begin();
                     // Re-branch at the top of the switch
                     goto restage;
 
@@ -318,8 +320,8 @@ namespace Searcher {
                                                                               || !pos.pseudo_legal(m)
                                                                               || !pos.legal(m); }),
                                             refutation_moves.end());
-                    ++stage;
                     mItr = refutation_moves.begin();
+                    ++stage;
                     /* fall through */
                 case NT_REFUTATIONS:
                     // Refutation moves: Killers, Counter moves
@@ -329,14 +331,11 @@ namespace Searcher {
                     }
                     if (!skip_quiets)
                     {
-                        generate<GenType::QUIET>(moves, pos);
+                        generate<GenType::QUIET>(vmoves, pos);
                         value<GenType::QUIET>();
-                        std::for_each(moves.begin(), moves.end(),
-                                      [&](ValMove &vm) { if (vm.value < threshold)
-                                                             vm.value = threshold - 1; });
+                        vmItr = vmoves.begin();
                     }
                     ++stage;
-                    vmItr = moves.begin();
                     /* fall through */
                 case Stage::NT_QUIETS:
                     if (   !skip_quiets
@@ -346,8 +345,8 @@ namespace Searcher {
                     {
                         return (vmItr-1)->move;
                     }
-                    ++stage;
                     mItr = bad_capture_moves.begin();
+                    ++stage;
                     /* fall through */
                 case Stage::NT_BAD_CAPTURES:
                     return mItr != bad_capture_moves.end() ?
@@ -356,10 +355,10 @@ namespace Searcher {
                     /* end */
 
                 case Stage::EV_INIT:
-                    generate<GenType::EVASION>(moves, pos);
+                    generate<GenType::EVASION>(vmoves, pos);
                     value<GenType::EVASION>();
+                    vmItr = vmoves.begin();
                     ++stage;
-                    vmItr = moves.begin();
                     /* fall through */
                 case Stage::EV_MOVES:
                     return pick([]() { return true; }) ?
@@ -386,17 +385,17 @@ namespace Searcher {
                         return MOVE_NONE;
                     }
 
-                    generate<GenType::QUIET_CHECK>(moves, pos);
-                    moves.erase(std::remove_if(moves.begin(), moves.end(),
-                                               [&](ValMove &vm) { return tt_move == vm
-                                                                      //|| !pos.pseudo_legal(vm)
-                                                                      || !pos.legal(vm); }),
-                                 moves.end());
+                    generate<GenType::QUIET_CHECK>(vmoves, pos);
+                    vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
+                                                [&](ValMove &vm) { return tt_move == vm
+                                                                       //|| !pos.pseudo_legal(vm)
+                                                                       || !pos.legal(vm); }),
+                                 vmoves.end());
+                    vmItr = vmoves.begin();
                     ++stage;
-                    vmItr = moves.begin();
                     /* fall through */
                 case Stage::QS_CHECKS:
-                    return vmItr != moves.end() ?
+                    return vmItr != vmoves.end() ?
                             *vmItr++ :
                             MOVE_NONE;
                     /* end */
@@ -544,8 +543,8 @@ namespace Searcher {
             pv.assign(child_pv.begin(), child_pv.end());
             pv.push_front(move);
             assert(pv.front() == move
-                && (pv.size() == 1
-                 || pv.back() == child_pv.back()));
+                && ((pv.size() == 1 && child_pv.empty())
+                 || (pv.back() == child_pv.back() && !child_pv.empty())));
         }
 
         /// quien_search() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
@@ -686,8 +685,8 @@ namespace Searcher {
             }
 
             if (   MOVE_NONE != tt_move
-                && (   !pos.pseudo_legal(tt_move)
-                    || !pos.legal(tt_move)))
+                && !(   pos.pseudo_legal(tt_move)
+                     && pos.legal(tt_move)))
             {
                 tt_move = MOVE_NONE;
             }
@@ -881,10 +880,7 @@ namespace Searcher {
             if (PVNode)
             {
                 // Used to send sel_depth info to GUI (sel_depth from 1, ply from 0)
-                if (thread->sel_depth < Depth(ss->ply + 1))
-                {
-                    thread->sel_depth = Depth(ss->ply + 1);
-                }
+                thread->sel_depth = std::max(Depth(ss->ply + 1), thread->sel_depth);
             }
 
             Value value;
@@ -947,13 +943,13 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt(tte->value(), ss->ply) :
                             VALUE_NONE;
-            auto tt_pv = PVNode 
+            auto tt_pv = PVNode
                       || (   tt_hit
                           && tte->is_pv());
 
             if (   MOVE_NONE != tt_move
-                && (   !pos.pseudo_legal(tt_move)
-                    || !pos.legal(tt_move)))
+                && !(   pos.pseudo_legal(tt_move)
+                     && pos.legal(tt_move)))
             {
                 tt_move = MOVE_NONE;
             }
@@ -1255,8 +1251,8 @@ namespace Searcher {
                             VALUE_NONE;
 
                 if (   MOVE_NONE != tt_move
-                    && (   !pos.pseudo_legal(tt_move)
-                        || !pos.legal(tt_move)))
+                    && !(   pos.pseudo_legal(tt_move)
+                         && pos.legal(tt_move)))
                 {
                     tt_move = MOVE_NONE;
                 }
@@ -1273,7 +1269,7 @@ namespace Searcher {
             vector<Move> quiet_moves
                 ,        capture_moves;
             quiet_moves.reserve(32);
-            capture_moves.reserve(32);
+            capture_moves.reserve(16);
 
             bool ttm_capture = MOVE_NONE != tt_move
                             && pos.capture_or_promotion(tt_move);

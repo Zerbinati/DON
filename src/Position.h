@@ -186,9 +186,9 @@ public:
     bool expeded_castle(Color, CastleSide) const;
 
     i16  move_num() const;
-    bool draw(i16) const;
+    bool draw(Depth) const;
     bool repeated() const;
-    bool cycled(i16) const;
+    bool cycled(Depth) const;
 
     Bitboard attackers_to(Square, Bitboard) const;
     Bitboard attackers_to(Square) const;
@@ -322,9 +322,9 @@ inline Bitboard Position::color_pawns(Color c, Color s) const
 
 inline Square Position::square(Piece pc, u08 index) const
 {
-    assert (_ok(pc));
+    assert(_ok(pc));
     assert(squares[pc].size() > index);
-    return *std::next (squares[pc].begin(), index);
+    return *std::next(squares[pc].begin(), index);
 }
 
 inline Value Position::non_pawn_material() const
@@ -364,7 +364,7 @@ inline Key Position::posi_move_key(Move m) const
         if (   PAWN == ptype(piece[org])
             && dst == org + pawn_push(active) * 2)
         {
-            auto ep_sq = org + (dst - org) / 2;
+            auto ep_sq = org + pawn_push(active);
             if (can_enpassant(~active, ep_sq, false))
             {
                 key ^= RandZob.enpassant[_file(ep_sq)];
@@ -432,15 +432,7 @@ inline Bitboard Position::attackers_to(Square s) const
 inline Bitboard Position::attacks_from(PieceType pt, Square s, Bitboard occ) const
 {
     assert(PAWN != pt);
-    switch (pt)
-    {
-    case NIHT: return BitBoard::PieceAttacks[NIHT][s];
-    case BSHP: return BitBoard::attacks_bb<BSHP>(s, occ);
-    case ROOK: return BitBoard::attacks_bb<ROOK>(s, occ);
-    case QUEN: return BitBoard::attacks_bb<QUEN>(s, occ);
-    case KING: return BitBoard::PieceAttacks[KING][s];
-    default: assert(false); return 0;
-    }
+    return BitBoard::attacks_of_from(pt, s, occ);
 }
 /// Position::attacks_from() finds attacks of the piecetype from the square.
 inline Bitboard Position::attacks_from(PieceType pt, Square s) const
@@ -450,16 +442,7 @@ inline Bitboard Position::attacks_from(PieceType pt, Square s) const
 /// Position::attacks_from() finds attacks from the square on occupancy.
 inline Bitboard Position::attacks_from(Square s, Bitboard occ) const
 {
-    switch (ptype(piece[s]))
-    {
-    case PAWN: return BitBoard::PawnAttacks[color(piece[s])][s];
-    case NIHT: return BitBoard::PieceAttacks[NIHT][s];
-    case BSHP: return BitBoard::attacks_bb<BSHP>(s, occ);
-    case ROOK: return BitBoard::attacks_bb<ROOK>(s, occ);
-    case QUEN: return BitBoard::attacks_bb<QUEN>(s, occ);
-    case KING: return BitBoard::PieceAttacks[KING][s];
-    default: assert(false); return 0;
-    }
+    return BitBoard::attacks_of_from(piece[s], s, occ);
 }
 /// Position::attacks_from() finds attacks from the square.
 inline Bitboard Position::attacks_from(Square s) const

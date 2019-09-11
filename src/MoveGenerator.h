@@ -15,7 +15,7 @@ enum GenType : u08
 };
 
 template<GenType>
-extern void generate (ValMoves&, Position const&);
+extern void generate(ValMoves&, Position const&);
 
 extern void filter_illegal(ValMoves&, Position const&);
 
@@ -107,4 +107,4 @@ struct Perft
 };
 
 template<bool RootNode>
-extern Perft perft (Position&, Depth, bool = false);
+extern Perft perft(Position&, Depth, bool = false);

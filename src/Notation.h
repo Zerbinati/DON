@@ -4,8 +4,8 @@
 #include "Thread.h"
 #include "Type.h"
 
-const std::string PieceChar ("PNBRQK  pnbrqk");
-const std::string ColorChar ("wb-");
+const std::string PieceChar("PNBRQK  pnbrqk");
+const std::string ColorChar("wb-");
 
 inline char to_char(File f, bool lower = true)
 {

@@ -57,7 +57,7 @@ namespace Endgames {
             : strong_color{ c}
             ,   weak_color{~c}
         {}
-        virtual ~EndgameBase () = default;
+        virtual ~EndgameBase() = default;
         EndgameBase& operator=(EndgameBase const&) = delete;
 
         virtual T operator()(Position const&) const = 0;
@@ -72,7 +72,7 @@ namespace Endgames {
         explicit Endgame(Color c)
             : EndgameBase<T>{c}
         {}
-        virtual ~Endgame () = default;
+        virtual ~Endgame() = default;
         Endgame& operator=(Endgame const&) = delete;
 
         T operator()(Position const&) const override;

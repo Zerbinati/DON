@@ -1,9 +1,12 @@
 #include "Engine.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdarg>
 #include <iostream>
 #include <fstream>
+#include <memory>
+
 #include "BitBoard.h"
 #include "BitBases.h"
 #include "Endgame.h"
@@ -97,16 +100,20 @@ namespace {
 
     array<string, 12> const Months { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-    i32 month_index(string const &month)
+    i32 month_num(string const &month)
     {
-        for (u32 m = 0; m < Months.size(); ++m)
-        {
-            if (month == Months[m])
-            {
-                return m+1;
-            }
-        }
-        return 0;
+        // for (u32 m = 0; m < Months.size(); ++m)
+        // {
+        //     if (month == Months[m])
+        //     {
+        //         return m+1;
+        //     }
+        // }
+        // return 0;
+        auto itr = std::find(Months.begin(), Months.end(), month);
+        return itr != Months.end() ?
+                std::distance(Months.begin(), itr) + 1 :
+                0;
     }
 
     string version_info()
@@ -124,7 +131,7 @@ namespace {
             string month, day, year;
             iss >> month >> day >> year;
             oss << setw(2) << year.substr(2)
-                << setw(2) << month_index(month)
+                << setw(2) << month_num(month)
                 << setw(2) << day;
         }
         else
@@ -175,7 +182,7 @@ namespace {
         while (   (iss >> token)
                && token != "value") // Consume "value" token if any
         {
-            name += (white_spaces(name) ? "" : " ") + token;
+            name += (name.empty() ? "" : " ") + token;
         }
 
         //if (token != "value") return;
@@ -183,7 +190,7 @@ namespace {
         // Read option-value (can contain spaces)
         while (iss >> token)
         {
-            value += (white_spaces(value) ? "" : " ") + token;
+            value += (value.empty() ? "" : " ") + token;
         }
 
         if (Options.find(name) != Options.end())
@@ -224,8 +231,9 @@ namespace {
             //assert(_ok(fen));
         }
         assert(token == "" || token == "moves");
-
-        states = StateListPtr{new std::deque<StateInfo>(1)}; // Drop old and create a new one
+        // Drop old and create a new one
+        states = StateListPtr{new std::deque<StateInfo>(1)};
+                //std::make_unique<std::deque<StateInfo>>(new std::deque<StateInfo>(1));
         pos.setup(fen, states->back(), pos.thread);
         //assert(pos.fen() == trim(fen));
 
@@ -514,6 +522,8 @@ namespace {
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
         StateListPtr states{new std::deque<StateInfo>(1)};
+        //auto states = std::make_unique<std::deque<StateInfo>>(new std::deque<StateInfo>(1));
+        
         auto ui_thread = std::make_shared<Thread>(0);
         pos.setup(StartFEN, states->back(), ui_thread.get());
 
