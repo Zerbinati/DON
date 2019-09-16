@@ -121,6 +121,7 @@ namespace {
     Score constexpr BishopPawns =       S(  3,  7);
     Score constexpr BishopTrapped =     S( 50, 50);
     Score constexpr RookOnPawns =       S( 10, 32);
+    Score constexpr RookOnQueenFile =   S( 11,  4);
     Score constexpr RookTrapped =       S( 47,  4);
     Score constexpr QueenWeaken =       S( 49, 15);
     Score constexpr PawnLessFlank =     S( 17, 95);
@@ -189,7 +190,7 @@ namespace {
         template<Color> Score passers() const;
         template<Color> Score space() const;
 
-        Score initiative(Value) const;
+        Score initiative(Score) const;
         Scale scale(Value) const;
 
     public:
@@ -411,6 +412,11 @@ namespace {
                 if (R_4 < rel_rank(Own, s))
                 {
                     score += RookOnPawns * pop_count(pos.pieces(Opp, PAWN) & PieceAttacks[ROOK][s]);
+                }
+                // Bonus for rook on the same file as a queen
+                if (file_bb(s) & pos.pieces(QUEN))
+                {
+                    score += RookOnQueenFile;
                 }
 
                 // Bonus for rook when on an open or semi-open file
@@ -921,14 +927,18 @@ namespace {
     /// initiative() evaluates the initiative correction value for the position
     /// i.e. second order bonus/malus based on the known attacking/defending status of the players
     template<bool Trace>
-    Score Evaluator<Trace>::initiative(Value eg) const
+    Score Evaluator<Trace>::initiative(Score score) const
     {
+        auto mg = mg_value(score);
+        auto eg = eg_value(score);
+
+        i32 outflanking = dist<File>(pos.square(WHITE|KING), pos.square(BLACK|KING))
+                        - dist<Rank>(pos.square(WHITE|KING), pos.square(BLACK|KING));
         // Compute the initiative bonus for the attacking side
         i32 complexity = 11 * pos.count(PAWN)
                        +  9 * pe->passed_count()
-                        // Outflanking
-                       +  9 * (  dist<File>(pos.square(WHITE|KING), pos.square(BLACK|KING))
-                               - dist<Rank>(pos.square(WHITE|KING), pos.square(BLACK|KING)))
+                       +  9 * outflanking
+                       + 49 * (VALUE_ZERO == pos.non_pawn_material() ? 1 : 0)
                        -103;
         // Pawn on both flanks
         if (   0 != (pos.pieces(PAWN) & Side_bb[CS_KING])
@@ -936,19 +946,25 @@ namespace {
         {
             complexity += 18;
         }
-        if (VALUE_ZERO == pos.non_pawn_material())
+        else
+        if (   0 > outflanking
+            && 0 == pe->passed_count())
         {
-            complexity += 49;
+            complexity -= 36;
         }
 
-        Score score = make_score(0, sign(eg) * std::max(complexity, -abs(eg)));
+        // Now apply the bonus: note that we find the attacking side by extracting the
+        // sign of the midgame or endgame values, and that we carefully cap the bonus
+        // so that the midgame and endgame scores do not change sign after the bonus.
+        Score init_score = make_score(sign(mg) * clamp(complexity + 50, 0, -abs(mg)),
+                                      sign(eg) * std::max(complexity, -abs(eg)));
 
         if (Trace)
         {
-            write(Term::INITIATIVE, score);
+            write(Term::INITIATIVE, init_score);
         }
 
-        return score;
+        return init_score;
     }
 
     /// scale() evaluates the scale for the position
@@ -972,11 +988,13 @@ namespace {
             bool bishop_oppose = 1 == pos.count(WHITE|BSHP)
                               && 1 == pos.count(BLACK|BSHP)
                               && opposite_colors(pos.square(WHITE|BSHP), pos.square(BLACK|BSHP));
-            return bishop_oppose
-                && pos.non_pawn_material() == 2 * VALUE_MG_BSHP ?
+            scl = bishop_oppose
+               && pos.non_pawn_material() == 2 * VALUE_MG_BSHP ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
                     Scale(16 + 4 * pe->passed_count()) :
-                    std::min(Scale(40 + (bishop_oppose ? 2 : 7) * pos.count(color|PAWN)), SCALE_NORMAL);
+                    std::min(Scale(36 + (bishop_oppose ? 2 : 7) * pos.count(color|PAWN)), SCALE_NORMAL);
+            // Scale down endgame factor when shuffling
+            scl = std::max(Scale(scl - (pos.si->clock_ply - 12) / 4), SCALE_DRAW); 
         }
         return scl;
     }
@@ -1047,7 +1065,7 @@ namespace {
                + passers<WHITE>() - passers<BLACK>()
                + space  <WHITE>() - space  <BLACK>();
 
-        score += initiative(eg_value(score));
+        score += initiative(score);
 
         assert(-VALUE_INFINITE < mg_value(score) && mg_value(score) < +VALUE_INFINITE);
         assert(-VALUE_INFINITE < eg_value(score) && eg_value(score) < +VALUE_INFINITE);

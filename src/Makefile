@@ -322,7 +322,7 @@ endif
 ifeq ($(bm2), yes)
 	CXXFLAGS += -DBM2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
-		CXXFLAGS += -mbmi -mbmi2
+		CXXFLAGS += -msse4 -mbmi -mbmi2
 	endif
 endif
 
@@ -384,12 +384,12 @@ help:
 	@echo "------------------------"
 	@echo "general-32 > unspecified 32-bit"
 	@echo "x86-32-old > x86 32-bit fall back for old hardware"
-	@echo "x86-32     > x86 32-bit with SSE support"
-	@echo "x86-32-abm > x86 32-bit with ABM support"
+	@echo "x86-32     > x86 32-bit (also SSE support)"
+	@echo "x86-32-abm > x86 32-bit with ABM support (also SSE support)"
 	@echo "general-64 > unspecified 64-bit"
-	@echo "x86-64     > x86 64-bit"
-	@echo "x86-64-abm > x86 64-bit with ABM support"
-	@echo "x86-64-bm2 > x86 64-bit with BM2 support"
+	@echo "x86-64     > x86 64-bit generic"
+	@echo "x86-64-abm > x86 64-bit with ABM support (also SSE3 support)"
+	@echo "x86-64-bm2 > x86 64-bit with BM2 support (also SSE4 support)"
 	@echo "ppc-32     > PPC 32-bit"
 	@echo "ppc-64     > PPC 64-bit"
 	@echo "armv7      > ARMv7 32-bit"

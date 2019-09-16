@@ -15,36 +15,36 @@ namespace Pawns {
         // Connected pawn bonus
         array<i32, R_NO> constexpr Connected { 0, 7, 8, 12, 29, 48, 86, 0 };
 
+#   define S(mg, eg) make_score(mg, eg)
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
-        array<array<i32, R_NO>, F_NO/2> constexpr Shelter
+        array<array<Score, R_NO>, F_NO/2> constexpr Shelter
         {{
-            {  -6,  81,  93,  58,  39,  18,   25, 0 },
-            { -43,  61,  35, -49, -29, -11,  -63, 0 },
-            { -10,  75,  23,  -2,  32,   3,  -45, 0 },
-            { -39, -13, -29, -52, -48, -67, -166, 0 }
+            { S( -6, 0), S( 81, 0), S( 93, 0), S( 58, 0), S( 39, 0), S( 18, 0), S(  25, 0), S(0, 0) },
+            { S(-43, 0), S( 61, 0), S( 35, 0), S(-49, 0), S(-29, 0), S(-11, 0), S( -63, 0), S(0, 0) },
+            { S(-10, 0), S( 75, 0), S( 23, 0), S( -2, 0), S( 32, 0), S(  3, 0), S( -45, 0), S(0, 0) },
+            { S(-39, 0), S(-13, 0), S(-29, 0), S(-52, 0), S(-48, 0), S(-67, 0), S(-166, 0), S(0, 0) }
         }};
 
         // Danger of unblocked enemy pawns strom toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
         // [0][1 - 2] accommodate opponent pawn on edge (likely blocked by king)
-        array<array<i32, R_NO>, F_NO/2> constexpr Storm
+        array<array<Score, R_NO>, F_NO/2> constexpr Storm
         {{
-            {  89, -285, -185,  93,  57,  45,   51, 0 },
-            {  44,  -18,  123,  46,  39,  -7,   23, 0 },
-            {   4,   52,  162,  37,   7, -14,   -2, 0 },
-            { -10,  -14,   90,  15,   2,  -7,  -16, 0 }
+            { S( 89, 0), S(-285, 0), S(-185, 0), S( 93, 0), S( 57, 0), S( 45, 0), S( 51, 0), S(0, 0) },
+            { S( 44, 0), S( -18, 0), S( 123, 0), S( 46, 0), S( 39, 0), S( -7, 0), S( 23, 0), S(0, 0) },
+            { S(  4, 0), S(  52, 0), S( 162, 0), S( 37, 0), S(  7, 0), S(-14, 0), S( -2, 0), S(0, 0) },
+            { S(-10, 0), S( -14, 0), S(  90, 0), S( 15, 0), S(  2, 0), S( -7, 0), S(-16, 0), S(0, 0) }
         }};
 
-#   define S(mg, eg) make_score(mg, eg)
+        Score constexpr BlockedStorm =   S(82, 82);
 
-        Score constexpr BlockedStorm =  S(82, 82);
 
-        Score constexpr Backward =      S( 9,24);
-        Score constexpr Blocked =       S(11,56);
-        Score constexpr Isolated =      S( 5,15);
-        Score constexpr WeakUnopposed = S(13,27);
-        Score constexpr WeakLever =     S(0, 56);
+        Score constexpr Backward =       S( 9,24);
+        Score constexpr Isolated =       S( 5,15);
+        Score constexpr WeakBlocked =    S(11,56);
+        Score constexpr WeakUnopposed =  S(13,27);
+        Score constexpr WeakTwiceLever = S(0, 56);
 
 #   undef S
 
@@ -82,13 +82,13 @@ namespace Pawns {
                 e->attack_span[Own] |= pawn_attack_span(Own, s);
 
                 Bitboard neighbours = own_pawns & adj_file_bb(s);
-                Bitboard supporters = neighbours & rank_bb(s-pawn_push(Own));
+                Bitboard supporters = neighbours & rank_bb(s - pawn_push(Own));
                 Bitboard phalanxes  = neighbours & rank_bb(s);
                 Bitboard stoppers   = opp_pawns & pawn_pass_span(Own, s);
                 Bitboard levers     = opp_pawns & Attack[s];
-                Bitboard escapes    = opp_pawns & Attack[s+pawn_push(Own)]; // Push levers
+                Bitboard escapes    = opp_pawns & Attack[s + pawn_push(Own)]; // Push levers
 
-                bool blocked = contains(own_pawns, s-pawn_push(Own));
+                bool blocked = contains(own_pawns, s - pawn_push(Own));
                 bool opposed = 0 != (opp_pawns & front_squares_bb(Own, s));
 
                 // A pawn is passed if one of the three following conditions is true:
@@ -123,9 +123,9 @@ namespace Pawns {
                     }
                 }
                 else
-                // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
+                // Backward: A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 if (   0 == (neighbours & front_rank_bb(Opp, s))
-                    && 0 != (stoppers & (escapes | (s+pawn_push(Own)))))
+                    && 0 != (stoppers & (escapes | (s + pawn_push(Own)))))
                 {
                     score -= Backward;
                     if (!opposed)
@@ -134,17 +134,20 @@ namespace Pawns {
                     }
                 }
 
-                if (   blocked
-                    && 0 == supporters)
+                if (0 == supporters)
                 {
-                    score -= Blocked;
+                    if (blocked)
+                    {
+                        score -= WeakBlocked;
+                    }
+                    // Attacked twice by enemy pawns
+                    if (more_than_one(levers))
+                    {
+                        score -= WeakTwiceLever;
+                    }
+                    
                 }
             }
-
-            // Penalize our unsupported pawns attacked twice by enemy pawns
-            score -= WeakLever * pop_count(  own_pawns
-                                           & opp_pawn_dbl_att
-                                           & ~pawn_sgl_attacks_bb(Own, own_pawns));
 
             return score;
         }
@@ -182,7 +185,7 @@ namespace Pawns {
 
             auto ff = std::min(f, ~f);
             assert(ff < F_E);
-            safety += make_score(Shelter[ff][own_r], 0);
+            safety += Shelter[ff][own_r];
 
             if (   R_1 != own_r
                 && (own_r + 1) == opp_r)
@@ -194,7 +197,7 @@ namespace Pawns {
             }
             else
             {
-                safety -= make_score(Storm[ff][opp_r], 0);
+                safety -= Storm[ff][opp_r];
             }
         }
 
