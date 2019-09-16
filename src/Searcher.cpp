@@ -521,8 +521,8 @@ namespace Searcher {
                 }
             }
         }
-        /// update_killers() updates move sorting heuristics
-        void update_killers(Stack *const &ss, Position const &pos, Move move)
+        /// update_quiet_stats() updates move sorting heuristics when a new quiet best move is found
+        void update_quiet_stats(Stack *const &ss, Position const &pos, Move move, i32 bonus)
         {
             if (ss->killer_moves[0] != move)
             {
@@ -535,6 +535,13 @@ namespace Searcher {
             {
                 pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][move_index((ss-1)->played_move)] = move;
             }
+
+            pos.thread->butterfly_history[pos.active][move_index(move)] << bonus;
+            if (PAWN != ptype(pos[org_sq(move)]))
+            {
+                pos.thread->butterfly_history[pos.active][move_index(reverse_move(move))] << -bonus;
+            }
+            update_continuation_histories(ss, pos[org_sq(move)], dst_sq(move), bonus);
         }
 
         /// update_pv() appends the move and child pv
@@ -967,10 +974,8 @@ namespace Searcher {
                         // Bonus for a quiet tt_move that fails high.
                         if (!pos.capture_or_promotion(tt_move))
                         {
-                            update_killers(ss, pos, tt_move);
                             auto bonus = stat_bonus(depth);
-                            thread->butterfly_history[pos.active][move_index(tt_move)] << bonus;
-                            update_continuation_histories(ss, pos[org_sq(tt_move)], dst_sq(tt_move), bonus);
+                            update_quiet_stats(ss, pos, tt_move, bonus);
                         }
 
                         // Extra penalty for early quiet moves in previous ply when it gets refuted.
@@ -1541,7 +1546,7 @@ namespace Searcher {
                         else
                         // Decrease reduction for moves that escape a capture in no-cut nodes (~5 Elo)
                         if (   NORMAL == mtype(move)
-                            && !pos.see_ge(make_move<NORMAL>(dst, org)))
+                            && !pos.see_ge(reverse_move(move)))
                         {
                             reduct_depth -= 2;
                         }
@@ -1736,15 +1741,15 @@ namespace Searcher {
             // Quiet best move: update move sorting heuristics.
             if (MOVE_NONE != best_move)
             {
+                auto cbonus = stat_bonus(depth + 1);
+
                 if (!pos.capture_or_promotion(best_move))
                 {
                     auto qbonus = stat_bonus(depth + (best_value > beta + VALUE_MG_PAWN ? 1 : 0));
 
-                    update_killers(ss, pos, best_move);
-                    thread->butterfly_history[pos.active][move_index(best_move)] << qbonus;
-                    update_continuation_histories(ss, pos[org_sq(best_move)], dst_sq(best_move), qbonus);
+                    update_quiet_stats(ss, pos, best_move, qbonus);
                     // Decrease all the other played quiet moves.
-                    for (auto qm : quiet_moves)
+                    for (auto &qm : quiet_moves)
                     {
                         thread->butterfly_history[pos.active][move_index(qm)] << -qbonus;
                         update_continuation_histories(ss, pos[org_sq(qm)], dst_sq(qm), -qbonus);
@@ -1752,13 +1757,11 @@ namespace Searcher {
                 }
                 else
                 {
-                    auto cbonus = stat_bonus(depth + 1);
                     thread->capture_history[pos[org_sq(best_move)]][dst_sq(best_move)][pos.cap_type(best_move)] << cbonus;
                 }
 
-                auto cbonus = stat_bonus(depth + 1);
                 // Decrease all the other played capture moves.
-                for (auto cm : capture_moves)
+                for (auto &cm : capture_moves)
                 {
                     thread->capture_history[pos[org_sq(cm)]][dst_sq(cm)][pos.cap_type(cm)] << -cbonus;
                 }

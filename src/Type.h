@@ -482,6 +482,11 @@ Move constexpr make_move<PROMOTE>(Square org, Square dst)
     return make_promote_move(org, dst, QUEN);
 }
 
+Move constexpr reverse_move(Move m)
+{
+  return make_move<NORMAL>(dst_sq(m), org_sq(m));
+}
+
 i16   constexpr value_to_cp(Value v) { return i16((v*100)/VALUE_EG_PAWN); }
 Value constexpr cp_to_value(i16  cp) { return Value((i32(cp)*VALUE_EG_PAWN)/100); }
 /// It adjusts a mate score from "plies to mate from the root" to "plies to mate from the current position".
