@@ -42,8 +42,8 @@ namespace Pawns {
 
         Score constexpr Backward =       S( 9,24);
         Score constexpr Isolated =       S( 5,15);
-        Score constexpr WeakBlocked =    S(11,56);
-        Score constexpr WeakUnopposed =  S(13,27);
+        Score constexpr Unopposed =      S(13,27);
+        Score constexpr WeakDoubled =    S(11,56);
         Score constexpr WeakTwiceLever = S(0, 56);
 
 #   undef S
@@ -88,7 +88,7 @@ namespace Pawns {
                 Bitboard levers     = opp_pawns & Attack[s];
                 Bitboard escapes    = opp_pawns & Attack[s + pawn_push(Own)]; // Push levers
 
-                bool blocked = contains(own_pawns, s - pawn_push(Own));
+                bool doubled = contains(own_pawns, s - pawn_push(Own));
                 bool opposed = 0 != (opp_pawns & front_squares_bb(Own, s));
 
                 // A pawn is passed if one of the three following conditions is true:
@@ -119,7 +119,7 @@ namespace Pawns {
                     score -= Isolated;
                     if (!opposed)
                     {
-                        score += WeakUnopposed;
+                        score += Unopposed;
                     }
                 }
                 else
@@ -130,15 +130,15 @@ namespace Pawns {
                     score -= Backward;
                     if (!opposed)
                     {
-                        score += WeakUnopposed;
+                        score += Unopposed;
                     }
                 }
 
                 if (0 == supporters)
                 {
-                    if (blocked)
+                    if (doubled)
                     {
-                        score -= WeakBlocked;
+                        score -= WeakDoubled;
                     }
                     // Attacked twice by enemy pawns
                     if (more_than_one(levers))

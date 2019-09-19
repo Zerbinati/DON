@@ -57,14 +57,17 @@ typedef std::mutex              Mutex;
 /// size of 512KB by default, this is dangerously low for deep searches, so
 /// adjust it to TH_STACK_SIZE. The implementation calls pthread_create() with
 /// proper stack size parameter.
-#if defined(__APPLE__)
+
+/// On toolchains where pthread is always available, ensure minimum stack size
+/// instead of relying on linker defaults which may be platform-specific.
+#if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__)
 
 #include <pthread.h>
 
 class NativeThread
 {
 private:
-    static size_t constexpr TH_STACK_SIZE = 2 * 1024 * 1024;
+    static size_t constexpr TH_STACK_SIZE = 8 * 1024 * 1024;
 
     template <class T, class P = std::pair<T*, void(T::*)()>>
     static void* start_routine(void *arg)
@@ -86,7 +89,8 @@ public:
         pthread_attr_setstacksize(&attribute, TH_STACK_SIZE);
         pthread_create(&thread, &attribute, start_routine<T>, new P(obj, fun));
     }
-
+    //NativeThread(NativeThread const&) = delete;
+    //NativeThread& operator=(NativeThread const&) = delete;
    //~NativeThread() {}
 
     void join() { pthread_join(thread, NULL); }

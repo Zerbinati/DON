@@ -106,7 +106,7 @@ namespace {
     };
     array<Score, NONE> constexpr MajorThreat
     {
-        S( 0,24), S(38,71), S(38,61), S( 0,38), S(51,38), S( 0, 0)
+        S( 0,24), S(38,71), S(38,61), S( 0, 38), S(51, 38), S( 0, 0)
     };
 
     array<Score, R_NO> constexpr PasserRank
@@ -268,7 +268,7 @@ namespace {
 
         auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
-        Score score = SCORE_ZERO;
+        auto score = SCORE_ZERO;
 
         sgl_attacks[Own][PT] = 0;
         if (QUEN == PT)
@@ -474,7 +474,7 @@ namespace {
 
         // King Safety: friend pawns shelter and enemy pawns storm
         u08 index = pe->king_safety_on<Own>(pos, own_k_sq);
-        Score score = pe->king_safety[Own][index];
+        auto score = pe->king_safety[Own][index];
         if (   0 != index
             && pos.si->can_castle(Own|CS_KING)
             && pos.expeded_castle(Own, CS_KING)
@@ -663,7 +663,7 @@ namespace {
     {
         auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
-        Score score = SCORE_ZERO;
+        auto score = SCORE_ZERO;
 
         // Enemy non-pawns
         Bitboard nonpawns_enemies =  pos.pieces(Opp)
@@ -807,7 +807,7 @@ namespace {
 
         auto king_proximity = [&](Color c, Square s) { return std::min(dist(pos.square(c|KING), s), 5); };
 
-        Score score = SCORE_ZERO;
+        auto score = SCORE_ZERO;
 
         Bitboard psr = pe->passers[Own];
         while (0 != psr)
@@ -914,7 +914,7 @@ namespace {
                               & safe_space
                               & ~sgl_attacks[Opp][NONE]);
         i32 weight = pos.count(Own) - 1;
-        Score score = make_score(bonus * weight * weight / 16, 0);
+        auto score = make_score(bonus * weight * weight / 16, 0);
 
         if (Trace)
         {
@@ -927,10 +927,10 @@ namespace {
     /// initiative() evaluates the initiative correction value for the position
     /// i.e. second order bonus/malus based on the known attacking/defending status of the players
     template<bool Trace>
-    Score Evaluator<Trace>::initiative(Score score) const
+    Score Evaluator<Trace>::initiative(Score s) const
     {
-        auto mg = mg_value(score);
-        auto eg = eg_value(score);
+        auto mg = mg_value(s);
+        auto eg = eg_value(s);
 
         i32 outflanking = dist<File>(pos.square(WHITE|KING), pos.square(BLACK|KING))
                         - dist<Rank>(pos.square(WHITE|KING), pos.square(BLACK|KING));
@@ -956,15 +956,15 @@ namespace {
         // Now apply the bonus: note that we find the attacking side by extracting the
         // sign of the midgame or endgame values, and that we carefully cap the bonus
         // so that the midgame and endgame scores do not change sign after the bonus.
-        Score init_score = make_score(sign(mg) * clamp(complexity + 50, 0, -abs(mg)),
-                                      sign(eg) * std::max(complexity, -abs(eg)));
+        auto score = make_score(sign(mg) * clamp(complexity + 50, 0, -abs(mg)),
+                                sign(eg) * std::max(complexity, -abs(eg)));
 
         if (Trace)
         {
-            write(Term::INITIATIVE, init_score);
+            write(Term::INITIATIVE, score);
         }
 
-        return init_score;
+        return score;
     }
 
     /// scale() evaluates the scale for the position
@@ -1017,27 +1017,23 @@ namespace {
         // Probe the pawn hash table
         pe = Pawns::probe(pos);
 
-        Score score;
         // Score is computed internally from the white point of view, initialize by
         // - incrementally updated scores (material + piece square tables).
         // - material imbalance.
         // - pawn score
-        score = pos.psq
-              + me->imbalance
-              + (pe->scores[WHITE] - pe->scores[BLACK])
-              + pos.thread->contempt;
+        auto score = pos.psq
+                   + me->imbalance
+                   + (pe->scores[WHITE] - pe->scores[BLACK])
+                   + pos.thread->contempt;
 
         // Early exit if score is high
         Value v = (mg_value(score) + eg_value(score)) / 2;
 
         if (abs(v) > Value(1400) + pos.non_pawn_material() / 64) // Lazy Threshold
         {
-            switch (pos.active)
-            {
-            case WHITE: return +v;
-            case BLACK: return -v;
-            default: assert(false); return VALUE_ZERO;
-            }
+            return WHITE == pos.active ?
+                    +v :
+                    -v;
         }
 
         if (Trace)
@@ -1072,7 +1068,7 @@ namespace {
         assert(0 <= me->phase && me->phase <= Material::PhaseResolution);
 
         // Interpolates between midgame and scaled endgame values.
-        v = Value(  (  mg_value(score) * (me->phase)
+        v = Value(  (  mg_value(score) * (me->phase - 0)
                      + eg_value(score) * (Material::PhaseResolution - me->phase) * scale(eg_value(score)) / SCALE_NORMAL)
                   / Material::PhaseResolution);
 
@@ -1087,12 +1083,10 @@ namespace {
         }
 
         // Active side's point of view
-        switch (pos.active)
-        {
-        case WHITE: return +v + Tempo;
-        case BLACK: return -v + Tempo;
-        default: assert(false); return VALUE_ZERO;
-        }
+        return Tempo
+            + (WHITE == pos.active ?
+                +v :
+                -v);
     }
 }
 
@@ -1109,13 +1103,10 @@ string trace(Position const &pos)
     pos.thread->contempt = SCORE_ZERO; // Reset any dynamic contempt
     auto value = Evaluator<true>(pos).value();
     // Trace scores are from White's point of view
-    switch (pos.active)
-    {
-    case WHITE: value = +value; break;
-    case BLACK: value = -value; break;
-    default: assert(false); value = VALUE_ZERO; break;
-    }
-
+    value = WHITE == pos.active ?
+                +value :
+                -value;
+    
     ostringstream oss;
 
     oss << setprecision(2) << fixed
