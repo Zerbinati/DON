@@ -38,7 +38,7 @@ namespace {
         {{ // Rook
             { S( -24,  -2), S(-13,-6), S(  -7, -3), S(  2, -2) },
             { S( -18, -10), S(-10,-7), S(  -5,  1), S(  9,  0) },
-            { S( -21,  10), S( -7,-4), S(   3,  2), S( -1, -2) },
+            { S( -21,  10), S( -7,-4), S(   3,  2), S(  7, -2) },
             { S( -13,  -5), S( -5, 2), S(  -4, -8), S( -6,  8) },
             { S( -24,  -8), S(-12, 5), S(  -1,  4), S(  6, -9) },
             { S( -24,   3), S( -4,-2), S(   4,-10), S( 10,  7) },
@@ -111,7 +111,7 @@ void psq_initialize()
             Score psq = score
                       + (PAWN == pt ?
                             PawnFullSQ[_rank(s)][_file(s)] :
-                            PieceHalfSQ[pt][_rank(s)][std::min(_file(s), ~_file(s))]);
+                            PieceHalfSQ[pt][_rank(s)][map_file(_file(s))]);
             PSQ[WHITE|pt][ s] = +psq;
             PSQ[BLACK|pt][~s] = -psq;
         }

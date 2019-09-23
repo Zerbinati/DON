@@ -411,6 +411,8 @@ Color constexpr operator~(Color c) { return Color(c ^ BLACK); }
 bool constexpr       _ok(File f) { return F_A <= f && f <= F_H; }
 File constexpr operator~(File f) { return File(f ^ F_H); }
 File constexpr   to_file(char f) { return File(f - 'a'); }
+// Map file [ABCDEFGH] to file [ABCDDCBA]
+inline File     map_file(File f) { return std::min(f, ~f); }
 
 bool constexpr       _ok(Rank r) { return R_1 <= r && r <= R_8; }
 Rank constexpr operator~(Rank r) { return Rank(r ^ R_8); }

@@ -505,7 +505,7 @@ namespace Searcher {
         }
 
         // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
-        Value value_draw(Depth depth)
+        Value draw_value(Depth depth)
         {
             return VALUE_DRAW + (depth < 4 ? 0 : rand() % 3 - 1);
         }
@@ -855,7 +855,7 @@ namespace Searcher {
                 && pos.si->clock_ply >= 3
                 && pos.cycled(ss->ply))
             {
-                alfa = value_draw(depth);
+                alfa = draw_value(depth);
                 if (alfa >= beta)
                 {
                     return alfa;
@@ -906,7 +906,7 @@ namespace Searcher {
                     return ss->ply >= DEP_MAX
                         && !in_check ?
                                evaluate(pos) :
-                               value_draw(depth);
+                               draw_value(depth);
                 }
 
                 // Step 3. Mate distance pruning.
@@ -1086,6 +1086,10 @@ namespace Searcher {
                         ss->static_eval = eval = evaluate(pos);
                     }
 
+                    if (VALUE_DRAW == eval)
+                    {
+                        eval = draw_value(depth);
+                    }
                     // Can tt_value be used as a better position evaluation?
                     if (   VALUE_NONE != tt_value
                         && BOUND_NONE != (tte->bound() & (tt_value > eval ? BOUND_LOWER : BOUND_UPPER)))

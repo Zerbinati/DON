@@ -872,7 +872,7 @@ namespace {
             }
 
             score += bonus;
-            score -= PasserFile * std::min(f, ~f);
+            score -= PasserFile * map_file(f);
         }
 
         if (Trace)

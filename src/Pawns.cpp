@@ -109,7 +109,7 @@ namespace Pawns {
 
                 if (0 != (supporters | phalanxes))
                 {
-                    i32 v = Connected[r] * (phalanxes ? 3 : 2) / (opposed ? 2 : 1)
+                    i32 v = Connected[r] * (2 + (0 != phalanxes ? 1 : 0) - (opposed ? 1 : 0))
                           + 17 * pop_count(supporters);
                     score += make_score(v, v * (r - R_3) / 4);
                 }
@@ -183,7 +183,7 @@ namespace Pawns {
                  && R_1 == opp_r)
                 || (own_r != opp_r));
 
-            auto ff = std::min(f, ~f);
+            auto ff = map_file(f);
             assert(ff < F_E);
             safety += Shelter[ff][own_r];
 
