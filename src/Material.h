@@ -20,6 +20,8 @@ namespace Material {
 
         const Endgames::EndgameBase<Value> *value_func;
         std::array<const Endgames::EndgameBase<Scale> *, CLR_NO> scale_func;
+
+        void evaluate(Position const&);
     };
 
     typedef HashTable<Entry, 0x2000> Table;

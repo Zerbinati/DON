@@ -63,21 +63,24 @@ namespace {
                 moves += make_promote_move(org, dst, QUEN);
                 break;
             case GenType::CHECK:
+            {
+                Bitboard mocc = pos.pieces() ^ org;
                 if (   contains(PieceAttacks[QUEN][dst], ek_sq)
-                    && contains(attacks_bb<QUEN>(dst, pos.pieces() ^ org), ek_sq))
+                    && contains(attacks_bb<QUEN>(dst, mocc), ek_sq))
                 {
                     moves += make_promote_move(org, dst, QUEN);
                 }
                 if (   contains(PieceAttacks[ROOK][dst], ek_sq)
-                    && contains(attacks_bb<ROOK>(dst, pos.pieces() ^ org), ek_sq))
+                    && contains(attacks_bb<ROOK>(dst, mocc), ek_sq))
                 {
                     moves += make_promote_move(org, dst, ROOK);
                 }
                 if (   contains(PieceAttacks[BSHP][dst], ek_sq)
-                    && contains(attacks_bb<BSHP>(dst, pos.pieces() ^ org), ek_sq))
+                    && contains(attacks_bb<BSHP>(dst, mocc), ek_sq))
                 {
                     moves += make_promote_move(org, dst, BSHP);
                 }
+            }
                 /* fall through */
             case GenType::QUIET_CHECK:
                 if (contains(PieceAttacks[NIHT][dst], ek_sq))

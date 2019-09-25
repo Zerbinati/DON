@@ -446,7 +446,7 @@ CastleRight constexpr operator|(Color c, CastleSide cs)
     return CastleRight(CR_WKING << (2 * c + (cs == CS_KING ? 0 : 1)));
 }
 
-bool constexpr _ok(PieceType pt) { return PAWN <= pt && pt <= KING; }
+bool constexpr   _ok(PieceType pt) { return PAWN <= pt && pt <= KING; }
 
 bool constexpr        _ok(Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
 PieceType constexpr ptype(Piece p) { return PieceType(p & PT_NO); }
@@ -531,11 +531,11 @@ public:
     i32  value;
 
     ValMove(Move m, i32 v)
-        : move{m}
-        , value{v}
+        : move(m)
+        , value(v)
     {}
     explicit ValMove(Move m = MOVE_NONE)
-        : ValMove{m, 0}
+        : ValMove(m, 0)
     {}
 
     operator Move() const { return move; }

@@ -109,14 +109,14 @@ PolyEntry::operator string() const
 PRNG PolyBook::prng{u64(now())};
 
 PolyBook::PolyBook()
-    : entries{nullptr}
-    , entry_count{0}
-    , fail_counter{0}
-    , do_probe{true}
-    , last_pieces{0}
-    , last_piece_count{0}
-    , enabled{false}
-    , book_fn{""}
+    : entries(nullptr)
+    , entry_count(0)
+    , fail_counter(0)
+    , do_probe(true)
+    , last_pieces(0)
+    , last_piece_count(0)
+    , enabled(false)
+    , book_fn("")
 {
 }
 

@@ -55,9 +55,9 @@ public:
     std::string filename;
 
     Logger()
-        : _inb{std::cin.rdbuf(), _ofs.rdbuf()}
-        , _otb{std::cout.rdbuf(), _ofs.rdbuf()}
-        , filename{"<empty>"}
+        : _inb(std::cin.rdbuf(), _ofs.rdbuf())
+        , _otb(std::cout.rdbuf(), _ofs.rdbuf())
+        , filename("<empty>")
     {}
     Logger(Logger const&) = delete;
     Logger& operator=(Logger const&) = delete;

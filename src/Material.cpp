@@ -70,7 +70,7 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 imbalance(array<array<i32, NONE>, CLR_NO> const &count)
+        i32 imbalance_fn(array<array<i32, NONE>, CLR_NO> const &count)
         {
             auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -104,34 +104,23 @@ namespace Material {
         }
     }
 
-    /// Material::probe() looks up a current position's material configuration in the material hash table
-    /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe(Position const &pos)
+    void Entry::evaluate(Position const &pos)
     {
-        auto *e = pos.thread->matl_table[pos.si->matl_key];
-
-        if (e->key == pos.si->matl_key)
-        {
-            return e;
-        }
-
-        e->key = pos.si->matl_key;
-
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        e->phase = i32(clamp(pos.non_pawn_material(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME)
+        phase = i32(::clamp(pos.non_pawn_material(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME)
                  * PhaseResolution
                  / i32(VALUE_MIDGAME - VALUE_ENDGAME);
-        e->imbalance = SCORE_ZERO;
-        e->scale.fill(SCALE_NORMAL);
-        e->scale_func.fill(nullptr);
+        imbalance = SCORE_ZERO;
+        scale.fill(SCALE_NORMAL);
+        scale_func.fill(nullptr);
 
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        e->value_func = Endgames::probe<Value>(pos.si->matl_key);
-        if (nullptr != e->value_func)
+        value_func = Endgames::probe<Value>(pos.si->matl_key);
+        if (nullptr != value_func)
         {
-            return e;
+            return;
         }
         // Generic evaluation
         for (auto const &c : { WHITE, BLACK })
@@ -139,8 +128,8 @@ namespace Material {
             if (   pos.non_pawn_material( c) >= VALUE_MG_ROOK
                 && pos.count(~c) == 1)
             {
-                e->value_func = &ValueKXK[c];
-                return e;
+                value_func = &ValueKXK[c];
+                return;
             }
         }
 
@@ -149,11 +138,11 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        auto const *scale_func = Endgames::probe<Scale>(pos.si->matl_key);
-        if (nullptr != scale_func)
+        auto const *scale_fn = Endgames::probe<Scale>(pos.si->matl_key);
+        if (nullptr != scale_fn)
         {
-            e->scale_func[scale_func->strong_color] = scale_func;
-            return e;
+            scale_func[scale_fn->strong_color] = scale_fn;
+            return;
         }
 
         // Didn't find any specialized scaling function, so fall back on
@@ -164,7 +153,7 @@ namespace Material {
                 //&& pos.count( c|BSHP) == 1
                 && pos.count( c|PAWN) != 0)
             {
-                e->scale_func[c] = &ScaleKBPsKP[c];
+                scale_func[c] = &ScaleKBPsKP[c];
             }
             else
             if (   pos.non_pawn_material( c) == VALUE_MG_QUEN
@@ -174,7 +163,7 @@ namespace Material {
                 //&& pos.count(~c|ROOK) == 1
                 && pos.count(~c|PAWN) != 0)
             {
-                e->scale_func[c] = &ScaleKQKRPs[c];
+                scale_func[c] = &ScaleKQKRPs[c];
             }
 
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
@@ -184,7 +173,7 @@ namespace Material {
                 && abs(  pos.non_pawn_material( c)
                        - pos.non_pawn_material(~c)) <= VALUE_MG_BSHP)
             {
-                e->scale[c] = pos.non_pawn_material( c) <  VALUE_MG_ROOK ?
+                scale[c] = pos.non_pawn_material( c) <  VALUE_MG_ROOK ?
                                 SCALE_DRAW :
                                 Scale(pos.non_pawn_material(~c) <= VALUE_MG_BSHP ? 4 : 14);
             }
@@ -197,20 +186,20 @@ namespace Material {
             if (pos.pieces(BLACK, PAWN) == 0)
             {
                 assert(2 <= pos.count(WHITE|PAWN));
-                e->scale_func[WHITE] = &ScaleKPsK[WHITE];
+                scale_func[WHITE] = &ScaleKPsK[WHITE];
             }
             else
             if (pos.pieces(WHITE, PAWN) == 0)
             {
                 assert(2 <= pos.count(BLACK|PAWN));
-                e->scale_func[BLACK] = &ScaleKPsK[BLACK];
+                scale_func[BLACK] = &ScaleKPsK[BLACK];
             }
             else
             if (   pos.count(WHITE|PAWN) == 1
                 && pos.count(BLACK|PAWN) == 1)
             {
-                e->scale_func[WHITE] = &ScaleKPKP[WHITE];
-                e->scale_func[BLACK] = &ScaleKPKP[BLACK];
+                scale_func[WHITE] = &ScaleKPKP[WHITE];
+                scale_func[BLACK] = &ScaleKPKP[BLACK];
             }
         }
 
@@ -237,8 +226,24 @@ namespace Material {
             }
         }};
 
-        auto value = (imbalance<WHITE>(piece_count) - imbalance<BLACK>(piece_count)) / 16; // Imbalance Resolution
-        e->imbalance = make_score(value, value);
+        auto value = (imbalance_fn<WHITE>(piece_count)
+                    - imbalance_fn<BLACK>(piece_count)) / 16; // Imbalance Resolution
+        imbalance = make_score(value, value);
+    }
+
+    /// Material::probe() looks up a current position's material configuration in the material hash table
+    /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
+    Entry* probe(Position const &pos)
+    {
+        auto *e = pos.thread->matl_table[pos.si->matl_key];
+
+        if (e->key == pos.si->matl_key)
+        {
+            return e;
+        }
+
+        e->key = pos.si->matl_key;
+        e->evaluate(pos);
 
         return e;
     }

@@ -11,14 +11,16 @@ template<typename T>
 struct null_unary_functor
     : public std::unary_function<T*, void>
 {
-    void operator()(T const*) const {}
+    void operator()(T const*) const
+    {}
 };
 
 template<typename T>
 struct null_binary_functor
     : public std::binary_function<T*, T*, void>
 {
-    void operator()(T const*, T const*) const {}
+    void operator()(T const*, T const*) const
+    {}
 };
 
 // Case-insensitive comparator for char

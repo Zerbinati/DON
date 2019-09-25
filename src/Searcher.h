@@ -26,8 +26,8 @@ public:
         TimePoint inc;
 
         Clock()
-            : time{0}
-            , inc{0}
+            : time(0)
+            , inc(0)
         {}
     };
     std::array<Clock, CLR_NO> clock; // Search with Clock
@@ -41,13 +41,13 @@ public:
     bool      infinite;    // Search until the "stop" command
 
     Limit()
-        : clock{}
-        , movestogo{0}
-        , movetime{0}
-        , depth{DEP_ZERO}
-        , nodes{0}
-        , mate{0}
-        , infinite{false}
+        : clock()
+        , movestogo(0)
+        , movetime(0)
+        , depth(DEP_ZERO)
+        , nodes(0)
+        , mate(0)
+        , infinite(false)
     {}
 
     bool time_mgr_used() const
@@ -78,9 +78,9 @@ private:
 public:
 
     void operator=(T const &v) { entry = v; }
-    T* operator&() { return &entry; }
-    T* operator->() { return &entry; }
-    operator const T&() const { return entry; }
+    T* operator&()             { return &entry; }
+    T* operator->()            { return &entry; }
+    operator const T&() const  { return entry; }
 
     void operator<<(i32 bonus)
     {
@@ -109,7 +109,7 @@ struct Stats
         assert(std::is_standard_layout<stats>::value);
 
         typedef StatsEntry<T, D> Entry;
-        Entry *p = reinterpret_cast<Entry*>(this);
+        auto *p = reinterpret_cast<Entry*>(this);
         std::fill(p, p + sizeof (*this) / sizeof (Entry), v);
     }
 };
@@ -161,13 +161,13 @@ public:
     Value tb_value;
 
     explicit RootMove(Move m = MOVE_NONE)
-        : std::list<Move>{1, m}
-        , old_value{-VALUE_INFINITE}
-        , new_value{-VALUE_INFINITE}
-        , best_count{0}
-        , sel_depth{0}
-        , tb_rank{0}
-        , tb_value{VALUE_ZERO}
+        : std::list<Move>(1, m)
+        , old_value(-VALUE_INFINITE)
+        , new_value(-VALUE_INFINITE)
+        , best_count(0)
+        , sel_depth(0)
+        , tb_rank(0)
+        , tb_value(VALUE_ZERO)
     {}
     RootMove& operator=(RootMove const&) = default;
 

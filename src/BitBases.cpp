@@ -12,7 +12,7 @@ namespace BitBases {
     namespace {
 
         // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
-        constexpr u32 MaxIndex = 2*24*SQ_NO*SQ_NO; // stm * p_sq * wk_sq * bk_sq = 196608
+        u32 constexpr MaxIndex = 2*24*SQ_NO*SQ_NO; // 2*24*64*64 = 196608
 
         // Each u32 entity stores results of 32 positions, one per bit
         array<u32, MaxIndex / 32> KPK_Bitbase;
@@ -38,10 +38,10 @@ namespace BitBases {
         enum Result : u08
         {
             NONE    = 0,
-            UNKNOWN = 1,
-            DRAW    = 2,
-            WIN     = 4,
-            LOSE    = 8,
+            UNKNOWN = 1 << 0,
+            DRAW    = 1 << 1,
+            WIN     = 1 << 2,
+            LOSE    = 1 << 3,
         };
 
         Result& operator|=(Result &r1, Result r2) { return r1 = Result(r1|r2); }
@@ -55,7 +55,7 @@ namespace BitBases {
             Square                p_sq;
 
             template<Color Own>
-            Result classify(vector<KPK_Position> const &db)
+            Result classify(vector<KPK_Position> const &kpk_pos)
             {
                 // White to Move:
                 // If one move leads to a position classified as WIN, the result of the current position is WIN.
@@ -77,8 +77,8 @@ namespace BitBases {
                 {
                     auto ksq = pop_lsq(b);
                     r |= WHITE == Own ?
-                            db[index(Opp, ksq, k_sq[Opp], p_sq)].result :
-                            db[index(Opp, k_sq[Opp], ksq, p_sq)].result;
+                            kpk_pos[index(Opp, ksq, k_sq[Opp], p_sq)].result :
+                            kpk_pos[index(Opp, k_sq[Opp], ksq, p_sq)].result;
                 }
 
                 if (WHITE == Own)
@@ -86,7 +86,7 @@ namespace BitBases {
                     // Single push
                     if (R_7 > _rank(p_sq))
                     {
-                        r |= db[index(Opp, k_sq[Own], k_sq[Opp], p_sq + DEL_N)].result;
+                        r |= kpk_pos[index(Opp, k_sq[Own], k_sq[Opp], p_sq + DEL_N)].result;
                     }
                     // Double push
                     if (   R_2 == _rank(p_sq)
@@ -95,7 +95,7 @@ namespace BitBases {
                         // Front is not opp king
                         && k_sq[Opp] != p_sq + DEL_N)
                     {
-                        r |= db[index(Opp, k_sq[Own], k_sq[Opp], p_sq + DEL_N + DEL_N)].result;
+                        r |= kpk_pos[index(Opp, k_sq[Own], k_sq[Opp], p_sq + DEL_N + DEL_N)].result;
                     }
                 }
 
@@ -153,23 +153,23 @@ namespace BitBases {
                 }
             }
 
-            Result classify(vector<KPK_Position> const &db)
+            Result classify(vector<KPK_Position> const &kpk_pos)
             {
                 return WHITE == active ?
-                        classify<WHITE>(db) :
-                        classify<BLACK>(db);
+                        classify<WHITE>(kpk_pos) :
+                        classify<BLACK>(kpk_pos);
             }
         };
     }
 
     void initialize()
     {
-        vector<KPK_Position> db;
-        db.reserve(MaxIndex);
-        // Initialize db with known win / draw positions
+        vector<KPK_Position> kpk_pos;
+        kpk_pos.reserve(MaxIndex);
+        // Initialize kpk_pos with known win / draw positions
         for (u32 idx = 0; idx < MaxIndex; ++idx)
         {
-            db.emplace_back(idx);
+            kpk_pos.emplace_back(idx);
         }
 
         bool repeat;
@@ -180,15 +180,15 @@ namespace BitBases {
             repeat = false;
             for (u32 idx = 0; idx < MaxIndex; ++idx)
             {
-                repeat |= (   Result::UNKNOWN == db[idx].result
-                           && Result::UNKNOWN != db[idx].classify(db));
+                repeat |= (   Result::UNKNOWN == kpk_pos[idx].result
+                           && Result::UNKNOWN != kpk_pos[idx].classify(kpk_pos));
             }
         } while (repeat);
 
         // Map 32 results into one KPK_Bitbase[] entry
         for (u32 idx = 0; idx < MaxIndex; ++idx)
         {
-            if (Result::WIN == db[idx].result)
+            if (Result::WIN == kpk_pos[idx].result)
             {
                 KPK_Bitbase[idx / 32] |= 1 << (idx & 0x1F);
             }

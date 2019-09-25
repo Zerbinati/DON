@@ -170,13 +170,13 @@ namespace Searcher {
 
             /// MovePicker constructor for the main search
             MovePicker(Position const &p, Move ttm, Depth d, array<PieceDestinyHistory const*, 6> const &pdhs, array<Move, 2> const &km, Move cm)
-                : pos{p}
-                , tt_move{ttm}
-                , depth{d}
-                , pd_histories{pdhs}
-                , threshold{Value(-4000 * d)}
+                : pos(p)
+                , tt_move(ttm)
+                , depth(d)
+                , pd_histories(pdhs)
+                , threshold(Value(-4000 * d))
                 , refutation_moves{ km[0], km[1], cm }
-                , skip_quiets{false}
+                , skip_quiets(false)
             {
                 assert(MOVE_NONE == tt_move
                    || (pos.pseudo_legal(tt_move)
@@ -202,11 +202,11 @@ namespace Searcher {
             /// Because the depth <= DEP_ZERO here, only captures, queen promotions
             /// and quiet checks (only if depth >= DEP_QS_CHECK) will be generated.
             MovePicker(Position const &p, Move ttm, Depth d, array<PieceDestinyHistory const*, 6> const &pdhs, Square rs)
-                : pos{p}
-                , tt_move{ttm}
-                , depth{d}
-                , pd_histories{pdhs}
-                , recap_sq{rs}
+                : pos(p)
+                , tt_move(ttm)
+                , depth(d)
+                , pd_histories(pdhs)
+                , recap_sq(rs)
             {
                 assert(MOVE_NONE == tt_move
                     || (pos.pseudo_legal(tt_move)
@@ -238,9 +238,9 @@ namespace Searcher {
             /// MovePicker constructor for ProbCut search.
             /// Generate captures with SEE greater than or equal to the given threshold.
             MovePicker(Position const &p, Move ttm, Value thr)
-                : pos{p}
-                , tt_move{ttm}
-                , threshold{thr}
+                : pos(p)
+                , tt_move(ttm)
+                , threshold(thr)
             {
                 assert(0 == pos.si->checkers);
                 assert(MOVE_NONE == tt_move
@@ -436,8 +436,8 @@ namespace Searcher {
             bool marked;
 
             explicit ThreadMarker(Thread const *thread, Key posi_key, i16 ply)
-                : breadcrumb{nullptr}
-                , marked{false}
+                : breadcrumb(nullptr)
+                , marked(false)
             {
                 auto *bc = ply < 8 ?
                             &Breadcrumbs[posi_key & (Breadcrumbs.size() - 1)] :
@@ -714,7 +714,7 @@ namespace Searcher {
                                 dst_sq((ss-1)->played_move) :
                                 SQ_NO;
             // Initialize movepicker (2) for the current position
-            MovePicker move_picker{pos, tt_move, depth, pd_histories, recap_sq};
+            MovePicker move_picker(pos, tt_move, depth, pd_histories, recap_sq);
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while (MOVE_NONE != (move = move_picker.next_move()))
             {
@@ -1202,7 +1202,7 @@ namespace Searcher {
                     auto raised_beta = std::min(beta + (improving ? 145 : 191), +VALUE_INFINITE);
                     u08 pc_movecount = 0;
                     // Initialize movepicker (3) for the current position
-                    MovePicker move_picker{pos, tt_move, raised_beta - ss->static_eval};
+                    MovePicker move_picker(pos, tt_move, raised_beta - ss->static_eval);
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
                     while (   pc_movecount < (cut_node ? 4 : 2)
                            && MOVE_NONE != (move = move_picker.next_move()))
@@ -1273,7 +1273,7 @@ namespace Searcher {
             u08 move_count = 0;
 
             // Mark this node as being searched.
-            ThreadMarker thread_marker{thread, pos.si->posi_key, ss->ply};
+            ThreadMarker thread_marker(thread, pos.si->posi_key, ss->ply);
 
             vector<Move> quiet_moves
                 ,        capture_moves;
@@ -1296,7 +1296,7 @@ namespace Searcher {
                                     thread->move_history[pos[dst_sq((ss-1)->played_move)]][move_index((ss-1)->played_move)] :
                                     MOVE_NONE;
             // Initialize movepicker (1) for the current position
-            MovePicker move_picker{pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move};
+            MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move()))
             {
@@ -2077,7 +2077,7 @@ void Thread::search()
                         // Time Reduction factor - Use part of the gained time from a previous stable move for the current move
                       * (1.36 + main_thread->time_reduction) / (2.29 * time_reduction)
                         // Falling Eval factor
-                      * clamp((354 + 10 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value: 0)) / 692.0, 0.5, 1.5)))
+                      * ::clamp((354 + 10 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value: 0)) / 692.0, 0.5, 1.5)))
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".
@@ -2221,13 +2221,13 @@ void MainThread::search()
             }
 
             skill_mgr.set_level(bool(Options["UCI_LimitStrength"]) ?
-                                clamp(i16(std::pow((i32(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), i16(0), MaxLevel) :
+                                ::clamp(i16(std::pow((i32(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), i16(0), MaxLevel) :
                                 i16(i32(Options["Skill Level"])));
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = clamp(u32(i32(Options["MultiPV"])), u32(skill_mgr.enabled() ? 4 : 1), u32(root_moves.size()));
+            Threadpool.pv_limit = ::clamp(u32(i32(Options["MultiPV"])), u32(skill_mgr.enabled() ? 4 : 1), u32(root_moves.size()));
 
             set_check_count();
 
@@ -2346,7 +2346,7 @@ void MainThread::set_check_count()
 {
     // At low node count increase the checking rate otherwise use a default value.
     check_count = 0 != Limits.nodes ?
-                    clamp(Limits.nodes / 1024, u64(1), u64(1024)) :
+                    ::clamp(Limits.nodes / 1024, u64(1), u64(1024)) :
                     u64(1024);
     assert(0 != check_count);
 }

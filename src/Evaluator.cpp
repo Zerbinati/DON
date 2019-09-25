@@ -199,7 +199,7 @@ namespace {
         Evaluator& operator=(Evaluator const&) = delete;
 
         Evaluator(Position const &p)
-            : pos{p}
+            : pos(p)
         {}
 
         Value value();
@@ -956,7 +956,7 @@ namespace {
         // Now apply the bonus: note that we find the attacking side by extracting the
         // sign of the midgame or endgame values, and that we carefully cap the bonus
         // so that the midgame and endgame scores do not change sign after the bonus.
-        auto score = make_score(sign(mg) * clamp(complexity + 50, 0, -abs(mg)),
+        auto score = make_score(sign(mg) * ::clamp(complexity + 50, 0, -abs(mg)),
                                 sign(eg) * std::max(complexity, -abs(eg)));
 
         if (Trace)

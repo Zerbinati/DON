@@ -20,42 +20,42 @@ namespace UCI {
     size_t Option::InsertOrder = 0;
 
     Option::Option(OnChange on_cng)
-        : type{"button"}
-        , default_value{""}
-        , current_value{""}
-        , minimum{0}
-        , maximum{0}
-        , on_change{on_cng}
+        : type("button")
+        , default_value("")
+        , current_value("")
+        , minimum(0)
+        , maximum(0)
+        , on_change(on_cng)
     {}
     Option::Option(char const *val, OnChange on_cng)
-        : type{"string"}
-        , minimum{0}
-        , maximum{0}
-        , on_change{on_cng}
+        : type("string")
+        , minimum(0)
+        , maximum(0)
+        , on_change(on_cng)
     {
         default_value = current_value = val;
     }
     Option::Option(bool const val, OnChange on_cng)
-        : type{"check"}
-        , minimum{0}
-        , maximum{0}
-        , on_change{on_cng}
+        : type("check")
+        , minimum(0)
+        , maximum(0)
+        , on_change(on_cng)
     {
         default_value = current_value = (val ? "true" : "false");
     }
     Option::Option(i32 const val, i32 min, i32 max, OnChange on_cng)
-        : type{"spin"}
-        , minimum{min}
-        , maximum{max}
-        , on_change{on_cng}
+        : type("spin")
+        , minimum(min)
+        , maximum(max)
+        , on_change(on_cng)
     {
         default_value = current_value = std::to_string(val);
     }
     Option::Option(char const* v, char const* cur, OnChange on_cng)
-        : type{"combo"}
-        , minimum{0}
-        , maximum{0}
-        , on_change{on_cng}
+        : type("combo")
+        , minimum(0)
+        , maximum(0)
+        , on_change(on_cng)
     {
         default_value = v;
         current_value = cur;
@@ -109,7 +109,7 @@ namespace UCI {
             else
             if (type == "spin")
             {
-                val = std::to_string(clamp(stoi(val), minimum, maximum));
+                val = std::to_string(::clamp(stoi(val), minimum, maximum));
             }
             else
             if (type == "string")

@@ -85,7 +85,7 @@ StateInfo const StateInfo::Empty
     {0, 0},
     {0, 0},
     {0, 0, 0, 0, 0, 0},
-    nullptr,
+    nullptr
 };
 
 void Position::initialize()
@@ -103,10 +103,10 @@ void Position::initialize()
                 {
                     if (contains(PieceAttacks[pt][org], dst))
                     {
-                        Cuckoo cuckoo{ RandZob.piece_square[c][pt][org]
+                        Cuckoo cuckoo( RandZob.piece_square[c][pt][org]
                                      ^ RandZob.piece_square[c][pt][dst]
                                      ^ RandZob.color,
-                                       make_move<NORMAL>(org, dst)};
+                                       make_move<NORMAL>(org, dst));
 
                         u16 i = H1(cuckoo.key);
                         do

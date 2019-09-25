@@ -12,7 +12,7 @@ namespace {
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
     // For each piece type on a given square a (midgame, endgame) score pair is assigned.
-    array<array<array<Score, F_NO/2>, R_NO>, NONE> constexpr PieceHalfSQ
+    array<array<array<Score, (F_NO/2)>, R_NO>, NONE> constexpr PieceHalfSQ
     {{
         {{ }},
         {{ // Knight

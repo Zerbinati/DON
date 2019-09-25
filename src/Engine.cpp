@@ -127,7 +127,7 @@ namespace {
         if (white_spaces(Version))
         {
             // From compiler, format is "Sep 2 1982"
-            istringstream iss{__DATE__};
+            istringstream iss(__DATE__);
             string month, day, year;
             iss >> month >> day >> year;
             oss << setw(2) << year.substr(2)
@@ -535,7 +535,7 @@ namespace {
                 cmd = "quit";
             }
 
-            istringstream iss{cmd};
+            istringstream iss(cmd);
             string token;
             token.clear(); // Avoid a stale if getline() returns empty or blank line
             iss >> skipws >> token;

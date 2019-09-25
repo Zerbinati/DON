@@ -34,8 +34,8 @@ public:
 
     PRNG() = delete;
     PRNG(u64 seed)
-        : s{seed}
-    { assert(0 != seed); }
+        : s(seed)
+    { assert(0 != s); }
 
     template<typename T>
     T rand() { return T(rand64()); }
