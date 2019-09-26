@@ -139,7 +139,7 @@ public:
     {}
     TTable(TTable const&) = delete;
     TTable& operator=(TTable const&) = delete;
-   ~TTable()
+    virtual ~TTable()
     {
         free_aligned_memory();
     }

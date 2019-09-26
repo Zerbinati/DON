@@ -437,16 +437,16 @@ namespace TBSyzygy {
             }
 
             TBTable()
-                : ready{false}
-                , base_address{nullptr}
-                //, map{nullptr}
-                //, mapping{0}
+                : ready(false)
+                , base_address(nullptr)
+                , map(nullptr)
+                , mapping(0)
             {}
 
             explicit TBTable(string const&);
             explicit TBTable(TBTable<WDL> const&);
 
-           ~TBTable()
+            virtual ~TBTable()
             {
                 if (nullptr != base_address)
                 {

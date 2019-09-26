@@ -412,7 +412,7 @@ namespace Searcher {
         struct Breadcrumb
         {
             std::atomic<Thread const*> thread;
-            std::atomic<Key          > posi_key;
+            std::atomic<Key>           posi_key;
 
             void store(Thread const *th, Key key)
             {
@@ -462,7 +462,7 @@ namespace Searcher {
                 }
             }
 
-           ~ThreadMarker()
+            virtual ~ThreadMarker()
             {
                 if (nullptr != breadcrumb) // Free the marked one.
                 {
@@ -486,9 +486,9 @@ namespace Searcher {
 
         Depth reduction(bool imp, Depth d, u08 mc)
         {
-            auto r = Depth(0 == d || 0 == mc ?
-                        0 :
-                        547.56 * std::log(d) * std::log(mc));
+            auto r = 0 == d || 0 == mc ?
+                        DEP_ZERO :
+                        Depth(547.56 * std::log(d) * std::log(mc));
             return (r + 520) / 1024 + (!imp && r > 999 ? 1 : 0);
         }
 

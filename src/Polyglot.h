@@ -122,7 +122,7 @@ public:
     std::string book_fn;
 
     PolyBook();
-    ~PolyBook();
+    virtual ~PolyBook();
 
     void initialize(std::string const&);
 

@@ -62,7 +62,7 @@ public:
     Logger(Logger const&) = delete;
     Logger& operator=(Logger const&) = delete;
 
-   ~Logger()
+    virtual ~Logger()
     {
         set("<empty>");
     }

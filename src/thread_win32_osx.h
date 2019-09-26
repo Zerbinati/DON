@@ -35,7 +35,7 @@ public:
     Mutex() { InitializeCriticalSection(&cs); }
     Mutex(Mutex const&) = delete;
     Mutex& operator=(Mutex const&) = delete;
-   ~Mutex() { DeleteCriticalSection(&cs); }
+    virtual ~Mutex() { DeleteCriticalSection(&cs); }
 
     void lock()   { EnterCriticalSection(&cs); }
     void unlock() { LeaveCriticalSection(&cs); }
@@ -81,6 +81,9 @@ private:
     pthread_t thread;
 
 public:
+
+    static unsigned hardware_concurrency() { return 1; }
+
     template<class T, class P = std::pair<T*, void (T::*)()>>
     explicit NativeThread(void (T::*fun)(), T *obj)
     {
@@ -91,7 +94,7 @@ public:
     }
     //NativeThread(NativeThread const&) = delete;
     //NativeThread& operator=(NativeThread const&) = delete;
-   //~NativeThread() {}
+    //virtual ~NativeThread() {}
 
     void join() { pthread_join(thread, NULL); }
 };

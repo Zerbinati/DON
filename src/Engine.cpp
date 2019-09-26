@@ -116,7 +116,7 @@ namespace {
                 0;
     }
 
-    string version_info()
+    const string version_info()
     {
         ostringstream oss;
 
@@ -166,6 +166,70 @@ namespace {
             ""
 #       endif
         ;
+
+        return oss.str();
+    }
+
+    /// compiler_info() returns a string trying to describe the compiler we use
+    const string compiler_info()
+    {
+        #define STRINGIFY(x) #x
+        #define VER_STRING(major, minor, patch) STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
+
+        /// Predefined macros hell:
+        ///
+        /// __GNUC__           Compiler is gcc, Clang or Intel on Linux
+        /// __INTEL_COMPILER   Compiler is Intel
+        /// _MSC_VER           Compiler is MSVC or Intel on Windows
+        /// _WIN32             Building on Windows (any)
+        /// _WIN64             Building on Windows 64 bit
+        ostringstream oss;
+        oss << "\nCompiled by ";
+
+        #ifdef __clang__
+            oss << "clang++ ";
+            oss << VER_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
+        #elif __INTEL_COMPILER
+            oss << "Intel compiler ";
+            oss << "(version " STRINGIFY(__INTEL_COMPILER) " update " STRINGIFY(__INTEL_COMPILER_UPDATE) ")";
+        #elif _MSC_VER
+            oss << "MSVC ";
+            oss << "(version " STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD) ")";
+        #elif __GNUC__
+            oss << "g++ (GNUC) ";
+            oss << VER_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+        #else
+            oss << "Unknown compiler ";
+            oss << "(unknown version)";
+        #endif
+
+        #if defined(__APPLE__) 
+            oss << " on Apple";
+        #elif defined(__CYGWIN__)
+            oss << " on Cygwin";
+        #elif defined(__MINGW64__)
+            oss << " on MinGW64";
+        #elif defined(__MINGW32__)
+            oss << " on MinGW32";
+        #elif defined(__ANDROID__)
+            oss << " on Android";
+        #elif defined(__linux__)
+            oss << " on Linux";
+        #elif defined(_WIN64)
+            oss << " on Microsoft Windows 64-bit";
+        #elif defined(_WIN32)
+            oss << " on Microsoft Windows 32-bit";
+        #else
+            oss << " on unknown system";
+        #endif
+
+        oss << "\n __VERSION__ macro expands to: ";
+        #ifdef __VERSION__
+            oss << __VERSION__;
+        #else
+            oss << "(undefined macro)";
+        #endif
+        oss << "\n";
 
         return oss.str();
     }
@@ -607,6 +671,11 @@ namespace {
                 if (token == "mirror")
                 {
                     pos.mirror();
+                }
+                else
+                if (token == "compiler")
+                {
+                    sync_cout << compiler_info() << sync_endl;
                 }
                 // Print the root position
                 else
