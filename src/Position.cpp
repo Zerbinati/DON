@@ -44,8 +44,8 @@ namespace {
         Move move;  // Valid reversible move
 
         Cuckoo(Key k, Move m)
-            : key{k}
-            , move{m}
+            : key(k)
+            , move(m)
         {}
         Cuckoo()
             : Cuckoo(0, MOVE_NONE)

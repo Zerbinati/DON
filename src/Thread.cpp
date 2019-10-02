@@ -13,7 +13,7 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-Mutex OutputMutex;
+std::mutex OutputMutex;
 
 ThreadPool Threadpool;
 
@@ -59,7 +59,7 @@ namespace {
     // Data was extracted from the CCRL game database with some simple filtering criteria.
     double move_importance(Depth ply)
     {
-        //                                                 Shift    Scale   Skew
+        //                                             Shift    Scale   Skew
         return std::max(std::pow(1.00 + std::exp((ply - 64.50) / 6.85), -0.171), DBL_MIN); // Ensure non-zero
     }
 
@@ -192,10 +192,10 @@ void SkillManager::pick_best_move()
 /// Thread constructor launches the thread and waits until it goes to sleep in idle_function().
 /// Note that 'busy' and 'dead' should be already set.
 Thread::Thread(size_t idx)
-    : dead{false}
-    , busy{true}
-    , index{idx}
-    , native_thread{&Thread::idle_function, this}
+    : dead(false)
+    , busy(true)
+    , index(idx)
+    , native_thread(&Thread::idle_function, this)
 {
     wait_while_busy();
 }
@@ -211,14 +211,14 @@ Thread::~Thread()
 /// Thread::start() wakes up the thread that will start the search.
 void Thread::start()
 {
-    lock_guard<Mutex> guard(mutex);
+    lock_guard<std::mutex> guard(mutex);
     busy = true;
     condition_var.notify_one(); // Wake up the thread in idle_function()
 }
 /// Thread::wait_while_busy() blocks on the condition variable while the thread is busy.
 void Thread::wait_while_busy()
 {
-    unique_lock<Mutex> lock(mutex);
+    unique_lock<std::mutex> lock(mutex);
     condition_var.wait(lock, [&]{ return !busy; });
 }
 /// Thread::idle_function() is where the thread is parked.
@@ -237,7 +237,7 @@ void Thread::idle_function()
 
     do
     {
-        unique_lock<Mutex> lock(mutex);
+        unique_lock<std::mutex> lock(mutex);
         busy = false;
         condition_var.notify_one(); // Wake up anyone waiting for search finished
         condition_var.wait(lock, [&]{ return busy; });
@@ -277,7 +277,7 @@ void Thread::clear()
 
 /// MainThread constructor
 MainThread::MainThread(size_t idx)
-    : Thread{idx}
+    : Thread(idx)
 {}
 /// MainThread::clear()
 void MainThread::clear()
@@ -498,6 +498,9 @@ void ThreadPool::configure(u32 thread_count)
         {
             push_back(new Thread(size()));
         }
+
+        factor = std::pow(23.4 + std::log(size()) / 2, 2);
+
         sync_cout << "info string Thread(s) used " << thread_count << sync_endl;
 
         clear();

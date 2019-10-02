@@ -133,9 +133,9 @@ public:
     size_t cluster_count;
 
     TTable()
-        : mem{nullptr}
-        , clusters{nullptr}
-        , cluster_count{0}
+        : mem(nullptr)
+        , clusters(nullptr)
+        , cluster_count(0)
     {}
     TTable(TTable const&) = delete;
     TTable& operator=(TTable const&) = delete;

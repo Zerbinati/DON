@@ -1382,7 +1382,7 @@ namespace TBSyzygy {
         template<TBType Type>
         void* mapped(TBTable<Type> &e, Position const &pos)
         {
-            static Mutex mutex;
+            static std::mutex mutex;
 
             // Use 'acquire' to avoid a thread reading 'ready' == true while
             // another is still working. (compiler reordering may cause this).
@@ -1391,7 +1391,7 @@ namespace TBSyzygy {
                 return e.base_address; // Could be nullptr if file does not exist
             }
 
-            unique_lock<Mutex> lock(mutex);
+            unique_lock<std::mutex> lock(mutex);
 
             if (e.ready.load(std::memory_order::memory_order_relaxed)) // Recheck under lock
             {

@@ -30,8 +30,8 @@ namespace std {
 
         basic_tie_buf(basic_streambuf<Elem, Traits> *strmbuf1,
                       basic_streambuf<Elem, Traits> *strmbuf2)
-            : _strmbuf1{strmbuf1}
-            , _strmbuf2{strmbuf2}
+            : _strmbuf1(strmbuf1)
+            , _strmbuf2(strmbuf2)
         {}
 
         basic_streambuf<Elem, Traits>* streambuf() const { return _strmbuf1; }

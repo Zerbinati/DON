@@ -97,16 +97,16 @@ namespace {
 
     array<Score, 2> constexpr RookOnFile
     {
-        S(18, 7), S(44,20)
+        S(21, 4), S(47,25)
     };
 
     array<Score, NONE> constexpr MinorThreat
     {
-        S( 0,31), S(39,42), S(57,44), S(68,112), S(62,120), S( 0, 0)
+        S( 6,32), S(59,41), S(79,56), S(90,119), S(79,161), S( 0, 0)
     };
     array<Score, NONE> constexpr MajorThreat
     {
-        S( 0,24), S(38,71), S(38,61), S( 0, 38), S(51, 38), S( 0, 0)
+        S( 3,44), S(38,71), S(38,61), S( 0, 38), S(51, 38), S( 0, 0)
     };
 
     array<Score, R_NO> constexpr PasserRank
@@ -120,18 +120,16 @@ namespace {
     Score constexpr BishopOnDiagonal =  S( 45,  0);
     Score constexpr BishopPawns =       S(  3,  7);
     Score constexpr BishopTrapped =     S( 50, 50);
-    Score constexpr RookOnPawns =       S( 10, 32);
-    Score constexpr RookOnQueenFile =   S( 11,  4);
+    Score constexpr RookOnQueenFile =   S(  7,  6);
     Score constexpr RookTrapped =       S( 47,  4);
     Score constexpr QueenWeaken =       S( 49, 15);
     Score constexpr PawnLessFlank =     S( 17, 95);
     Score constexpr PasserFile =        S( 11,  8);
     Score constexpr KingTropism =       S(  8,  0);
-    Score constexpr PieceRestricted =   S(  7,  6);
+    Score constexpr PieceRestricted =   S(  7,  7);
     Score constexpr PieceHanged =       S( 69, 36);
     Score constexpr PawnThreat =        S(173, 94);
     Score constexpr PawnPushThreat =    S( 48, 39);
-    Score constexpr RankThreat =        S( 13,  0);
     Score constexpr KingThreat =        S( 24, 89);
     Score constexpr KnightOnQueen =     S( 16, 12);
     Score constexpr SliderOnQueen =     S( 59, 18);
@@ -145,7 +143,7 @@ namespace {
 
     array<i32, NONE> constexpr KingAttackerWeight
     {
-        0, 77, 55, 44, 10, 0
+        0, 81, 52, 44, 10, 0
     };
 
     // Evaluator class contains various evaluation functions.
@@ -408,11 +406,6 @@ namespace {
                 break;
             case ROOK:
             {
-                // Bonus for rook aligning with enemy pawns on the same rank/file
-                if (R_4 < rel_rank(Own, s))
-                {
-                    score += RookOnPawns * pop_count(pos.pieces(Opp, PAWN) & PieceAttacks[ROOK][s]);
-                }
                 // Bonus for rook on the same file as a queen
                 if (file_bb(s) & pos.pieces(QUEN))
                 {
@@ -529,34 +522,36 @@ namespace {
         }
         */
 
-        // Enemy knight safe checks
-        Bitboard niht_safe_check = PieceAttacks[NIHT][own_k_sq]
-                                 & sgl_attacks[Opp][NIHT]
-                                 & safe_area;
-        if (0 != niht_safe_check)
+        // Enemy knight all checks
+        Bitboard knight_check = PieceAttacks[NIHT][own_k_sq]
+                              & sgl_attacks[Opp][NIHT];
+        Bitboard knight_safe_check = knight_check
+                                   & safe_area;
+        if (0 != knight_safe_check)
         {
-            king_danger += SafeCheckWeight[NIHT] * pop_count(niht_safe_check);
+            king_danger += SafeCheckWeight[NIHT] * pop_count(knight_safe_check);
         }
         else
         {
-            unsafe_check |= PieceAttacks[NIHT][own_k_sq]
-                          & sgl_attacks[Opp][NIHT];
+            unsafe_check |= knight_check;
         }
 
-        Bitboard bshp_check = attacks_bb<BSHP>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
-        Bitboard rook_check = attacks_bb<ROOK>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
+        Bitboard bshp_pins = attacks_bb<BSHP>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
+        Bitboard rook_pins = attacks_bb<ROOK>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
 
-        // Enemy queen safe checks
-        Bitboard quen_safe_check = (bshp_check | rook_check)
-                                 &  sgl_attacks[Opp][QUEN]
+        // Enemy queen all checks
+        Bitboard quen_check = (bshp_pins | rook_pins)
+                            &  sgl_attacks[Opp][QUEN];
+        Bitboard quen_safe_check = quen_check
                                  & ~sgl_attacks[Own][QUEN]
                                  & safe_area;
 
         Bitboard b;
 
-        // Enemy bishop safe checks
+        // Enemy bishop all checks
+        Bitboard bshp_check = bshp_pins
+                            & sgl_attacks[Opp][BSHP];
         Bitboard bshp_safe_check = bshp_check
-                                 & sgl_attacks[Opp][BSHP]
                                  & safe_area;
         b =  bshp_safe_check
           & ~quen_safe_check;
@@ -566,13 +561,13 @@ namespace {
         }
         else
         {
-            unsafe_check |= bshp_check
-                          & sgl_attacks[Opp][BSHP];
+            unsafe_check |= bshp_check;
         }
 
-        // Enemy rook safe checks
+        // Enemy rook all checks
+        Bitboard rook_check = rook_pins
+                            & sgl_attacks[Opp][ROOK];
         Bitboard rook_safe_check = rook_check
-                                 & sgl_attacks[Opp][ROOK]
                                  & safe_area;
         b =  rook_safe_check
           & ~quen_safe_check;
@@ -582,8 +577,7 @@ namespace {
         }
         else
         {
-            unsafe_check |= rook_check
-                          & sgl_attacks[Opp][ROOK];
+            unsafe_check |= rook_check;
         }
 
         if (0 != quen_safe_check)
@@ -593,14 +587,15 @@ namespace {
         /*
         else
         {
-            unsafe_check |= (bshp_check | rook_check)
+            unsafe_check |= (bshp_pins | rook_pins)
                           &  sgl_attacks[Opp][QUEN]
                           & ~sgl_attacks[Own][QUEN];
         }
         */
 
         b =  quen_safe_check
-          & (bshp_safe_check | rook_safe_check);
+          & (bshp_safe_check
+           | rook_safe_check);
         if (0 != b)
         {
             king_danger += 200 * pop_count(b);
@@ -622,13 +617,13 @@ namespace {
                      +  69 * king_attacks_count[Opp]
                      + 185 * pop_count(king_ring[Own] & weak_area)
                         // Friend knight is near by to defend king
-                     - 100 * (0 != (sgl_attacks[Own][NIHT] & king_spot))
+                     - 100 * (0 != (sgl_attacks[Own][NIHT] & king_spot) ? 1 : 0)
                         // Friend bishop is near by to defend king
-                     -  35 * (0 != (sgl_attacks[Own][BSHP] & king_spot))
+                     -  35 * (0 != (sgl_attacks[Own][BSHP] & king_spot) ? 1 : 0)
                      + 148 * pop_count(unsafe_check)
                      +  98 * pop_count(pos.si->king_blockers[Own])
                         // Enemy queen is gone
-                     - 873 * (0 == pos.pieces(Opp, QUEN))
+                     - 873 * (0 == pos.pieces(Opp, QUEN) ? 1 : 0)
                      +   1 * mg_value(mobility[Opp] - mobility[Own])
                      +   5 * tropism * tropism / 16
                      -   3 * mg_value(score) / 4
@@ -675,7 +670,7 @@ namespace {
                                | (   dbl_attacks[Opp]
                                   & ~dbl_attacks[Own]);
         // Enemy not defended and under attacked by any friend piece
-        Bitboard attacked_weak_enemies =  pos.pieces(Opp)
+        Bitboard attacked_undefended_enemies =  pos.pieces(Opp)
                                        & ~defended_area
                                        &  sgl_attacks[Own][NONE];
         // Non-pawn enemies, defended by enemies
@@ -684,45 +679,33 @@ namespace {
 
         Bitboard b;
 
-        if (   0 != attacked_weak_enemies
-            || 0 != defended_nonpawns_enemies)
+        if (0 != (  attacked_undefended_enemies
+                  | defended_nonpawns_enemies))
         {
             // Bonus according to the type of attacking pieces
 
             // Enemies attacked by minors
-            b = (  attacked_weak_enemies
-                   // Enemy defended non-pawns
+            b = (  attacked_undefended_enemies
                  | defended_nonpawns_enemies)
               & (  sgl_attacks[Own][NIHT]
                  | sgl_attacks[Own][BSHP]);
             while (0 != b)
             {
-                auto s = pop_lsq(b);
-                auto pt = ptype(pos[s]);
-                score += MinorThreat[pt];
-                if (PAWN != pt)
-                {
-                    score += RankThreat * rel_rank(Opp, s);
-                }
+                score += MinorThreat[ptype(pos[pop_lsq(b)])];
             }
 
-            if (0 != attacked_weak_enemies)
+            if (0 != attacked_undefended_enemies)
             {
                 // Enemies attacked by majors
-                b =  attacked_weak_enemies
+                b =  attacked_undefended_enemies
                   &  sgl_attacks[Own][ROOK];
                 while (0 != b)
                 {
-                    auto s = pop_lsq(b);
-                    auto pt = ptype(pos[s]);
-                    score += MajorThreat[pt];
-                    if (PAWN != pt)
-                    {
-                        score += RankThreat * rel_rank(Opp, s);
-                    }
+                    score += MajorThreat[ptype(pos[pop_lsq(b)])];
                 }
+
                 // Enemies attacked by king
-                b =  attacked_weak_enemies
+                b =  attacked_undefended_enemies
                   &  sgl_attacks[Own][KING];
                 if (0 != b)
                 {
@@ -730,7 +713,7 @@ namespace {
                 }
 
                 // Enemies attacked are hanging
-                b = attacked_weak_enemies
+                b = attacked_undefended_enemies
                   & (  ~sgl_attacks[Opp][NONE]
                      | (  nonpawns_enemies
                         & dbl_attacks[Own]));
@@ -956,7 +939,7 @@ namespace {
         // Now apply the bonus: note that we find the attacking side by extracting the
         // sign of the midgame or endgame values, and that we carefully cap the bonus
         // so that the midgame and endgame scores do not change sign after the bonus.
-        auto score = make_score(sign(mg) * ::clamp(complexity + 50, 0, -abs(mg)),
+        auto score = make_score(sign(mg) * ::clamp(complexity + 50, 0, -abs(mg)),   // Out of limit
                                 sign(eg) * std::max(complexity, -abs(eg)));
 
         if (Trace)

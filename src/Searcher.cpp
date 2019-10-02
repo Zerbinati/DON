@@ -486,10 +486,13 @@ namespace Searcher {
 
         Depth reduction(bool imp, Depth d, u08 mc)
         {
-            auto r = 0 == d || 0 == mc ?
-                        DEP_ZERO :
-                        Depth(547.56 * std::log(d) * std::log(mc));
-            return (r + 520) / 1024 + (!imp && r > 999 ? 1 : 0);
+            if (0 == d || 0 == mc)
+            {
+                return DEP_ZERO;
+            }
+            
+            auto r = Threadpool.factor * std::log(d) * std::log(mc);
+            return Depth((r + 520) / 1024 + (!imp && r > 999 ? 1 : 0));
         }
 
         i32 BasicContempt = 0;
@@ -505,9 +508,9 @@ namespace Searcher {
         }
 
         // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
-        Value draw_value(Depth depth)
+        Value draw_value()
         {
-            return VALUE_DRAW + (depth < 4 ? 0 : rand() % 3 - 1);
+            return VALUE_DRAW + rand() % 3 - 1;
         }
 
         /// update_continuation_histories() updates tables of the move pairs with current move.
@@ -855,7 +858,7 @@ namespace Searcher {
                 && pos.si->clock_ply >= 3
                 && pos.cycled(ss->ply))
             {
-                alfa = draw_value(depth);
+                alfa = draw_value();
                 if (alfa >= beta)
                 {
                     return alfa;
@@ -906,7 +909,7 @@ namespace Searcher {
                     return ss->ply >= DEP_MAX
                         && !in_check ?
                                evaluate(pos) :
-                               draw_value(depth);
+                               draw_value();
                 }
 
                 // Step 3. Mate distance pruning.
@@ -1088,7 +1091,7 @@ namespace Searcher {
 
                     if (VALUE_DRAW == eval)
                     {
-                        eval = draw_value(depth);
+                        eval = draw_value();
                     }
                     // Can tt_value be used as a better position evaluation?
                     if (   VALUE_NONE != tt_value
@@ -1362,13 +1365,19 @@ namespace Searcher {
                 // Step 13. Extensions. (~70 ELO)
 
                 Depth extension = DEP_ZERO;
-
+                
+                // Castle extension
+                if (CASTLE == mtype(move))
+                {
+                    extension = 1;
+                }
                 // Singular extension (SE) (~60 ELO)
                 // Extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
                 // and just one fails high on (alfa, beta), then that move is singular and should be extended.
                 // To verify this do a reduced search on all the other moves but the tt_move,
                 // if result is lower than tt_value minus a margin then extend tt_move.
+                else
                 if (   !root_node
                     && 5 < depth
                     && move == tt_move
@@ -1405,10 +1414,8 @@ namespace Searcher {
                     }
                 }
                 else
-                if (// Castle extension
-                       CASTLE == mtype(move)
-                    // Passed pawn extension
-                    || (   move == ss->killer_moves[0]
+                if (// Passed pawn extension
+                       (   move == ss->killer_moves[0]
                         && pos.pawn_advance_at(pos.active, org)
                         && pos.pawn_passed_at(pos.active, dst))
                     // Check extension (~2 ELO)
@@ -1585,10 +1592,10 @@ namespace Searcher {
                         }
 
                         // Decrease/Increase reduction for moves with +/-ve stats (~30 Elo)
-                        reduct_depth -= i16(ss->stats / 0x4000);
+                        reduct_depth -= Depth(ss->stats / 0x4000);
                     }
 
-                    i16 d = std::max(new_depth - std::max(reduct_depth, DEP_ZERO), 1);
+                    auto d = Depth(std::max(new_depth - std::max(reduct_depth, DEP_ZERO), 1));
 
                     value = -depth_search<false>(pos, ss+1, -alfa-1, -alfa, d, true);
 
@@ -1945,7 +1952,7 @@ void Thread::search()
             // research with bigger window until not failing high/low anymore.
             do
             {
-                i16 adjusted_depth = i16(std::max(root_depth - fail_high_count, 1));
+                auto adjusted_depth = Depth(std::max(root_depth - fail_high_count, 1));
                 best_value = depth_search<true>(root_pos, stacks+7, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is

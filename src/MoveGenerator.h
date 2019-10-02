@@ -63,17 +63,17 @@ struct Perft
     //u64 stalemate;
 
     Perft()
-        : moves{0}
-        , any{0}
-        , capture{0}
-        , enpassant{0}
-        , any_check{0}
-        , dsc_check{0}
-        , dbl_check{0}
-        , castle{0}
-        , promotion{0}
-        , checkmate{0}
-        //, stalemate{0}
+        : moves(0)
+        , any(0)
+        , capture(0)
+        , enpassant(0)
+        , any_check(0)
+        , dsc_check(0)
+        , dbl_check(0)
+        , castle(0)
+        , promotion(0)
+        , checkmate(0)
+        //, stalemate(0)
     {}
 
     void operator+=(Perft const &p)

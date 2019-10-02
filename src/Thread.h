@@ -1,6 +1,9 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
+
 #include "Material.h"
 #include "Option.h"
 #include "Pawns.h"
@@ -24,7 +27,7 @@ public:
     u64 available_nodes;
 
     TimeManager()
-        : available_nodes{0}
+        : available_nodes(0)
     {}
     TimeManager(TimeManager const&) = delete;
     TimeManager& operator=(TimeManager const&) = delete;
@@ -50,8 +53,8 @@ public:
     Move best_move;
 
     SkillManager()
-        : level{MaxLevel}
-        , best_move{MOVE_NONE}
+        : level(MaxLevel)
+        , best_move(MOVE_NONE)
     {}
     SkillManager(SkillManager const&) = delete;
     SkillManager& operator=(SkillManager const&) = delete;
@@ -78,9 +81,10 @@ protected:
 
     size_t index;
 
-    Mutex             mutex;
-    ConditionVariable condition_var;
-    NativeThread      native_thread;
+    std::mutex mutex;
+    std::condition_variable condition_var;
+
+    NativeThread native_thread;
 
 public:
 
@@ -198,6 +202,7 @@ private:
 public:
 
     u32 pv_limit;
+    double factor;
 
     std::atomic<bool> stop; // Stop search forcefully
 
@@ -225,7 +230,7 @@ enum OutputState : u08
     OS_UNLOCK,
 };
 
-extern Mutex OutputMutex;
+extern std::mutex OutputMutex;
 
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<<(std::ostream &os, OutputState state)
