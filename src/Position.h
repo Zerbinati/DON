@@ -5,6 +5,7 @@
 #include <list>
 #include <memory> // For std::unique_ptr
 #include <string>
+
 #include "Type.h"
 #include "BitBoard.h"
 #include "PSQTable.h"

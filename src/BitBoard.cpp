@@ -3,6 +3,7 @@
 #include <bitset>
 #include <cmath>
 #include <memory>
+
 #include "PRNG.h"
 #include "Notation.h"
 

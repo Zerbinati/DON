@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstring>
+#include <cmath>
+
 #include "BitBoard.h"
 #include "Material.h"
 #include "Notation.h"
@@ -115,7 +116,7 @@ namespace {
     };
 
     Score constexpr MinorBehindPawn =   S( 18,  3);
-    Score constexpr Outpost =           S( 18,  6);
+    Score constexpr Outpost =           S( 16,  5);
     Score constexpr MinorKingProtect =  S(  7,  8);
     Score constexpr BishopOnDiagonal =  S( 45,  0);
     Score constexpr BishopPawns =       S(  3,  7);
@@ -625,7 +626,7 @@ namespace {
                         // Enemy queen is gone
                      - 873 * (0 == pos.pieces(Opp, QUEN) ? 1 : 0)
                      +   1 * mg_value(mobility[Opp] - mobility[Own])
-                     +   5 * tropism * tropism / 16
+                     +   5 * std::pow(tropism, 2) / 16
                      -   3 * mg_value(score) / 4
                      -   7;
 

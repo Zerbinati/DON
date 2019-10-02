@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <cstring>
+
 #include "Thread.h"
 
 namespace Material {

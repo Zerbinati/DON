@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+
 #include "Endgame.h"
 #include "Position.h"
 #include "Type.h"

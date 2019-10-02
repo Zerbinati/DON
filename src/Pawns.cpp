@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+
 #include "BitBoard.h"
 #include "Thread.h"
 
@@ -133,7 +134,6 @@ namespace Pawns {
             assert((Own|PAWN) == pos[s]);
 
             auto r = rel_rank(Own, s);
-            attack_span[Own] |= pawn_attack_span(Own, s);
 
             Bitboard neighbours = own_pawns & adj_file_bb(s);
             Bitboard supporters = neighbours & rank_bb(s - pawn_push(Own));
@@ -141,9 +141,24 @@ namespace Pawns {
             Bitboard stoppers   = opp_pawns & pawn_pass_span(Own, s);
             Bitboard levers     = opp_pawns & Attack[s];
             Bitboard escapes    = opp_pawns & Attack[s + pawn_push(Own)]; // Push levers
+            Bitboard opposed    = opp_pawns & front_squares_bb(Own, s);
 
-            bool doubled = contains(own_pawns, s - pawn_push(Own));
-            bool opposed = 0 != (opp_pawns & front_squares_bb(Own, s));
+            bool doubled    = contains(own_pawns, s - pawn_push(Own));
+            // Backward: A pawn is backward when it is behind all pawns of the same color
+            // on the adjacent files and cannot be safely advanced.
+            bool backward   = 0 == (neighbours & front_rank_bb(Opp, s))
+                           && 0 != (stoppers & (escapes | (s + pawn_push(Own))));
+
+            // Span of backward pawns and span behind opposing pawns are not included
+            // in the pawnAttacksSpan bitboard.
+            if (   !backward
+                || 0 != phalanxes)
+            {
+                attack_span[Own] |= 0 != opposed ?
+                                        pawn_attack_span(Own, s)
+                                     & ~pawn_attack_span(Own, scan_frontmost_sq(Opp, opposed)) :
+                                        pawn_attack_span(Own, s);
+            }
 
             // A pawn is passed if one of the three following conditions is true:
             // - there is no stoppers except some levers
@@ -161,7 +176,8 @@ namespace Pawns {
                 passers[Own] |= s;
             }
 
-            if (0 != (supporters | phalanxes))
+            if (   0 != supporters 
+                || 0 != phalanxes)
             {
                 i32 v = Connected[r] * (2 + (0 != phalanxes ? 1 : 0) - (opposed ? 1 : 0))
                       + 21 * pop_count(supporters);
@@ -171,18 +187,16 @@ namespace Pawns {
             if (0 == neighbours)
             {
                 score -= Isolated;
-                if (!opposed)
+                if (0 == opposed)
                 {
                     score += Unopposed;
                 }
             }
             else
-            // Backward: A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
-            if (   0 == (neighbours & front_rank_bb(Opp, s))
-                && 0 != (stoppers & (escapes | (s + pawn_push(Own)))))
+            if (backward)
             {
                 score -= Backward;
-                if (!opposed)
+                if (0 == opposed)
                 {
                     score += Unopposed;
                 }

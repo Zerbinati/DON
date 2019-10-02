@@ -1,6 +1,7 @@
 #include "Endgame.h"
 
 #include <array>
+
 #include "BitBases.h"
 #include "MoveGenerator.h"
 

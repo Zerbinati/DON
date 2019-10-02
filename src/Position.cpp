@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "Option.h"

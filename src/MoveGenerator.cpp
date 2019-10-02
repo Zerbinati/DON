@@ -1,6 +1,7 @@
 #include "MoveGenerator.h"
 
 #include <iostream>
+
 #include "BitBoard.h"
 #include "Notation.h"
 #include "Thread.h"

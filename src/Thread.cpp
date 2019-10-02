@@ -4,6 +4,7 @@
 #include <cmath>
 #include <map>
 #include <iostream>
+
 #include "Option.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
