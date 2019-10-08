@@ -120,10 +120,10 @@ namespace Searcher {
                     if (GenType::QUIET == GT)
                     {
                         vm.value = thread->butterfly_history[pos.active][move_index(vm.move)]
-                                 + (*pd_histories[0])[pos[org_sq(vm.move)]][dst_sq(vm.move)]
-                                 + (*pd_histories[1])[pos[org_sq(vm.move)]][dst_sq(vm.move)]
-                                 + (*pd_histories[3])[pos[org_sq(vm.move)]][dst_sq(vm.move)]
-                                 + (*pd_histories[5])[pos[org_sq(vm.move)]][dst_sq(vm.move)] / 2;
+                                 + (*pd_histories[0])[pos[org_sq(vm.move)]][dst_sq(vm.move)] * 2
+                                 + (*pd_histories[1])[pos[org_sq(vm.move)]][dst_sq(vm.move)] * 2
+                                 + (*pd_histories[3])[pos[org_sq(vm.move)]][dst_sq(vm.move)] * 2
+                                 + (*pd_histories[5])[pos[org_sq(vm.move)]][dst_sq(vm.move)];
                         if (vm.value < threshold)
                             vm.value = threshold - 1;
                     }
@@ -174,7 +174,7 @@ namespace Searcher {
                 , tt_move(ttm)
                 , depth(d)
                 , pd_histories(pdhs)
-                , threshold(Value(-4000 * d))
+                , threshold(Value(-3000 * d))
                 , refutation_moves{ km[0], km[1], cm }
                 , skip_quiets(false)
             {
@@ -623,7 +623,7 @@ namespace Searcher {
 
             auto *thread = pos.thread;
             auto best_move = MOVE_NONE;
-
+            bool prior_capture = NONE != pos.si->capture;
             StateInfo si;
 
             // Evaluate the position statically.
@@ -778,7 +778,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->pd_history = &thread->continuation_history[mpc][dst];
+                ss->pd_history = &thread->continuation_history[prior_capture][mpc][dst];
 
                 // Make the move.
                 pos.do_move(move, si, gives_check);
@@ -963,6 +963,9 @@ namespace Searcher {
             {
                 tt_move = MOVE_NONE;
             }
+
+            bool prior_capture = NONE != pos.si->capture; 
+
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && VALUE_NONE != tt_value // Handle tt_hit
@@ -982,7 +985,7 @@ namespace Searcher {
                         }
 
                         // Extra penalty for early quiet moves in previous ply when it gets refuted.
-                        if (   NONE == pos.si->capture
+                        if (   !prior_capture
                             && NONE == pos.si->promote
                             && 2 >= (ss-1)->move_count)
                         {
@@ -1160,7 +1163,7 @@ namespace Searcher {
                     auto R = Depth((70 * depth + 835) / 256 + std::min(i32(eval - beta) / 185, 3));
 
                     ss->played_move = MOVE_NULL;
-                    ss->pd_history = &thread->continuation_history[NO_PIECE][0];
+                    ss->pd_history = &thread->continuation_history[0][NO_PIECE][0];
 
                     pos.do_null_move(si);
 
@@ -1225,7 +1228,7 @@ namespace Searcher {
                         prefetch(TT.cluster(pos.posi_move_key(move))->entries);
 
                         ss->played_move = move;
-                        ss->pd_history = &thread->continuation_history[pos[org_sq(move)]][dst_sq(move)];
+                        ss->pd_history = &thread->continuation_history[prior_capture][pos[org_sq(move)]][dst_sq(move)];
 
                         pos.do_move(move, si);
 
@@ -1498,7 +1501,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->pd_history = &thread->continuation_history[mpc][dst];
+                ss->pd_history = &thread->continuation_history[prior_capture][mpc][dst];
 
                 // Step 15. Make the move.
                 pos.do_move(move, si, gives_check);
@@ -1780,7 +1783,7 @@ namespace Searcher {
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
                 if (   (   1 == (ss-1)->move_count
                         || (ss-1)->played_move == (ss-1)->killer_moves[0])
-                    && NONE == pos.si->capture
+                    && !prior_capture
                     && NONE == pos.si->promote)
                 {
                     update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), -stat_bonus(depth + 1));
@@ -1790,7 +1793,7 @@ namespace Searcher {
             // Bonus for prior countermove that caused the fail low.
             if (   (   PVNode
                     || 2 < depth)
-                && NONE == pos.si->capture
+                && !prior_capture
                 && NONE == pos.si->promote)
             {
                 update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), stat_bonus(depth));
@@ -1867,7 +1870,7 @@ void Thread::search()
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
         ss->stats = 0;
-        ss->pd_history = &continuation_history[NO_PIECE][0];
+        ss->pd_history = &continuation_history[0][NO_PIECE][0];
     }
 
     auto *main_thread = Threadpool.main_thread() == this ?
@@ -1931,7 +1934,7 @@ void Thread::search()
             if (4 <= root_depth)
             {
                 auto old_value = root_moves[pv_cur].old_value;
-                window = Value(23);
+                window = Value(21 + std::abs(old_value) / 128);
                 alfa = std::max(old_value - window, -VALUE_INFINITE);
                 beta = std::min(old_value + window, +VALUE_INFINITE);
 

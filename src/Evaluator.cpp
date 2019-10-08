@@ -626,7 +626,7 @@ namespace {
                         // Enemy queen is gone
                      - 873 * (0 == pos.pieces(Opp, QUEN) ? 1 : 0)
                      +   1 * mg_value(mobility[Opp] - mobility[Own])
-                     +   5 * std::pow(tropism, 2) / 16
+                     +   3 * std::pow(tropism, 2) / 8
                      -   3 * mg_value(score) / 4
                      -   7;
 

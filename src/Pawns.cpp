@@ -115,7 +115,7 @@ namespace Pawns {
         
         Bitboard opp_pawn_dbl_att = pawn_dbl_attacks_bb(Opp, opp_pawns);
 
-        attack_span[Own] = 0;
+        attack_span[Own] = pawn_sgl_attacks_bb(Own, own_pawns);
         passers[Own] = 0;
         
         index[Own] = 0;
@@ -141,23 +141,20 @@ namespace Pawns {
             Bitboard stoppers   = opp_pawns & pawn_pass_span(Own, s);
             Bitboard levers     = opp_pawns & Attack[s];
             Bitboard escapes    = opp_pawns & Attack[s + pawn_push(Own)]; // Push levers
-            Bitboard opposed    = opp_pawns & front_squares_bb(Own, s);
+            Bitboard opposers   = opp_pawns & front_squares_bb(Own, s);
+            Bitboard blockers   = opp_pawns & (s + pawn_push(Own));
 
             bool doubled    = contains(own_pawns, s - pawn_push(Own));
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
             bool backward   = 0 == (neighbours & front_rank_bb(Opp, s))
-                           && 0 != (stoppers & (escapes | (s + pawn_push(Own))));
+                           && 0 != (stoppers & (escapes | blockers));
 
-            // Span of backward pawns and span behind opposing pawns are not included
-            // in the pawnAttacksSpan bitboard.
+            // Compute additional span if pawn is not backward nor blocked
             if (   !backward
-                || 0 != phalanxes)
+                && 0 == blockers)
             {
-                attack_span[Own] |= 0 != opposed ?
-                                        pawn_attack_span(Own, s)
-                                     & ~pawn_attack_span(Own, scan_frontmost_sq(Opp, opposed)) :
-                                        pawn_attack_span(Own, s);
+                attack_span[Own] |= pawn_attack_span(Own, s);
             }
 
             // A pawn is passed if one of the three following conditions is true:
@@ -169,7 +166,7 @@ namespace Pawns {
                 || (   stoppers == (levers | escapes)
                     && pop_count(phalanxes) >= pop_count(escapes))
                 || (   R_4 < r
-                    && stoppers == square_bb(s + pawn_push(Own))
+                    && stoppers == blockers
                     && (  pawn_sgl_pushes_bb(Own, supporters)
                         & ~(opp_pawns | opp_pawn_dbl_att)) != 0))
             {
@@ -179,7 +176,7 @@ namespace Pawns {
             if (   0 != supporters 
                 || 0 != phalanxes)
             {
-                i32 v = Connected[r] * (2 + (0 != phalanxes ? 1 : 0) - (opposed ? 1 : 0))
+                i32 v = Connected[r] * (2 + (0 != phalanxes ? 1 : 0) - (opposers ? 1 : 0))
                       + 21 * pop_count(supporters);
                 score += make_score(v, v * (r - R_3) / 4);
             }
@@ -187,7 +184,7 @@ namespace Pawns {
             if (0 == neighbours)
             {
                 score -= Isolated;
-                if (0 == opposed)
+                if (0 == opposers)
                 {
                     score += Unopposed;
                 }
@@ -196,7 +193,7 @@ namespace Pawns {
             if (backward)
             {
                 score -= Backward;
-                if (0 == opposed)
+                if (0 == opposers)
                 {
                     score += Unopposed;
                 }

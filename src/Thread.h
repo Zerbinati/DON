@@ -111,7 +111,7 @@ public:
 
     ButterflyHistory    butterfly_history;
     CaptureHistory      capture_history;
-    ContinuationHistory continuation_history;
+    std::array<ContinuationHistory, 2> continuation_history;
 
     MoveHistory         move_history;
 
