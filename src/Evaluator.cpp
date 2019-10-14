@@ -116,7 +116,7 @@ namespace {
     };
 
     Score constexpr MinorBehindPawn =   S( 18,  3);
-    Score constexpr Outpost =           S( 16,  5);
+    Score constexpr Outpost =           S( 32, 10);
     Score constexpr MinorKingProtect =  S(  7,  8);
     Score constexpr BishopOnDiagonal =  S( 45,  0);
     Score constexpr BishopPawns =       S(  3,  7);
@@ -355,19 +355,24 @@ namespace {
                 b = Outposts_bb[Own]
                   & ~pe->attack_span[Opp]
                   & sgl_attacks[Own][PAWN];
-                // Bonus for knight outpost squares
-                if (contains(b, s))
+                
+                if (NIHT == PT)
                 {
-                    score += Outpost * 4 / PT;
+                    // Bonus for knight outpost squares
+                    score += Outpost
+                           * (contains(b, s) ?
+                                2 :
+                                0 != (b & attacks & ~pos.pieces(Own)) ? 
+                                    1 : 0);
                 }
                 else
-                if (0 != (b & attacks & ~pos.pieces(Own)))
-                {
-                    score += Outpost * 2 / PT;
-                }
-
                 if (BSHP == PT)
                 {
+                    // Bonus for bishop outpost squares
+                    score += Outpost
+                           * (contains(b, s) ?
+                                1 : 0);
+                    
                     // Penalty for pawns on the same color square as the bishop,
                     // more when the center files are blocked with pawns.
                     b = pos.pieces(Own, PAWN)

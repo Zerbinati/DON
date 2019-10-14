@@ -262,18 +262,20 @@ void Thread::clear()
 {
     butterfly_history.fill(0);
     capture_history.fill(0);
-    for (auto type : {0, 1})
+    for (bool in_check : { false, true })
     {
-        for (auto &pdhs : continuation_history[type])
+        for (auto cap_type : {0, 1})
         {
-            for (auto &pdh : pdhs)
+            for (auto &pdhs : continuation_history[in_check][cap_type])
             {
-                pdh->fill(0);
+                for (auto &pdh : pdhs)
+                {
+                    pdh->fill(0);
+                }
             }
+            continuation_history[in_check][cap_type][NO_PIECE][0]->fill(CounterMovePruneThreshold - 1);
         }
-        continuation_history[type][NO_PIECE][0]->fill(CounterMovePruneThreshold - 1);
     }
-    
     move_history.fill(MOVE_NONE);
     //// No need to clear
     //pawn_table.clear();

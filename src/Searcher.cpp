@@ -778,7 +778,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->pd_history = &thread->continuation_history[prior_capture][mpc][dst];
+                ss->pd_history = &thread->continuation_history[in_check][prior_capture][mpc][dst];
 
                 // Make the move.
                 pos.do_move(move, si, gives_check);
@@ -1163,7 +1163,7 @@ namespace Searcher {
                     auto R = Depth((70 * depth + 835) / 256 + std::min(i32(eval - beta) / 185, 3));
 
                     ss->played_move = MOVE_NULL;
-                    ss->pd_history = &thread->continuation_history[0][NO_PIECE][0];
+                    ss->pd_history = &thread->continuation_history[0][0][NO_PIECE][0];
 
                     pos.do_null_move(si);
 
@@ -1228,7 +1228,7 @@ namespace Searcher {
                         prefetch(TT.cluster(pos.posi_move_key(move))->entries);
 
                         ss->played_move = move;
-                        ss->pd_history = &thread->continuation_history[prior_capture][pos[org_sq(move)]][dst_sq(move)];
+                        ss->pd_history = &thread->continuation_history[in_check][prior_capture][pos[org_sq(move)]][dst_sq(move)];
 
                         pos.do_move(move, si);
 
@@ -1501,7 +1501,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->pd_history = &thread->continuation_history[prior_capture][mpc][dst];
+                ss->pd_history = &thread->continuation_history[in_check][prior_capture][mpc][dst];
 
                 // Step 15. Make the move.
                 pos.do_move(move, si, gives_check);
@@ -1870,7 +1870,7 @@ void Thread::search()
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
         ss->stats = 0;
-        ss->pd_history = &continuation_history[0][NO_PIECE][0];
+        ss->pd_history = &continuation_history[0][0][NO_PIECE][0];
     }
 
     auto *main_thread = Threadpool.main_thread() == this ?
@@ -1937,16 +1937,17 @@ void Thread::search()
                 window = Value(21 + std::abs(old_value) / 128);
                 alfa = std::max(old_value - window, -VALUE_INFINITE);
                 beta = std::min(old_value + window, +VALUE_INFINITE);
-
+                
+                i32 dynamic_contempt = BasicContempt;
                 // Dynamic contempt
                 auto contempt_value = i32(Options["Contempt Value"]);
                 if (0 != contempt_value)
                 {
-                    i32 dynamic_contempt = BasicContempt + i32(((860 / contempt_value) * old_value) / (abs(old_value) + 176));
-                    contempt = WHITE == root_pos.active ?
-                                +make_score(dynamic_contempt, dynamic_contempt / 2) :
-                                -make_score(dynamic_contempt, dynamic_contempt / 2);
+                    dynamic_contempt += i32(((860 / contempt_value) * old_value) / (abs(old_value) + 176));
                 }
+                contempt = WHITE == root_pos.active ?
+                            +make_score(dynamic_contempt, dynamic_contempt / 2) :
+                            -make_score(dynamic_contempt, dynamic_contempt / 2);
             }
 
             i16 fail_high_count = 0;
