@@ -116,7 +116,7 @@ namespace {
     };
 
     Score constexpr MinorBehindPawn =   S( 18,  3);
-    Score constexpr Outpost =           S( 32, 10);
+    Score constexpr MinorOutpost =      S( 32, 10);
     Score constexpr MinorKingProtect =  S(  7,  8);
     Score constexpr BishopOnDiagonal =  S( 45,  0);
     Score constexpr BishopPawns =       S(  3,  7);
@@ -359,7 +359,7 @@ namespace {
                 if (NIHT == PT)
                 {
                     // Bonus for knight outpost squares
-                    score += Outpost
+                    score += MinorOutpost
                            * (contains(b, s) ?
                                 2 :
                                 0 != (b & attacks & ~pos.pieces(Own)) ? 
@@ -369,7 +369,7 @@ namespace {
                 if (BSHP == PT)
                 {
                     // Bonus for bishop outpost squares
-                    score += Outpost
+                    score += MinorOutpost
                            * (contains(b, s) ?
                                 1 : 0);
                     
@@ -728,8 +728,8 @@ namespace {
         }
 
         // Bonus for restricting their piece moves
-        Bitboard restricted =  sgl_attacks[Opp][NONE]
-                            & ~defended_area
+        Bitboard restricted = ~defended_area
+                            &  sgl_attacks[Opp][NONE]
                             &  sgl_attacks[Own][NONE];
         score += PieceRestricted * pop_count(restricted);
 

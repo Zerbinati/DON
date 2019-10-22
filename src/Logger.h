@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "Engine.h"
 #include "tiebuffer.h"
 #include "Type.h"
 
@@ -82,6 +83,11 @@ public:
         if (!white_spaces(filename))
         {
             _ofs.open(filename, std::ios_base::out|std::ios_base::app);
+            if (!_ofs.is_open())
+            {
+                std::cerr << "Unable to open debug log file " << filename << std::endl;
+                stop(EXIT_FAILURE);
+            }
             _ofs << "[" << std::chrono::system_clock::now() << "] ->" << std::endl;
 
             std::cin.rdbuf(&_inb);

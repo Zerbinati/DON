@@ -314,7 +314,7 @@ bool Position::pseudo_legal(Move m) const
                 || R_5 != rel_rank(active, org)
                 || R_6 != rel_rank(active, dst)
                 || NIHT != promote(m)
-                || si->enpassant_sq != dst
+                || dst != si->enpassant_sq
                 || !contains(PawnAttacks[active][org], dst)
                 || !empty(dst)
                 || empty(dst - pawn_push(active))
@@ -432,7 +432,7 @@ bool Position::legal(Move m) const
             && R_5 == rel_rank(active, org)
             && R_6 == rel_rank(active, dst)
             && 0 == si->clock_ply
-            && si->enpassant_sq == dst
+            && dst == si->enpassant_sq
             && empty(dst) //&& !contains(pieces(), dst)
             && (~active|PAWN) == piece[dst - pawn_push(active)]); //&& contains(pieces(~active, PAWN), dst - pawn_push(active))
         Bitboard mocc = (pieces() ^ org ^ (dst - pawn_push(active))) | dst;
@@ -984,7 +984,7 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
                         && R_5 == rel_rank(active, org)
                         && R_6 == rel_rank(active, dst)
                         && 1 == si->clock_ply
-                        && si->enpassant_sq == dst
+                        && dst == si->enpassant_sq
                         && empty(dst) //&& !contains(pieces(), dst)
                         && (pasive|PAWN) == piece[cap]); //&& contains(pieces(pasive, PAWN), cap));
 

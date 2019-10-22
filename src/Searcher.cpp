@@ -623,7 +623,6 @@ namespace Searcher {
 
             auto *thread = pos.thread;
             auto best_move = MOVE_NONE;
-            bool prior_capture = NONE != pos.si->capture;
             StateInfo si;
 
             // Evaluate the position statically.
@@ -731,6 +730,7 @@ namespace Searcher {
 
                 auto mpc = pos[org];
                 bool gives_check = pos.gives_check(move);
+                bool capture_or_promotion = pos.capture_or_promotion(move);
 
                 // Futility pruning
                 if (   !in_check
@@ -778,7 +778,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->pd_history = &thread->continuation_history[in_check][prior_capture][mpc][dst];
+                ss->pd_history = &thread->continuation_history[in_check][capture_or_promotion][mpc][dst];
 
                 // Make the move.
                 pos.do_move(move, si, gives_check);
@@ -1228,7 +1228,7 @@ namespace Searcher {
                         prefetch(TT.cluster(pos.posi_move_key(move))->entries);
 
                         ss->played_move = move;
-                        ss->pd_history = &thread->continuation_history[in_check][prior_capture][pos[org_sq(move)]][dst_sq(move)];
+                        ss->pd_history = &thread->continuation_history[in_check][1][pos[org_sq(move)]][dst_sq(move)];
 
                         pos.do_move(move, si);
 
@@ -1275,7 +1275,7 @@ namespace Searcher {
 
             value = best_value;
 
-            Depth singularLMR = 0;
+            Depth singular_count = 0;
             u08 move_count = 0;
 
             // Mark this node as being searched.
@@ -1399,10 +1399,10 @@ namespace Searcher {
                     {
                         extension = 1;
 
-                        ++singularLMR;
+                        ++singular_count;
                         if (value < singular_beta - std::min(4 * depth, 36))
                         {
-                            ++singularLMR;
+                            ++singular_count;
                         }
                     }
                     // Multi-cut pruning
@@ -1459,9 +1459,9 @@ namespace Searcher {
                         }
 
                         // Reduced depth of the next LMR search.
-                        Depth depthLMR = Depth(std::max(new_depth - reduction(improving, depth, move_count), 0));
+                        Depth lmr_depth = Depth(std::max(new_depth - reduction(improving, depth, move_count), 0));
                         // Countermoves based pruning: (~20 ELO)
-                        if (   ((0 < (ss-1)->stats || 1 == (ss-1)->move_count) ? 5 : 4) > depthLMR
+                        if (   ((0 < (ss-1)->stats || 1 == (ss-1)->move_count) ? 5 : 4) > lmr_depth
                             && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
                             && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
                         {
@@ -1469,13 +1469,13 @@ namespace Searcher {
                         }
                         // Futility pruning: parent node. (~2 ELO)
                         if (   !in_check
-                            && 6 > depthLMR
-                            && ss->static_eval + 211 * depthLMR + 250 <= alfa)
+                            && 6 > lmr_depth
+                            && ss->static_eval + 211 * lmr_depth + 250 <= alfa)
                         {
                             continue;
                         }
                         // SEE based pruning: negative SEE (~10 ELO)
-                        auto thr = Value(-(31 - std::min(i32(depthLMR), 18)) * pow(depthLMR, 2));
+                        auto thr = Value(-(31 - std::min(i32(lmr_depth), 18)) * pow(lmr_depth, 2));
                         if (   pos.exchange(move) < thr
                             && !pos.see_ge(move, thr))
                         {
@@ -1501,7 +1501,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->pd_history = &thread->continuation_history[in_check][prior_capture][mpc][dst];
+                ss->pd_history = &thread->continuation_history[in_check][capture_or_promotion][mpc][dst];
 
                 // Step 15. Make the move.
                 pos.do_move(move, si, gives_check);
@@ -1542,7 +1542,7 @@ namespace Searcher {
                     }
 
                     // Decrease reduction if move has been singularly extended
-                    reduct_depth -= singularLMR;
+                    reduct_depth -= singular_count;
 
                     if (!capture_or_promotion)
                     {
@@ -1571,10 +1571,10 @@ namespace Searcher {
                                    + (*pd_histories[3])[mpc][dst]
                                    - 4729;
                         // Reset stats to zero if negative and most stats shows >= 0
-                        if (   stats < 0
-                            && (*pd_histories[0])[mpc][dst] >= 0
-                            && (*pd_histories[1])[mpc][dst] >= 0
-                            && thread->butterfly_history[~pos.active][move_index(move)] >= 0)
+                        if (   0 >  stats
+                            && 0 <= (*pd_histories[0])[mpc][dst]
+                            && 0 <= (*pd_histories[1])[mpc][dst]
+                            && 0 <= thread->butterfly_history[~pos.active][move_index(move)])
                         {
                             stats = 0;
                         }
