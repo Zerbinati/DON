@@ -1095,7 +1095,7 @@ string trace(Position const &pos)
     value = WHITE == pos.active ?
                 +value :
                 -value;
-    
+
     ostringstream oss;
 
     oss << setprecision(2) << fixed

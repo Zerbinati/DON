@@ -564,7 +564,7 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
         if (TBHasRoot)
         {
             // Sort moves according to TB rank
-            sort (root_moves.begin(), root_moves.end(),
+            sort(root_moves.begin(), root_moves.end(),
                 [](decltype(root_moves)::value_type const &rm1,
                    decltype(root_moves)::value_type const &rm2)
                 {

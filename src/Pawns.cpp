@@ -80,13 +80,13 @@ namespace Pawns {
                 || (own_r != opp_r));
 
             auto ff = map_file(f);
-            assert(ff < F_E);
+            assert(F_E > ff);
 
             safety += Shelter[ff][own_r];
             if (   R_1 != own_r
                 && (own_r + 1) == opp_r)
             {
-                if (opp_r == R_3)
+                if (R_3 == opp_r)
                 {
                     safety -= BlockedStorm;
                 }
@@ -112,12 +112,12 @@ namespace Pawns {
         Bitboard pawns = pos.pieces(PAWN);
         Bitboard own_pawns = pos.pieces(Own) & pawns;
         Bitboard opp_pawns = pos.pieces(Opp) & pawns;
-        
+
         Bitboard opp_pawn_dbl_att = pawn_dbl_attacks_bb(Opp, opp_pawns);
 
         attack_span[Own] = pawn_sgl_attacks_bb(Own, own_pawns);
         passers[Own] = 0;
-        
+
         index[Own] = 0;
         king_square[Own].fill(SQ_NO);
         king_pawn_dist[Own].fill(0);

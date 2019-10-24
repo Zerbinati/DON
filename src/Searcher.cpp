@@ -472,14 +472,14 @@ namespace Searcher {
         };
 
         // Razor margin
-        constexpr Value RazorMargin = Value(661);
+        Value constexpr RazorMargin = Value(661);
         // Futility margin
-        constexpr Value futility_margin(bool imp, Depth d)
+        Value constexpr futility_margin(bool imp, Depth d)
         {
             return Value(198 * (d - (imp ? 1 : 0)));
         }
         // Futility move count threshold
-        constexpr i16 futility_move_count(bool imp, Depth d)
+        i16 constexpr futility_move_count(bool imp, Depth d)
         {
             return (imp ? 2 : 1) * (5 + d * d) / 2;
         }
@@ -490,7 +490,7 @@ namespace Searcher {
             {
                 return DEP_ZERO;
             }
-            
+
             auto r = Threadpool.factor * std::log(d) * std::log(mc);
             return Depth((r + 520) / 1024 + (!imp && r > 999 ? 1 : 0));
         }
@@ -1228,7 +1228,7 @@ namespace Searcher {
                         prefetch(TT.cluster(pos.posi_move_key(move))->entries);
 
                         ss->played_move = move;
-                        ss->pd_history = &thread->continuation_history[in_check][1][pos[org_sq(move)]][dst_sq(move)];
+                        ss->pd_history = &thread->continuation_history[0][1][pos[org_sq(move)]][dst_sq(move)];
 
                         pos.do_move(move, si);
 
@@ -1275,7 +1275,6 @@ namespace Searcher {
 
             value = best_value;
 
-            Depth singular_count = 0;
             u08 move_count = 0;
 
             // Mark this node as being searched.
@@ -1285,7 +1284,7 @@ namespace Searcher {
                 ,        capture_moves;
             quiet_moves.reserve(32);
             capture_moves.reserve(16);
-
+            bool singular_lmr = false;
             bool ttm_capture = MOVE_NONE != tt_move
                             && pos.capture_or_promotion(tt_move);
 
@@ -1398,12 +1397,7 @@ namespace Searcher {
                     if (value < singular_beta)
                     {
                         extension = 1;
-
-                        ++singular_count;
-                        if (value < singular_beta - std::min(4 * depth, 36))
-                        {
-                            ++singular_count;
-                        }
+                        singular_lmr = true;
                     }
                     // Multi-cut pruning
                     // Our tt_move is assumed to fail high, and now failed high also on a reduced
@@ -1459,7 +1453,7 @@ namespace Searcher {
                         }
 
                         // Reduced depth of the next LMR search.
-                        Depth lmr_depth = Depth(std::max(new_depth - reduction(improving, depth, move_count), 0));
+                        auto lmr_depth = Depth(std::max(new_depth - reduction(improving, depth, move_count), 0));
                         // Countermoves based pruning: (~20 ELO)
                         if (   ((0 < (ss-1)->stats || 1 == (ss-1)->move_count) ? 5 : 4) > lmr_depth
                             && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
@@ -1506,7 +1500,7 @@ namespace Searcher {
                 // Step 15. Make the move.
                 pos.do_move(move, si, gives_check);
 
-                bool doLMR =
+                bool do_lmr =
                     2 < depth
                     && (root_node ? 3 : 1) < move_count
                     && (   !root_node
@@ -1519,9 +1513,9 @@ namespace Searcher {
                 bool full_search;
                 // Step 16. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
-                if (doLMR)
+                if (do_lmr)
                 {
-                    Depth reduct_depth = reduction(improving, depth, move_count);
+                    auto reduct_depth = reduction(improving, depth, move_count);
 
                     // Reduction if other threads are searching this position.
                     if (thread_marker.marked)
@@ -1542,8 +1536,10 @@ namespace Searcher {
                     }
 
                     // Decrease reduction if move has been singularly extended
-                    reduct_depth -= singular_count;
-
+                    if (singular_lmr)
+                    {
+                        reduct_depth -= 2;
+                    }
                     if (!capture_or_promotion)
                     {
                         // Increase reduction if TT move is a capture(~0 Elo)
@@ -1616,7 +1612,7 @@ namespace Searcher {
                 {
                     value = -depth_search<false>(pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node);
 
-                    if (   doLMR
+                    if (   do_lmr
                         && !capture_or_promotion)
                     {
                         int bonus = alfa < value ?
