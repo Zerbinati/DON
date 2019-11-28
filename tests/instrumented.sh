@@ -49,7 +49,7 @@ cat << EOF > tsan.supp
  race:TEntry::bound
  race:TEntry::empty
  race:TEntry::save
- 
+
  race:TTable::probe
  race:TTable::hash_full
  race:TTable::extract_opp_move

@@ -718,7 +718,7 @@ namespace Searcher {
             auto recap_sq = _ok((ss-1)->played_move) ?
                                 dst_sq((ss-1)->played_move) :
                                 SQ_NO;
-            // Initialize movepicker (2) for the current position
+            // Initialize move picker (2) for the current position
             MovePicker move_picker(pos, tt_move, depth, pd_histories, recap_sq);
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while (MOVE_NONE != (move = move_picker.next_move()))
@@ -1214,7 +1214,7 @@ namespace Searcher {
                 {
                     auto raised_beta = std::min(beta + (improving ? 145 : 191), +VALUE_INFINITE);
                     u08 pc_movecount = 0;
-                    // Initialize movepicker (3) for the current position
+                    // Initialize move picker (3) for the current position
                     MovePicker move_picker(pos, tt_move, raised_beta - ss->static_eval);
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
                     while (   pc_movecount < (cut_node ? 4 : 2)
@@ -1307,7 +1307,7 @@ namespace Searcher {
             auto counter_move = _ok((ss-1)->played_move) ?
                                     thread->move_history[pos[dst_sq((ss-1)->played_move)]][move_index((ss-1)->played_move)] :
                                     MOVE_NONE;
-            // Initialize movepicker (1) for the current position
+            // Initialize move picker (1) for the current position
             MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move()))
@@ -1853,7 +1853,7 @@ using namespace Searcher;
 /// - Maximum search depth is reached.
 void Thread::search()
 {
-    // To allow access to (ss-7) up to (ss+2), the stack must be oversized.
+    // To allow access to (ss-7) up to (ss+2), the stack must be over-sized.
     // The former is needed to allow update_continuation_histories(ss-1, ...),
     // which accesses its argument at ss-4, also near the root.
     // The latter is needed for stats and killer initialization.
@@ -2149,12 +2149,12 @@ void MainThread::search()
     {
         // Set the time manager before searching.
         time_mgr.set(root_pos.active,
-                      root_pos.ply,
-                      u16(i32(Options["Time Nodes"])),
-                      TimePoint(i32(Options["Minimum Move Time"])),
-                      TimePoint(i32(Options["Overhead Move Time"])),
-                      i32(Options["Move Slowness"]) / 100.0,
-                      bool(Options["Ponder"]));
+                     root_pos.ply,
+                     u16(i32(Options["Time Nodes"])),
+                     TimePoint(i32(Options["Minimum Move Time"])),
+                     TimePoint(i32(Options["Overhead Move Time"])),
+                     i32(Options["Move Slowness"]) / 100.0,
+                     bool(Options["Ponder"]));
     }
 
     TEntry::Generation = u08((root_pos.ply + 1) << 3);

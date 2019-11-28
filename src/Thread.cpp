@@ -103,7 +103,7 @@ TimePoint TimeManager::elapsed_time() const
 /// Minimum movetime = No matter what, use at least this much time before doing the move, in milli-seconds.
 /// Overhead movetime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
 /// Move Slowness = Move Slowness, in %age.
-void TimeManager::set(Color c, Depth ply, u16 tm_nodes, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
+void TimeManager::set(Color c, i16 ply, u16 tm_nodes, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
 {
     time_nodes = tm_nodes;
 

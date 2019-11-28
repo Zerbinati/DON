@@ -214,9 +214,7 @@ public:
         for (auto const &vm : MoveList<GenType::LEGAL>(pos))
         {
             if (   search_moves.empty()
-                || std::find(search_moves.begin(),
-                             search_moves.end(), vm)
-                          != search_moves.end())
+                || std::find(search_moves.begin(), search_moves.end(), vm) != search_moves.end())
             {
                 *this += vm;
                 assert(back().tb_rank == 0
@@ -227,8 +225,7 @@ public:
 
     i16 move_best_count(int sIdx, int eIdx, Move move) const
     {
-        auto rmItr = std::find(begin() + sIdx,
-                               begin() + eIdx, move);
+        auto rmItr = std::find(begin() + sIdx, begin() + eIdx, move);
         return rmItr != begin() + eIdx ?
                     rmItr->best_count :
                     0;
@@ -249,7 +246,7 @@ namespace Searcher {
 
     // Threshold for counter moves based pruning
     constexpr i32 CounterMovePruneThreshold = 0;
-    
+
     extern Limit Limits;
 
     extern Depth TBProbeDepth;

@@ -97,7 +97,7 @@ public:
 
     u64   tt_hit_avg;
 
-    Depth nmp_ply;
+    i16   nmp_ply;
     Color nmp_color;
 
     u32    pv_beg
