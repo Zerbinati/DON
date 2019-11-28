@@ -607,7 +607,6 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
     {
         th->root_depth = DEP_ZERO;
         th->finished_depth = DEP_ZERO;
-        th->shuffle_ext = 0;
         th->nodes = 0;
         th->tb_hits = 0;
         th->nmp_ply = 0;

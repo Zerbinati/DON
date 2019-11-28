@@ -324,7 +324,7 @@ template<> void generate<GenType::EVASION    >(ValMoves &moves, Position const &
     // Generates blocking or captures of the checking piece
     auto check_sq = scan_lsq(pos.si->checkers);
     Bitboard targets = between_bb(check_sq, own_k_sq) | check_sq;
-    
+
     generate_moves<GenType::EVASION>(moves, pos, targets);
 }
 /// generate<CHECK>       Generates all pseudo-legal check giving moves.

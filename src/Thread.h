@@ -48,7 +48,7 @@ private:
 
 public:
     static PRNG prng;
-    
+
     i16 level;
     Move best_move;
 
@@ -94,7 +94,6 @@ public:
     Depth root_depth
         , finished_depth
         , sel_depth;
-    u32   shuffle_ext;
 
     Depth nmp_ply;
     Color nmp_color;
@@ -141,9 +140,9 @@ class MainThread
     : public Thread
 {
 private :
-    
+
 public:
-    
+
     u64    check_count;
 
     bool   stop_on_ponderhit; // Stop search on ponderhit

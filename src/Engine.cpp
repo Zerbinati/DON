@@ -38,7 +38,7 @@ namespace {
     string const Version{ "" };
     // Author Name
     string const Author{ "Ehsan Rashid" };
-    
+
     /// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
     /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
     string const StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
@@ -207,7 +207,7 @@ namespace {
             oss << "(unknown version)";
         #endif
 
-        #if defined(__APPLE__) 
+        #if defined(__APPLE__)
             oss << " on Apple";
         #elif defined(__CYGWIN__)
             oss << " on Cygwin";
@@ -591,7 +591,7 @@ namespace {
         // Needed by 'draw by repetition' detection.
         StateListPtr states{new std::deque<StateInfo>(1)};
         //auto states = std::make_unique<std::deque<StateInfo>>(new std::deque<StateInfo>(1));
-        
+
         auto ui_thread = std::make_shared<Thread>(0);
         pos.setup(StartFEN, states->back(), ui_thread.get());
 

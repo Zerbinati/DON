@@ -26,7 +26,7 @@ inline std::string time_to_string(std::chrono::system_clock::time_point const &t
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(tp - std::chrono::system_clock::from_time_t(time)).count();
     stime.append(".");
     stime.append(std::to_string(ms));
-    
+
 #   else
 
     (void)tp;

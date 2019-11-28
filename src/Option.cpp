@@ -264,7 +264,7 @@ namespace UCI {
         Options["Skill Level"]        << Option(MaxLevel,  0, MaxLevel);
 
         Options["MultiPV"]            << Option(1, 1, 500);
-        
+
         Options["Fixed Contempt"]     << Option(0, -100, 100);
         Options["Contempt Time"]      << Option(60, 0, 1000);
         Options["Contempt Value"]     << Option(10, 0, 1000);

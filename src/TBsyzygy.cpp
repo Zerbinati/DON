@@ -80,7 +80,7 @@ namespace TBSyzygy {
             KEY,
             WDL,
             DTZ
-        }; 
+        };
 
         // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
         enum TBFlag : u08

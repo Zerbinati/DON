@@ -135,7 +135,7 @@ enum Delta : i08
 
     DEL_E =  001,
     DEL_N =  010,
-    
+
     DEL_W = -DEL_E,
     DEL_S = -DEL_N,
 
@@ -504,11 +504,11 @@ Value constexpr value_to_tt(Value v, i32 ply)
 /// It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
 /// Non-mate scores are unchanged.
 /// The function is called after retrieving a value of the transposition table.
-Value constexpr value_of_tt(Value v, i32 ply)
+Value constexpr value_of_tt(Value v, i32 ply, u08 clock_ply)
 {
     return v ==  VALUE_NONE         ? VALUE_NONE :
-           v >= +VALUE_MATE_MAX_PLY ? v - ply :
-           v <= -VALUE_MATE_MAX_PLY ? v + ply :
+           v >= +VALUE_MATE_MAX_PLY ? VALUE_MATE - v > 99 - clock_ply ? +VALUE_MATE_MAX_PLY : v - ply :
+           v <= -VALUE_MATE_MAX_PLY ? VALUE_MATE + v > 99 - clock_ply ? -VALUE_MATE_MAX_PLY : v + ply :
                                       v;
 }
 
@@ -622,7 +622,7 @@ inline std::string& to_upper(std::string &str)
 inline std::string& toggle(std::string &str)
 {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](std::string::value_type const &c) -> std::string::value_type
+                   [](int const &c) -> int
                    { return islower(c) ? toupper(c) : tolower(c); });
     return str;
 }

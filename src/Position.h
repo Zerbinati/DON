@@ -56,7 +56,7 @@ inline void prefetch(void const*)
 ///  - Move played on the last position.
 ///  - Piece type captured on last position.
 ///  - Bitboard of all checking pieces.
-///  - Pointer to previous StateInfo. 
+///  - Pointer to previous StateInfo.
 ///  - Hash keys for all previous positions in the game for detecting repetition draws.
 struct StateInfo
 {
@@ -68,8 +68,8 @@ public:
     Key         pawn_key;       // Hash key of pawns
     CastleRight castle_rights;  // Castling-rights information
     Square      enpassant_sq;   // Enpassant -> "In passing"
-    Depth       clock_ply;      // Number of half moves clock since the last pawn advance or any capture
-    Depth       null_ply;
+    u08         clock_ply;      // Number of half moves clock since the last pawn advance or any capture
+    u08         null_ply;
 
     // ---Not copied when making a move---
     Key         posi_key;       // Hash key of position
@@ -145,7 +145,7 @@ public:
     std::array<std::array<Bitboard, CS_NO>, CLR_NO> castle_rook_path_bb;
 
     Score       psq;
-    Depth       ply;
+    i16         ply;
     Color       active;
     Thread      *thread;
 
@@ -177,7 +177,7 @@ public:
     i32 count(PieceType) const;
 
     Square square(Piece, u08 = 0) const;
-    
+
     Value non_pawn_material() const;
     Value non_pawn_material(Color) const;
 
@@ -218,7 +218,7 @@ public:
     bool pawn_advance_at(Color, Square) const;
     bool pawn_passed_at(Color, Square) const;
     bool discovery_check_blocker_at(Square) const;
-    
+
     bool bishop_paired  (Color) const;
     bool semiopenfile_on(Color, Square) const;
 

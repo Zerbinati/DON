@@ -195,9 +195,9 @@ namespace Endgames {
     {
         assert(verify_material(pos, strong_color, 2*VALUE_MG_NIHT, 0)
             && verify_material(pos,   weak_color, VALUE_ZERO, 0));
-        
+
         auto value = Value(pos.count(strong_color|NIHT) / 2);
-        
+
         return strong_color == pos.active ? +value : -value;
     }
 
@@ -406,7 +406,7 @@ namespace Endgames {
         {
             return SCALE_DRAW;
         }
-        // 
+        //
         if (   R_6 <= sp_r
             && wk_sq == promote_sq
             && R_1 == _rank(wr_sq)
@@ -497,7 +497,7 @@ namespace Endgames {
             auto wk_sq = pos.square(  weak_color|KING);
             auto wb_sq = pos.square(  weak_color|BSHP);
 
-            // If the pawn is on the 5th rank and the pawn (currently) is on the 
+            // If the pawn is on the 5th rank and the pawn (currently) is on the
             // same color square as the bishop then there is a chance of a fortress.
             // Depending on the king position give a moderate reduction or a strong one
             // if the defending king is near the corner but not trapped there.
@@ -819,7 +819,7 @@ namespace Endgames {
             auto sk_sq = pos.square(strong_color|KING);
             auto sb_sq = pos.square(strong_color|BSHP);
             auto wk_sq = pos.square(  weak_color|KING);
-            
+
             Bitboard wpawns = pos.pieces(weak_color, PAWN);
 
             if (0 != wpawns)

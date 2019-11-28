@@ -20,7 +20,7 @@ namespace BitBoard {
         ,               RMagics;
 
 #if !defined(ABM)
-    
+
     array<u08, 1 << 16> PopCount16;
 
     /*
@@ -158,16 +158,16 @@ namespace BitBoard {
                     reference[size] = slide_attacks<PT>(s, occ);
                     ++size;
 #               endif
-                    
+
                     occ = (occ - magic.mask) & magic.mask;
                 } while (0 != occ);
 
 #           if !defined(BM2)
-                
+
                 assert(size == (1U << mask_popcount));
 
                 PRNG prng{Seeds[_rank(s)]};
-                
+
                 u16 i;
                 // Find a magic for square picking up an (almost) random number
                 // until found the one that passes the verification test.

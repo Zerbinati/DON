@@ -355,14 +355,14 @@ namespace {
                 b = Outposts_bb[Own]
                   & ~pe->attack_span[Opp]
                   & sgl_attacks[Own][PAWN];
-                
+
                 if (NIHT == PT)
                 {
                     // Bonus for knight outpost squares
                     score += MinorOutpost
                            * (contains(b, s) ?
                                 2 :
-                                0 != (b & attacks & ~pos.pieces(Own)) ? 
+                                0 != (b & attacks & ~pos.pieces(Own)) ?
                                     1 : 0);
                 }
                 else
@@ -372,7 +372,7 @@ namespace {
                     score += MinorOutpost
                            * (contains(b, s) ?
                                 1 : 0);
-                    
+
                     // Penalty for pawns on the same color square as the bishop,
                     // more when the center files are blocked with pawns.
                     b = pos.pieces(Own, PAWN)
@@ -852,7 +852,7 @@ namespace {
                 }
             }
 
-            // Scale down bonus for candidate passers which need more than one 
+            // Scale down bonus for candidate passers which need more than one
             // pawn push to become passed or have a pawn in front of them.
             if (   !pos.pawn_passed_at(Own, push_sq)
                 || contains(pos.pieces(PAWN), push_sq))
@@ -983,7 +983,7 @@ namespace {
                     Scale(16 + 4 * pe->passed_count()) :
                     std::min(Scale(36 + (bishop_oppose ? 2 : 7) * pos.count(color|PAWN)), SCALE_NORMAL);
             // Scale down endgame factor when shuffling
-            scl = std::max(Scale(scl - (pos.si->clock_ply - 12) / 4), SCALE_DRAW); 
+            scl = std::max(Scale(scl - (pos.si->clock_ply - 12) / 4), SCALE_DRAW);
         }
         return scl;
     }

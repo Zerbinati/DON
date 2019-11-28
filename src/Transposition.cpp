@@ -78,7 +78,7 @@ void TTable::alloc_aligned_memory(size_t mem_size, u32 alignment)
     // must free the memory allocated by malloc not anything else.
     // So storing address given by malloc just above pointer returning to user.
     // Thats why needed extra space to store that address.
-    // Then checking for error returned by malloc, if it returns NULL then 
+    // Then checking for error returned by malloc, if it returns NULL then
     // alloc_aligned_memory will fail and return NULL or exit().
 
     alignment = std::max(u32(sizeof (void*)), alignment);
@@ -152,7 +152,7 @@ void TTable::clear()
     {
         return;
     }
-    
+
     vector<NativeThread> threads;
     auto thread_count = option_threads();
     for (u32 idx = 0; idx < thread_count; ++idx)
@@ -186,7 +186,7 @@ TEntry* TTable::probe(Key key, bool &hit) const
 {
     return cluster(key)->probe(u16(key >> 0x30), hit);
 }
-/// TTable::hash_full() returns an approximation of the per-mille of the 
+/// TTable::hash_full() returns an approximation of the per-mille of the
 /// all transposition entries during a search which have received
 /// at least one write during the current search.
 /// It is used to display the "info hashfull ..." information in UCI.

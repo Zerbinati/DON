@@ -173,7 +173,7 @@ namespace Pawns {
                 passers[Own] |= s;
             }
 
-            if (   0 != supporters 
+            if (   0 != supporters
                 || 0 != phalanxes)
             {
                 i32 v = Connected[r] * (2 + (0 != phalanxes ? 1 : 0) - (opposers ? 1 : 0))
@@ -210,7 +210,7 @@ namespace Pawns {
                 {
                     score -= WeakTwiceLever;
                 }
-                
+
             }
         }
 

@@ -39,7 +39,7 @@ public:
 
     template<typename T>
     T rand() { return T(rand64()); }
-    
+
 #if !defined(BM2)
 
     /// Special generator used to fast initialize magic numbers.

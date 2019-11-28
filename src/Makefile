@@ -1,7 +1,7 @@
 # DON, UCI chess playing engine
 # Ehsan Rashid Copyright (C) 2008+
 #
-# DON is housed in https://github.com/erashid/DON 
+# DON is housed in https://github.com/erashid/DON
 
 ### ==========================================================================
 ### Section 1. General Configuration

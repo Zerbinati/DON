@@ -52,7 +52,7 @@ namespace Searcher {
         struct Stack
         {
         public:
-            Depth ply;
+            i16   ply;
             Move  played_move;
             Move  excluded_move;
             array<Move, 2> killer_moves;
@@ -234,7 +234,7 @@ namespace Searcher {
                     ++stage;
                 }
             }
-            
+
             /// MovePicker constructor for ProbCut search.
             /// Generate captures with SEE greater than or equal to the given threshold.
             MovePicker(Position const &p, Move ttm, Value thr)
@@ -481,7 +481,7 @@ namespace Searcher {
         // Futility move count threshold
         i16 constexpr futility_move_count(bool imp, Depth d)
         {
-            return (imp ? 2 : 1) * (5 + d * d) / 2;
+            return (imp ? 2 : 1) * (5 + d * d) / 2 - 1;
         }
 
         Depth reduction(bool imp, Depth d, u08 mc)
@@ -597,7 +597,7 @@ namespace Searcher {
                             tte->move() :
                             MOVE_NONE;
             auto tt_value = tt_hit ?
-                            value_of_tt(tte->value(), ss->ply) :
+                            value_of_tt(tte->value(), ss->ply, pos.si->clock_ply) :
                             VALUE_NONE;
             auto tt_pv = tt_hit
                       && tte->is_pv();
@@ -951,7 +951,7 @@ namespace Searcher {
                                 tte->move() :
                                 MOVE_NONE;
             auto tt_value = tt_hit ?
-                            value_of_tt(tte->value(), ss->ply) :
+                            value_of_tt(tte->value(), ss->ply, pos.si->clock_ply) :
                             VALUE_NONE;
             auto tt_pv = PVNode
                       || (   tt_hit
@@ -964,7 +964,7 @@ namespace Searcher {
                 tt_move = MOVE_NONE;
             }
 
-            bool prior_capture = NONE != pos.si->capture; 
+            bool prior_capture = NONE != pos.si->capture;
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
@@ -1262,7 +1262,7 @@ namespace Searcher {
                             tte->move() :
                             MOVE_NONE;
                 tt_value = tt_hit ?
-                            value_of_tt(tte->value(), ss->ply) :
+                            value_of_tt(tte->value(), ss->ply, pos.si->clock_ply) :
                             VALUE_NONE;
 
                 if (   MOVE_NONE != tt_move
@@ -1364,22 +1364,68 @@ namespace Searcher {
                 bool gives_check = pos.gives_check(move);
                 bool capture_or_promotion = pos.capture_or_promotion(move);
 
-                // Step 13. Extensions. (~70 ELO)
-
+                // Calculate new depth for this move
+                Depth new_depth = depth - 1;
                 Depth extension = DEP_ZERO;
-                
-                // Castle extension
-                if (CASTLE == mtype(move))
+
+                // Step 13. Pruning at shallow depth. (~170 ELO)
+                if (   !root_node
+                    && -VALUE_MATE_MAX_PLY < best_value
+                    && !Limits.mate_on()
+                    && VALUE_ZERO < pos.non_pawn_material(pos.active))
                 {
-                    extension = 1;
+                    // Skip quiet moves if move count exceeds our FutilityMoveCount threshold
+                    move_picker.skip_quiets = futility_move_count(improving, depth) <= move_count;
+
+                    if (   !capture_or_promotion
+                        && !gives_check)
+                    {
+                        // Reduced depth of the next LMR search.
+                        auto lmr_depth = Depth(std::max(new_depth - reduction(improving, depth, move_count), 0));
+                        // Counter moves based pruning: (~20 ELO)
+                        if (   ((0 < (ss-1)->stats || 1 == (ss-1)->move_count) ? 5 : 4) > lmr_depth
+                            && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
+                            && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
+                        {
+                            continue;
+                        }
+                        // Futility pruning: parent node. (~2 ELO)
+                        if (   !in_check
+                            && 6 > lmr_depth
+                            && ss->static_eval + 211 * lmr_depth + 250 <= alfa)
+                        {
+                            continue;
+                        }
+                        // SEE based pruning: negative SEE (~10 ELO)
+                        auto thr = Value(-(31 - std::min(i32(lmr_depth), 18)) * i32(pow(lmr_depth, 2)));
+                        if (   pos.exchange(move) < thr
+                            && !pos.see_ge(move, thr))
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    if (   !gives_check
+                        || 0 == extension)
+                    {
+                        // SEE based pruning: negative SEE (~20 ELO)
+                        auto thr = Value(-199 * depth);
+                        if (   pos.exchange(move) < thr
+                            && !pos.see_ge(move, thr))
+                        {
+                            continue;
+                        }
+                    }
                 }
+
+                // Step 14. Extensions. (~70 ELO)
+
                 // Singular extension (SE) (~60 ELO)
                 // Extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
                 // and just one fails high on (alfa, beta), then that move is singular and should be extended.
                 // To verify this do a reduced search on all the other moves but the tt_move,
                 // if result is lower than tt_value minus a margin then extend tt_move.
-                else
                 if (   !root_node
                     && 5 < depth
                     && move == tt_move
@@ -1411,84 +1457,23 @@ namespace Searcher {
                     }
                 }
                 else
-                if (// Passed pawn extension
-                       (   move == ss->killer_moves[0]
+                if (// Castle extension
+                       CASTLE == mtype (move)
+                    // Passed pawn extension
+                    || (   move == ss->killer_moves[0]
                         && pos.pawn_advance_at(pos.active, org)
                         && pos.pawn_passed_at(pos.active, dst))
                     // Check extension (~2 ELO)
                     || (   gives_check
                         && (   pos.discovery_check_blocker_at(org)
                             || pos.exchange(move) >= VALUE_ZERO
-                            || pos.see_ge(move)))
-                    // Shuffle extension
-                    || (   PVNode
-                        && depth < 3
-                        && pos.si->clock_ply > 18
-                        && ++thread->shuffle_ext < thread->nodes.load(std::memory_order::memory_order_relaxed) / 4)) // To avoid too deep searching
+                            || pos.see_ge(move))))
                 {
                     extension = 1;
                 }
 
-                // Calculate new depth for this move
-                Depth new_depth = depth - 1 + extension;
-
-                // Step 14. Pruning at shallow depth. (~170 ELO)
-                if (   !root_node
-                    && -VALUE_MATE_MAX_PLY < best_value
-                    && !Limits.mate_on()
-                    && VALUE_ZERO < pos.non_pawn_material(pos.active))
-                {
-                    // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
-                    move_picker.skip_quiets = futility_move_count(improving, depth) <= move_count;
-
-                    if (   !capture_or_promotion
-                        && !gives_check
-                        && !(   pos.pawn_advance_at(pos.active, org)
-                             && pos.non_pawn_material(~pos.active) <= VALUE_MG_BSHP))
-                    {
-                        // Move count based pruning: (~30 ELO)
-                        if (move_picker.skip_quiets)
-                        {
-                            continue;
-                        }
-
-                        // Reduced depth of the next LMR search.
-                        auto lmr_depth = Depth(std::max(new_depth - reduction(improving, depth, move_count), 0));
-                        // Countermoves based pruning: (~20 ELO)
-                        if (   ((0 < (ss-1)->stats || 1 == (ss-1)->move_count) ? 5 : 4) > lmr_depth
-                            && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
-                            && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
-                        {
-                            continue;
-                        }
-                        // Futility pruning: parent node. (~2 ELO)
-                        if (   !in_check
-                            && 6 > lmr_depth
-                            && ss->static_eval + 211 * lmr_depth + 250 <= alfa)
-                        {
-                            continue;
-                        }
-                        // SEE based pruning: negative SEE (~10 ELO)
-                        auto thr = Value(-(31 - std::min(i32(lmr_depth), 18)) * pow(lmr_depth, 2));
-                        if (   pos.exchange(move) < thr
-                            && !pos.see_ge(move, thr))
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    if (   !gives_check
-                        || 0 == extension)
-                    {
-                        // SEE based pruning: negative SEE (~20 ELO)
-                        auto thr = Value(-199 * depth);
-                        if (   pos.exchange(move) < thr
-                            && !pos.see_ge(move, thr))
-                        {
-                            continue;
-                        }
-                    }
-                }
+                // Add extension to new depth
+                new_depth += extension;
 
                 // Speculative prefetch as early as possible
                 prefetch(TT.cluster(pos.posi_move_key(move))->entries);
@@ -1933,13 +1918,13 @@ void Thread::search()
                 window = Value(21 + std::abs(old_value) / 128);
                 alfa = std::max(old_value - window, -VALUE_INFINITE);
                 beta = std::min(old_value + window, +VALUE_INFINITE);
-                
+
                 i32 dynamic_contempt = BasicContempt;
                 // Dynamic contempt
                 auto contempt_value = i32(Options["Contempt Value"]);
                 if (0 != contempt_value)
                 {
-                    dynamic_contempt += i32(((860 / contempt_value) * old_value) / (abs(old_value) + 176));
+                    dynamic_contempt += i32(((111 - dynamic_contempt / 2) * 10 / contempt_value) * old_value) / (abs(old_value) + 176);
                 }
                 contempt = WHITE == root_pos.active ?
                             +make_score(dynamic_contempt, dynamic_contempt / 2) :

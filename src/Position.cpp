@@ -137,7 +137,7 @@ void Position::initialize()
 /// It does not detect Insufficient materials and Stalemate.
 bool Position::draw(Depth pp) const
 {
-    return 
+    return
             // Draw by Clock Ply Rule?
             // Not in check or in check have legal moves
            (   si->clock_ply >= 2*i32(Options["Draw MoveCount"])
@@ -744,7 +744,7 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
     //    Blank squares are noted using digits 1 through 8 (the number of blank squares),
     //    and "/" separates ranks.
     // 2) Active color. "w" means white, "b" means black - moves next.
-    // 3) Castling availability. If neither side can castle, this is "-". 
+    // 3) Castling availability. If neither side can castle, this is "-".
     //    Otherwise, this has one or more letters:
     //    "K" (White can castle  King side).
     //    "Q" (White can castle Queen side).
@@ -755,7 +755,7 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
     //    If there's no enpassant target square, this is "-".
     //    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
     //    This is recorded only if there really is a pawn that might have advanced two squares
-    //    and if there is a pawn in position to make an enpassant capture legally!!!. 
+    //    and if there is a pawn in position to make an enpassant capture legally!!!.
     // 5) Half move clock. This is the number of half moves since the last pawn advance or capture.
     //    This is used to determine if a draw can be claimed under the fifty-move rule.
     // 6) Full move number. The number of the full move.
@@ -1213,7 +1213,7 @@ void Position::do_null_move(StateInfo &nsi)
     prefetch(TT.cluster(si->posi_key)->entries);
 
     si->set_check_info(*this);
-    
+
     si->repetition = 0;
 
     assert(ok());
