@@ -95,6 +95,8 @@ public:
         , finished_depth
         , sel_depth;
 
+    u64   tt_hit_avg;
+
     Depth nmp_ply;
     Color nmp_color;
 

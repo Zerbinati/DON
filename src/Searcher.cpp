@@ -471,6 +471,9 @@ namespace Searcher {
             }
         };
 
+        u64 constexpr ttHitAverageWindow = 4096;
+        u64 constexpr ttHitAverageResolution = 1024;
+
         // Razor margin
         Value constexpr RazorMargin = Value(661);
         // Futility margin
@@ -964,6 +967,10 @@ namespace Searcher {
                 tt_move = MOVE_NONE;
             }
 
+            // thread->tt_hit_avg can be used to approximate the running average of ttHit
+            thread->tt_hit_avg = thread->tt_hit_avg * (ttHitAverageWindow - 1) / ttHitAverageWindow
+                               + (tt_hit ? ttHitAverageResolution : 0);
+
             bool prior_capture = NONE != pos.si->capture;
 
             // At non-PV nodes we check for an early TT cutoff.
@@ -1366,7 +1373,6 @@ namespace Searcher {
 
                 // Calculate new depth for this move
                 Depth new_depth = depth - 1;
-                Depth extension = DEP_ZERO;
 
                 // Step 13. Pruning at shallow depth. (~170 ELO)
                 if (   !root_node
@@ -1397,7 +1403,7 @@ namespace Searcher {
                             continue;
                         }
                         // SEE based pruning: negative SEE (~10 ELO)
-                        auto thr = Value(-(31 - std::min(i32(lmr_depth), 18)) * i32(pow(lmr_depth, 2)));
+                        auto thr = Value(-(31 - std::min(i32(lmr_depth), 18)) * i32(pow(i32(lmr_depth), 2)));
                         if (   pos.exchange(move) < thr
                             && !pos.see_ge(move, thr))
                         {
@@ -1405,8 +1411,6 @@ namespace Searcher {
                         }
                     }
                     else
-                    if (   !gives_check
-                        || 0 == extension)
                     {
                         // SEE based pruning: negative SEE (~20 ELO)
                         auto thr = Value(-199 * depth);
@@ -1419,6 +1423,7 @@ namespace Searcher {
                 }
 
                 // Step 14. Extensions. (~70 ELO)
+                Depth extension = DEP_ZERO;
 
                 // Singular extension (SE) (~60 ELO)
                 // Extend the TT move if its value is much better than its siblings.
@@ -1467,7 +1472,11 @@ namespace Searcher {
                     || (   gives_check
                         && (   pos.discovery_check_blocker_at(org)
                             || pos.exchange(move) >= VALUE_ZERO
-                            || pos.see_ge(move))))
+                            || pos.see_ge(move)))
+                    // Last captures extension
+                    || (   PVNode
+                        && PieceValues[EG][pos.si->capture] > VALUE_EG_PAWN
+                        && pos.non_pawn_material() <= 2 * VALUE_MG_ROOK))
                 {
                     extension = 1;
                 }
@@ -1486,14 +1495,15 @@ namespace Searcher {
                 pos.do_move(move, si, gives_check);
 
                 bool do_lmr =
-                    2 < depth
+                       2 < depth
                     && (root_node ? 3 : 1) < move_count
                     && (   !root_node
                         || thread->move_best_count(move) == 0)
                     && (   cut_node
                         || !capture_or_promotion
                         || move_picker.skip_quiets
-                        || ss->static_eval + PieceValues[EG][std::min(pos.si->capture, pos.si->promote)] <= alfa);
+                        || ss->static_eval + PieceValues[EG][std::min(pos.si->capture, pos.si->promote)] <= alfa
+                        || thread->tt_hit_avg < 384 * ttHitAverageResolution * ttHitAverageWindow / 1024);
 
                 bool full_search;
                 // Step 16. Reduced depth search (LMR).
@@ -1501,6 +1511,12 @@ namespace Searcher {
                 if (do_lmr)
                 {
                     auto reduct_depth = reduction(improving, depth, move_count);
+
+                    // Decrease reduction if the ttHit running average is large
+                    if (thread->tt_hit_avg > 544 * ttHitAverageResolution * ttHitAverageWindow / 1024)
+                    {
+                        reduct_depth -= 1;
+                    }
 
                     // Reduction if other threads are searching this position.
                     if (thread_marker.marked)
@@ -1514,7 +1530,7 @@ namespace Searcher {
                         reduct_depth -= 2;
                     }
 
-                    // Decrease reduction if opponent's move count is high (~10 Elo)
+                    // Decrease reduction if opponent's move count is high (~10 ELO)
                     if ((ss-1)->move_count >= 16)
                     {
                         reduct_depth -= 1;
@@ -1527,19 +1543,19 @@ namespace Searcher {
                     }
                     if (!capture_or_promotion)
                     {
-                        // Increase reduction if TT move is a capture(~0 Elo)
+                        // Increase reduction if TT move is a capture(~0 ELO)
                         if (ttm_capture)
                         {
                             reduct_depth += 1;
                         }
 
-                        // Increase reduction for cut nodes (~5 Elo)
+                        // Increase reduction for cut nodes (~5 ELO)
                         if (cut_node)
                         {
                             reduct_depth += 2;
                         }
                         else
-                        // Decrease reduction for moves that escape a capture in no-cut nodes (~5 Elo)
+                        // Decrease reduction for moves that escape a capture in no-cut nodes (~5 ELO)
                         if (   NORMAL == mtype(move)
                             && !pos.see_ge(reverse_move(move)))
                         {
@@ -1562,7 +1578,7 @@ namespace Searcher {
 
                         ss->stats = stats;
 
-                        // Decrease/Increase reduction by comparing stats (~10 Elo)
+                        // Decrease/Increase reduction by comparing stats (~10 ELO)
                         if (   (ss-1)->stats >= -117
                             && ss->stats < -144)
                         {
@@ -1575,7 +1591,7 @@ namespace Searcher {
                             reduct_depth -= 1;
                         }
 
-                        // Decrease/Increase reduction for moves with +/-ve stats (~30 Elo)
+                        // Decrease/Increase reduction for moves with +/-ve stats (~30 ELO)
                         reduct_depth -= Depth(ss->stats / 0x4000);
                     }
 
@@ -1860,6 +1876,8 @@ void Thread::search()
 
     pv_change = 0;
     double total_pv_changes = 0.0;
+
+    tt_hit_avg = ttHitAverageWindow * ttHitAverageResolution / 2;
 
     contempt = WHITE == root_pos.active ?
                 +make_score(BasicContempt, BasicContempt / 2) :

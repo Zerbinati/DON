@@ -115,25 +115,26 @@ namespace {
         S( 0, 0), S( 5,18), S(12,23), S(10,31), S(57,62), S(163,167), S(271,250), S( 0, 0)
     };
 
-    Score constexpr MinorBehindPawn =   S( 18,  3);
-    Score constexpr MinorOutpost =      S( 32, 10);
-    Score constexpr MinorKingProtect =  S(  7,  8);
-    Score constexpr BishopOnDiagonal =  S( 45,  0);
-    Score constexpr BishopPawns =       S(  3,  7);
-    Score constexpr BishopTrapped =     S( 50, 50);
-    Score constexpr RookOnQueenFile =   S(  7,  6);
-    Score constexpr RookTrapped =       S( 47,  4);
-    Score constexpr QueenWeaken =       S( 49, 15);
-    Score constexpr PawnLessFlank =     S( 17, 95);
-    Score constexpr PasserFile =        S( 11,  8);
-    Score constexpr KingTropism =       S(  8,  0);
-    Score constexpr PieceRestricted =   S(  7,  7);
-    Score constexpr PieceHanged =       S( 69, 36);
-    Score constexpr PawnThreat =        S(173, 94);
-    Score constexpr PawnPushThreat =    S( 48, 39);
-    Score constexpr KingThreat =        S( 24, 89);
-    Score constexpr KnightOnQueen =     S( 16, 12);
-    Score constexpr SliderOnQueen =     S( 59, 18);
+    Score constexpr MinorBehindPawn =    S( 18,  3);
+    Score constexpr MinorOutpost =       S( 30, 21);
+    Score constexpr KnightReachablepost =S( 32, 10);
+    Score constexpr MinorKingProtect =   S(  7,  8);
+    Score constexpr BishopOnDiagonal =   S( 45,  0);
+    Score constexpr BishopPawns =        S(  3,  7);
+    Score constexpr BishopTrapped =      S( 50, 50);
+    Score constexpr RookOnQueenFile =    S(  7,  6);
+    Score constexpr RookTrapped =        S( 47,  4);
+    Score constexpr QueenWeaken =        S( 49, 15);
+    Score constexpr PawnLessFlank =      S( 17, 95);
+    Score constexpr PasserFile =         S( 11,  8);
+    Score constexpr KingFlankAttacks =   S(  8,  0);
+    Score constexpr PieceRestricted =    S(  7,  7);
+    Score constexpr PieceHanged =        S( 69, 36);
+    Score constexpr PawnThreat =         S(173, 94);
+    Score constexpr PawnPushThreat =     S( 48, 39);
+    Score constexpr KingThreat =         S( 24, 89);
+    Score constexpr KnightOnQueen =      S( 16, 12);
+    Score constexpr SliderOnQueen =      S( 59, 18);
 
 #undef S
 
@@ -237,20 +238,10 @@ namespace {
         mobility[Opp] = SCORE_ZERO;
 
         auto opp_k_sq = pos.square(Opp|KING);
-        king_ring[Opp] = PieceAttacks[KING][opp_k_sq];
-        if (R_1 == rel_rank(Opp, opp_k_sq))
-        {
-            king_ring[Opp] |= pawn_sgl_pushes_bb(Opp, king_ring[Opp]);
-        }
-        if (F_H == _file(opp_k_sq))
-        {
-            king_ring[Opp] |= shift<DEL_W>(king_ring[Opp]);
-        }
-        else
-        if (F_A == _file(opp_k_sq))
-        {
-            king_ring[Opp] |= shift<DEL_E>(king_ring[Opp]);
-        }
+        // Init our king safety tables
+        auto opp_sq = clamp(_file(opp_k_sq), F_B, F_G)
+                    | clamp(_rank(opp_k_sq), R_2, R_7);
+        king_ring[Opp] = PieceAttacks[KING][opp_sq] | opp_sq;
 
         king_attackers_count[Own] = u08(pop_count(king_ring[Opp] & sgl_attacks[Own][PAWN]));
         king_attackers_weight[Own] = 0;
@@ -359,19 +350,17 @@ namespace {
                 if (NIHT == PT)
                 {
                     // Bonus for knight outpost squares
-                    score += MinorOutpost
-                           * (contains(b, s) ?
-                                2 :
+                    score += contains(b, s) ?
+                                MinorOutpost * 2 :
                                 0 != (b & attacks & ~pos.pieces(Own)) ?
-                                    1 : 0);
+                                    KnightReachablepost : SCORE_ZERO;
                 }
                 else
                 if (BSHP == PT)
                 {
                     // Bonus for bishop outpost squares
-                    score += MinorOutpost
-                           * (contains(b, s) ?
-                                1 : 0);
+                    score += contains(b, s) ?
+                                MinorOutpost * 1 : SCORE_ZERO;
 
                     // Penalty for pawns on the same color square as the bishop,
                     // more when the center files are blocked with pawns.
@@ -607,12 +596,18 @@ namespace {
             king_danger += 200 * pop_count(b);
         }
 
-        b = KingFlank_bb[_file(own_k_sq)]
-          & Camp_bb[Own]
+        Bitboard king_flank_camp = KingFlank_bb[_file(own_k_sq)]
+                                 & Camp_bb[Own];
+
+        b = king_flank_camp
           & sgl_attacks[Opp][NONE];
-        // Friend king flank attacks count
-        i32 tropism = pop_count(b)                    // Squares attacked by enemy in friend king flank
-                    + pop_count(b & dbl_attacks[Opp]);// Squares attacked by enemy twice in friend king flank.
+        // Friend king flank attack count
+        i32 king_flank_attack = pop_count(b)                    // Squares attacked by enemy in friend king flank
+                              + pop_count(b & dbl_attacks[Opp]);// Squares attacked by enemy twice in friend king flank.
+        // Friend king flank defense count
+        b = king_flank_camp
+          & sgl_attacks[Own][NONE];
+        i32 king_flank_defense = pop_count(b);
 
         Bitboard king_spot = sgl_attacks[Own][KING] | own_k_sq;
         // Initialize the king danger, which will be transformed later into a score.
@@ -624,16 +619,15 @@ namespace {
                      + 185 * pop_count(king_ring[Own] & weak_area)
                         // Friend knight is near by to defend king
                      - 100 * (0 != (sgl_attacks[Own][NIHT] & king_spot) ? 1 : 0)
-                        // Friend bishop is near by to defend king
-                     -  35 * (0 != (sgl_attacks[Own][BSHP] & king_spot) ? 1 : 0)
                      + 148 * pop_count(unsafe_check)
                      +  98 * pop_count(pos.si->king_blockers[Own])
                         // Enemy queen is gone
                      - 873 * (0 == pos.pieces(Opp, QUEN) ? 1 : 0)
                      +   1 * mg_value(mobility[Opp] - mobility[Own])
-                     +   3 * std::pow(tropism, 2) / 8
+                     +   3 * std::pow(king_flank_attack, 2) / 8
+                     -   4 * king_flank_defense
                      -   3 * mg_value(score) / 4
-                     -   7;
+                     +  37;
 
         // Transform the king danger into a score
         if (100 < king_danger)
@@ -641,14 +635,14 @@ namespace {
             score -= make_score(king_danger*king_danger / 0x1000, king_danger / 0x10);
         }
 
-        // Penalty for king on a pawnless flank
+        // Penalty for king on a pawn less flank
         if (0 == (pos.pieces(PAWN) & KingFlank_bb[_file(own_k_sq)]))
         {
             score -= PawnLessFlank;
         }
 
         // King tropism: Penalty for slow motion attacks moving towards friend king zone
-        score -= KingTropism * tropism;
+        score -= KingFlankAttacks * king_flank_attack;
 
         if (Trace)
         {
@@ -741,7 +735,7 @@ namespace {
         // Safe friend pawns
         b =  safe_area
           &  pos.pieces(Own, PAWN);
-        // Safe friend pawns attacks on nonpawn enemies
+        // Safe friend pawns attacks on non-pawn enemies
         b =  nonpawns_enemies
           &  pawn_sgl_attacks_bb(Own, b)
           &  sgl_attacks[Own][PAWN];
