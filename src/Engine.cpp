@@ -476,7 +476,7 @@ namespace {
         uci_cmds.push_back("setoption name Hash value " + hash);
         uci_cmds.push_back("ucinewgame");
 
-        string go = "go " + mode + " " + value;
+        string go = mode == "eval" ? "eval" : "go " + mode + " " + value;
 
         for (auto const &cmd : cmds)
         {
@@ -505,7 +505,7 @@ namespace {
     {
         auto uci_cmds = setup_bench(iss, pos);
         u16 total = u16(std::count_if(uci_cmds.begin(), uci_cmds.end(),
-                                      [](string const &s) { return s.find("go ") == 0; }));
+                                      [](string const &s) { return s.find("go ") == 0|| s.find("eval") == 0; }));
         u16 count = 0;
 
         debug_init();
@@ -529,16 +529,24 @@ namespace {
                 position(is, pos, states);
             }
             else
-            if (token == "go")
+            if (token == "go"
+             || token == "eval")
             {
                 cerr << "\n---------------\n"
                      << "Position: " << right
                      << setw(2) << ++count << '/' << total << " "
                      << left << pos.fen() << endl;
 
-                go(is, pos, states);
-                Threadpool.main_thread()->wait_while_busy();
-                total_nodes += Threadpool.nodes();
+                if (token == "go")
+                {
+                    go(is, pos, states);
+                    Threadpool.main_thread()->wait_while_busy();
+                    total_nodes += Threadpool.nodes();
+                }
+                else
+                {
+                    sync_cout << trace(pos) << sync_endl;
+                }
             }
             else
             if (token == "setoption")

@@ -18,7 +18,7 @@ namespace BitBases {
         // Each u32 entity stores results of 32 positions, one per bit
         array<u32, MaxIndex / 32> KPK_Bitbase;
 
-        // A KPK bitbase index is an integer in [0, MaxIndex] range
+        // A KPK bit-base index is an integer in [0, MaxIndex] range
         //
         // Information is mapped in a way that minimizes the number of iterations:
         //

@@ -156,6 +156,7 @@ public:
     TimeManager  time_mgr;
     SkillManager skill_mgr;
 
+    std::array<Value, 4> iter_value;
     Move   best_move;
     i16    best_move_depth;
 

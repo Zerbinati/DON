@@ -232,6 +232,7 @@ namespace {
         // - squares occupied by block pawns (pawns blocked or on ranks 2-3)
         mob_area[Opp] = ~(  sgl_attacks[Own][PAWN]
                           | pos.pieces(Opp, QUEN, KING)
+                          | pos.si->king_blockers[Opp]
                           | (  pos.pieces(Opp, PAWN)
                              & (  LowRanks_bb[Opp]
                                 | pawn_sgl_pushes_bb(Own, pos.pieces()))));
@@ -811,8 +812,8 @@ namespace {
                 i32 w = 5*r - 13;
 
                 // Adjust bonus based on the king's proximity
-                bonus += make_score(0, +5*w*king_proximity(Opp, push_sq)
-                                       -2*w*king_proximity(Own, push_sq));
+                bonus += make_score(0, +19/4*w*king_proximity(Opp, push_sq)
+                                       - 2  *w*king_proximity(Own, push_sq));
                 // If block square is not the queening square then consider also a second push.
                 if (R_7 != r)
                 {
@@ -1083,6 +1084,11 @@ Value evaluate(Position const &pos)
 /// the detailed descriptions and values of each evaluation term.
 string trace(Position const &pos)
 {
+    if (0 != pos.si->checkers)
+    {
+        return "Total evaluation: none (in check)";
+    }
+
     pos.thread->contempt = SCORE_ZERO; // Reset any dynamic contempt
     auto value = Evaluator<true>(pos).value();
     // Trace scores are from White's point of view

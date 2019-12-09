@@ -769,7 +769,6 @@ namespace Searcher {
                             && -VALUE_MATE_MAX_PLY < best_value
                             && !pos.capture(move)))
                     && !Limits.mate_on()
-                    && !(gives_check && pos.discovery_check_blocker_at(org))
                     && pos.exchange(move) < VALUE_ZERO
                     && !pos.see_ge(move))
                 {
@@ -1450,15 +1449,16 @@ namespace Searcher {
                         extension = 1;
                         singular_lmr = true;
                     }
-                    // Multi-cut pruning
-                    // Our tt_move is assumed to fail high, and now failed high also on a reduced
-                    // search without the tt_move. So assume this expected Cut-node is not singular,
-                    // multiple moves fail high, and can prune the whole subtree by returning the soft bound.
                     else
-                    if (   eval >= beta
-                        && singular_beta >= beta)
                     {
-                        return singular_beta;
+                        // Multi-cut pruning
+                        // Our tt_move is assumed to fail high, and now failed high also on a reduced
+                        // search without the tt_move. So assume this expected Cut-node is not singular,
+                        // multiple moves fail high, and can prune the whole subtree by returning the soft bound.
+                        if (singular_beta >= beta)
+                        {
+                            return singular_beta;
+                        }
                     }
                 }
                 else
@@ -1474,8 +1474,7 @@ namespace Searcher {
                             || pos.exchange(move) >= VALUE_ZERO
                             || pos.see_ge(move)))
                     // Last captures extension
-                    || (   PVNode
-                        && PieceValues[EG][pos.si->capture] > VALUE_EG_PAWN
+                    || (   PieceValues[EG][pos.si->capture] > VALUE_EG_PAWN
                         && pos.non_pawn_material() <= 2 * VALUE_MG_ROOK))
                 {
                     extension = 1;
@@ -1873,7 +1872,7 @@ void Thread::search()
     auto *main_thread = Threadpool.main_thread() == this ?
                             Threadpool.main_thread() :
                             nullptr;
-
+    i16 iter_idx = 0;
     pv_change = 0;
     double total_pv_changes = 0.0;
 
@@ -1882,6 +1881,11 @@ void Thread::search()
     contempt = WHITE == root_pos.active ?
                 +make_score(BasicContempt, BasicContempt / 2) :
                 -make_score(BasicContempt, BasicContempt / 2);
+
+    if (nullptr != main_thread)
+    {
+        main_thread->iter_value.fill(main_thread->best_value);
+    }
 
     auto best_value = -VALUE_INFINITE;
     auto window = +VALUE_ZERO;
@@ -2087,7 +2091,10 @@ void Thread::search()
                         // Time Reduction factor - Use part of the gained time from a previous stable move for the current move
                       * (1.36 + main_thread->time_reduction) / (2.29 * time_reduction)
                         // Falling Eval factor
-                      * ::clamp((354 + 10 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value: 0)) / 692.0, 0.5, 1.5)))
+                      * ::clamp((354
+                                 + 6 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value : 0)
+                                 + 6 * (+VALUE_INFINITE != main_thread->iter_value[iter_idx] ? main_thread->iter_value[iter_idx] - best_value : 0))
+                                / 692.0, 0.5, 1.5)))
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".
@@ -2100,6 +2107,9 @@ void Thread::search()
                         Threadpool.stop = true;
                     }
                 }
+
+                main_thread->iter_value[iter_idx] = best_value;
+                iter_idx = (iter_idx + 1) % 4;
 
                 main_thread->time_reduction = time_reduction;
             }

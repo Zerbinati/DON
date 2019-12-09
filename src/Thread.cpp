@@ -428,11 +428,11 @@ const Thread* ThreadPool::best_thread() const
     auto const *best_thread = front();
 
     auto min_value = (*std::min_element(begin(), end(),
-                                         [](Thread *const &t1, Thread *const &t2)
-                                         {
-                                             return t1->root_moves.front().new_value
-                                                  < t2->root_moves.front().new_value;
-                                         }))->root_moves.front().new_value;
+                                        [](Thread *const &t1, Thread *const &t2)
+                                        {
+                                            return t1->root_moves.front().new_value
+                                                 < t2->root_moves.front().new_value;
+                                        }))->root_moves.front().new_value;
 
     // Vote according to value and depth
     std::map<Move, u64> votes;
@@ -550,7 +550,7 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
             && TBLimitPiece >= pos.count()
             && !pos.si->can_castle(CR_ANY))
         {
-            // If the current root position is in the tablebases,
+            // If the current root position is in the table-bases,
             // then RootMoves contains only moves that preserve the draw or the win.
             TBHasRoot = root_probe_dtz(pos, root_moves);
             if (!TBHasRoot)

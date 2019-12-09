@@ -263,8 +263,7 @@ string multipv_info(Thread const *const &th, Depth depth, Value alfa, Value beta
     ostringstream oss;
     for (u32 i = 0; i < Threadpool.pv_limit; ++i)
     {
-        bool updated = i <= pv_cur
-                    && -VALUE_INFINITE != rms[i].new_value;
+        bool updated = -VALUE_INFINITE != rms[i].new_value;
 
         if (   !updated
             && 1 == depth)

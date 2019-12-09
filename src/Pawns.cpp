@@ -27,15 +27,15 @@ namespace Pawns {
             { S(-39, 0), S(-13, 0), S(-29, 0), S(-52, 0), S(-48, 0), S(-67, 0), S(-166, 0), S(0, 0) }
         }};
 
-        // Danger of unblocked enemy pawns strom toward our king by [distance from edge][rank].
+        // Danger of unblocked enemy pawns storm toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
         // [0][1 - 2] accommodate opponent pawn on edge (likely blocked by king)
         array<array<Score, R_NO>, (F_NO/2)> constexpr Storm
         {{
-            { S( 89, 0), S(-285, 0), S(-185, 0), S( 93, 0), S( 57, 0), S( 45, 0), S( 51, 0), S(0, 0) },
-            { S( 44, 0), S( -18, 0), S( 123, 0), S( 46, 0), S( 39, 0), S( -7, 0), S( 23, 0), S(0, 0) },
-            { S(  4, 0), S(  52, 0), S( 162, 0), S( 37, 0), S(  7, 0), S(-14, 0), S( -2, 0), S(0, 0) },
-            { S(-10, 0), S( -14, 0), S(  90, 0), S( 15, 0), S(  2, 0), S( -7, 0), S(-16, 0), S(0, 0) }
+            { S( 85, 0), S(-289, 0), S(-166, 0), S( 97, 0), S( 50, 0), S( 45, 0), S( 50, 0), S(0, 0) },
+            { S( 46, 0), S( -25, 0), S( 122, 0), S( 45, 0), S( 37, 0), S(-10, 0), S( 20, 0), S(0, 0) },
+            { S( -6, 0), S(  51, 0), S( 168, 0), S( 34, 0), S( -2, 0), S(-22, 0), S(-14, 0), S(0, 0) },
+            { S(-15, 0), S( -11, 0), S( 101, 0), S(  4, 0), S( 11, 0), S(-15, 0), S(-29, 0), S(0, 0) }
         }};
 
         Score constexpr BlockedStorm =   S(82, 82);
