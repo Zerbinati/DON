@@ -475,11 +475,11 @@ namespace Searcher {
         u64 constexpr ttHitAverageResolution = 1024;
 
         // Razor margin
-        Value constexpr RazorMargin = Value(661);
+        Value constexpr RazorMargin = Value(594);
         // Futility margin
         Value constexpr futility_margin(bool imp, Depth d)
         {
-            return Value(198 * (d - (imp ? 1 : 0)));
+            return Value(232 * (d - (imp ? 1 : 0)));
         }
         // Futility move count threshold
         i16 constexpr futility_move_count(bool imp, Depth d)
@@ -489,7 +489,8 @@ namespace Searcher {
 
         Depth reduction(bool imp, Depth d, u08 mc)
         {
-            if (0 == d || 0 == mc)
+            if (0 == d
+             || 0 == mc)
             {
                 return DEP_ZERO;
             }
@@ -1137,8 +1138,13 @@ namespace Searcher {
                     return quien_search<PVNode>(pos, ss, alfa, beta);
                 }
 
-                improving = ss->static_eval >= (ss-2)->static_eval
-                         || VALUE_NONE == (ss-2)->static_eval;
+                improving = VALUE_NONE != (ss-2)->static_eval ?
+                                ss->static_eval >= (ss-2)->static_eval :
+                                VALUE_NONE != (ss-4)->static_eval ?
+                                    ss->static_eval >= (ss-4)->static_eval :
+                                    VALUE_NONE != (ss-6)->static_eval ?
+                                        ss->static_eval >= (ss-6)->static_eval :
+                                        true;
 
                 // Step 8. Futility pruning: child node. (~30 ELO)
                 // Betting that the opponent doesn't have a move that will reduce
