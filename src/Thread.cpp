@@ -506,7 +506,7 @@ void ThreadPool::configure(u32 thread_count)
             push_back(new Thread(size()));
         }
 
-        factor = std::pow(23.4 + std::log(size()) / 2, 2);
+        factor = std::pow(24.8 + std::log(size()) / 2, 2);
 
         sync_cout << "info string Thread(s) used " << thread_count << sync_endl;
 

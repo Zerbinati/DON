@@ -1007,7 +1007,7 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
         }
 
         // Move the piece
-        move_piece(org, dst, piece[org]);
+        move_piece(org, dst);
     }
     key ^= RandZob.piece_square[active][mpt][org]
          ^ RandZob.piece_square[active][mpt][dst];
@@ -1154,7 +1154,7 @@ void Position::undo_move(Move m)
             npm[active] -= PieceValues[MG][si->promote];
         }
         // Move the piece
-        move_piece(dst, org, piece[dst]);
+        move_piece(dst, org);
 
         if (NONE != si->capture)
         {

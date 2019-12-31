@@ -576,6 +576,7 @@ namespace {
             unsafe_check |= rook_check;
         }
 
+        // Enemy queen all checks
         if (0 != quen_safe_check)
         {
             king_danger += SafeCheckWeight[QUEN] * pop_count(quen_safe_check);

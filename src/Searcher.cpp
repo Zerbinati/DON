@@ -475,11 +475,11 @@ namespace Searcher {
         u64 constexpr ttHitAverageResolution = 1024;
 
         // Razor margin
-        Value constexpr RazorMargin = Value(594);
+        Value constexpr RazorMargin = Value(531);
         // Futility margin
         Value constexpr futility_margin(bool imp, Depth d)
         {
-            return Value(232 * (d - (imp ? 1 : 0)));
+            return Value(217 * (d - (imp ? 1 : 0)));
         }
         // Futility move count threshold
         i16 constexpr futility_move_count(bool imp, Depth d)
@@ -496,7 +496,7 @@ namespace Searcher {
             }
 
             auto r = Threadpool.factor * std::log(d) * std::log(mc);
-            return Depth((r + 520) / 1024 + (!imp && r > 999 ? 1 : 0));
+            return Depth((r + 511) / 1024 + (!imp && r > 1007 ? 1 : 0));
         }
 
         i32 BasicContempt = 0;
@@ -508,7 +508,7 @@ namespace Searcher {
         /// stat_bonus() is the bonus, based on depth
         i32 stat_bonus(Depth depth)
         {
-            return 17 >= depth ? (22 * depth + 151) * depth - 140 : -8;
+            return 15 >= depth ? (19 * depth + 155) * depth - 132 : -8;
         }
 
         // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
@@ -694,7 +694,7 @@ namespace Searcher {
                     }
                 }
 
-                futility_base = best_value + 153;
+                futility_base = best_value + 154;
             }
 
             if (   MOVE_NONE != tt_move
@@ -944,8 +944,9 @@ namespace Searcher {
 
             // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
-            // TT value, so use a different position key in case of an excluded move.
-            Key key = pos.si->posi_key ^ (Key(ss->excluded_move) << 0x10);
+            // TT value, so use a unused position key in case of an excluded move.
+            Key key = MOVE_NONE == ss->excluded_move ?
+                        pos.si->posi_key : 0;
             bool tt_hit;
             auto *tte = TT.probe(key, tt_hit);
             auto tt_move = root_node ?
@@ -1150,7 +1151,7 @@ namespace Searcher {
                 // Betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility margins [depth] if do a null move.
                 if (   !root_node
-                    && 7 > depth
+                    && 6 > depth
                     && !Limits.mate_on()
                     && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
                     && eval - futility_margin(improving, depth) >= beta)
@@ -1164,15 +1165,15 @@ namespace Searcher {
                     && MOVE_NONE == ss->excluded_move
                     && !Limits.mate_on()
                     && VALUE_ZERO != pos.non_pawn_material(pos.active)
-                    && 22661 > (ss-1)->stats
+                    && 23405 > (ss-1)->stats
                     && eval >= beta
                     && eval >= ss->static_eval
-                    && ss->static_eval >= beta - 33 * depth + 299 - (improving ? 30 : 0)
+                    && ss->static_eval >= beta - 32 * depth + 317 - (improving ? 30 : 0)
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != pos.active))
                 {
                     // Null move dynamic reduction based on depth and static evaluation.
-                    auto R = Depth((70 * depth + 835) / 256 + std::min(i32(eval - beta) / 185, 3));
+                    auto R = Depth((68 * depth + 854) / 258 + std::min(i32(eval - beta) / 192, 3));
 
                     ss->played_move = MOVE_NULL;
                     ss->pd_history = &thread->continuation_history[0][0][NO_PIECE][0];
@@ -1217,7 +1218,7 @@ namespace Searcher {
                     && !Limits.mate_on()
                     && abs(beta) < +VALUE_MATE_MAX_PLY)
                 {
-                    auto raised_beta = std::min(beta + (improving ? 145 : 191), +VALUE_INFINITE);
+                    auto raised_beta = std::min(beta + (improving ? 144 : 189), +VALUE_INFINITE);
                     u08 pc_movecount = 0;
                     // Initialize move picker (3) for the current position
                     MovePicker move_picker(pos, tt_move, raised_beta - ss->static_eval);
@@ -1403,12 +1404,12 @@ namespace Searcher {
                         // Futility pruning: parent node. (~2 ELO)
                         if (   !in_check
                             && 6 > lmr_depth
-                            && ss->static_eval + 211 * lmr_depth + 250 <= alfa)
+                            && ss->static_eval + 182 * lmr_depth + 255 <= alfa)
                         {
                             continue;
                         }
                         // SEE based pruning: negative SEE (~10 ELO)
-                        auto thr = Value(-(31 - std::min(i32(lmr_depth), 18)) * i32(pow(i32(lmr_depth), 2)));
+                        auto thr = Value(-(32 - std::min(i32(lmr_depth), 18)) * i32(pow(i32(lmr_depth), 2)));
                         if (   pos.exchange(move) < thr
                             && !pos.see_ge(move, thr))
                         {
@@ -1418,7 +1419,7 @@ namespace Searcher {
                     else
                     {
                         // SEE based pruning: negative SEE (~20 ELO)
-                        auto thr = Value(-199 * depth);
+                        auto thr = Value(-194 * depth);
                         if (   pos.exchange(move) < thr
                             && !pos.see_ge(move, thr))
                         {
@@ -1508,7 +1509,7 @@ namespace Searcher {
                         || !capture_or_promotion
                         || move_picker.skip_quiets
                         || ss->static_eval + PieceValues[EG][std::min(pos.si->capture, pos.si->promote)] <= alfa
-                        || thread->tt_hit_avg < 384 * ttHitAverageResolution * ttHitAverageWindow / 1024);
+                        || thread->tt_hit_avg < 375 * ttHitAverageResolution * ttHitAverageWindow / 1024);
 
                 bool full_search;
                 // Step 16. Reduced depth search (LMR).
@@ -1518,7 +1519,7 @@ namespace Searcher {
                     auto reduct_depth = reduction(improving, depth, move_count);
 
                     // Decrease reduction if the ttHit running average is large
-                    if (thread->tt_hit_avg > 544 * ttHitAverageResolution * ttHitAverageWindow / 1024)
+                    if (thread->tt_hit_avg > 500 * ttHitAverageResolution * ttHitAverageWindow / 1024)
                     {
                         reduct_depth -= 1;
                     }
@@ -1536,7 +1537,7 @@ namespace Searcher {
                     }
 
                     // Decrease reduction if opponent's move count is high (~10 ELO)
-                    if ((ss-1)->move_count >= 16)
+                    if ((ss-1)->move_count >= 15)
                     {
                         reduct_depth -= 1;
                     }
@@ -1571,7 +1572,7 @@ namespace Searcher {
                                    + (*pd_histories[0])[mpc][dst]
                                    + (*pd_histories[1])[mpc][dst]
                                    + (*pd_histories[3])[mpc][dst]
-                                   - 4729;
+                                   - 4926;
                         // Reset stats to zero if negative and most stats shows >= 0
                         if (   0 >  stats
                             && 0 <= (*pd_histories[0])[mpc][dst]
@@ -1584,14 +1585,14 @@ namespace Searcher {
                         ss->stats = stats;
 
                         // Decrease/Increase reduction by comparing stats (~10 ELO)
-                        if (   (ss-1)->stats >= -117
-                            && ss->stats < -144)
+                        if (   (ss-1)->stats >= -116
+                            && ss->stats < -154)
                         {
                             reduct_depth += 1;
                         }
                         else
-                        if (   ss->stats >= -99
-                            && (ss-1)->stats < -116)
+                        if (   ss->stats >= -102
+                            && (ss-1)->stats < -114)
                         {
                             reduct_depth -= 1;
                         }
@@ -1943,7 +1944,7 @@ void Thread::search()
             if (4 <= root_depth)
             {
                 auto old_value = root_moves[pv_cur].old_value;
-                window = Value(21 + std::abs(old_value) / 128);
+                window = Value(21 + std::abs(old_value) / 256);
                 alfa = std::max(old_value - window, -VALUE_INFINITE);
                 beta = std::min(old_value + window, +VALUE_INFINITE);
 
@@ -1952,7 +1953,7 @@ void Thread::search()
                 auto contempt_value = i32(Options["Contempt Value"]);
                 if (0 != contempt_value)
                 {
-                    dynamic_contempt += i32(((111 - dynamic_contempt / 2) * 10 / contempt_value) * old_value) / (abs(old_value) + 176);
+                    dynamic_contempt += i32(((102 - dynamic_contempt / 2) * 10 / contempt_value) * old_value) / (abs(old_value) + 157);
                 }
                 contempt = WHITE == root_pos.active ?
                             +make_score(dynamic_contempt, dynamic_contempt / 2) :
@@ -2084,7 +2085,7 @@ void Thread::search()
                 }
                 // Reduce time if the best_move is stable over 10 iterations
                 double time_reduction =
-                        9 < finished_depth - main_thread->best_move_depth ? 1.97 : 0.98;
+                        9 < finished_depth - main_thread->best_move_depth ? 1.94 : 0.91;
                         //clamp(0.90 + 0.09 * (finished_depth - main_thread->best_move_depth), 0.98, 1.97);
                 // Stop the search
                 // -If there is only one legal move available
@@ -2095,12 +2096,12 @@ void Thread::search()
                         // Best Move Instability factor
                       * (1.00 + total_pv_changes / Threadpool.size())
                         // Time Reduction factor - Use part of the gained time from a previous stable move for the current move
-                      * (1.36 + main_thread->time_reduction) / (2.29 * time_reduction)
+                      * (1.41 + main_thread->time_reduction) / (2.27 * time_reduction)
                         // Falling Eval factor
-                      * ::clamp((354
+                      * ::clamp((332
                                  + 6 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value : 0)
                                  + 6 * (+VALUE_INFINITE != main_thread->iter_value[iter_idx] ? main_thread->iter_value[iter_idx] - best_value : 0))
-                                / 692.0, 0.5, 1.5)))
+                                / 704.0, 0.5, 1.5)))
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".

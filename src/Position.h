@@ -120,7 +120,7 @@ class Position
 private:
     void  place_piece(Square, Piece);
     void remove_piece(Square, Piece);
-    void   move_piece(Square, Square, Piece);
+    void   move_piece(Square, Square);
 
     void set_castle(Color, Square);
 
@@ -557,8 +557,9 @@ inline void Position::remove_piece(Square s, Piece pc)
     psq -= PSQ[pc][s];
     //piece[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
-inline void Position::move_piece(Square s1, Square s2, Piece pc)
+inline void Position::move_piece(Square s1, Square s2)
 {
+    auto pc = piece[s1];
     assert(_ok(pc)
         && std::count(squares[pc].begin(), squares[pc].end(), s1) == 1
         && std::count(squares[pc].begin(), squares[pc].end(), s2) == 0);
