@@ -112,7 +112,7 @@ namespace {
 
     array<Score, R_NO> constexpr PasserRank
     {
-        S( 0, 0), S( 5,18), S(12,23), S(10,31), S(57,62), S(163,167), S(271,250), S( 0, 0)
+        S( 0, 0), S(10,28), S(17,33), S(15,41), S(62,72), S(168,177), S(276,260), S( 0, 0)
     };
 
     Score constexpr MinorBehindPawn =    S( 18,  3);
@@ -813,7 +813,7 @@ namespace {
                 i32 w = 5*r - 13;
 
                 // Adjust bonus based on the king's proximity
-                bonus += make_score(0, +19/4*w*king_proximity(Opp, push_sq)
+                bonus += make_score(0, +19  *w*king_proximity(Opp, push_sq)/4
                                        - 2  *w*king_proximity(Own, push_sq));
                 // If block square is not the queening square then consider also a second push.
                 if (R_7 != r)
@@ -824,16 +824,17 @@ namespace {
                 // If the pawn is free to advance.
                 if (pos.empty(push_sq))
                 {
+                    Bitboard attacked_squares = pawn_pass_span(Own, s);
+
                     Bitboard behind_major = front_squares_bb(Opp, s)
                                           & pos.pieces(ROOK, QUEN);
-                    Bitboard attacked_squares = pawn_pass_span(Own, s);
                     if (0 == (pos.pieces(Opp) & behind_major))
                     {
                         attacked_squares &= sgl_attacks[Opp][NONE];
                     }
 
                     // Bonus according to attacked squares.
-                    i32 k = 0 == attacked_squares                               ? 35 :
+                    i32 k = 0 == attacked_squares                              ? 35 :
                             0 == (attacked_squares & front_squares_bb(Own, s)) ? 20 :
                             !contains(attacked_squares, push_sq)               ? 9 : 0;
 
@@ -856,8 +857,8 @@ namespace {
                 bonus /= 2;
             }
 
-            score += bonus;
-            score -= PasserFile * map_file(f);
+            score += bonus
+                   - PasserFile * map_file(f);
         }
 
         if (Trace)
@@ -914,35 +915,38 @@ namespace {
     template<bool Trace>
     Score Evaluator<Trace>::initiative(Score s) const
     {
-        auto mg = mg_value(s);
-        auto eg = eg_value(s);
-
         i32 outflanking = dist<File>(pos.square(WHITE|KING), pos.square(BLACK|KING))
                         - dist<Rank>(pos.square(WHITE|KING), pos.square(BLACK|KING));
         // Compute the initiative bonus for the attacking side
         i32 complexity = 11 * pos.count(PAWN)
                        +  9 * pe->passed_count()
                        +  9 * outflanking
-                       + 49 * (VALUE_ZERO == pos.non_pawn_material() ? 1 : 0)
-                       -103;
+                       - 95;
+        if (VALUE_ZERO == pos.non_pawn_material())
+        {
+            complexity += 51;
+        }
         // Pawn on both flanks
         if (   0 != (pos.pieces(PAWN) & Side_bb[CS_KING])
             && 0 != (pos.pieces(PAWN) & Side_bb[CS_QUEN]))
         {
-            complexity += 18;
+            complexity += 21;
         }
         else
+        // Almost Unwinnable
         if (   0 > outflanking
             && 0 == pe->passed_count())
         {
-            complexity -= 36;
+            complexity -= 43;
         }
 
+        auto mg = mg_value(s);
+        auto eg = eg_value(s);
         // Now apply the bonus: note that we find the attacking side by extracting the
         // sign of the midgame or endgame values, and that we carefully cap the bonus
         // so that the midgame and endgame scores do not change sign after the bonus.
-        auto score = make_score(sign(mg) * ::clamp(complexity + 50, 0, -abs(mg)),   // Out of limit
-                                sign(eg) * std::max(complexity, -abs(eg)));
+        auto score = make_score(sign(mg) * ::clamp(complexity + 50, -abs(mg), 0),
+                                sign(eg) * std::max(complexity    , -abs(eg)));
 
         if (Trace)
         {
@@ -976,10 +980,11 @@ namespace {
             scl = bishop_oppose
                && pos.non_pawn_material() == 2 * VALUE_MG_BSHP ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
-                    Scale(16 + 4 * pe->passed_count()) :
+                    Scale(22) :
                     std::min(Scale(36 + (bishop_oppose ? 2 : 7) * pos.count(color|PAWN)), SCALE_NORMAL);
+
             // Scale down endgame factor when shuffling
-            scl = std::max(Scale(scl - (pos.si->clock_ply - 12) / 4), SCALE_DRAW);
+            scl = std::max(Scale(scl - (pos.si->clock_ply / 4 - 3)), SCALE_DRAW);
         }
         return scl;
     }
@@ -1053,9 +1058,9 @@ namespace {
         assert(0 <= me->phase && me->phase <= Material::PhaseResolution);
 
         // Interpolates between midgame and scaled endgame values.
-        v = Value(  (  mg_value(score) * (me->phase - 0)
-                     + eg_value(score) * (Material::PhaseResolution - me->phase) * scale(eg_value(score)) / SCALE_NORMAL)
-                  / Material::PhaseResolution);
+        v = mg_value(score) * (me->phase - 0)
+          + eg_value(score) * (Material::PhaseResolution - me->phase) * scale(eg_value(score)) / SCALE_NORMAL;
+        v /= Material::PhaseResolution;
 
         if (Trace)
         {

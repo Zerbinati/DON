@@ -14,7 +14,7 @@ class NativeThread
 private:
     static size_t constexpr TH_STACK_SIZE = 8 * 1024 * 1024;
 
-    template <class T, class P = std::pair<T*, void(T::*)()>>
+    template<class T, class P = std::pair<T*, void(T::*)()>>
     static void* start_routine(void *arg)
     {
         P *p = reinterpret_cast<P*>(arg);
@@ -30,12 +30,12 @@ public:
     static unsigned hardware_concurrency() { return 1; }
 
     template<class T, class P = std::pair<T*, void (T::*)()>>
-    explicit NativeThread(void (T::*fun)(), T *obj)
+    explicit NativeThread(void(T::*fun)(), T *obj)
     {
-        pthread_attr_t attribute;
-        pthread_attr_init(&attribute);
-        pthread_attr_setstacksize(&attribute, TH_STACK_SIZE);
-        pthread_create(&thread, &attribute, start_routine<T>, new P(obj, fun));
+        pthread_attr_t attribute, *pattr = &attribute;
+        pthread_attr_init(pattr);
+        pthread_attr_setstacksize(pattr, TH_STACK_SIZE);
+        pthread_create(&thread, pattr, start_routine<T>, new P(obj, fun));
     }
     //NativeThread(NativeThread const&) = delete;
     //NativeThread& operator=(NativeThread const&) = delete;

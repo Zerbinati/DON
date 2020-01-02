@@ -154,11 +154,11 @@ void TTable::clear()
     }
 
     vector<NativeThread> threads;
-    auto thread_count = option_threads();
-    for (u32 idx = 0; idx < thread_count; ++idx)
+    for (size_t idx = 0; idx < option_threads(); ++idx)
     {
-        threads.emplace_back([this, idx, thread_count]()
+        threads.emplace_back([this, idx]()
                              {
+                                 auto thread_count = option_threads();
                                  if (8 < thread_count)
                                  {
                                      WinProcGroup::bind(idx);

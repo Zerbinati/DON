@@ -45,7 +45,7 @@ namespace Pawns {
         Score constexpr Isolated =       S( 5,15);
         Score constexpr Unopposed =      S(13,27);
         Score constexpr WeakDoubled =    S(11,56);
-        Score constexpr WeakTwiceLever = S(0, 56);
+        Score constexpr WeakTwiceLever = S( 0,56);
 
 #   undef S
 
@@ -147,8 +147,8 @@ namespace Pawns {
             bool doubled    = contains(own_pawns, s - pawn_push(Own));
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool backward   = 0 == (neighbours & front_rank_bb(Opp, s))
-                           && 0 != (stoppers & (escapes | blockers));
+            bool backward   = 0 == (neighbours & front_rank_bb(Opp, s + pawn_push(Own)))
+                           && 0 != (escapes | blockers);
 
             // Compute additional span if pawn is not backward nor blocked
             if (   !backward
@@ -158,8 +158,8 @@ namespace Pawns {
             }
 
             // A pawn is passed if one of the three following conditions is true:
-            // - there is no stoppers except some levers
-            // - the only stoppers are the escapes, but we outnumber them
+            // - there is no stoppers except the levers
+            // - there is no stoppers except the escapes, but we outnumber them
             // - there is only one front stopper which can be levered.
             // Passed pawns will be properly scored later in evaluation when we have full attack info.
             if (   (stoppers == levers)
@@ -176,7 +176,7 @@ namespace Pawns {
             if (   0 != supporters
                 || 0 != phalanxes)
             {
-                i32 v = Connected[r] * (2 + (0 != phalanxes ? 1 : 0) - (opposers ? 1 : 0))
+                i32 v = Connected[r] * (2 + (0 != phalanxes ? 1 : 0) - (0 != opposers ? 1 : 0))
                       + 21 * pop_count(supporters);
                 score += make_score(v, v * (r - R_3) / 4);
             }
@@ -186,7 +186,7 @@ namespace Pawns {
                 score -= Isolated;
                 if (0 == opposers)
                 {
-                    score += Unopposed;
+                    score -= Unopposed;
                 }
             }
             else
@@ -195,7 +195,7 @@ namespace Pawns {
                 score -= Backward;
                 if (0 == opposers)
                 {
-                    score += Unopposed;
+                    score -= Unopposed;
                 }
             }
 
