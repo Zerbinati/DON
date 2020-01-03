@@ -305,7 +305,7 @@ u32 option_threads()
     auto threads = i32(Options["Threads"]);
     if (0 == threads)
     {
-        threads = NativeThread::hardware_concurrency();
+        threads = thread::hardware_concurrency();
     }
     return threads;
 }

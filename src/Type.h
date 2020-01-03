@@ -103,10 +103,6 @@ typedef        uint64_t    u64;
 typedef u64 Key;
 typedef u64 Bitboard;
 
-typedef i16 Depth;
-
-//constexpr i16 MaxMoves          = 256;
-
 enum Color : i08 { WHITE, BLACK, CLR_NO };
 
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
@@ -162,15 +158,17 @@ enum Delta : i08
     DEL_WWS = DEL_WW + DEL_S,
 };
 
+typedef i16 Depth;
 
 Depth constexpr DEP_ZERO        =  0;
 Depth constexpr DEP_QS_CHECK    =  0;
 Depth constexpr DEP_QS_NO_CHECK = -1;
 Depth constexpr DEP_QS_RECAP    = -5;
 Depth constexpr DEP_NONE        = -6;
-Depth constexpr DEP_EMPTY       = -7;
+Depth constexpr DEP_OFFSET      = -7;
+// Maximum Plies
+Depth constexpr DEP_MAX         = 245; // = 256 + DEP_OFFSET - 4
 
-Depth constexpr DEP_MAX         = 128; // Maximum Plies
 
 enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NO };
 
@@ -233,6 +231,9 @@ enum MoveType : u16
     ENPASSANT = 2 << 14, // [10]----
     PROMOTE   = 3 << 14, // [11]x---
 };
+
+//i16 constexpr MaxMoves          = 256;
+
 /// Move needs 16-bits to be stored
 ///
 /// bit 00-05: Destiny square
@@ -261,10 +262,10 @@ enum Value : i32
     VALUE_KNOWN_WIN = 10000,
 
     VALUE_MG_PAWN =  128, VALUE_EG_PAWN =  213,
-    VALUE_MG_NIHT =  782, VALUE_EG_NIHT =  865,
-    VALUE_MG_BSHP =  830, VALUE_EG_BSHP =  918,
-    VALUE_MG_ROOK = 1289, VALUE_EG_ROOK = 1378,
-    VALUE_MG_QUEN = 2529, VALUE_EG_QUEN = 2687,
+    VALUE_MG_NIHT =  781, VALUE_EG_NIHT =  854,
+    VALUE_MG_BSHP =  825, VALUE_EG_BSHP =  915,
+    VALUE_MG_ROOK = 1276, VALUE_EG_ROOK = 1380,
+    VALUE_MG_QUEN = 2538, VALUE_EG_QUEN = 2682,
 
     VALUE_MIDGAME = 15258,
     VALUE_ENDGAME =  3915,

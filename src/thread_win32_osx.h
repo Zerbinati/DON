@@ -1,5 +1,7 @@
 #pragma once
 
+#include <thread>
+
 /// On OSX threads other than the main thread are created with a reduced stack
 /// size of 512KB by default, this is too low for deep searches, which require
 /// somewhat more than 1MB stack, so adjust it to TH_STACK_SIZE.
@@ -27,8 +29,6 @@ private:
 
 public:
 
-    static unsigned hardware_concurrency() { return 1; }
-
     template<class T, class P = std::pair<T*, void (T::*)()>>
     explicit NativeThread(void(T::*fun)(), T *obj)
     {
@@ -45,8 +45,6 @@ public:
 };
 
 #else // Default case: use STL classes
-
-#include <thread>
 
 typedef std::thread NativeThread;
 

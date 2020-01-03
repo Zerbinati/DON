@@ -36,7 +36,7 @@ public:
     Move       move() const { return Move (m16); }
     Value     value() const { return Value(v16); }
     Value      eval() const { return Value(e16); }
-    Depth     depth() const { return Depth(d08 + DEP_EMPTY); }
+    Depth     depth() const { return Depth(d08 + DEP_OFFSET); }
     u08  generation() const { return u08  (g08 & 0xF8); }
     bool      is_pv() const { return 0 != (g08 & 0x04); }
     Bound     bound() const { return Bound(g08 & 0x03); }
@@ -44,11 +44,11 @@ public:
     // Due to packed storage format for generation and its cyclic nature
     // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
     // to calculate the entry age correctly even after generation overflows into the next cycle.
-    Depth worth() const { return d08 - ((Generation - g08 + 0x107) & 0xF8) * 2; }
+    Depth worth() const { return d08 - ((Generation - g08 + 0x107) & 0xF8); }
 
-    void refresh() { g08 = u08(Generation + (g08 & 0x07)); }
+    void refresh() { g08 = u08(Generation | (g08 & 0x07)); }
 
-    void save(u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 pv)
+    void save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv)
     {
         // Preserve more valuable entries
         if (   MOVE_NONE != m
@@ -57,16 +57,16 @@ public:
             m16 = u16(m);
         }
         if (   k16 != (k >> 0x30)
-            || d08 < d + 10
+            || d08 < d - DEP_OFFSET + 4
             || BOUND_EXACT == b)
         {
-            assert((d - DEP_EMPTY) > 0);
+            assert((d - DEP_OFFSET) > 0);
 
             k16 = u16(k >> 0x30);
             v16 = i16(v);
             e16 = i16(e);
-            d08 = u08(d - DEP_EMPTY);
-            g08 = u08(Generation | pv | b);
+            d08 = u08(d - DEP_OFFSET);
+            g08 = u08(Generation | u08(pv) << 2 | b);
         }
         assert(!empty());
     }

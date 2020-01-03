@@ -44,10 +44,7 @@ size_t TCluster::fresh_entry_count() const
     size_t count = 0;
     for (auto const *ite = entries; ite < entries + EntryCount; ++ite)
     {
-        if (ite->generation() == TEntry::Generation)
-        {
-            ++count;
-        }
+        count += (ite->generation() == TEntry::Generation);
     }
     return count;
 }
@@ -153,7 +150,7 @@ void TTable::clear()
         return;
     }
 
-    vector<NativeThread> threads;
+    vector<thread> threads;
     for (size_t idx = 0; idx < option_threads(); ++idx)
     {
         threads.emplace_back([this, idx]()

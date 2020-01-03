@@ -679,7 +679,7 @@ namespace Searcher {
                                       ss->static_eval,
                                       DEP_NONE,
                                       BOUND_LOWER,
-                                      tt_pv ? 4 : 0);
+                                      tt_pv);
                         }
 
                         assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -842,7 +842,7 @@ namespace Searcher {
                           && best_value > prev_alfa ?
                               BOUND_EXACT :
                               BOUND_UPPER,
-                      tt_pv ? 4 : 0);
+                      tt_pv);
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -1056,7 +1056,7 @@ namespace Searcher {
                                       VALUE_NONE,
                                       Depth(std::min(depth + 6, DEP_MAX - 1)),
                                       bound,
-                                      tt_pv ? 4 : 0);
+                                      tt_pv);
 
                             return value;
                         }
@@ -1128,7 +1128,7 @@ namespace Searcher {
                               eval,
                               DEP_NONE,
                               BOUND_NONE,
-                              tt_pv ? 4 : 0);
+                              tt_pv);
                 }
 
                 // Step 7. Razoring. (~2 ELO)
@@ -1457,32 +1457,30 @@ namespace Searcher {
                         singular_lmr = true;
                     }
                     else
+                    // Multi-cut pruning
+                    // Our tt_move is assumed to fail high, and now failed high also on a reduced
+                    // search without the tt_move. So assume this expected Cut-node is not singular,
+                    // multiple moves fail high, and can prune the whole subtree by returning the soft bound.
+                    if (singular_beta >= beta)
                     {
-                        // Multi-cut pruning
-                        // Our tt_move is assumed to fail high, and now failed high also on a reduced
-                        // search without the tt_move. So assume this expected Cut-node is not singular,
-                        // multiple moves fail high, and can prune the whole subtree by returning the soft bound.
-                        if (singular_beta >= beta)
-                        {
-                            return singular_beta;
-                        }
+                        return singular_beta;
                     }
                 }
                 else
                 if (// Castle extension
                        CASTLE == mtype (move)
-                    // Passed pawn extension
-                    || (   move == ss->killer_moves[0]
-                        && pos.pawn_advance_at(pos.active, org)
-                        && pos.pawn_passed_at(pos.active, dst))
+                    // Last captures extension
+                    || (   PieceValues[EG][pos.si->capture] > VALUE_EG_PAWN
+                        && pos.non_pawn_material() <= 2 * VALUE_MG_ROOK)
                     // Check extension (~2 ELO)
                     || (   gives_check
                         && (   pos.discovery_check_blocker_at(org)
                             || pos.exchange(move) >= VALUE_ZERO
                             || pos.see_ge(move)))
-                    // Last captures extension
-                    || (   PieceValues[EG][pos.si->capture] > VALUE_EG_PAWN
-                        && pos.non_pawn_material() <= 2 * VALUE_MG_ROOK))
+                    // Passed pawn extension
+                    || (   move == ss->killer_moves[0]
+                        && pos.pawn_advance_at(pos.active, org)
+                        && pos.pawn_passed_at(pos.active, dst)))
                 {
                     extension = 1;
                 }
@@ -1823,7 +1821,7 @@ namespace Searcher {
                               && MOVE_NONE != best_move ?
                                   BOUND_EXACT :
                                   BOUND_UPPER,
-                          tt_pv ? 4 : 0);
+                          tt_pv);
             }
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
