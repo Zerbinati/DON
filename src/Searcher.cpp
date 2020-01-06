@@ -1951,7 +1951,7 @@ void Thread::search()
                 auto contempt_value = i32(Options["Contempt Value"]);
                 if (0 != contempt_value)
                 {
-                    dynamic_contempt += i32(((102 - dynamic_contempt / 2) * 10 / contempt_value) * old_value) / (abs(old_value) + 157);
+                    dynamic_contempt += (102 - dynamic_contempt / 2) * old_value / (abs(old_value) + 157) * (100 / contempt_value);
                 }
                 contempt = WHITE == root_pos.active ?
                             +make_score(dynamic_contempt, dynamic_contempt / 2) :

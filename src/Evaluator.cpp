@@ -336,10 +336,7 @@ namespace {
             case BSHP:
             {
                 // Bonus for minor behind a pawn
-                if (contains(pawn_sgl_pushes_bb(Opp, pos.pieces(PAWN)), s))
-                {
-                    score += MinorBehindPawn;
-                }
+                score += MinorBehindPawn * contains(pawn_sgl_pushes_bb(Opp, pos.pieces(PAWN)), s);
 
                 // Penalty for distance from the friend king
                 score -= MinorKingProtect * dist(s, pos.square(Own|KING));
@@ -351,17 +348,24 @@ namespace {
                 if (NIHT == PT)
                 {
                     // Bonus for knight outpost squares
-                    score += contains(b, s) ?
-                                MinorOutpost * 2 :
-                                0 != (b & attacks & ~pos.pieces(Own)) ?
-                                    KnightReachablepost : SCORE_ZERO;
+                    if (contains(b, s))
+                    {
+                        score += MinorOutpost * 2;
+                    }
+                    else
+                    if (0 != (b & attacks & ~pos.pieces(Own)))
+                    {
+                        score += KnightReachablepost;
+                    }
                 }
                 else
                 if (BSHP == PT)
                 {
                     // Bonus for bishop outpost squares
-                    score += contains(b, s) ?
-                                MinorOutpost * 1 : SCORE_ZERO;
+                    if (contains(b, s))
+                    {
+                        score += MinorOutpost * 1;
+                    }
 
                     // Penalty for pawns on the same color square as the bishop,
                     // more when the center files are blocked with pawns.
@@ -373,10 +377,7 @@ namespace {
                            * pop_count(pos.color_pawns(Own, color(s)));
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
-                    if (more_than_one(attacks_bb<BSHP>(s, pos.pieces(PAWN)) & Center_bb))
-                    {
-                        score += BishopOnDiagonal;
-                    }
+                    score += BishopOnDiagonal * more_than_one(attacks_bb<BSHP>(s, pos.pieces(PAWN)) & Center_bb);
 
                     if (bool(Options["UCI_Chess960"]))
                     {
@@ -429,7 +430,7 @@ namespace {
             case QUEN:
             {
                 // Penalty for pin or discover attack on the queen
-                b = 0;
+                b = 0; // Queen attackers
                 if ((  pos.slider_blockers(s, Opp, pos.pieces(Opp, QUEN), b, b)
                      & ~pos.si->king_blockers[Opp]
                      & ~(  pos.pieces(Opp, PAWN)
@@ -637,10 +638,7 @@ namespace {
         }
 
         // Penalty for king on a pawn less flank
-        if (0 == (pos.pieces(PAWN) & KingFlank_bb[_file(own_k_sq)]))
-        {
-            score -= PawnLessFlank;
-        }
+        score -= PawnLessFlank * (0 == (pos.pieces(PAWN) & KingFlank_bb[_file(own_k_sq)]));
 
         // King tropism: Penalty for slow motion attacks moving towards friend king zone
         score -= KingFlankAttacks * king_flank_attack;

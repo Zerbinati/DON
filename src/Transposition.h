@@ -44,7 +44,7 @@ public:
     // Due to packed storage format for generation and its cyclic nature
     // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
     // to calculate the entry age correctly even after generation overflows into the next cycle.
-    Depth worth() const { return d08 - ((Generation - g08 + 0x107) & 0xF8); }
+    i16       worth() const { return d08 - ((Generation - g08 + 0x107) & 0xF8); }
 
     void refresh() { g08 = u08(Generation | (g08 & 0x07)); }
 
@@ -60,7 +60,7 @@ public:
             || d08 < d - DEP_OFFSET + 4
             || BOUND_EXACT == b)
         {
-            assert((d - DEP_OFFSET) > 0);
+            assert(d > DEP_OFFSET);
 
             k16 = u16(k >> 0x30);
             v16 = i16(v);

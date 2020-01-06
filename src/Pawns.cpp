@@ -86,10 +86,7 @@ namespace Pawns {
             if (   R_1 != own_r
                 && (own_r + 1) == opp_r)
             {
-                if (R_3 == opp_r)
-                {
-                    safety -= BlockedStorm;
-                }
+                safety -= BlockedStorm * (R_3 == opp_r);
             }
             else
             {
@@ -183,34 +180,21 @@ namespace Pawns {
             else
             if (0 == neighbours)
             {
-                score -= Isolated;
-                if (0 == opposers)
-                {
-                    score -= Unopposed;
-                }
+                score -= Isolated
+                       + Unopposed * (0 == opposers);
             }
             else
             if (backward)
             {
-                score -= Backward;
-                if (0 == opposers)
-                {
-                    score -= Unopposed;
-                }
+                score -= Backward
+                       + Unopposed * (0 == opposers);
             }
 
             if (0 == supporters)
             {
-                if (doubled)
-                {
-                    score -= WeakDoubled;
-                }
-                // Attacked twice by enemy pawns
-                if (more_than_one(levers))
-                {
-                    score -= WeakTwiceLever;
-                }
-
+                score -= WeakDoubled * doubled
+                        // Attacked twice by enemy pawns
+                       + WeakTwiceLever * more_than_one(levers);
             }
         }
 

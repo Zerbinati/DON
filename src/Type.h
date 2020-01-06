@@ -387,12 +387,26 @@ inline Value eg_value(u32 s)
 }
 
 BASIC_OPERATORS(Score)
-/// Multiplication & Division of a Score must be handled separately for each term
-inline Score operator*(Score s, i32 i) { return make_score(mg_value(s) * i, eg_value(s) * i); }
-inline Score operator/(Score s, i32 i) { return make_score(mg_value(s) / i, eg_value(s) / i); }
 
-inline Score& operator*=(Score &s, i32 i) { s = make_score(mg_value(s) * i, eg_value(s) * i); return s; }
+/// Division of a Score must be handled separately for each term
+inline Score operator/(Score s, i32 i) { return make_score(mg_value(s) / i, eg_value(s) / i); }
 inline Score& operator/=(Score &s, i32 i) { s = make_score(mg_value(s) / i, eg_value(s) / i); return s; }
+
+/// Multiplication of a Score by an integer. We check for overflow in debug mode.
+inline Score operator*(Score s, i32 i)
+{
+    Score score = Score(i32(s) * i);
+
+    assert(eg_value(score) == (eg_value(s) * i));
+    assert(mg_value(score) == (mg_value(s) * i));
+    assert((0 == i) || (score / i) == s);
+
+    return score;
+}
+inline Score& operator*=(Score &s, i32 i) { s = Score(i32(s) * i); return s; }
+
+/// Multiplication of a Score by a boolean
+inline Score operator*(Score s, bool b) { return Score(i32(s) * i32(b)); }
 
 /// Don't want to multiply two scores due to a very high risk of overflow.
 /// So user should explicitly convert to integer.

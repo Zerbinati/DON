@@ -151,11 +151,11 @@ void TTable::clear()
     }
 
     vector<thread> threads;
-    for (size_t idx = 0; idx < option_threads(); ++idx)
+    auto thread_count = option_threads();
+    for (size_t idx = 0; idx < thread_count; ++idx)
     {
-        threads.emplace_back([this, idx]()
+        threads.emplace_back([this, idx, thread_count]()
                              {
-                                 auto thread_count = option_threads();
                                  if (8 < thread_count)
                                  {
                                      WinProcGroup::bind(idx);

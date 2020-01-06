@@ -804,7 +804,7 @@ namespace {
 void run(u32 argc, char const *const *argv)
 {
     cout << Name << " " << version_info() << " by " << Author << endl;
-    cout << "info string Processor(s) detected " << NativeThread::hardware_concurrency() << endl;
+    cout << "info string Processor(s) detected " << thread::hardware_concurrency() << endl;
 
 #if defined(LPAGES)
     Memory::initialize();
