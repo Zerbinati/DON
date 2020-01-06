@@ -1221,7 +1221,7 @@ namespace TBSyzygy {
             // Starting from this we compute a base64[] table indexed by symbol length
             // and containing 64 bit values so that d->base64[i] >= d->base64[i+1].
             // See http://www.eecs.harvard.edu/~michaelm/E210/huffman.pdf
-            for (i32 i = d->base64.size() - 2; i >= 0; --i)
+            for (i32 i = i32(d->base64.size()) - 2; i >= 0; --i)
             {
                 d->base64[i] = (  d->base64[i + 1]
                                 + number<Sym, Endian::LITTLE>(&d->lowest_sym[i])
@@ -1765,6 +1765,7 @@ namespace TBSyzygy {
     void initialize(string const &paths)
     {
         static bool initialized = false;
+
         if (!initialized)
         {
             // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27

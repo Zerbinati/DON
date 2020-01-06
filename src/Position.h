@@ -520,7 +520,8 @@ inline bool Position::discovery_check_blocker_at(Square s) const
 /// Position::bishop_paired() check the side has pair of opposite color bishops.
 inline bool Position::bishop_paired(Color c) const
 {
-    return 0 != (pieces(c, BSHP) & BitBoard::Color_bb[WHITE])
+    return 2 <= count(c|BSHP)
+        && 0 != (pieces(c, BSHP) & BitBoard::Color_bb[WHITE])
         && 0 != (pieces(c, BSHP) & BitBoard::Color_bb[BLACK]);
 }
 inline bool Position::semiopenfile_on(Color c, Square s) const
