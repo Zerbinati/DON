@@ -412,7 +412,7 @@ namespace {
                 // Bonus for rook when on an open or semi-open file
                 if (pos.semiopenfile_on(Own, s))
                 {
-                    score += RookOnFile[pos.semiopenfile_on(Opp, s) ? 1 : 0];
+                    score += RookOnFile[pos.semiopenfile_on(Opp, s)];
                 }
                 else
                 // Penalty for rook when trapped by the king, even more if the king can't castle
@@ -422,7 +422,7 @@ namespace {
                     auto kf = _file(pos.square(Own|KING));
                     if ((kf < F_E) == (_file(s) < kf))
                     {
-                        score -= RookTrapped * (CR_NONE != pos.si->castle_right(Own) ? 1 : 2);
+                        score -= RookTrapped * (1 + (CR_NONE == pos.si->castle_right(Own)));
                     }
                 }
             }
@@ -624,9 +624,9 @@ namespace {
                      +   1 * mg_value(mobility[Opp] - mobility[Own])
                      +   3 * i32(std::pow(king_flank_attack, 2)) / 8
                         // Enemy queen is gone
-                     - 873 * (0 == pos.pieces(Opp, QUEN) ? 1 : 0)
+                     - 873 * (0 == pos.pieces(Opp, QUEN))
                         // Friend knight is near by to defend king
-                     - 100 * (0 != (sgl_attacks[Own][NIHT] & (sgl_attacks[Own][KING] | own_k_sq)) ? 1 : 0)
+                     - 100 * (0 != (sgl_attacks[Own][NIHT] & (sgl_attacks[Own][KING] | own_k_sq)))
                      -   4 * king_flank_defense
                      -   3 * mg_value(score) / 4
                      +  37;

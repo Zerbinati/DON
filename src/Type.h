@@ -458,7 +458,7 @@ Delta constexpr pawn_r_att(Color c) { return WHITE == c ? DEL_NE : DEL_SW; }
 
 CastleRight constexpr operator|(Color c, CastleSide cs)
 {
-    return CastleRight(CR_WKING << (2 * c + (cs == CS_KING ? 0 : 1)));
+    return CastleRight(CR_WKING << (2 * c + (cs == CS_QUEN)));
 }
 
 bool constexpr   _ok(PieceType pt) { return PAWN <= pt && pt <= KING; }

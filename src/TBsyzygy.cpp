@@ -364,7 +364,7 @@ namespace TBSyzygy {
                 };
 
                 u08 *data = (u08*)(*base_address);
-                if (0 != std::memcmp(data, TB_MAGIC[WDL == type ? 1 : 0], 4))
+                if (0 != std::memcmp(data, TB_MAGIC[(WDL == type)], 4))
                 {
                     cerr << "Corrupted table in file " << filename << endl;
                     unmap(*base_address, *mapping);
@@ -994,9 +994,9 @@ namespace TBSyzygy {
                 // In case we have at least 3 unique pieces(included kings) we encode them together.
                 if (entry->has_unique_pieces)
                 {
-                    i32 adjust1 = (squares[1] > squares[0] ? 1 : 0);
-                    i32 adjust2 = (squares[2] > squares[0] ? 1 : 0)
-                                + (squares[2] > squares[1] ? 1 : 0);
+                    i32 adjust1 = (squares[1] > squares[0]);
+                    i32 adjust2 = (squares[2] > squares[0])
+                                + (squares[2] > squares[1]);
                     // First piece is below a1-h8 diagonal. MapA1D1D4[] maps the b1-d1-d3
                     // triangle to 0...5. There are 63 squares for second piece and and 62
                     // (mapped to 0...61) for the third.
@@ -1068,7 +1068,7 @@ namespace TBSyzygy {
                                                  {
                                                      return group_sq[i] > s;
                                                  });
-                    n += Binomial[i + 1][group_sq[i] - adjust - 8 * (pawn_remain ? 1 : 0)];
+                    n += Binomial[i + 1][group_sq[i] - adjust - 8 * (pawn_remain)];
                 }
 
                 pawn_remain = false;
@@ -1323,7 +1323,7 @@ namespace TBSyzygy {
                     { *data >>  4, pp ? *(data + 1) >>  4 : 0xF }
                 };
 
-                data += 1 + (pp ? 1 : 0);
+                data += 1 + (pp);
 
                 for (i32 k = 0; k < e.piece_count; ++k, ++data)
                 {

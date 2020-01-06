@@ -215,7 +215,7 @@ namespace Material {
                 pos.count(WHITE|BSHP),
                 pos.count(WHITE|ROOK),
                 pos.count(WHITE|QUEN),
-                pos.bishop_paired(WHITE) ? 1 : 0
+                pos.bishop_paired(WHITE)
             },
             {
                 pos.count(BLACK|PAWN),
@@ -223,7 +223,7 @@ namespace Material {
                 pos.count(BLACK|BSHP),
                 pos.count(BLACK|ROOK),
                 pos.count(BLACK|QUEN),
-                pos.bishop_paired(BLACK) ? 1 : 0
+                pos.bishop_paired(BLACK)
             }
         }};
 

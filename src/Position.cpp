@@ -875,7 +875,7 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
     // Rule 50 draw case.
     assert(100 >= si->clock_ply);
     // Convert from moves starting from 1 to ply starting from 0.
-    ply = Depth(std::max(2*(ply - 1), 0) + (BLACK == active ? 1 : 0));
+    ply = i16(std::max(2 * (ply - 1), 0) + (BLACK == active));
 
     thread = th;
 
@@ -1300,7 +1300,7 @@ void Position::mirror()
             if (bool(Options["UCI_Chess960"]))
             {
                 assert(isalpha(ch));
-                ch = to_char(~to_file(tolower(ch)), islower(ch));
+                ch = to_char(~to_file(char(tolower(ch))), islower(ch));
             }
             else
             {

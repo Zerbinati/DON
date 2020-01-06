@@ -390,7 +390,7 @@ inline bool Position::expeded_castle(Color c, CastleSide cs) const
 /// Position::move_num() starts at 1, and is incremented after BLACK's move.
 inline i16 Position::move_num() const
 {
-    return i16(std::max((ply - (BLACK == active ? 1 : 0)) / 2, 0) + 1);
+    return i16(std::max((ply - (BLACK == active)) / 2, 0) + 1);
 }
 
 /// Position::attackers_to() finds attackers to the square on occupancy.

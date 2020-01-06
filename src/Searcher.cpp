@@ -479,12 +479,12 @@ namespace Searcher {
         // Futility margin
         Value constexpr futility_margin(bool imp, Depth d)
         {
-            return Value(217 * (d - (imp ? 1 : 0)));
+            return Value(217 * (d - (imp)));
         }
         // Futility move count threshold
         i16 constexpr futility_move_count(bool imp, Depth d)
         {
-            return (imp ? 2 : 1) * (5 + d * d) / 2 - 1;
+            return (5 + d * d) * (1 + (imp)) / 2 - 1;
         }
 
         Depth reduction(bool imp, Depth d, u08 mc)
@@ -496,7 +496,7 @@ namespace Searcher {
             }
 
             auto r = Threadpool.factor * std::log(d) * std::log(mc);
-            return Depth((r + 511) / 1024 + (!imp && r > 1007 ? 1 : 0));
+            return Depth((r + 511) / 1024 + (!imp && r > 1007));
         }
 
         i32 BasicContempt = 0;
@@ -1037,7 +1037,7 @@ namespace Searcher {
                     {
                         thread->tb_hits.fetch_add(1, std::memory_order::memory_order_relaxed);
 
-                        i16 draw = TBUseRule50 ? 1 : 0;
+                        i16 draw = TBUseRule50;
 
                         value = wdl < -draw ? -VALUE_MATE + (DEP_MAX + ss->ply + 1) :
                                 wdl > +draw ? +VALUE_MATE - (DEP_MAX + ss->ply + 1) :
@@ -1760,7 +1760,7 @@ namespace Searcher {
 
                 if (!pos.capture_or_promotion(best_move))
                 {
-                    auto qbonus = stat_bonus(depth + (best_value > beta + VALUE_MG_PAWN ? 1 : 0));
+                    auto qbonus = stat_bonus(depth + (best_value > beta + VALUE_MG_PAWN));
 
                     update_quiet_stats(ss, pos, best_move, qbonus);
                     // Decrease all the other played quiet moves.

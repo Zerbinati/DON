@@ -173,7 +173,7 @@ namespace Pawns {
             if (   0 != supporters
                 || 0 != phalanxes)
             {
-                i32 v = Connected[r] * (2 + (0 != phalanxes ? 1 : 0) - (0 != opposers ? 1 : 0))
+                i32 v = Connected[r] * (2 + (0 != phalanxes) - (0 != opposers))
                       + 21 * pop_count(supporters);
                 score += make_score(v, v * (r - R_3) / 4);
             }

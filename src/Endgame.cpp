@@ -236,7 +236,7 @@ namespace Endgames {
         // If the strong side's king is in front of the pawn, it's a win. or
         // If the weak side's king is too far from the pawn and the rook, it's a win.
         if (   contains(front_squares_bb(WHITE, sk_sq), wp_sq)
-            || (   3 <= dist(wk_sq, wp_sq) - (weak_color == pos.active ? 1 : 0)
+            || (   3 <= dist(wk_sq, wp_sq) - (weak_color == pos.active)
                 && 3 <= dist(wk_sq, sr_sq)))
         {
             value = VALUE_EG_ROOK
@@ -247,7 +247,7 @@ namespace Endgames {
         if (   R_3 >= _rank(wk_sq)
             && 1 == dist(wk_sq, wp_sq)
             && R_4 <= _rank(sk_sq)
-            && 2 < dist(sk_sq, wp_sq) - (strong_color == pos.active ? 1 : 0))
+            && 2 < dist(sk_sq, wp_sq) - (strong_color == pos.active))
         {
             value = Value(80)
                   - 8 * dist(sk_sq, wp_sq);
@@ -301,7 +301,7 @@ namespace Endgames {
         auto wn_sq = pos.square(  weak_color|NIHT);
 
         //// If weak king is near the knight, it's a draw.
-        //if (   dist(wk_sq, wn_sq) <= 3 - (strong_color == pos.active ? 1 : 0)
+        //if (   dist(wk_sq, wn_sq) <= 3 - (strong_color == pos.active)
         //    && dist(sk_sq, wn_sq) > 1)
         //{
         //    return VALUE_DRAW;
@@ -382,7 +382,7 @@ namespace Endgames {
         auto sp_f = _file(sp_sq);
         auto sp_r = _rank(sp_sq);
         auto promote_sq = sp_f|R_8;
-        i32 tempo = strong_color == pos.active ? 1 : 0;
+        i32 tempo = (strong_color == pos.active);
 
         // If the pawn is not too far advanced and the defending king defends the
         // queening square, use the third-rank defense.
