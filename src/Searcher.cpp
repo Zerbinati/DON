@@ -148,8 +148,7 @@ namespace Searcher {
                     std::swap(*vmItr, *std::max_element(vmItr, vmoves.end()));
                     if (   tt_move != vmItr->move
                         && (   (   ENPASSANT != mtype(vmItr->move)
-                                && !contains(  pos.si->king_blockers[pos.active]
-                                             | pos.square(pos.active|KING), org_sq(vmItr->move)))
+                                && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(vmItr->move)))
                             || pos.legal(vmItr->move))
                         && filter ())
                     {
@@ -940,13 +939,12 @@ namespace Searcher {
             // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
             // Later grandchildren start with the last calculated stats of the previous grandchild.
             // This influences the reduction rules in LMR which are based on the stats of parent position.
-            (ss+(root_node ? 4 : 2))->stats = 0;
+            (ss+2+2*(root_node))->stats = 0;
 
             // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
-            // TT value, so use a unused position key in case of an excluded move.
-            Key key = MOVE_NONE == ss->excluded_move ?
-                        pos.si->posi_key : 0;
+            // TT value, so use a different position key in case of an excluded move.
+            Key key = pos.si->posi_key ^ (Key(ss->excluded_move) << 0x10);
             bool tt_hit;
             auto *tte = TT.probe(key, tt_hit);
             auto tt_move = root_node ?
@@ -1395,7 +1393,8 @@ namespace Searcher {
                         // Reduced depth of the next LMR search.
                         auto lmr_depth = Depth(std::max(new_depth - reduction(improving, depth, move_count), 0));
                         // Counter moves based pruning: (~20 ELO)
-                        if (   ((0 < (ss-1)->stats || 1 == (ss-1)->move_count) ? 5 : 4) > lmr_depth
+                        if (   (4 + (   0 < (ss-1)->stats
+                                     || 1 == (ss-1)->move_count)) > lmr_depth
                             && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
                             && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
                         {
@@ -1500,7 +1499,7 @@ namespace Searcher {
 
                 bool do_lmr =
                        2 < depth
-                    && (root_node ? 3 : 1) < move_count
+                    && (1 + 2 * (root_node)) < move_count
                     && (   !root_node
                         || thread->move_best_count(move) == 0)
                     && (   cut_node
@@ -2082,9 +2081,8 @@ void Thread::search()
                     th->pv_change = 0;
                 }
                 // Reduce time if the best_move is stable over 10 iterations
-                double time_reduction =
-                        9 < finished_depth - main_thread->best_move_depth ? 1.94 : 0.91;
-                        //clamp(0.90 + 0.09 * (finished_depth - main_thread->best_move_depth), 0.98, 1.97);
+                double time_reduction = 9 < finished_depth - main_thread->best_move_depth ? 1.94 : 0.91;
+
                 // Stop the search
                 // -If there is only one legal move available
                 // -If all of the available time has been used

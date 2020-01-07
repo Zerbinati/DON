@@ -176,7 +176,7 @@ namespace Material {
             {
                 scale[c] = pos.non_pawn_material( c) <  VALUE_MG_ROOK ?
                                 SCALE_DRAW :
-                                Scale(pos.non_pawn_material(~c) <= VALUE_MG_BSHP ? 4 : 14);
+                                Scale(14 - 10 * (pos.non_pawn_material(~c) <= VALUE_MG_BSHP));
             }
         }
 
