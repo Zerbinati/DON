@@ -190,8 +190,6 @@ public:
 
     Bitboard attackers_to(Square, Bitboard) const;
     Bitboard attackers_to(Square) const;
-    //Bitboard xattackers_to(Square, Bitboard) const;
-    //Bitboard xattackers_to(Square) const;
     Bitboard attacks_from(PieceType, Square, Bitboard) const;
     Bitboard attacks_from(PieceType, Square) const;
     Bitboard attacks_from(Square, Bitboard) const;
@@ -209,7 +207,6 @@ public:
 
     PieceType cap_type(Move) const;
 
-    Value exchange(Move) const;
     bool see_ge(Move, Value = VALUE_ZERO) const;
 
     bool pawn_advance_at(Color, Square) const;
@@ -406,26 +403,6 @@ inline Bitboard Position::attackers_to(Square s) const
     return attackers_to(s, pieces());
 }
 
-///// Position::xattackers_to() finds attackers to the square on occupancy.
-//inline Bitboard Position::xattackers_to(Square s, Bitboard occ) const
-//{
-//    return (pieces(BLACK, PAWN) & PawnAttacks[WHITE][s])
-//         | (pieces(WHITE, PAWN) & PawnAttacks[BLACK][s])
-//         | (pieces(NIHT)        & PieceAttacks[NIHT][s])
-//         | (pieces(WHITE, BSHP) & attacks_bb<BSHP>(s, occ & ~pieces(WHITE, QUEN, BSHP)))
-//         | (pieces(BLACK, BSHP) & attacks_bb<BSHP>(s, occ & ~pieces(BLACK, QUEN, BSHP)))
-//         | (pieces(WHITE, ROOK) & attacks_bb<ROOK>(s, occ & ~pieces(WHITE, QUEN, ROOK)))
-//         | (pieces(BLACK, ROOK) & attacks_bb<ROOK>(s, occ & ~pieces(BLACK, QUEN, ROOK)))
-//         | (pieces(WHITE, QUEN) & attacks_bb<QUEN>(s, occ & ~pieces(WHITE, QUEN)))
-//         | (pieces(BLACK, QUEN) & attacks_bb<QUEN>(s, occ & ~pieces(BLACK, QUEN)))
-//         | (pieces(KING)        & PieceAttacks[KING][s]);
-//}
-///// Position::attackers_to() finds attackers to the square.
-//inline Bitboard Position::xattackers_to(Square s) const
-//{
-//    return xattackers_to(s, pieces());
-//}
-
 /// Position::attacks_from() finds attacks of the piecetype from the square on occupancy.
 inline Bitboard Position::attacks_from(PieceType pt, Square s, Bitboard occ) const
 {
@@ -490,14 +467,6 @@ inline PieceType Position::cap_type(Move m) const
     return ENPASSANT != mtype(m) ?
             ptype(piece[dst_sq(m)]) :
             PAWN;
-}
-
-inline Value Position::exchange(Move m) const
-{
-    return NORMAL == mtype(m) ?
-            PieceValues[MG][ptype(piece[dst_sq(m)])]
-          - PieceValues[MG][ptype(piece[org_sq(m)])] :
-            VALUE_ZERO;
 }
 
 inline bool Position::pawn_advance_at(Color c, Square s) const

@@ -250,8 +250,7 @@ namespace Searcher {
 
                 if (   MOVE_NONE != tt_move
                     && !(   pos.capture(tt_move)
-                         && (   pos.exchange(tt_move) >= threshold
-                             || pos.see_ge(tt_move, threshold))))
+                         && pos.see_ge(tt_move, threshold)))
                 {
                     tt_move = MOVE_NONE;
                 }
@@ -290,9 +289,7 @@ namespace Searcher {
                     goto restage;
 
                 case Stage::NT_GOOD_CAPTURES:
-                    if (pick([&]() { auto thr = Value(-(vmItr->value) * 55 / 1024);
-                                     if (   pos.exchange(vmItr->move) >= thr
-                                         || pos.see_ge(vmItr->move, thr))
+                    if (pick([&]() { if (pos.see_ge(vmItr->move, Value(-(vmItr->value) * 55 / 1024)))
                                      {
                                          return true;
                                      }
@@ -366,8 +363,7 @@ namespace Searcher {
                     /* end */
 
                 case Stage::PC_CAPTURES:
-                    return pick([&]() { return pos.exchange(vmItr->move) >= threshold
-                                            || pos.see_ge(vmItr->move, threshold); }) ?
+                    return pick([&]() { return pos.see_ge(vmItr->move, threshold); }) ?
                             (vmItr-1)->move :
                             MOVE_NONE;
                     /* end */
@@ -754,7 +750,6 @@ namespace Searcher {
 
                     // Prune moves with negative or zero SEE
                     if (   futility_base <= alfa
-                        && pos.exchange(move) < Value(1)
                         && !pos.see_ge(move, Value(1)))
                     {
                         best_value = std::max(futility_base, best_value);
@@ -769,7 +764,6 @@ namespace Searcher {
                             && -VALUE_MATE_MAX_PLY < best_value
                             && !pos.capture(move)))
                     && !Limits.mate_on()
-                    && pos.exchange(move) < VALUE_ZERO
                     && !pos.see_ge(move))
                 {
                     continue;
@@ -1412,22 +1406,16 @@ namespace Searcher {
                             continue;
                         }
                         // SEE based pruning: negative SEE (~10 ELO)
-                        auto thr = Value(-(32 - std::min(i32(lmr_depth), 18)) * i32(pow(i32(lmr_depth), 2)));
-                        if (   pos.exchange(move) < thr
-                            && !pos.see_ge(move, thr))
+                        if (!pos.see_ge(move, Value(-(32 - std::min(i32(lmr_depth), 18)) * i32(pow(i32(lmr_depth), 2)))))
                         {
                             continue;
                         }
                     }
                     else
+                    // SEE based pruning: negative SEE (~20 ELO)
+                    if (!pos.see_ge(move, Value(-194 * depth)))
                     {
-                        // SEE based pruning: negative SEE (~20 ELO)
-                        auto thr = Value(-194 * depth);
-                        if (   pos.exchange(move) < thr
-                            && !pos.see_ge(move, thr))
-                        {
-                            continue;
-                        }
+                        continue;
                     }
                 }
 
@@ -1478,7 +1466,6 @@ namespace Searcher {
                     // Check extension (~2 ELO)
                     || (   gives_check
                         && (   pos.discovery_check_blocker_at(org)
-                            || pos.exchange(move) >= VALUE_ZERO
                             || pos.see_ge(move)))
                     // Passed pawn extension
                     || (   move == ss->killer_moves[0]
