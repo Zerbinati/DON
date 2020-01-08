@@ -1163,10 +1163,10 @@ namespace Searcher {
                     && MOVE_NONE == ss->excluded_move
                     && !Limits.mate_on()
                     && VALUE_ZERO != pos.non_pawn_material(pos.active)
-                    && 23405 > (ss-1)->stats
+                    && 23397 > (ss-1)->stats
                     && eval >= beta
                     && eval >= ss->static_eval
-                    && ss->static_eval >= beta - 32 * depth + 317 - (improving ? 30 : 0)
+                    && ss->static_eval >= beta - 32 * depth + 292 - 30 * (improving)
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != pos.active))
                 {
@@ -1216,12 +1216,12 @@ namespace Searcher {
                     && !Limits.mate_on()
                     && abs(beta) < +VALUE_MATE_MAX_PLY)
                 {
-                    auto raised_beta = std::min(beta + (improving ? 144 : 189), +VALUE_INFINITE);
+                    auto raised_beta = std::min(beta + 189 - 45 * (improving), +VALUE_INFINITE);
                     u08 pc_movecount = 0;
                     // Initialize move picker (3) for the current position
                     MovePicker move_picker(pos, tt_move, raised_beta - ss->static_eval);
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
-                    while (   pc_movecount < (cut_node ? 4 : 2)
+                    while (   pc_movecount < 2 + 2 * (cut_node)
                            && MOVE_NONE != (move = move_picker.next_move()))
                     {
                         assert(pos.pseudo_legal(move)
@@ -1403,7 +1403,11 @@ namespace Searcher {
                         // Futility pruning: parent node. (~2 ELO)
                         if (   !in_check
                             && 6 > lmr_depth
-                            && ss->static_eval + 182 * lmr_depth + 255 <= alfa)
+                            && ss->static_eval + 182 * lmr_depth + 255 <= alfa
+                            && (  thread->butterfly_history[pos.active][move_index(move)]
+                                + (*pd_histories[0])[mpc][dst]
+                                + (*pd_histories[1])[mpc][dst]
+                                + (*pd_histories[3])[mpc][dst]) < 30000)
                         {
                             continue;
                         }
@@ -2014,6 +2018,7 @@ void Thread::search()
                 // Otherwise exit the loop.
                 else
                 {
+                    // Research if fail count is not zero
                     if (0 != fail_high_count)
                     {
                         fail_high_count = 0;
@@ -2081,7 +2086,7 @@ void Thread::search()
                     th->pv_change = 0;
                 }
                 // Reduce time if the best_move is stable over 10 iterations
-                double time_reduction = 9 < finished_depth - main_thread->best_move_depth ? 1.94 : 0.91;
+                double time_reduction = 0.91 + 1.03 * (9 < finished_depth - main_thread->best_move_depth);
 
                 // Stop the search
                 // -If there is only one legal move available
