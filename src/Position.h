@@ -126,9 +126,6 @@ private:
 
     bool can_enpassant(Color, Square, bool = true) const;
 
-    template<PieceType>
-    PieceType pick_next_attacker(Bitboard, Square, Square&, Bitboard&, Bitboard&) const;
-
 public:
     std::array<Piece, SQ_NO>        piece;
     std::array<Bitboard, CLR_NO>    color_bb;
