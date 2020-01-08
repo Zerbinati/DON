@@ -34,7 +34,7 @@ public:
 
     TimePoint elapsed_time() const;
 
-    void set(Color, i16, u16, TimePoint, TimePoint, double, bool);
+    void set(Color, i16);
     void update(Color);
 };
 

@@ -67,8 +67,8 @@ namespace {
     template<bool Optimum>
     TimePoint remaining_time(TimePoint time, u08 movestogo, Depth ply, double move_slowness)
     {
-        auto constexpr  StepRatio = Optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
-        auto constexpr StealRatio = Optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
+        auto constexpr  StepRatio = 7.30 - 6.30 * Optimum; // When in trouble, can step over reserved time with this ratio
+        auto constexpr StealRatio = 0.34 - 0.34 * Optimum; // However must not steal time from remaining moves over this ratio
 
         auto move_imp1 = move_importance(ply) * move_slowness;
         auto move_imp2 = 0.0;
@@ -103,9 +103,13 @@ TimePoint TimeManager::elapsed_time() const
 /// Minimum movetime = No matter what, use at least this much time before doing the move, in milli-seconds.
 /// Overhead movetime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
 /// Move Slowness = Move Slowness, in %age.
-void TimeManager::set(Color c, i16 ply, u16 tm_nodes, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
+void TimeManager::set(Color c, i16 ply)
 {
-    time_nodes = tm_nodes;
+    auto minimum_movetime  = TimePoint(i32(Options["Minimum Move Time"]));
+    auto overhead_movetime = TimePoint(i32(Options["Overhead Move Time"]));
+    auto move_slowness     = i32(Options["Move Slowness"]) / 100.0;
+
+    time_nodes             = u16(i32(Options["Time Nodes"]));
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
@@ -144,7 +148,7 @@ void TimeManager::set(Color c, i16 ply, u16 tm_nodes, TimePoint minimum_movetime
         maximum_time = std::min(maximum_time, minimum_movetime + remaining_time<false>(time, movestogo, ply, move_slowness));
     }
 
-    if (ponder)
+    if (bool(Options["Ponder"]))
     {
         optimum_time += optimum_time / 4;
     }
@@ -262,7 +266,7 @@ void Thread::clear()
 {
     butterfly_history.fill(0);
     capture_history.fill(0);
-    for (bool in_check : { false, true })
+    for (auto in_check : {0, 1})
     {
         for (auto cap_type : {0, 1})
         {
@@ -307,20 +311,21 @@ namespace WinProcGroup {
     {
 #   if defined(_WIN32)
         // Early exit if the needed API is not available at runtime
-        auto kernel32 = GetModuleHandle ("Kernel32.dll");
+        auto kernel32 = GetModuleHandle("Kernel32.dll");
         if (nullptr == kernel32)
         {
             return;
         }
-        auto GetLogicalProcessorInformationEx = GLPIE ((void (*)())GetProcAddress (kernel32, "GetLogicalProcessorInformationEx"));
-        if (nullptr == GetLogicalProcessorInformationEx)
+        // GetLogicalProcessorInformationEx
+        auto glpie = GLPIE((void (*)())GetProcAddress(kernel32, "GetLogicalProcessorInformationEx"));
+        if (nullptr == glpie)
         {
             return;
         }
 
         DWORD length;
         // First call to get length. We expect it to fail due to null buffer
-        if (GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
+        if (glpie(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
         {
             return;
         }
@@ -333,7 +338,7 @@ namespace WinProcGroup {
         }
 
         // Second call, now we expect to succeed
-        if (!GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, ptrSysLogicalProcInfoBase, &length))
+        if (!glpie(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, ptrSysLogicalProcInfoBase, &length))
         {
             free(ptrSysLogicalProcInfoBase);
             return;
@@ -351,7 +356,7 @@ namespace WinProcGroup {
             {
             case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
                 ++cores;
-                threads += ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT ? 2 : 1;
+                threads += 1 + 1 * (ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT);
                 break;
             case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
                 ++nodes;
@@ -393,29 +398,29 @@ namespace WinProcGroup {
             return;
         }
 
-
 #   if defined(_WIN32)
         u16 group = Groups[index];
-        auto kernel32 = GetModuleHandle ("Kernel32.dll");
+        auto kernel32 = GetModuleHandle("Kernel32.dll");
         if (nullptr == kernel32)
         {
             return;
         }
-
-        auto GetNumaNodeProcessorMaskEx = GNNPME ((void (*)())GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx"));
-        if (nullptr == GetNumaNodeProcessorMaskEx)
+        // GetNumaNodeProcessorMaskEx
+        auto gnnpme = GNNPME((void (*)())GetProcAddress(kernel32, "GetNumaNodeProcessorMaskEx"));
+        if (nullptr == gnnpme)
         {
             return;
         }
         GROUP_AFFINITY group_affinity;
-        if (GetNumaNodeProcessorMaskEx (group, &group_affinity))
+        if (gnnpme(group, &group_affinity))
         {
-            auto SetThreadGroupAffinity = STGA ((void (*)())GetProcAddress (kernel32, "SetThreadGroupAffinity"));
-            if (nullptr == SetThreadGroupAffinity)
+            // SetThreadGroupAffinity
+            auto stga = STGA((void (*)())GetProcAddress(kernel32, "SetThreadGroupAffinity"));
+            if (nullptr == stga)
             {
                 return;
             }
-            SetThreadGroupAffinity (GetCurrentThread(), &group_affinity, nullptr);
+            stga(GetCurrentThread(), &group_affinity, nullptr);
         }
 
 #   endif

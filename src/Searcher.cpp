@@ -62,7 +62,7 @@ namespace Searcher {
             i32   stats;
             PieceDestinyHistory *pd_history;
 
-            std::list<Move> pv;
+            list<Move> pv;
         };
 
         /// MovePicker class is used to pick one legal moves from the current position.
@@ -298,7 +298,7 @@ namespace Searcher {
                                          // Put losing capture to bad_capture_moves to be tried later
                                          bad_capture_moves.push_back(vmItr->move);
                                          return false;
-                                     }}))
+                                     } }))
                     {
                         return (vmItr-1)->move;
                     }
@@ -2005,12 +2005,12 @@ void Thread::search()
                 // Otherwise exit the loop.
                 else
                 {
-                    // Research if fail count is not zero
-                    if (0 != fail_high_count)
-                    {
-                        fail_high_count = 0;
-                        continue;
-                    }
+                    //// Research if fail count is not zero
+                    //if (0 != fail_high_count)
+                    //{
+                    //    fail_high_count = 0;
+                    //    continue;
+                    //}
 
                     ++root_moves[pv_cur].best_count;
                     break;
@@ -2087,8 +2087,8 @@ void Thread::search()
                       * (1.41 + main_thread->time_reduction) / (2.27 * time_reduction)
                         // Falling Eval factor
                       * ::clamp((332
-                                 + 6 * (+VALUE_INFINITE != main_thread->best_value ? main_thread->best_value - best_value : 0)
-                                 + 6 * (+VALUE_INFINITE != main_thread->iter_value[iter_idx] ? main_thread->iter_value[iter_idx] - best_value : 0))
+                                 + 6 * (main_thread->best_value * i32(+VALUE_INFINITE != main_thread->best_value) - best_value)
+                                 + 6 * (main_thread->iter_value[iter_idx] * i32(+VALUE_INFINITE != main_thread->iter_value[iter_idx]) - best_value))
                                 / 704.0, 0.5, 1.5)))
                 {
                     // If allowed to ponder do not stop the search now but
@@ -2153,13 +2153,7 @@ void MainThread::search()
     if (Limits.time_mgr_used())
     {
         // Set the time manager before searching.
-        time_mgr.set(root_pos.active,
-                     root_pos.ply,
-                     u16(i32(Options["Time Nodes"])),
-                     TimePoint(i32(Options["Minimum Move Time"])),
-                     TimePoint(i32(Options["Overhead Move Time"])),
-                     i32(Options["Move Slowness"]) / 100.0,
-                     bool(Options["Ponder"]));
+        time_mgr.set(root_pos.active, root_pos.ply);
     }
 
     TEntry::Generation = u08((root_pos.ply + 1) << 3);
@@ -2236,13 +2230,13 @@ void MainThread::search()
             }
 
             skill_mgr.set_level(bool(Options["UCI_LimitStrength"]) ?
-                                ::clamp(i16(std::pow((i32(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), i16(0), MaxLevel) :
-                                i16(i32(Options["Skill Level"])));
+                                    ::clamp(i16(std::pow((i32(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), i16(0), MaxLevel) :
+                                    i16(i32(Options["Skill Level"])));
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = ::clamp(u32(i32(Options["MultiPV"])), u32(skill_mgr.enabled() ? 4 : 1), u32(root_moves.size()));
+            Threadpool.pv_limit = ::clamp(u32(i32(Options["MultiPV"])), u32(1 + 3 * skill_mgr.enabled()), u32(root_moves.size()));
 
             set_check_count();
 
@@ -2354,7 +2348,12 @@ void MainThread::search()
     }
 
     // Best move could be MOVE_NONE when searching on a stalemate position.
-    sync_cout << "bestmove " << bm << " ponder " << pm << sync_endl;
+    sync_cout << "bestmove " << bm;
+    if (MOVE_NONE != pm)
+    {
+        std::cout << " ponder " << pm;
+    }
+    std::cout << sync_endl;
 }
 /// MainThread::set_check_count()
 void MainThread::set_check_count()

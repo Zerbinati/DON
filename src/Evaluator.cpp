@@ -769,7 +769,6 @@ namespace {
               & (  (sgl_attacks[Own][BSHP] & queen_attacks[Opp][1])
                  | (sgl_attacks[Own][ROOK] & queen_attacks[Opp][2]))
               & dbl_attacks[Own];
-            // Bonus for safe slider attack threats on enemy queen
             score += SliderOnQueen * pop_count(b);
         }
 
@@ -918,8 +917,8 @@ namespace {
         i32 complexity = 11 * pos.count(PAWN)
                        +  9 * pe->passed_count()
                        +  9 * outflanking
-                       + 12 * (   _rank(pos.square(WHITE | KING)) > R_4
-                               || _rank(pos.square(BLACK | KING)) < R_5)
+                       + 12 * (   _rank(pos.square(WHITE|KING)) > R_4
+                               || _rank(pos.square(BLACK|KING)) < R_5)
                        + 51 * (VALUE_ZERO == pos.non_pawn_material())
                        - 100;
 
@@ -1018,9 +1017,7 @@ namespace {
 
         if (abs(v) > Value(1400) + pos.non_pawn_material() / 64) // Lazy Threshold
         {
-            return WHITE == pos.active ?
-                    +v :
-                    -v;
+            return WHITE == pos.active ? +v : -v;
         }
 
         if (Trace)
