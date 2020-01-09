@@ -2066,30 +2066,34 @@ void Thread::search()
                     main_thread->best_move_depth = root_depth;
                 }
 
-                // Use part of the gained time from a previous stable move for the current move
+                // Reduce time if the best_move is stable over 10 iterations
+                // Time Reduction factor
+                double time_reduction = 0.91 + 1.03 * (9 < finished_depth - main_thread->best_move_depth);
+                // Reduction factor - Use part of the gained time from a previous stable move for the current move
+                double reduction = (1.41 + main_thread->time_mgr.time_reduction) / (2.27 * time_reduction);
+                // Eval Falling factor
+                double eval_falling = ::clamp((332
+                                               + 6 * (main_thread->best_value * i32(+VALUE_INFINITE != main_thread->best_value) - best_value)
+                                               + 6 * (main_thread->iter_value[iter_idx] * i32(+VALUE_INFINITE != main_thread->iter_value[iter_idx]) - best_value)) / 704.0,
+                                              0.50, 1.50);
+
+                // PV Instability factor
                 for (auto *th : Threadpool)
                 {
                     total_pv_changes += th->pv_change;
                     th->pv_change = 0;
                 }
-                // Reduce time if the best_move is stable over 10 iterations
-                double time_reduction = 0.91 + 1.03 * (9 < finished_depth - main_thread->best_move_depth);
+                double pv_instability = 1.00 + total_pv_changes / Threadpool.size();
+
+                auto available_time = TimePoint(main_thread->time_mgr.optimum_time
+                                              * reduction
+                                              * eval_falling
+                                              * pv_instability);
 
                 // Stop the search
-                // -If there is only one legal move available
-                // -If all of the available time has been used
-                if (   1 == root_moves.size()
-                    || (main_thread->time_mgr.elapsed_time() >
-                        main_thread->time_mgr.optimum_time
-                        // Best Move Instability factor
-                      * (1.00 + total_pv_changes / Threadpool.size())
-                        // Time Reduction factor - Use part of the gained time from a previous stable move for the current move
-                      * (1.41 + main_thread->time_reduction) / (2.27 * time_reduction)
-                        // Falling Eval factor
-                      * ::clamp((332
-                                 + 6 * (main_thread->best_value * i32(+VALUE_INFINITE != main_thread->best_value) - best_value)
-                                 + 6 * (main_thread->iter_value[iter_idx] * i32(+VALUE_INFINITE != main_thread->iter_value[iter_idx]) - best_value))
-                                / 704.0, 0.5, 1.5)))
+                // - If all of the available time has been used
+                // - If there is only one legal move available
+                if (main_thread->time_mgr.elapsed_time() > available_time * i32(1 < root_moves.size()))
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".
@@ -2102,11 +2106,16 @@ void Thread::search()
                         Threadpool.stop = true;
                     }
                 }
+                else
+                if (main_thread->time_mgr.elapsed_time() > available_time * 0.60)
+                {
+                    //--root_depth;
+                }
+
+                main_thread->time_mgr.time_reduction = time_reduction;
 
                 main_thread->iter_value[iter_idx] = best_value;
                 iter_idx = (iter_idx + 1) % 4;
-
-                main_thread->time_reduction = time_reduction;
             }
 
             if (Output)
@@ -2326,24 +2335,26 @@ void MainThread::search()
     {
         auto total_nodes = Threadpool.nodes();
         auto elapsed_time = std::max(time_mgr.elapsed_time(), TimePoint(1));
+
+        string pm_str;
+        if (MOVE_NONE != bm)
+        {
+            StateInfo si;
+            root_pos.do_move(bm, si);
+            pm_str = move_to_san(pm, root_pos);
+            root_pos.undo_move(bm);
+        }
+        else
+        {
+            pm_str = "(none)";
+        }
+
         OutputStream << "Nodes      : " << total_nodes << " N\n"
                      << "Time       : " << elapsed_time << " ms\n"
                      << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
                      << "Hash-full  : " << TT.hash_full() << "\n"
                      << "Best Move  : " << move_to_san(bm, root_pos) << "\n"
-                     << "Ponder Move: ";
-        if (MOVE_NONE != bm)
-        {
-            StateInfo si;
-            root_pos.do_move(bm, si);
-            OutputStream << move_to_san(pm, root_pos);
-            root_pos.undo_move(bm);
-        }
-        else
-        {
-            OutputStream << "(none)";
-        }
-        OutputStream << "\n" << endl;
+                     << "Ponder Move: " << pm_str << "\n" << endl;
         OutputStream.close();
     }
 

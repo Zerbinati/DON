@@ -24,6 +24,8 @@ public:
     TimePoint optimum_time;
     TimePoint maximum_time;
 
+    double time_reduction;
+
     u64 available_nodes;
 
     TimeManager()
@@ -151,7 +153,6 @@ public:
     std::atomic<bool> ponder; // Search on ponder move until the "stop"/"ponderhit" command
 
     Value  best_value;
-    double time_reduction;
 
     TimeManager  time_mgr;
     SkillManager skill_mgr;

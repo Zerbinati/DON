@@ -297,8 +297,8 @@ void MainThread::clear()
 
     check_count = 0;
     best_value = +VALUE_INFINITE;
-    time_reduction = 1.00;
 
+    time_mgr.time_reduction = 1.00;
     time_mgr.available_nodes = 0;
 }
 
