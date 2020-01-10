@@ -1127,7 +1127,7 @@ namespace Searcher {
                               tt_pv);
                 }
 
-                // Step 7. Razoring. (~2 ELO)
+                // Step 7. Razoring. (~1 ELO)
                 if (   !root_node // The required RootNode PV handling is not available in qsearch
                     && 2 > depth
                     && eval + RazorMargin <= alfa)
@@ -1143,9 +1143,9 @@ namespace Searcher {
                                         ss->static_eval >= (ss-6)->static_eval :
                                         true;
 
-                // Step 8. Futility pruning: child node. (~30 ELO)
+                // Step 8. Futility pruning: child node. (~50 ELO)
                 // Betting that the opponent doesn't have a move that will reduce
-                // the score by more than futility margins [depth] if do a null move.
+                // the score by more than futility margins if do a null move.
                 if (   !root_node
                     && 6 > depth
                     && !Limits.mate_on()
@@ -1260,7 +1260,7 @@ namespace Searcher {
                 }
             }
 
-            // Step 11. Internal iterative deepening (IID). (~2 ELO)
+            // Step 11. Internal iterative deepening (IID). (~1 ELO)
             if (   6 < depth
                 && MOVE_NONE == tt_move)
             {
@@ -1376,7 +1376,7 @@ namespace Searcher {
                 // Calculate new depth for this move
                 Depth new_depth = depth - 1;
 
-                // Step 13. Pruning at shallow depth. (~170 ELO)
+                // Step 13. Pruning at shallow depth. (~200 ELO)
                 if (   !root_node
                     && -VALUE_MATE_MAX_PLY < best_value
                     && !Limits.mate_on()
@@ -1398,7 +1398,7 @@ namespace Searcher {
                         {
                             continue;
                         }
-                        // Futility pruning: parent node. (~2 ELO)
+                        // Futility pruning: parent node. (~5 ELO)
                         if (   !in_check
                             && 6 > lmr_depth
                             && ss->static_eval + 182 * lmr_depth + 255 <= alfa
@@ -1409,24 +1409,24 @@ namespace Searcher {
                         {
                             continue;
                         }
-                        // SEE based pruning: negative SEE (~10 ELO)
+                        // SEE based pruning: negative SEE (~20 ELO)
                         if (!pos.see_ge(move, Value(-(32 - std::min(i32(lmr_depth), 18)) * i32(pow(i32(lmr_depth), 2)))))
                         {
                             continue;
                         }
                     }
                     else
-                    // SEE based pruning: negative SEE (~20 ELO)
+                    // SEE based pruning: negative SEE (~25 ELO)
                     if (!pos.see_ge(move, Value(-194 * depth)))
                     {
                         continue;
                     }
                 }
 
-                // Step 14. Extensions. (~70 ELO)
+                // Step 14. Extensions. (~75 ELO)
                 Depth extension = DEP_ZERO;
 
-                // Singular extension (SE) (~60 ELO)
+                // Singular extension (SE) (~70 ELO)
                 // Extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
                 // and just one fails high on (alfa, beta), then that move is singular and should be extended.
@@ -1472,7 +1472,7 @@ namespace Searcher {
                         && (   pos.discovery_check_blocker_at(org)
                             || pos.see_ge(move)))
                     // Passed pawn extension
-                    || (   move == ss->killer_moves[0]
+                    || (   ss->killer_moves[0] == move
                         && pos.pawn_advance_at(pos.active, org)
                         && pos.pawn_passed_at(pos.active, dst)))
                 {
@@ -1504,35 +1504,35 @@ namespace Searcher {
                         || thread->tt_hit_avg < 375 * ttHitAverageResolution * ttHitAverageWindow / 1024);
 
                 bool full_search;
-                // Step 16. Reduced depth search (LMR).
+                // Step 16. Reduced depth search (LMR, ~200 ELO).
                 // If the move fails high will be re-searched at full depth.
                 if (do_lmr)
                 {
                     auto reduct_depth = reduction(improving, depth, move_count);
                     reduct_depth +=
-                        // Reduction if other threads are searching this position.
+                        // If other threads are searching this position.
                         +1 * thread_marker.marked
-                        // Decrease reduction if the ttHit running average is large
+                        // If the ttHit running average is large
                         -1 * (thread->tt_hit_avg > 500 * ttHitAverageResolution * ttHitAverageWindow / 1024)
-                        // Decrease reduction if opponent's move count is high (~10 ELO)
+                        // If opponent's move count is high (~5 ELO)
                         -1 * ((ss-1)->move_count >= 15)
-                        // Decrease reduction if position is or has been on the PV
+                        // If position is or has been on the PV (~10 ELO)
                         -2 * tt_pv
-                        // Decrease reduction if move has been singularly extended
+                        // If move has been singularly extended (~3 ELO)
                         -2 * singular_lmr;
 
                     if (!capture_or_promotion)
                     {
-                        // Increase reduction if TT move is a capture(~0 ELO)
+                        // If TT move is a capture (~5 ELO)
                         reduct_depth += 1 * ttm_capture;
 
-                        // Increase reduction for cut nodes (~5 ELO)
+                        // If cut nodes (~10 ELO)
                         if (cut_node)
                         {
                             reduct_depth += 2;
                         }
                         else
-                        // Decrease reduction for moves that escape a capture in no-cut nodes (~5 ELO)
+                        // If move escapes a capture in no-cut nodes (~2 ELO)
                         if (   NORMAL == mtype(move)
                             && !pos.see_ge(reverse_move(move)))
                         {
@@ -1566,17 +1566,18 @@ namespace Searcher {
                             reduct_depth -= 1;
                         }
 
-                        // Decrease/Increase reduction for moves with +/-ve stats (~30 ELO)
+                        // If move with +/-ve stats (~30 ELO)
                         reduct_depth -= ss->stats / 0x4000;
                     }
 
                     reduct_depth = std::max(reduct_depth, DEP_ZERO);
                     auto d = Depth(std::max(new_depth - reduct_depth, 1));
+                    assert(d <= new_depth);
 
                     value = -depth_search<false>(pos, ss+1, -alfa-1, -alfa, d, true);
 
                     full_search = alfa < value
-                               && d != new_depth;
+                               && d < new_depth;
                 }
                 else
                 {
@@ -1595,7 +1596,7 @@ namespace Searcher {
                         int bonus = alfa < value ?
                                         +stat_bonus(new_depth) :
                                         -stat_bonus(new_depth);
-                        if (move == ss->killer_moves[0])
+                        if (ss->killer_moves[0] == move)
                         {
                             bonus += bonus / 4;
                         }
@@ -1755,7 +1756,7 @@ namespace Searcher {
 
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
                 if (   (   1 == (ss-1)->move_count
-                        || (ss-1)->played_move == (ss-1)->killer_moves[0])
+                        || (ss-1)->killer_moves[0] == (ss-1)->played_move)
                     && !prior_capture
                     && NONE == pos.si->promote)
                 {

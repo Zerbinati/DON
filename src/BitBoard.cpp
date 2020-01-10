@@ -212,7 +212,9 @@ namespace BitBoard {
         Bitboard attacks = 0;
         for (auto del : PieceDeltas[PT])
         {
-            for (auto sq = s + del; _ok(sq) && 1 == dist(sq, sq - del); sq += del)
+            for (auto sq = s + del;
+                 _ok(sq) && 1 == dist(sq, sq - del);
+                 sq += del)
             {
                 attacks |= sq;
                 if (contains(occ, sq))
