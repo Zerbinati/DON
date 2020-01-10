@@ -1001,7 +1001,11 @@ namespace Searcher {
                         update_continuation_histories(ss, pos[org_sq(tt_move)], dst_sq(tt_move), -bonus);
                     }
                 }
-                return tt_value;
+
+                if (90 > pos.si->clock_ply)
+                {
+                    return tt_value;
+                }
             }
 
             // Step 5. Tablebases probe.
@@ -1505,43 +1509,22 @@ namespace Searcher {
                 if (do_lmr)
                 {
                     auto reduct_depth = reduction(improving, depth, move_count);
+                    reduct_depth +=
+                        // Reduction if other threads are searching this position.
+                        +1 * thread_marker.marked
+                        // Decrease reduction if the ttHit running average is large
+                        -1 * (thread->tt_hit_avg > 500 * ttHitAverageResolution * ttHitAverageWindow / 1024)
+                        // Decrease reduction if opponent's move count is high (~10 ELO)
+                        -1 * ((ss-1)->move_count >= 15)
+                        // Decrease reduction if position is or has been on the PV
+                        -2 * tt_pv
+                        // Decrease reduction if move has been singularly extended
+                        -2 * singular_lmr;
 
-                    // Decrease reduction if the ttHit running average is large
-                    if (thread->tt_hit_avg > 500 * ttHitAverageResolution * ttHitAverageWindow / 1024)
-                    {
-                        reduct_depth -= 1;
-                    }
-
-                    // Reduction if other threads are searching this position.
-                    if (thread_marker.marked)
-                    {
-                        reduct_depth += 1;
-                    }
-
-                    // Decrease reduction if position is or has been on the PV
-                    if (tt_pv)
-                    {
-                        reduct_depth -= 2;
-                    }
-
-                    // Decrease reduction if opponent's move count is high (~10 ELO)
-                    if ((ss-1)->move_count >= 15)
-                    {
-                        reduct_depth -= 1;
-                    }
-
-                    // Decrease reduction if move has been singularly extended
-                    if (singular_lmr)
-                    {
-                        reduct_depth -= 2;
-                    }
                     if (!capture_or_promotion)
                     {
                         // Increase reduction if TT move is a capture(~0 ELO)
-                        if (ttm_capture)
-                        {
-                            reduct_depth += 1;
-                        }
+                        reduct_depth += 1 * ttm_capture;
 
                         // Increase reduction for cut nodes (~5 ELO)
                         if (cut_node)
@@ -1556,21 +1539,19 @@ namespace Searcher {
                             reduct_depth -= 2;
                         }
 
-                        auto stats = thread->butterfly_history[~pos.active][move_index(move)]
-                                   + (*pd_histories[0])[mpc][dst]
-                                   + (*pd_histories[1])[mpc][dst]
-                                   + (*pd_histories[3])[mpc][dst]
-                                   - 4926;
+                        ss->stats = thread->butterfly_history[~pos.active][move_index(move)]
+                                  + (*pd_histories[0])[mpc][dst]
+                                  + (*pd_histories[1])[mpc][dst]
+                                  + (*pd_histories[3])[mpc][dst]
+                                  - 4926;
                         // Reset stats to zero if negative and most stats shows >= 0
-                        if (   0 >  stats
+                        if (   0 >  ss->stats
                             && 0 <= (*pd_histories[0])[mpc][dst]
                             && 0 <= (*pd_histories[1])[mpc][dst]
                             && 0 <= thread->butterfly_history[~pos.active][move_index(move)])
                         {
-                            stats = 0;
+                            ss->stats = 0;
                         }
-
-                        ss->stats = stats;
 
                         // Decrease/Increase reduction by comparing stats (~10 ELO)
                         if (   (ss-1)->stats >= -116
@@ -1586,15 +1567,16 @@ namespace Searcher {
                         }
 
                         // Decrease/Increase reduction for moves with +/-ve stats (~30 ELO)
-                        reduct_depth -= Depth(ss->stats / 0x4000);
+                        reduct_depth -= ss->stats / 0x4000;
                     }
 
-                    auto d = Depth(std::max(new_depth - std::max(reduct_depth, DEP_ZERO), 1));
+                    reduct_depth = std::max(reduct_depth, DEP_ZERO);
+                    auto d = Depth(std::max(new_depth - reduct_depth, 1));
 
                     value = -depth_search<false>(pos, ss+1, -alfa-1, -alfa, d, true);
 
                     full_search = alfa < value
-                               && 0 != reduct_depth;
+                               && d != new_depth;
                 }
                 else
                 {
@@ -2329,6 +2311,7 @@ void MainThread::search()
         pm = mItr != rm.end() ?
             *mItr :
             TT.extract_opp_move(root_pos, bm);
+        assert(bm != pm);
     }
 
     if (Output)
@@ -2336,17 +2319,14 @@ void MainThread::search()
         auto total_nodes = Threadpool.nodes();
         auto elapsed_time = std::max(time_mgr.elapsed_time(), TimePoint(1));
 
-        string pm_str;
-        if (MOVE_NONE != bm)
+        string pm_str = "(none)";
+        if (   MOVE_NONE != bm
+            && MOVE_NONE != pm)
         {
             StateInfo si;
             root_pos.do_move(bm, si);
             pm_str = move_to_san(pm, root_pos);
             root_pos.undo_move(bm);
-        }
-        else
-        {
-            pm_str = "(none)";
         }
 
         OutputStream << "Nodes      : " << total_nodes << " N\n"

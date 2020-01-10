@@ -37,11 +37,6 @@ namespace BitBoard {
 
     namespace {
 
-        array<array<Delta, 2>, CLR_NO> constexpr PawnDeltas
-        {{
-            { DEL_NW, DEL_NE },
-            { DEL_SE, DEL_SW },
-        }};
         array<array<Delta, 8>, NONE> constexpr PieceDeltas
         {{
             { },
@@ -253,19 +248,12 @@ namespace BitBoard {
         }
 #   endif
 
+        // Pawn and Pieces Attack Table
         for (auto const &s : SQ)
         {
             for (auto const &c : { WHITE, BLACK })
             {
-                for (auto del : PawnDeltas[c])
-                {
-                    auto sq = s + del;
-                    if (   _ok(sq)
-                        && 1 == dist(s, sq))
-                    {
-                        PawnAttacks[c][s] |= sq;
-                    }
-                }
+                PawnAttacks[c][s] |= pawn_sgl_attacks_bb(c, square_bb(s));
                 assert(2 >= pop_count(PawnAttacks[c][s]));
             }
 
@@ -278,7 +266,6 @@ namespace BitBoard {
                     PieceAttacks[NIHT][s] |= sq;
                 }
             }
-
             for (auto del : PieceDeltas[KING])
             {
                 auto sq = s + del;
@@ -288,7 +275,6 @@ namespace BitBoard {
                     PieceAttacks[KING][s] |= sq;
                 }
             }
-
             PieceAttacks[BSHP][s] = slide_attacks<BSHP>(s);
             PieceAttacks[ROOK][s] = slide_attacks<ROOK>(s);
             PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s]

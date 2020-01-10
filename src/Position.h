@@ -76,7 +76,7 @@ public:
     PieceType   capture;        // Piece type captured
     PieceType   promote;        // Piece type promoted
     Bitboard    checkers;       // Checkers
-    Depth       repetition;
+    i16         repetition;
     // Check info
     std::array<Bitboard, CLR_NO> king_blockers; // Absolute and Discover Blockers
     std::array<Bitboard, CLR_NO> king_checkers;// Absolute and Discover Checkers
@@ -184,9 +184,9 @@ public:
     bool expeded_castle(Color, CastleSide) const;
 
     i16  move_num() const;
-    bool draw(Depth) const;
+    bool draw(i16) const;
     bool repeated() const;
-    bool cycled(Depth) const;
+    bool cycled(i16) const;
 
     Bitboard attackers_to(Square, Bitboard) const;
     Bitboard attackers_to(Square) const;

@@ -388,8 +388,8 @@ namespace {
                             && contains(FA_bb|FH_bb, s)
                             && R_1 == rel_rank(Own, s))
                         {
-                            auto del = Delta((F_E - _file(s))/3) + pawn_push(Own);
-                            if (contains(pos.pieces(Own, PAWN), s+del))
+                            auto del = pawn_push(Own) + (DEL_W + DEL_EE * i32(F_A == _file(s)));
+                            if (contains(pos.pieces(Own, PAWN), s + del))
                             {
                                 score -= BishopTrapped
                                        * (!contains(pos.pieces(), s + del + pawn_push(Own)) ?

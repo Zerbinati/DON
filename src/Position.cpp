@@ -135,7 +135,7 @@ void Position::initialize()
 
 /// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 /// It does not detect Insufficient materials and Stalemate.
-bool Position::draw(Depth pp) const
+bool Position::draw(i16 pp) const
 {
     return
             // Draw by Clock Ply Rule?
@@ -153,22 +153,22 @@ bool Position::draw(Depth pp) const
 /// Position::repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
 bool Position::repeated() const
 {
-    const auto* psi = si;
-    auto end = std::min(psi->clock_ply, psi->null_ply);
+    const auto *csi = si;
+    auto end = std::min(csi->clock_ply, csi->null_ply);
     while (end-- >= 4)
     {
-        if (0 != psi->repetition)
+        if (0 != csi->repetition)
         {
             return true;
         }
-        psi = psi->ptr;
+        csi = csi->ptr;
     }
     return false;
 }
 
 /// Position::cycled() tests if the position has a move which draws by repetition,
 /// or an earlier position has a move that directly reaches the current position.
-bool Position::cycled(Depth pp) const
+bool Position::cycled(i16 pp) const
 {
     auto end = std::min(si->clock_ply, si->null_ply);
     if (end < 3)
@@ -196,16 +196,16 @@ bool Position::cycled(Depth pp) const
                 {
                     return true;
                 }
-                // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
-                // Select the legal one by swaping if necessary.
-                if (empty(org))
-                {
-                    std::swap(org, dst);
-                }
-                assert(!empty(org));
                 // For nodes before or at the root, check that the move is a repetition one
                 // rather than a move to the current position
-                if (color(piece[org]) != active)
+                // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
+                // Select the legal one by swaping if necessary.
+                //if (empty(org))
+                //{
+                //    std::swap(org, dst);
+                //}
+                //assert(!empty(org));
+                if (color(piece[empty(org) ? dst : org]) != active)
                 {
                     continue;
                 }
@@ -1044,9 +1044,6 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
 
     if (PAWN == mpt)
     {
-        // Reset clock ply counter
-        si->clock_ply = 0;
-
         if (PROMOTE == mtype(m))
         {
             assert(PAWN == mpt
@@ -1078,9 +1075,11 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
             }
         }
 
+        // Reset clock ply counter
+        si->clock_ply = 0;
         si->pawn_key ^= RandZob.piece_square[active][PAWN][org]
                       ^ RandZob.piece_square[active][PAWN][dst];
-        prefetch(thread->pawn_table[si->pawn_key]);
+        //prefetch(thread->pawn_table[si->pawn_key]);
     }
 
     assert(0 == (attackers_to(square(active|KING)) & pieces(pasive)));
@@ -1107,7 +1106,7 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
     if (end >= 4)
     {
         const auto* psi = si->ptr->ptr;
-        for (Depth i = 4; i <= end; i += 2)
+        for (i16 i = 4; i <= end; i += 2)
         {
             psi = psi->ptr->ptr;
             if (psi->posi_key == si->posi_key)
