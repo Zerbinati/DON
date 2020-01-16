@@ -42,7 +42,7 @@ void TCluster::clear()
 size_t TCluster::fresh_entry_count() const
 {
     size_t count = 0;
-    for (auto const *ite = entries; ite < entries + EntryCount; ++ite)
+    for (const auto *ite = entries; ite < entries + EntryCount; ++ite)
     {
         count += (ite->generation() == TEntry::Generation);
     }
@@ -162,7 +162,7 @@ void TTable::clear()
                                  }
                                  size_t stride = cluster_count / thread_count;
                                  auto *pcluster = clusters + idx * stride;
-                                 size_t count = idx != thread_count - 1 ?
+                                 size_t count = idx != (thread_count - 1) ?
                                                  stride :
                                                  cluster_count - idx * stride;
                                  std::memset(pcluster, 0, count * sizeof (*pcluster));
@@ -193,7 +193,7 @@ u32 TTable::hash_full() const
 {
     size_t fresh_entry_count = 0;
     const auto cluster_limit = std::min(size_t(1000 / TCluster::EntryCount), cluster_count);
-    for (auto const *itc = clusters; itc < clusters + cluster_limit; ++itc)
+    for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
     {
         fresh_entry_count += itc->fresh_entry_count();
     }
@@ -227,7 +227,7 @@ Move TTable::extract_opp_move(Position &pos, Move own_move) const
 }
 
 /// TTable::save() saves hash to file
-void TTable::save(string const &hash_fn) const
+void TTable::save(const string &hash_fn) const
 {
     if (white_spaces(hash_fn))
     {
@@ -243,7 +243,7 @@ void TTable::save(string const &hash_fn) const
     sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
 }
 /// TTable::load() loads hash from file
-void TTable::load(string const &hash_fn)
+void TTable::load(const string &hash_fn)
 {
     if (white_spaces(hash_fn))
     {

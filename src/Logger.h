@@ -11,15 +11,15 @@
 #   include <ctime>
 #endif
 
-inline std::string time_to_string(std::chrono::system_clock::time_point const &tp)
+inline std::string time_to_string(const std::chrono::system_clock::time_point &tp)
 {
     std::string stime;
 
 #   if defined(_WIN32)
 
     auto time = std::chrono::system_clock::to_time_t(tp);
-    auto const *local_tm = localtime(&time);
-    char const *format = "%Y.%m.%d-%H.%M.%S";
+    const auto *local_tm = localtime(&time);
+    const char *format = "%Y.%m.%d-%H.%M.%S";
     char buffer[32];
     strftime(buffer, sizeof (buffer), format, local_tm);
     stime.append(buffer);
@@ -38,7 +38,7 @@ inline std::string time_to_string(std::chrono::system_clock::time_point const &t
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, std::chrono::system_clock::time_point const &tp)
+    operator<<(std::basic_ostream<CharT, Traits> &os, const std::chrono::system_clock::time_point &tp)
 {
     os << time_to_string(tp);
     return os;
@@ -61,15 +61,15 @@ public:
         , _otb(std::cout.rdbuf(), _ofs.rdbuf())
         , filename("<empty>")
     {}
-    Logger(Logger const&) = delete;
-    Logger& operator=(Logger const&) = delete;
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
 
     virtual ~Logger()
     {
         set("<empty>");
     }
 
-    void set(std::string const &fn)
+    void set(const std::string &fn)
     {
         if (_ofs.is_open())
         {

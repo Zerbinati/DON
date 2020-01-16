@@ -19,19 +19,19 @@
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-inline void prefetch(void const* addr)
+inline void prefetch(const void *addr)
 {
 #   if defined(__INTEL_COMPILER)
     // This hack prevents prefetches from being optimized away by
     // Intel compiler. Both MSVC and gcc seem not be affected by this.
     __asm__ ("");
 #   endif
-    _mm_prefetch((char const*)(addr), _MM_HINT_T0);
+    _mm_prefetch((const char*)(addr), _MM_HINT_T0);
 }
 
 #   else
 
-inline void prefetch(void const* addr)
+inline void prefetch(const void *addr)
 {
     __builtin_prefetch(addr);
 }
@@ -40,7 +40,7 @@ inline void prefetch(void const* addr)
 
 #else
 
-inline void prefetch(void const*)
+inline void prefetch(const void*)
 {}
 
 #endif
@@ -93,7 +93,7 @@ public:
         return castle_rights & (WHITE == c ? CR_WHITE : CR_BLACK);
     }
 
-    void set_check_info(Position const&);
+    void set_check_info(const Position&);
 };
 
 /// A list to keep track of the position states along the setup moves
@@ -151,8 +151,8 @@ public:
     static void initialize();
 
     Position() = default;
-    Position(Position const&) = delete;
-    Position& operator=(Position const&) = delete;
+    Position(const Position&) = delete;
+    Position& operator=(const Position&) = delete;
 
     Piece operator[](Square) const;
     bool empty(Square)  const;
@@ -218,8 +218,8 @@ public:
 
     void clear();
 
-    Position& setup(std::string const&, StateInfo&, Thread *const = nullptr);
-    Position& setup(std::string const&, Color, StateInfo&);
+    Position& setup(const std::string&, StateInfo&, Thread *const = nullptr);
+    Position& setup(const std::string&, Color, StateInfo&);
 
     void do_move(Move, StateInfo&, bool);
     void do_move(Move, StateInfo&);
@@ -542,14 +542,14 @@ inline void Position::move_piece(Square s1, Square s2)
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits> &os, Position const &pos)
+operator<<(std::basic_ostream<CharT, Traits> &os, const Position &pos)
 {
     os << std::string(pos);
     return os;
 }
 
 /// StateInfo::set_check_info() sets check info used for fast check detection.
-inline void StateInfo::set_check_info(Position const &pos)
+inline void StateInfo::set_check_info(const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
@@ -568,7 +568,7 @@ inline void StateInfo::set_check_info(Position const &pos)
 
 #if !defined(NDEBUG)
 /// _ok() Check the validity of FEN string.
-inline bool _ok(std::string const &fen)
+inline bool _ok(const std::string &fen)
 {
     Position pos;
     StateInfo si;

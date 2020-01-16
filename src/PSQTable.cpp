@@ -12,7 +12,7 @@ namespace {
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
     // For each piece type on a given square a (midgame, endgame) score pair is assigned.
-    array<array<array<Score, (F_NO/2)>, R_NO>, NONE> constexpr PieceHalfSQ
+    constexpr array<array<array<Score, (F_NO/2)>, R_NO>, NONE> PieceHalfSQ
     {{
         {{ }},
         {{ // Knight
@@ -68,7 +68,7 @@ namespace {
     }};
 
     // PawnFullSQ table contains full Pawn-Square score (asymmetric distribution)
-    array<array<Score, F_NO>, R_NO> constexpr PawnFullSQ
+    constexpr array<array<Score, F_NO>, R_NO> PawnFullSQ
     {{
         { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) },
         { S(  3,-10), S(  3, -6), S( 10, 10), S( 19,  0), S( 16, 14), S( 19,  7), S(  7, -5), S( -5,-19) },
@@ -85,13 +85,13 @@ namespace {
 /// Computes the scores for the middle game and the endgame.
 /// These functions are used to initialize the scores when a new position is set up,
 /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
-Score compute_psq(Position const &pos)
+Score compute_psq(const Position &pos)
 {
     auto psq = SCORE_ZERO;
-    for (auto const &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+    for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
                             B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
-        for (auto const &s : pos.squares[pc])
+        for (const auto &s : pos.squares[pc])
         {
             psq += PSQ[pc][s];
         }
@@ -102,10 +102,10 @@ Score compute_psq(Position const &pos)
 /// psq_initialize() initializes psq lookup tables.
 void psq_initialize()
 {
-    for (auto const &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+    for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
         Score score = make_score(PieceValues[MG][pt], PieceValues[EG][pt]);
-        for (auto const &s : SQ)
+        for (const auto &s : SQ)
         {
             Score psq = score
                       + (PAWN == pt ?

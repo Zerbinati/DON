@@ -31,8 +31,8 @@ public:
     TimeManager()
         : available_nodes(0)
     {}
-    TimeManager(TimeManager const&) = delete;
-    TimeManager& operator=(TimeManager const&) = delete;
+    TimeManager(const TimeManager&) = delete;
+    TimeManager& operator=(const TimeManager&) = delete;
 
     TimePoint elapsed_time() const;
 
@@ -58,8 +58,8 @@ public:
         : level(MaxLevel)
         , best_move(MOVE_NONE)
     {}
-    SkillManager(SkillManager const&) = delete;
-    SkillManager& operator=(SkillManager const&) = delete;
+    SkillManager(const SkillManager&) = delete;
+    SkillManager& operator=(const SkillManager&) = delete;
 
     bool enabled() const { return level < MaxLevel; }
 
@@ -83,7 +83,7 @@ protected:
 
     size_t index;
 
-    std::mutex mutex;
+    std::mutex mtx;
     std::condition_variable condition_var;
 
     NativeThread native_thread;
@@ -123,8 +123,8 @@ public:
 
     explicit Thread(size_t);
     Thread() = delete;
-    Thread(Thread const&) = delete;
-    Thread& operator=(Thread const&) = delete;
+    Thread(const Thread&) = delete;
+    Thread& operator=(const Thread&) = delete;
 
     virtual ~Thread();
 
@@ -147,14 +147,14 @@ private :
 
 public:
 
-    u64    check_count;
+    u64 check_count;
 
-    bool   stop_on_ponderhit; // Stop search on ponderhit
+    bool stop_on_ponderhit; // Stop search on ponderhit
     std::atomic<bool> ponder; // Search on ponder move until the "stop"/"ponderhit" command
 
-    Value  best_value;
+    Value best_value;
 
-    TimeManager  time_mgr;
+    TimeManager time_mgr;
     SkillManager skill_mgr;
 
     std::array<Value, 4> iter_value;
@@ -163,8 +163,8 @@ public:
 
     explicit MainThread(size_t);
     MainThread() = delete;
-    MainThread(MainThread const&) = delete;
-    MainThread& operator=(MainThread const&) = delete;
+    MainThread(const MainThread&) = delete;
+    MainThread& operator=(const MainThread&) = delete;
 
     void clear() override;
     void search() override;
@@ -195,7 +195,7 @@ private:
     T sum(std::atomic<T> Thread::*member) const
     {
         T s = 0;
-        for (auto const *th : *this)
+        for (const auto *th : *this)
         {
             s += (th->*member).load(std::memory_order::memory_order_relaxed);
         }
@@ -207,11 +207,12 @@ public:
     u32 pv_limit;
     double factor;
 
-    std::atomic<bool> stop; // Stop search forcefully
+    std::atomic<bool> stop // Stop search forcefully
+        ,             research;
 
     ThreadPool() = default;
-    ThreadPool(ThreadPool const&) = delete;
-    ThreadPool& operator=(ThreadPool const&) = delete;
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
 
     MainThread* main_thread() const { return static_cast<MainThread*>(front()); }
     u64      nodes() const { return sum(&Thread::nodes); }
@@ -223,7 +224,7 @@ public:
     void clear();
     void configure(u32);
 
-    void start_thinking(Position&, StateListPtr&, Limit const&, std::vector<Move> const&, bool = false);
+    void start_thinking(Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
 };
 
 

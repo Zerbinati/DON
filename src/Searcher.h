@@ -77,7 +77,7 @@ private:
 
 public:
 
-    void operator=(T const &v) { entry = v; }
+    void operator=(const T &v) { entry = v; }
     T* operator&()             { return &entry; }
     T* operator->()            { return &entry; }
     operator const T&() const  { return entry; }
@@ -103,7 +103,7 @@ struct Stats
 {
     typedef Stats<T, D, Size, Sizes...> stats;
 
-    void fill(T const &v)
+    void fill(const T &v)
     {
         // For standard-layout 'this' points to first struct member
         assert(std::is_standard_layout<stats>::value);
@@ -169,14 +169,14 @@ public:
         , tb_rank(0)
         , tb_value(VALUE_ZERO)
     {}
-    RootMove& operator=(RootMove const&) = default;
+    RootMove& operator=(const RootMove&) = default;
 
-    bool operator< (RootMove const &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value > rm.old_value; }
-    bool operator> (RootMove const &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value < rm.old_value; }
-    //bool operator<=(RootMove const &rm) const { return new_value != rm.new_value ? new_value >= rm.new_value : old_value >= rm.old_value; }
-    //bool operator>=(RootMove const &rm) const { return new_value != rm.new_value ? new_value <= rm.new_value : old_value <= rm.old_value; }
-    //bool operator==(RootMove const &rm) const { return front() == rm.front(); }
-    //bool operator!=(RootMove const &rm) const { return front() != rm.front(); }
+    bool operator< (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value > rm.old_value; }
+    bool operator> (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value < rm.old_value; }
+    //bool operator<=(const RootMove &rm) const { return new_value != rm.new_value ? new_value >= rm.new_value : old_value >= rm.old_value; }
+    //bool operator>=(const RootMove &rm) const { return new_value != rm.new_value ? new_value <= rm.new_value : old_value <= rm.old_value; }
+    //bool operator==(const RootMove &rm) const { return front() == rm.front(); }
+    //bool operator!=(const RootMove &rm) const { return front() != rm.front(); }
 
     bool operator==(Move m) const { return front() == m; }
     bool operator!=(Move m) const { return front() != m; }
@@ -189,7 +189,7 @@ public:
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, RootMove const &rm)
+    operator<<(std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
 {
     os << std::string(rm);
     return os;
@@ -200,18 +200,18 @@ class RootMoves
 {
 public:
     RootMoves() = default;
-    RootMoves(RootMoves const&) = default;
-    RootMoves& operator=(RootMoves const&) = default;
+    RootMoves(const RootMoves&) = default;
+    RootMoves& operator=(const RootMoves&) = default;
 
     void operator+=(Move m) { emplace_back(m); }
     //void operator-=(Move m) { erase(std::remove(begin(), end(), m), end()); }
-    void operator+=(RootMove const &rm) { push_back(rm); }
-    //void operator-=(RootMove const &rm) { erase(std::remove(begin(), end(), rm), end()); }
+    void operator+=(const RootMove &rm) { push_back(rm); }
+    //void operator-=(const RootMove &rm) { erase(std::remove(begin(), end(), rm), end()); }
 
-    void initialize(Position const &pos, std::vector<Move> const &search_moves)
+    void initialize(const Position &pos, const std::vector<Move> &search_moves)
     {
         assert(empty());
-        for (auto const &vm : MoveList<GenType::LEGAL>(pos))
+        for (const auto &vm : MoveList<GenType::LEGAL>(pos))
         {
             if (   search_moves.empty()
                 || std::find(search_moves.begin(), search_moves.end(), vm) != search_moves.end())
@@ -223,11 +223,11 @@ public:
         }
     }
 
-    i16 move_best_count(int sIdx, int eIdx, Move move) const
+    i16 move_best_count(int s_idx, int e_idx, Move move) const
     {
-        auto rmItr = std::find(begin() + sIdx, begin() + eIdx, move);
-        return rmItr != begin() + eIdx ?
-                    rmItr->best_count :
+        auto rm_itr = std::find(begin() + s_idx, begin() + e_idx, move);
+        return rm_itr != begin() + e_idx ?
+                    rm_itr->best_count :
                     0;
     }
 
@@ -236,7 +236,7 @@ public:
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, RootMoves const &rms)
+    operator<<(std::basic_ostream<CharT, Traits> &os, const RootMoves &rms)
 {
     os << std::string(rms);
     return os;

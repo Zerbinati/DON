@@ -8,7 +8,7 @@
 
 namespace Material {
 
-    i32 const PhaseResolution = 128;
+    const i32 PhaseResolution = 128;
 
     /// Material::Entry contains various information about a material configuration.
     struct Entry
@@ -22,10 +22,10 @@ namespace Material {
         const Endgames::EndgameBase<Value> *value_func;
         std::array<const Endgames::EndgameBase<Scale> *, CLR_NO> scale_func;
 
-        void evaluate(Position const&);
+        void evaluate(const Position&);
     };
 
     typedef HashTable<Entry, 0x2000> Table;
 
-    extern Entry* probe(Position const&);
+    extern Entry* probe(const Position&);
 }

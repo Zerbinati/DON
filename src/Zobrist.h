@@ -16,13 +16,13 @@ public:
     Key color;
 
     Zobrist() = default;
-    Zobrist(Zobrist const&) = delete;
-    Zobrist& operator=(Zobrist const&) = delete;
+    Zobrist(const Zobrist&) = delete;
+    Zobrist& operator=(const Zobrist&) = delete;
 
-    Key compute_matl_key(Position const&) const;
-    Key compute_pawn_key(Position const&) const;
-    Key compute_posi_key(Position const&) const;
-    //Key compute_fen_key(std::string const&) const;
+    Key compute_matl_key(const Position&) const;
+    Key compute_pawn_key(const Position&) const;
+    Key compute_posi_key(const Position&) const;
+    //Key compute_fen_key(const std::string&) const;
 };
 
 extern void zobrist_initialize();

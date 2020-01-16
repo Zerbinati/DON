@@ -37,7 +37,7 @@ namespace BitBoard {
 
     namespace {
 
-        array<array<Delta, 8>, NONE> constexpr PieceDeltas
+        constexpr array<array<Delta, 8>, NONE> PieceDeltas
         {{
             { },
             { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
@@ -97,7 +97,7 @@ namespace BitBoard {
             array<Bitboard, 0x1000> occupancy
                 ,                   reference;
 
-            array<u32, R_NO> constexpr Seeds
+            constexpr array<u32, R_NO> Seeds
 #           if defined(BIT64)
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
 #           else
@@ -107,7 +107,7 @@ namespace BitBoard {
 #       endif
 
             u32 offset = 0;
-            for (auto const &s : SQ)
+            for (const auto &s : SQ)
             {
                 auto &magic = magics[s];
 
@@ -233,7 +233,7 @@ namespace BitBoard {
 
     void initialize()
     {
-        //for (auto const &s : SQ)
+        //for (const auto &s : SQ)
         //{
         //    //Square_bb[s] = U64(1) << s;
         //    BSF_Table[bsf_index(square_bb(s))] = s;
@@ -251,9 +251,9 @@ namespace BitBoard {
 #   endif
 
         // Pawn and Pieces Attack Table
-        for (auto const &s : SQ)
+        for (const auto &s : SQ)
         {
-            for (auto const &c : { WHITE, BLACK })
+            for (const auto &c : { WHITE, BLACK })
             {
                 PawnAttacks[c][s] |= pawn_sgl_attacks_bb(c, square_bb(s));
                 assert(2 >= pop_count(PawnAttacks[c][s]));
@@ -288,14 +288,14 @@ namespace BitBoard {
         initialize_magic<ROOK>(RAttacks, RMagics);
 
         // NOTE:: must be after initialize Bishop & Rook Table
-        for (auto const &s1 : SQ)
+        for (const auto &s1 : SQ)
         {
-            for (auto const &s2 : SQ)
+            for (const auto &s2 : SQ)
             {
                 Line_bb[s1][s2] = 0;
                 if (s1 != s2)
                 {
-                    for (auto const &pt : { BSHP, ROOK })
+                    for (const auto &pt : { BSHP, ROOK })
                     {
                         if (contains(PieceAttacks[pt][s1], s2))
                         {
@@ -317,10 +317,10 @@ namespace BitBoard {
         ostringstream oss;
 
         oss << " /---------------\\\n";
-        for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+        for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
         {
             oss << to_char(r) << '|';
-            for (auto const &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+            for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
             {
                 oss << (contains(bb, f|r) ? '+' : '-');
                 if (f < F_H)
@@ -331,7 +331,7 @@ namespace BitBoard {
             oss << "|\n";
         }
         oss << " \\---------------/\n ";
-        for (auto const &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+        for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
             oss << ' ' << to_char(f, false);
         }

@@ -2,7 +2,7 @@
 
 #include "Engine.h"
 
-int main(int argc, char const *const *argv)
+int main(int argc, const char *const *argv)
 {
     run(argc, argv);
     stop(EXIT_SUCCESS);

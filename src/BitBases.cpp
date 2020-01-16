@@ -13,7 +13,7 @@ namespace BitBases {
     namespace {
 
         // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
-        u32 constexpr MaxIndex = 2*24*SQ_NO*SQ_NO; // 2*24*64*64 = 196608
+        constexpr u32 MaxIndex = 2*24*SQ_NO*SQ_NO; // 2*24*64*64 = 196608
 
         // Each u32 entity stores results of 32 positions, one per bit
         array<u32, MaxIndex / 32> KPK_Bitbase;
@@ -56,7 +56,7 @@ namespace BitBases {
             Square                p_sq;
 
             template<Color Own>
-            Result classify(vector<KPK_Position> const &kpk_pos)
+            Result classify(const vector<KPK_Position> &kpk_pos)
             {
                 // White to Move:
                 // If one move leads to a position classified as WIN, the result of the current position is WIN.
@@ -68,9 +68,9 @@ namespace BitBases {
                 // If all moves lead to positions classified as WIN, the result of the current position is WIN
                 // otherwise the current position is classified as UNKNOWN.
 
-                auto constexpr  Opp = WHITE == Own ? BLACK : WHITE;
-                auto constexpr Good = WHITE == Own ? Result::WIN : Result::DRAW;
-                auto constexpr  Bad = WHITE == Own ? Result::DRAW : Result::WIN;
+                constexpr auto  Opp = WHITE == Own ? BLACK : WHITE;
+                constexpr auto Good = WHITE == Own ? Result::WIN : Result::DRAW;
+                constexpr auto  Bad = WHITE == Own ? Result::DRAW : Result::WIN;
 
                 Result r = Result::NONE;
                 Bitboard b = PieceAttacks[KING][k_sq[Own]];
@@ -154,7 +154,7 @@ namespace BitBases {
                 }
             }
 
-            Result classify(vector<KPK_Position> const &kpk_pos)
+            Result classify(const vector<KPK_Position> &kpk_pos)
             {
                 return WHITE == active ?
                         classify<WHITE>(kpk_pos) :

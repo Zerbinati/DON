@@ -13,11 +13,11 @@ namespace {
 
     /// Generates piece normal move
     template<GenType GT>
-    void generate_piece_moves(ValMoves &moves, Position const &pos, Bitboard targets)
+    void generate_piece_moves(ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        for (auto const &pt : { NIHT, BSHP, ROOK, QUEN })
+        for (const auto &pt : { NIHT, BSHP, ROOK, QUEN })
         {
-            for (auto const &s : pos.squares[pos.active|pt])
+            for (const auto &s : pos.squares[pos.active|pt])
             {
                 Bitboard attacks = PieceAttacks[pt][s] & targets;
                 if (0 == attacks)
@@ -41,7 +41,7 @@ namespace {
 
     /// Generates pawn promotion move
     template<GenType GT>
-    void generate_promotion_moves(ValMoves &moves, Position const &pos, Bitboard promotion, Delta del)
+    void generate_promotion_moves(ValMoves &moves, const Position &pos, Bitboard promotion, Delta del)
     {
         auto ek_sq = pos.square(~pos.active|KING);
         while (0 != promotion)
@@ -95,7 +95,7 @@ namespace {
     }
     /// Generates pawn normal move
     template<GenType GT>
-    void generate_pawn_moves(ValMoves &moves, Position const &pos, Bitboard targets)
+    void generate_pawn_moves(ValMoves &moves, const Position &pos, Bitboard targets)
     {
         Bitboard empties = ~pos.pieces();
         Bitboard enemies =  pos.pieces(~pos.active) & targets;
@@ -230,7 +230,7 @@ namespace {
 
     /// Generates king normal move
     template<GenType GT>
-    void generate_king_moves(ValMoves &moves, Position const &pos, Bitboard targets)
+    void generate_king_moves(ValMoves &moves, const Position &pos, Bitboard targets)
     {
         auto own_k_sq = pos.square(pos.active|KING);
         Bitboard attacks = PieceAttacks[KING][own_k_sq] & targets;
@@ -256,7 +256,7 @@ namespace {
 
     /// Generates all pseudo-legal moves of color for targets.
     template<GenType GT>
-    void generate_moves(ValMoves &moves, Position const &pos, Bitboard targets)
+    void generate_moves(ValMoves &moves, const Position &pos, Bitboard targets)
     {
         generate_pawn_moves<GT>(moves, pos, targets);
         generate_piece_moves<GT>(moves, pos, targets);
@@ -264,7 +264,7 @@ namespace {
 }
 
 template<GenType GT>
-void generate(ValMoves &moves, Position const &pos)
+void generate(ValMoves &moves, const Position &pos)
 {
     assert(0 == pos.si->checkers);
     static_assert (GenType::NATURAL == GT
@@ -286,14 +286,14 @@ void generate(ValMoves &moves, Position const &pos)
 /// Explicit template instantiations
 /// --------------------------------
 /// generate<NATURAL>     Generates all pseudo-legal captures and non-captures.
-template void generate<GenType::NATURAL>(ValMoves&, Position const&);
+template void generate<GenType::NATURAL>(ValMoves&, const Position&);
 /// generate<CAPTURE>     Generates all pseudo-legal captures and queen promotions.
-template void generate<GenType::CAPTURE>(ValMoves&, Position const&);
+template void generate<GenType::CAPTURE>(ValMoves&, const Position&);
 /// generate<QUIET>       Generates all pseudo-legal non-captures and underpromotions.
-template void generate<GenType::QUIET  >(ValMoves&, Position const&);
+template void generate<GenType::QUIET  >(ValMoves&, const Position&);
 
 /// generate<EVASION>     Generates all pseudo-legal check evasions moves.
-template<> void generate<GenType::EVASION    >(ValMoves &moves, Position const &pos)
+template<> void generate<GenType::EVASION    >(ValMoves &moves, const Position &pos)
 {
     assert(0 != pos.si->checkers
         && 2 >= pop_count(pos.si->checkers));
@@ -328,7 +328,7 @@ template<> void generate<GenType::EVASION    >(ValMoves &moves, Position const &
     generate_moves<GenType::EVASION>(moves, pos, targets);
 }
 /// generate<CHECK>       Generates all pseudo-legal check giving moves.
-template<> void generate<GenType::CHECK      >(ValMoves &moves, Position const &pos)
+template<> void generate<GenType::CHECK      >(ValMoves &moves, const Position &pos)
 {
     assert(0 == pos.si->checkers);
     moves.clear();
@@ -352,7 +352,7 @@ template<> void generate<GenType::CHECK      >(ValMoves &moves, Position const &
     generate_moves<GenType::CHECK>(moves, pos, targets);
 }
 /// generate<QUIET_CHECK> Generates all pseudo-legal non-captures and knight under promotions check giving moves.
-template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &pos)
+template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, const Position &pos)
 {
     assert(0 == pos.si->checkers);
     moves.clear();
@@ -377,7 +377,7 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
 }
 
 /// generate<LEGAL>       Generates all legal moves.
-template<> void generate<GenType::LEGAL      >(ValMoves &moves, Position const &pos)
+template<> void generate<GenType::LEGAL      >(ValMoves &moves, const Position &pos)
 {
     0 == pos.si->checkers ?
         generate<GenType::NATURAL>(moves, pos) :
@@ -386,10 +386,10 @@ template<> void generate<GenType::LEGAL      >(ValMoves &moves, Position const &
 }
 
 /// Filter illegal moves
-void filter_illegal(ValMoves &moves, Position const &pos)
+void filter_illegal(ValMoves &moves, const Position &pos)
 {
     moves.erase(std::remove_if(moves.begin(), moves.end(),
-                              [&pos] (ValMove const&vm)
+                              [&pos] (const ValMove &vm)
                               {
                                   return (   ENPASSANT == mtype(vm)
                                           || contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(vm)))
@@ -504,7 +504,7 @@ Perft perft(Position &pos, Depth depth, bool detail)
         }
         cout << sync_endl;
     }
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
+    for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
         Perft leaf;
         if (   RootNode
@@ -520,7 +520,7 @@ Perft perft(Position &pos, Depth depth, bool detail)
 
             if (2 >= depth)
             {
-                for (auto const &ivm : MoveList<GenType::LEGAL>(pos))
+                for (const auto &ivm : MoveList<GenType::LEGAL>(pos))
                 {
                     ++leaf.any;
                     if (detail) leaf.classify(pos, ivm);

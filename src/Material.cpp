@@ -15,7 +15,7 @@ namespace Material {
 
         // Polynomial material imbalance parameters
 
-        array<array<i32, NONE>, NONE> OwnQuadratic
+        constexpr array<array<i32, NONE>, NONE> OwnQuadratic
         {{
             //          Own Pieces
             //  P    N    B     R   Q    BP
@@ -27,7 +27,7 @@ namespace Material {
             {   0,   0,   0,    0,  0, 1438 }  // BP
         }};
 
-        array<array<i32, NONE>, NONE> constexpr OppQuadratic
+        constexpr array<array<i32, NONE>, NONE> OppQuadratic
         {{
             //          Opp Pieces
             //  P    N    B     R   Q    BP
@@ -71,9 +71,9 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 imbalance_fn(array<array<i32, NONE>, CLR_NO> const &count)
+        i32 imbalance_fn(const array<array<i32, NONE>, CLR_NO> &count)
         {
-            auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
+            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
             i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"
@@ -105,7 +105,7 @@ namespace Material {
         }
     }
 
-    void Entry::evaluate(Position const &pos)
+    void Entry::evaluate(const Position &pos)
     {
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
         phase = (i32(::clamp(pos.non_pawn_material(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME)
@@ -124,7 +124,7 @@ namespace Material {
             return;
         }
         // Generic evaluation
-        for (auto const &c : { WHITE, BLACK })
+        for (const auto &c : { WHITE, BLACK })
         {
             if (   pos.non_pawn_material( c) >= VALUE_MG_ROOK
                 && pos.count(~c) == 1)
@@ -139,7 +139,7 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        auto const *scale_fn = Endgames::probe<Scale>(pos.si->matl_key);
+        const auto *scale_fn = Endgames::probe<Scale>(pos.si->matl_key);
         if (nullptr != scale_fn)
         {
             scale_func[scale_fn->strong_color] = scale_fn;
@@ -148,7 +148,7 @@ namespace Material {
 
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
-        for (auto const &c : { WHITE, BLACK })
+        for (const auto &c : { WHITE, BLACK })
         {
             if (   pos.non_pawn_material( c) == VALUE_MG_BSHP
                 //&& pos.count( c|BSHP) == 1
@@ -234,7 +234,7 @@ namespace Material {
 
     /// Material::probe() looks up a current position's material configuration in the material hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe(Position const &pos)
+    Entry* probe(const Position &pos)
     {
         auto *e = pos.thread->matl_table[pos.si->matl_key];
 

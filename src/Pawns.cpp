@@ -14,12 +14,12 @@ namespace Pawns {
     namespace {
 
         // Connected pawn bonus
-        array<i32, R_NO> constexpr Connected { 0, 7, 8, 12, 29, 48, 86, 0 };
+        constexpr array<i32, R_NO> Connected { 0, 7, 8, 12, 29, 48, 86, 0 };
 
 #   define S(mg, eg) make_score(mg, eg)
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
-        array<array<Score, R_NO>, (F_NO/2)> constexpr Shelter
+        constexpr array<array<Score, R_NO>, (F_NO/2)> Shelter
         {{
             { S( -6, 0), S( 81, 0), S( 93, 0), S( 58, 0), S( 39, 0), S( 18, 0), S(  25, 0), S(0, 0) },
             { S(-43, 0), S( 61, 0), S( 35, 0), S(-49, 0), S(-29, 0), S(-11, 0), S( -63, 0), S(0, 0) },
@@ -30,7 +30,7 @@ namespace Pawns {
         // Danger of unblocked enemy pawns storm toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
         // [0][1 - 2] accommodate opponent pawn on edge (likely blocked by king)
-        array<array<Score, R_NO>, (F_NO/2)> constexpr Storm
+        constexpr array<array<Score, R_NO>, (F_NO/2)> Storm
         {{
             { S( 85, 0), S(-289, 0), S(-166, 0), S( 97, 0), S( 50, 0), S( 45, 0), S( 50, 0), S(0, 0) },
             { S( 46, 0), S( -25, 0), S( 122, 0), S( 45, 0), S( 37, 0), S(-10, 0), S( 20, 0), S(0, 0) },
@@ -38,14 +38,14 @@ namespace Pawns {
             { S(-15, 0), S( -11, 0), S( 101, 0), S(  4, 0), S( 11, 0), S(-15, 0), S(-29, 0), S(0, 0) }
         }};
 
-        Score constexpr BlockedStorm =   S(82, 82);
+        constexpr Score BlockedStorm =   S(82, 82);
 
 
-        Score constexpr Backward =       S( 9,24);
-        Score constexpr Isolated =       S( 5,15);
-        Score constexpr Unopposed =      S(13,27);
-        Score constexpr WeakDoubled =    S(11,56);
-        Score constexpr WeakTwiceLever = S( 0,56);
+        constexpr Score Backward =       S( 9,24);
+        constexpr Score Isolated =       S( 5,15);
+        constexpr Score Unopposed =      S(13,27);
+        constexpr Score WeakDoubled =    S(11,56);
+        constexpr Score WeakTwiceLever = S( 0,56);
 
 #   undef S
 
@@ -55,9 +55,9 @@ namespace Pawns {
     /// Entry::evaluate_safety() calculates shelter & storm for a king,
     /// looking at the king file and the two closest files.
     template<Color Own>
-    Score Entry::evaluate_safety(Position const &pos, Square own_k_sq) const
+    Score Entry::evaluate_safety(const Position &pos, Square own_k_sq) const
     {
-        auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         Bitboard front_pawns = ~front_rank_bb(Opp, own_k_sq) & pos.pieces(PAWN);
         Bitboard own_front_pawns = pos.pieces(Own) & front_pawns;
@@ -66,7 +66,7 @@ namespace Pawns {
         Score safety = make_score(5, 5);
 
         auto kf = clamp(_file(own_k_sq), F_B, F_G);
-        for (auto const &f : { kf - File(1), kf, kf + File(1) })
+        for (const auto &f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);
             Bitboard own_front_f_pawns = own_front_pawns & file_bb(f);
@@ -97,14 +97,14 @@ namespace Pawns {
         return safety;
     }
     // Explicit template instantiations
-    template Score Entry::evaluate_safety<WHITE>(Position const&, Square) const;
-    template Score Entry::evaluate_safety<BLACK>(Position const&, Square) const;
+    template Score Entry::evaluate_safety<WHITE>(const Position&, Square) const;
+    template Score Entry::evaluate_safety<BLACK>(const Position&, Square) const;
 
     template<Color Own>
-    void Entry::evaluate(Position const &pos)
+    void Entry::evaluate(const Position &pos)
     {
-        auto constexpr Opp = WHITE == Own ? BLACK : WHITE;
-        auto const Attack = PawnAttacks[Own];
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        const auto Attack = PawnAttacks[Own];
 
         Bitboard pawns = pos.pieces(PAWN);
         Bitboard own_pawns = pos.pieces(Own) & pawns;
@@ -126,7 +126,7 @@ namespace Pawns {
         // Unsupported enemy pawns attacked twice by friend pawns
         Score score = SCORE_ZERO;
 
-        for (auto const &s : pos.squares[Own|PAWN])
+        for (const auto &s : pos.squares[Own|PAWN])
         {
             assert((Own|PAWN) == pos[s]);
 
@@ -201,12 +201,12 @@ namespace Pawns {
         scores[Own] = score;
     }
     // Explicit template instantiations
-    template void Entry::evaluate<WHITE>(Position const&);
-    template void Entry::evaluate<BLACK>(Position const&);
+    template void Entry::evaluate<WHITE>(const Position&);
+    template void Entry::evaluate<BLACK>(const Position&);
 
     /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe(Position const &pos)
+    Entry* probe(const Position &pos)
     {
         auto *e = pos.thread->pawn_table[pos.si->pawn_key];
 

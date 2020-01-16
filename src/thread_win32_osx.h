@@ -14,7 +14,7 @@
 class NativeThread
 {
 private:
-    static size_t constexpr TH_STACK_SIZE = 8 * 1024 * 1024;
+    static constexpr size_t TH_STACK_SIZE = 8 * 1024 * 1024;
 
     template<class T, class P = std::pair<T*, void(T::*)()>>
     static void* start_routine(void *arg)
@@ -37,9 +37,9 @@ public:
         pthread_attr_setstacksize(pattr, TH_STACK_SIZE);
         pthread_create(&thread, pattr, start_routine<T>, new P(obj, fun));
     }
-    //NativeThread(NativeThread const&) = delete;
-    //NativeThread& operator=(NativeThread const&) = delete;
-    //virtual ~NativeThread() {}
+    NativeThread(const NativeThread&) = delete;
+    NativeThread& operator=(const NativeThread&) = delete;
+    virtual ~NativeThread() {}
 
     void join() { pthread_join(thread, NULL); }
 };

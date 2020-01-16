@@ -29,7 +29,7 @@ namespace Pawns {
         }
 
         template<Color Own>
-        u08 king_safety_on(Position const &pos, Square own_k_sq)
+        u08 king_safety_on(const Position &pos, Square own_k_sq)
         {
             auto idx = std::find(king_square[Own].begin(), king_square[Own].begin() + index[Own] + 1, own_k_sq)
                      - king_square[Own].begin();
@@ -75,14 +75,14 @@ namespace Pawns {
         }
 
         template<Color>
-        Score evaluate_safety(Position const&, Square) const;
+        Score evaluate_safety(const Position&, Square) const;
 
         template<Color>
-        void evaluate(Position const&);
+        void evaluate(const Position&);
 
     };
 
     typedef HashTable<Entry, 0x20000> Table;
 
-    extern Entry* probe(Position const&);
+    extern Entry* probe(const Position&);
 }

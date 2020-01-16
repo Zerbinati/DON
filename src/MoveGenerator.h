@@ -15,9 +15,9 @@ enum GenType : u08
 };
 
 template<GenType>
-extern void generate(ValMoves&, Position const&);
+extern void generate(ValMoves&, const Position&);
 
-extern void filter_illegal(ValMoves&, Position const&);
+extern void filter_illegal(ValMoves&, const Position&);
 
 template<GenType GT, PieceType PT = NONE>
 class MoveList
@@ -26,15 +26,15 @@ class MoveList
 public:
 
     MoveList() = delete;
-    //MoveList(MoveList const&) = delete;
+    //MoveList(const MoveList&) = delete;
 
-    explicit MoveList(Position const &pos)
+    explicit MoveList(const Position &pos)
     {
         generate<GT>(*this, pos);
         //if (NONE != PT)
         //{
         //    erase(std::remove_if(begin(), end(),
-        //                        [&pos] (ValMove const&vm)
+        //                        [&pos] (const ValMove &vm)
         //                        {
         //                            return PT != ptype(pos[org_sq(vm)]);
         //                        }),
@@ -76,7 +76,7 @@ struct Perft
         //, stalemate(0)
     {}
 
-    void operator+=(Perft const &p)
+    void operator+=(const Perft &p)
     {
         any       += p.any;
         capture   += p.capture;
@@ -89,7 +89,7 @@ struct Perft
         checkmate += p.checkmate;
         //stalemate += p.stalemate;
     }
-    void operator-=(Perft const &p)
+    void operator-=(const Perft &p)
     {
         any       -= p.any;
         capture   -= p.capture;

@@ -23,7 +23,7 @@ namespace {
         return ifs;
     }
     //template<typename T>
-    //ofstream& operator<<(ofstream &ofs, T const &t)
+    //ofstream& operator<<(ofstream &ofs, const T &t)
     //{
     //    for (u08 i = 0; i < sizeof (t) && ofs.good(); ++i)
     //    {
@@ -40,7 +40,7 @@ namespace {
             >> entry.learn;
         return ifs;
     }
-    //ofstream& operator<<(ofstream &ofs, PolyEntry const &entry)
+    //ofstream& operator<<(ofstream &ofs, const PolyEntry &entry)
     //{
     //    ofs << entry.key
     //        << entry.move
@@ -50,7 +50,7 @@ namespace {
     //}
 
 
-    Move convert_move(Position const &pos, Move m)
+    Move convert_move(const Position &pos, Move m)
     {
         // Polyglot book move is encoded as follows:
         //
@@ -74,7 +74,7 @@ namespace {
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF));
         }
         // Add special move flags and verify it is legal
-        for (auto const &vm : MoveList<GenType::LEGAL>(pos))
+        for (const auto &vm : MoveList<GenType::LEGAL>(pos))
         {
             if ((vm.move & ~PROMOTE) == m)
             {
@@ -99,10 +99,10 @@ namespace {
 PolyEntry::operator string() const
 {
     ostringstream oss;
-    oss << " key: " << setw(16) << setfill('0') << hex << uppercase << key << nouppercase << dec
-        << " move: " << setw( 5) << setfill(' ') << left << Move(move) << right
+    oss << " key: "    << setw(16) << setfill('0') << hex << uppercase << key << nouppercase << dec
+        << " move: "   << setw( 5) << setfill(' ') << left << Move(move) << right
         << " weight: " << setw( 5) << setfill('0') << weight
-        << " learn: " << setw( 2) << setfill('0') << learn
+        << " learn: "  << setw( 2) << setfill('0') << learn
         << setfill(' ');
     return oss.str();
 }
@@ -177,17 +177,17 @@ i64 PolyBook::find_index(Key key) const
 
     return -1;
 }
-//i64 PolyBook::find_index(Position const &pos) const
+//i64 PolyBook::find_index(const Position &pos) const
 //{
 //    return find_index(pos.pg_key());
 //}
-//i64 PolyBook::find_index(string const &fen, bool c960) const
+//i64 PolyBook::find_index(const string &fen, bool c960) const
 //{
 //    StateInfo si;
 //    return find_index(Position().setup(fen, si, nullptr, c960).pg_key());
 //}
 
-bool PolyBook::can_probe(Position const &pos)
+bool PolyBook::can_probe(const Position &pos)
 {
     Bitboard pieces = pos.pieces();
     i32 piece_count = pos.count();
@@ -207,7 +207,7 @@ bool PolyBook::can_probe(Position const &pos)
     return do_probe;
 }
 
-void PolyBook::initialize(string const &bk_fn)
+void PolyBook::initialize(const string &bk_fn)
 {
     clear();
 
@@ -361,7 +361,7 @@ Move PolyBook::probe(Position &pos, i16 move_num, bool pick_best)
     return MOVE_NONE;
 }
 
-string PolyBook::show(Position const &pos) const
+string PolyBook::show(const Position &pos) const
 {
     if (   nullptr == entries
         || !enabled)

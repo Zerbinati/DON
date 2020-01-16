@@ -14,7 +14,7 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-std::mutex OutputMutex;
+mutex OutputMutex;
 
 ThreadPool Threadpool;
 
@@ -67,8 +67,8 @@ namespace {
     template<bool Optimum>
     TimePoint remaining_time(TimePoint time, u08 movestogo, Depth ply, double move_slowness)
     {
-        auto constexpr  StepRatio = 7.30 - 6.30 * Optimum; // When in trouble, can step over reserved time with this ratio
-        auto constexpr StealRatio = 0.34 - 0.34 * Optimum; // However must not steal time from remaining moves over this ratio
+        constexpr auto  StepRatio = 7.30 - 6.30 * Optimum; // When in trouble, can step over reserved time with this ratio
+        constexpr auto StealRatio = 0.34 - 0.34 * Optimum; // However must not steal time from remaining moves over this ratio
 
         auto move_imp1 = move_importance(ply) * move_slowness;
         auto move_imp2 = 0.0;
@@ -169,7 +169,7 @@ PRNG SkillManager::prng{u64(now())}; // PRNG sequence should be non-deterministi
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 void SkillManager::pick_best_move()
 {
-    auto const &root_moves = Threadpool.main_thread()->root_moves;
+    const auto &root_moves = Threadpool.main_thread()->root_moves;
     assert(!root_moves.empty());
     if (MOVE_NONE == best_move)
     {
@@ -216,14 +216,14 @@ Thread::~Thread()
 /// Thread::start() wakes up the thread that will start the search.
 void Thread::start()
 {
-    lock_guard<std::mutex> guard(mutex);
+    lock_guard<mutex> guard(mtx);
     busy = true;
     condition_var.notify_one(); // Wake up the thread in idle_function()
 }
 /// Thread::wait_while_busy() blocks on the condition variable while the thread is busy.
 void Thread::wait_while_busy()
 {
-    unique_lock<std::mutex> lock(mutex);
+    unique_lock<mutex> lock(mtx);
     condition_var.wait(lock, [&]{ return !busy; });
 }
 /// Thread::idle_function() is where the thread is parked.
@@ -240,20 +240,20 @@ void Thread::idle_function()
         WinProcGroup::bind(index);
     }
 
-    do
+    while (true)
     {
-        unique_lock<std::mutex> lock(mutex);
+        unique_lock<mutex> lock(mtx);
         busy = false;
         condition_var.notify_one(); // Wake up anyone waiting for search finished
         condition_var.wait(lock, [&]{ return busy; });
         if (dead)
         {
-            break;
+            return;
         }
         lock.unlock();
 
         search();
-    } while (true);
+    }
 }
 
 i16 Thread::move_best_count(Move move) const
@@ -430,7 +430,7 @@ namespace WinProcGroup {
 
 const Thread* ThreadPool::best_thread() const
 {
-    auto const *best_thread = front();
+    const auto *best_thread = front();
 
     auto min_value = (*std::min_element(begin(), end(),
                                         [](Thread *const &t1, Thread *const &t2)
@@ -441,11 +441,11 @@ const Thread* ThreadPool::best_thread() const
 
     // Vote according to value and depth
     std::map<Move, u64> votes;
-    for (auto const *th : *this)
+    for (const auto *th : *this)
     {
         votes[th->root_moves.front().front()] += i32(th->root_moves.front().new_value - min_value + 14) * th->finished_depth;
     }
-    for (auto const *th : *this)
+    for (const auto *th : *this)
     {
         if (best_thread->root_moves.front().new_value >= VALUE_MATE_MAX_PLY)
         {
@@ -466,7 +466,7 @@ const Thread* ThreadPool::best_thread() const
     }
     // Select best thread with max depth
     auto best_fm = best_thread->root_moves.front().front();
-    for (auto const *th : *this)
+    for (const auto *th : *this)
     {
         if (best_fm == th->root_moves.front().front())
         {
@@ -523,9 +523,10 @@ void ThreadPool::configure(u32 thread_count)
 }
 /// ThreadPool::start_thinking() wakes up main thread waiting in idle_function() and returns immediately.
 /// Main thread will wake up other threads and start the search.
-void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const &limit, vector<Move> const &search_moves, bool ponder)
+void ThreadPool::start_thinking(Position &pos, StateListPtr &states, const Limit &limit, const vector<Move> &search_moves, bool ponder)
 {
     stop = false;
+    research = false;
     main_thread()->stop_on_ponderhit = false;
     main_thread()->ponder = ponder;
 
@@ -570,8 +571,8 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, Limit const
         {
             // Sort moves according to TB rank
             sort(root_moves.begin(), root_moves.end(),
-                [](decltype(root_moves)::value_type const &rm1,
-                   decltype(root_moves)::value_type const &rm2)
+                [](const decltype(root_moves)::value_type &rm1,
+                   const decltype(root_moves)::value_type &rm2)
                 {
                     return rm1.tb_rank > rm2.tb_rank;
                 });

@@ -7,59 +7,59 @@
 namespace BitBoard {
 
     ///// make_bitboard() returns a bitboard compile-time constructed from a list of squares, files, ranks
-    //Bitboard constexpr make_bitboard() { return 0; }
+    //constexpr Bitboard make_bitboard() { return 0; }
 
     //template<typename ...Squares>
-    //Bitboard constexpr make_bitboard(Square s, Squares... squares)
+    //constexpr Bitboard make_bitboard(Square s, Squares... squares)
     //{
     //    return U64(0x0000000000000001) << s | make_bitboard(squares...);
     //}
     //template<typename ...Files>
-    //Bitboard constexpr make_bitboard(File f, Files... files)
+    //constexpr Bitboard make_bitboard(File f, Files... files)
     //{
     //    return U64(0x0101010101010101) << f | make_bitboard(files...);
     //}
     //template<typename ...Ranks>
-    //Bitboard constexpr make_bitboard(Rank r, Ranks... ranks)
+    //constexpr Bitboard make_bitboard(Rank r, Ranks... ranks)
     //{
     //    return U64(0x00000000000000FF) << (r * 8) | make_bitboard(ranks...);
     //}
 
-    Bitboard constexpr All_bb = U64(0xFFFFFFFFFFFFFFFF);
+    constexpr Bitboard All_bb = U64(0xFFFFFFFFFFFFFFFF);
 
-    Bitboard constexpr FA_bb = U64(0x0101010101010101);
-    Bitboard constexpr FB_bb = FA_bb << 1;
-    Bitboard constexpr FC_bb = FA_bb << 2;
-    Bitboard constexpr FD_bb = FA_bb << 3;
-    Bitboard constexpr FE_bb = FA_bb << 4;
-    Bitboard constexpr FF_bb = FA_bb << 5;
-    Bitboard constexpr FG_bb = FA_bb << 6;
-    Bitboard constexpr FH_bb = FA_bb << 7;
+    constexpr Bitboard FA_bb = U64(0x0101010101010101);
+    constexpr Bitboard FB_bb = FA_bb << 1;
+    constexpr Bitboard FC_bb = FA_bb << 2;
+    constexpr Bitboard FD_bb = FA_bb << 3;
+    constexpr Bitboard FE_bb = FA_bb << 4;
+    constexpr Bitboard FF_bb = FA_bb << 5;
+    constexpr Bitboard FG_bb = FA_bb << 6;
+    constexpr Bitboard FH_bb = FA_bb << 7;
 
-    Bitboard constexpr R1_bb = U64(0x00000000000000FF);
-    Bitboard constexpr R2_bb = R1_bb << (8 * 1);
-    Bitboard constexpr R3_bb = R1_bb << (8 * 2);
-    Bitboard constexpr R4_bb = R1_bb << (8 * 3);
-    Bitboard constexpr R5_bb = R1_bb << (8 * 4);
-    Bitboard constexpr R6_bb = R1_bb << (8 * 5);
-    Bitboard constexpr R7_bb = R1_bb << (8 * 6);
-    Bitboard constexpr R8_bb = R1_bb << (8 * 7);
+    constexpr Bitboard R1_bb = U64(0x00000000000000FF);
+    constexpr Bitboard R2_bb = R1_bb << (8 * 1);
+    constexpr Bitboard R3_bb = R1_bb << (8 * 2);
+    constexpr Bitboard R4_bb = R1_bb << (8 * 3);
+    constexpr Bitboard R5_bb = R1_bb << (8 * 4);
+    constexpr Bitboard R6_bb = R1_bb << (8 * 5);
+    constexpr Bitboard R7_bb = R1_bb << (8 * 6);
+    constexpr Bitboard R8_bb = R1_bb << (8 * 7);
 
-    //Bitboard constexpr Diagonals_bb = U64(0x8142241818244281); // A1..H8 | H1..A8
-    Bitboard constexpr Center_bb = (FD_bb|FE_bb) & (R4_bb|R5_bb);
+    //constexpr Bitboard Diagonals_bb = U64(0x8142241818244281); // A1..H8 | H1..A8
+    constexpr Bitboard Center_bb = (FD_bb|FE_bb) & (R4_bb|R5_bb);
 
-    std::array<Bitboard, CLR_NO> constexpr Color_bb
+    constexpr std::array<Bitboard, CLR_NO> Color_bb
     {
         U64(0x55AA55AA55AA55AA),
         U64(0xAA55AA55AA55AA55)
     };
-    std::array<Bitboard, 3> constexpr Side_bb
+    constexpr std::array<Bitboard, 3> Side_bb
     {
         FE_bb|FF_bb|FG_bb|FH_bb,
         FA_bb|FB_bb|FC_bb|FD_bb,
         FC_bb|FD_bb|FE_bb|FF_bb
     };
-    std::array<Bitboard, F_NO> constexpr KingFlank_bb
+    constexpr std::array<Bitboard, F_NO> KingFlank_bb
     {
         Side_bb[CS_QUEN] ^ FD_bb,
         Side_bb[CS_QUEN],
@@ -70,22 +70,22 @@ namespace BitBoard {
         Side_bb[CS_KING],
         Side_bb[CS_KING] ^ FE_bb
     };
-    std::array<Bitboard, CLR_NO> constexpr Outposts_bb
+    constexpr std::array<Bitboard, CLR_NO> Outposts_bb
     {
         R4_bb|R5_bb|R6_bb,
         R5_bb|R4_bb|R3_bb
     };
-    std::array<Bitboard, CLR_NO> constexpr Camp_bb
+    constexpr std::array<Bitboard, CLR_NO> Camp_bb
     {
         R1_bb|R2_bb|R3_bb|R4_bb|R5_bb,
         R8_bb|R7_bb|R6_bb|R5_bb|R4_bb
     };
-    std::array<Bitboard, CLR_NO> constexpr LowRanks_bb
+    constexpr std::array<Bitboard, CLR_NO> LowRanks_bb
     {
         R2_bb|R3_bb,
         R7_bb|R6_bb
     };
-    std::array<Bitboard, CLR_NO> constexpr Region_bb
+    constexpr std::array<Bitboard, CLR_NO> Region_bb
     {
         R2_bb|R3_bb|R4_bb,
         R7_bb|R6_bb|R5_bb
@@ -95,7 +95,7 @@ namespace BitBoard {
 #   define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
 #   define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
 #   define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
-    std::array<Bitboard, SQ_NO> constexpr Square_bb
+    constexpr std::array<Bitboard, SQ_NO> Square_bb
     {
         S_16(0), S_16(1), S_16(2), S_16(3),
     };
@@ -149,66 +149,66 @@ namespace BitBoard {
 
     /// Shift the bitboard using delta
     template<Delta DEL>
-    Bitboard constexpr shift(Bitboard bb) { return 0; }
+    constexpr Bitboard shift(Bitboard bb) { return 0; }
 
-    template<> Bitboard constexpr shift<DEL_N >(Bitboard bb) { return (bb         ) <<  8; }
-    template<> Bitboard constexpr shift<DEL_S >(Bitboard bb) { return (bb         ) >>  8; }
-    template<> Bitboard constexpr shift<DEL_NN>(Bitboard bb) { return (bb         ) << 16; }
-    template<> Bitboard constexpr shift<DEL_SS>(Bitboard bb) { return (bb         ) >> 16; }
+    template<> constexpr Bitboard shift<DEL_N >(Bitboard bb) { return (bb         ) <<  8; }
+    template<> constexpr Bitboard shift<DEL_S >(Bitboard bb) { return (bb         ) >>  8; }
+    template<> constexpr Bitboard shift<DEL_NN>(Bitboard bb) { return (bb         ) << 16; }
+    template<> constexpr Bitboard shift<DEL_SS>(Bitboard bb) { return (bb         ) >> 16; }
     // If (shifting & 7) != 0 then  bound clipping is done (~FA_bb or ~FH_bb)
-    template<> Bitboard constexpr shift<DEL_E >(Bitboard bb) { return (bb & ~FH_bb) <<  1; }
-    template<> Bitboard constexpr shift<DEL_W >(Bitboard bb) { return (bb & ~FA_bb) >>  1; }
-    template<> Bitboard constexpr shift<DEL_NE>(Bitboard bb) { return (bb & ~FH_bb) <<  9; }
-    template<> Bitboard constexpr shift<DEL_SE>(Bitboard bb) { return (bb & ~FH_bb) >>  7; }
-    template<> Bitboard constexpr shift<DEL_NW>(Bitboard bb) { return (bb & ~FA_bb) <<  7; }
-    template<> Bitboard constexpr shift<DEL_SW>(Bitboard bb) { return (bb & ~FA_bb) >>  9; }
+    template<> constexpr Bitboard shift<DEL_E >(Bitboard bb) { return (bb & ~FH_bb) <<  1; }
+    template<> constexpr Bitboard shift<DEL_W >(Bitboard bb) { return (bb & ~FA_bb) >>  1; }
+    template<> constexpr Bitboard shift<DEL_NE>(Bitboard bb) { return (bb & ~FH_bb) <<  9; }
+    template<> constexpr Bitboard shift<DEL_SE>(Bitboard bb) { return (bb & ~FH_bb) >>  7; }
+    template<> constexpr Bitboard shift<DEL_NW>(Bitboard bb) { return (bb & ~FA_bb) <<  7; }
+    template<> constexpr Bitboard shift<DEL_SW>(Bitboard bb) { return (bb & ~FA_bb) >>  9; }
 
     ///// Rotate Right (toward LSB)
-    //Bitboard constexpr rotate_R(Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQ_NO - k)); }
+    //constexpr Bitboard rotate_R(Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQ_NO - k)); }
     ///// Rotate Left  (toward MSB)
-    //Bitboard constexpr rotate_L(Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQ_NO - k)); }
+    //constexpr Bitboard rotate_L(Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQ_NO - k)); }
 
-    Bitboard constexpr square_bb(Square s) { return Square_bb[s]; }
+    constexpr Bitboard square_bb(Square s) { return Square_bb[s]; }
 
-    bool constexpr contains(Bitboard bb, Square s) { return 0 != (bb & square_bb(s)); }
+    constexpr bool contains(Bitboard bb, Square s) { return 0 != (bb & square_bb(s)); }
 
-    Bitboard constexpr operator|(Bitboard  bb, Square s) { return bb | square_bb(s); }
-    Bitboard constexpr operator^(Bitboard  bb, Square s) { return bb ^ square_bb(s); }
+    constexpr Bitboard operator|(Bitboard  bb, Square s) { return bb | square_bb(s); }
+    constexpr Bitboard operator^(Bitboard  bb, Square s) { return bb ^ square_bb(s); }
 
     inline Bitboard& operator|=(Bitboard &bb, Square s) { return bb |= square_bb(s); }
     inline Bitboard& operator^=(Bitboard &bb, Square s) { return bb ^= square_bb(s); }
 
-    Bitboard constexpr file_bb(File f)   { return FA_bb << f; }
-    Bitboard constexpr file_bb(Square s) { return file_bb(_file(s)); }
+    constexpr Bitboard file_bb(File f)   { return FA_bb << f; }
+    constexpr Bitboard file_bb(Square s) { return file_bb(_file(s)); }
 
-    Bitboard constexpr rank_bb(Rank r)   { return R1_bb << (8 * r); }
-    Bitboard constexpr rank_bb(Square s) { return rank_bb(_rank(s)); }
+    constexpr Bitboard rank_bb(Rank r)   { return R1_bb << (8 * r); }
+    constexpr Bitboard rank_bb(Square s) { return rank_bb(_rank(s)); }
 
     // front_rank_bb() returns ranks in front of the given rank
-    Bitboard constexpr front_rank_bb(Color c, Rank r)
+    constexpr Bitboard front_rank_bb(Color c, Rank r)
     {
         return WHITE == c ?
                 ~R1_bb << (8 * (r - R_1)) :
                 ~R8_bb >> (8 * (R_8 - r));
     }
     // front_rank_bb() returns ranks in front of the given square
-    Bitboard constexpr front_rank_bb(Color c, Square s) { return front_rank_bb(c, _rank(s)); }
+    constexpr Bitboard front_rank_bb(Color c, Square s) { return front_rank_bb(c, _rank(s)); }
 
-    Bitboard constexpr adj_file_bb(Square s)
+    constexpr Bitboard adj_file_bb(Square s)
     {
         return shift<DEL_E>(file_bb(s))
              | shift<DEL_W>(file_bb(s));
     }
-    //Bitboard constexpr adj_rank_bb(Square s)
+    //constexpr Bitboard adj_rank_bb(Square s)
     //{
     //    return shift<DEL_N>(rank_bb(s))
     //         | shift<DEL_S>(rank_bb(s));
     //}
 
-    Bitboard constexpr front_squares_bb(Color c, Square s) { return front_rank_bb(c, s) & file_bb(s); }
+    constexpr Bitboard front_squares_bb(Color c, Square s) { return front_rank_bb(c, s) & file_bb(s); }
 
-    Bitboard constexpr pawn_attack_span(Color c, Square s) { return front_rank_bb(c, s) & adj_file_bb(s); }
-    Bitboard constexpr   pawn_pass_span(Color c, Square s) { return front_squares_bb(c, s) | pawn_attack_span(c, s); }
+    constexpr Bitboard pawn_attack_span(Color c, Square s) { return front_rank_bb(c, s) & adj_file_bb(s); }
+    constexpr Bitboard   pawn_pass_span(Color c, Square s) { return front_squares_bb(c, s) | pawn_attack_span(c, s); }
 
     /// dist() functions return the distance between s1 and s2, defined as the
     /// number of steps for a king in s1 to reach s2.
@@ -245,25 +245,25 @@ namespace BitBoard {
         return (contains(Color_bb[WHITE], s1) == contains(Color_bb[BLACK], s2));
     }
 
-    Bitboard constexpr pawn_sgl_pushes_bb(Color c, Bitboard bb)
+    constexpr Bitboard pawn_sgl_pushes_bb(Color c, Bitboard bb)
     {
         return WHITE == c ?
                 shift<DEL_N>(bb) :
                 shift<DEL_S>(bb);
     }
-    Bitboard constexpr pawn_dbl_pushes_bb(Color c, Bitboard bb)
+    constexpr Bitboard pawn_dbl_pushes_bb(Color c, Bitboard bb)
     {
         return WHITE == c ?
             shift<DEL_NN>(bb) :
             shift<DEL_SS>(bb);
     }
-    Bitboard constexpr pawn_l_attacks_bb(Color c, Bitboard bb)
+    constexpr Bitboard pawn_l_attacks_bb(Color c, Bitboard bb)
     {
         return WHITE == c ?
                 shift<DEL_NW>(bb) :
                 shift<DEL_SE>(bb);
     }
-    Bitboard constexpr pawn_r_attacks_bb(Color c, Bitboard bb)
+    constexpr Bitboard pawn_r_attacks_bb(Color c, Bitboard bb)
     {
         return WHITE == c ?
                 shift<DEL_NE>(bb) :
@@ -271,12 +271,12 @@ namespace BitBoard {
     }
 
     /// pawn_sgl_attacks_bb() returns the single attackes by pawns of the given color
-    Bitboard constexpr pawn_sgl_attacks_bb(Color c, Bitboard bb)
+    constexpr Bitboard pawn_sgl_attacks_bb(Color c, Bitboard bb)
     {
         return pawn_l_attacks_bb(c, bb) | pawn_r_attacks_bb(c, bb);
     }
     /// pawn_dbl_attacks_bb() returns the double attackes by pawns of the given color
-    Bitboard constexpr pawn_dbl_attacks_bb(Color c, Bitboard bb)
+    constexpr Bitboard pawn_dbl_attacks_bb(Color c, Bitboard bb)
     {
         return pawn_l_attacks_bb(c, bb) & pawn_r_attacks_bb(c, bb);
     }
@@ -478,7 +478,7 @@ namespace BitBoard {
 
     // * @author Kim Walisch (2012)
     constexpr u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
-    std::array<u08, SQ_NO> constexpr BSF_Table
+    constexpr std::array<u08, SQ_NO> BSF_Table
     {
          0, 47,  1, 56, 48, 27,  2, 60,
         57, 49, 41, 37, 28, 16,  3, 61,
@@ -493,7 +493,7 @@ namespace BitBoard {
 #   else
 
     constexpr u32 DeBruijn_32 = U32(0x783A9B23);
-    std::array<u08, SQ_NO> constexpr BSF_Table
+    constexpr std::array<u08, SQ_NO> BSF_Table
     {
         63, 30,  3, 32, 25, 41, 22, 33,
         15, 50, 42, 13, 11, 53, 19, 34,
@@ -505,7 +505,7 @@ namespace BitBoard {
         38, 28, 58, 20, 37, 17, 36,  8
     };
 
-    std::array<u08, (1 << 8)> constexpr MSB_Table[]
+    constexpr std::array<u08, (1 << 8)> MSB_Table[]
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

@@ -46,22 +46,22 @@ inline std::string to_string(Value v)
 }
 
 extern std::string move_to_can(Move);
-extern Move move_from_can(std::string const&, Position const&);
+extern Move move_from_can(const std::string&, const Position&);
 
 extern std::string move_to_san(Move, Position&);
-extern Move move_from_san(std::string const&, Position&);
+extern Move move_from_san(const std::string&, Position&);
 
 //extern std::string move_to_lan(Move, Position&);
-//extern Move move_from_lan(std::string const&, Position&);
+//extern Move move_from_lan(const std::string&, Position&);
 
-extern std::string multipv_info(Thread const *const&, i16, Value, Value);
+extern std::string multipv_info(const Thread *const&, i16, Value, Value);
 
 extern std::string pretty_pv_info(Thread *const&);
 
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, File const &f)
+    operator<<(std::basic_ostream<CharT, Traits> &os, File f)
 {
     os << to_char(f);
     return os;
@@ -69,7 +69,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Rank const &r)
+    operator<<(std::basic_ostream<CharT, Traits> &os, Rank r)
 {
     os << to_char(r);
     return os;
@@ -77,7 +77,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Square const &s)
+    operator<<(std::basic_ostream<CharT, Traits> &os, Square s)
 {
     os << to_string(s);
     return os;
@@ -85,7 +85,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Move const &m)
+    operator<<(std::basic_ostream<CharT, Traits> &os, Move m)
 {
     os << move_to_can(m);
     return os;
@@ -93,7 +93,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Color const &c)
+    operator<<(std::basic_ostream<CharT, Traits> &os, Color c)
 {
     os << ColorChar[c];
     return os;
@@ -101,13 +101,15 @@ inline std::basic_ostream<CharT, Traits>&
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Piece const &p)
+    operator<<(std::basic_ostream<CharT, Traits> &os, Piece p)
 {
     os << PieceChar[p];
     return os;
 }
 
-inline std::ostream& operator<<(std::ostream &os, Score const &score)
+template<typename CharT, typename Traits>
+inline std::basic_ostream<CharT, Traits>&
+    operator<<(std::basic_ostream<CharT, Traits> &os, Score score)
 {
     os << std::showpos << std::showpoint
        << std::setw(5) << value_to_cp(mg_value(score)) / 100.0 << " "

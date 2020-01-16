@@ -23,7 +23,7 @@ namespace {
 
     /// Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
     /// NOTE: for pawns it is not needed because 'org' file is explicit.
-    Ambiguity ambiguity(Move m, Position const &pos)
+    Ambiguity ambiguity(Move m, const Position &pos)
     {
         assert(pos.pseudo_legal(m)
             && pos.legal(m));
@@ -124,7 +124,7 @@ string move_to_can(Move m)
 }
 /// Converts a string representing a move in coordinate algebraic notation
 /// to the corresponding legal move, if any.
-Move move_from_can(string const &can, Position const &pos)
+Move move_from_can(const string &can, const Position &pos)
 {
     //// If promotion piece in uppercase, convert to lowercase
     //if (   5 == can.size()
@@ -134,7 +134,7 @@ Move move_from_can(string const &can, Position const &pos)
     //}
     assert(5 > can.size()
         || islower(can[4]));
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
+    for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
         if (can == move_to_can(vm))
         {
@@ -210,9 +210,9 @@ string move_to_san(Move m, Position &pos)
 }
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
-Move move_from_san(string const &san, Position &pos)
+Move move_from_san(const string &san, Position &pos)
 {
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
+    for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
         if (san == move_to_san(vm, pos))
         {
@@ -233,9 +233,9 @@ Move move_from_san(string const &san, Position &pos)
 //}
 ///// Converts a string representing a move in long algebraic notation
 ///// to the corresponding legal move, if any.
-//Move move_from_lan(string const &lan, Position &pos)
+//Move move_from_lan(const string &lan, Position &pos)
 //{
-//    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
+//    for (const auto &vm : MoveList<GenType::LEGAL>(pos))
 //    {
 //        if (lan == move_to_lan(vm, pos))
 //        {
@@ -247,7 +247,7 @@ Move move_from_san(string const &san, Position &pos)
 
 /// multipv_info() formats PV information according to UCI protocol.
 /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
-string multipv_info(Thread const *const &th, Depth depth, Value alfa, Value beta)
+string multipv_info(const Thread *const &th, Depth depth, Value alfa, Value beta)
 {
     auto elapsed_time = std::max(Threadpool.main_thread()->time_mgr.elapsed_time(), TimePoint(1));
     auto &rms = th->root_moves;
@@ -336,7 +336,7 @@ string pretty_pv_info(Thread *const &th)
     StateListPtr states{new deque<StateInfo>(0)};
     std::for_each(th->root_moves.front().begin(),
                   th->root_moves.front().end(),
-                  [&](Move const &m)
+                  [&](Move m)
                   {
                       assert(MOVE_NONE != m);
                       oss << move_to_san(m, th->root_pos) << " ";
@@ -345,7 +345,7 @@ string pretty_pv_info(Thread *const &th)
                   });
     std::for_each(th->root_moves.front().rbegin(),
                   th->root_moves.front().rend(),
-                  [&](Move const &m)
+                  [&](Move m)
                   {
                       assert(MOVE_NONE != m);
                       th->root_pos.undo_move(m);

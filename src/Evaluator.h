@@ -6,6 +6,6 @@
 // Tempo bonus
 constexpr Value Tempo = Value(28);
 
-extern Value evaluate(Position const&);
+extern Value evaluate(const Position&);
 
-extern std::string trace(Position const&);
+extern std::string trace(const Position&);

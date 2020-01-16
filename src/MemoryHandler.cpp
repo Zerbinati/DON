@@ -52,7 +52,7 @@ namespace Memory {
 
 #   if defined(_WIN32)
 
-        bool setup_privilege(char const *privilege_name, bool enable)
+        bool setup_privilege(const char *privilege_name, bool enable)
         {
             bool ret = false;
             HANDLE token_handle;

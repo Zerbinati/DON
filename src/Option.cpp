@@ -28,7 +28,7 @@ namespace UCI {
         , maximum(0)
         , on_change(on_cng)
     {}
-    Option::Option(char const *val, OnChange on_cng)
+    Option::Option(const char *val, OnChange on_cng)
         : type("string")
         , minimum(0)
         , maximum(0)
@@ -36,7 +36,7 @@ namespace UCI {
     {
         default_value = current_value = val;
     }
-    Option::Option(bool const val, OnChange on_cng)
+    Option::Option(const bool val, OnChange on_cng)
         : type("check")
         , minimum(0)
         , maximum(0)
@@ -44,7 +44,7 @@ namespace UCI {
     {
         default_value = current_value = (val ? "true" : "false");
     }
-    Option::Option(i32 const val, i32 min, i32 max, OnChange on_cng)
+    Option::Option(const i32 val, i32 min, i32 max, OnChange on_cng)
         : type("spin")
         , minimum(min)
         , maximum(max)
@@ -52,7 +52,7 @@ namespace UCI {
     {
         default_value = current_value = std::to_string(val);
     }
-    Option::Option(char const* v, char const* cur, OnChange on_cng)
+    Option::Option(const char* v, const char* cur, OnChange on_cng)
         : type("combo")
         , minimum(0)
         , maximum(0)
@@ -77,7 +77,7 @@ namespace UCI {
         assert(type == "spin");
         return stoi(current_value);
     }
-    bool Option::operator==(char const *val) const
+    bool Option::operator==(const char *val) const
     {
         assert(type == "combo");
         return !no_case_less_comparer()(current_value, val)
@@ -85,12 +85,12 @@ namespace UCI {
     }
 
     /// Option::operator=() updates value and triggers on_change() action.
-    Option& Option::operator=(char const *value)
+    Option& Option::operator=(const char *value)
     {
         return *this = string(value);
     }
     /// Option::operator=() updates value and triggers on_change() action.
-    Option& Option::operator=(string const &value)
+    Option& Option::operator=(const string &value)
     {
         assert(!type.empty());
 
@@ -151,7 +151,7 @@ namespace UCI {
     }
 
     /// Option::operator<<() inits options and assigns idx in the correct printing order
-    void Option::operator<<(Option const &opt)
+    void Option::operator<<(const Option &opt)
     {
         *this = opt;
         index = InsertOrder++;

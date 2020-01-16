@@ -52,8 +52,8 @@ namespace std {
 
     protected:
 
-        basic_tie_buf(basic_tie_buf const&) = delete;
-        basic_tie_buf& operator=(basic_tie_buf const&) = delete;
+        basic_tie_buf(const basic_tie_buf&) = delete;
+        basic_tie_buf& operator=(const basic_tie_buf&) = delete;
 
         int sync() override
         {
@@ -77,6 +77,6 @@ namespace std {
 
     };
 
-    typedef basic_tie_buf<char,    char_traits<char> >     tie_buf;
+    typedef basic_tie_buf<char   , char_traits<char   > >  tie_buf;
     typedef basic_tie_buf<wchar_t, char_traits<wchar_t> >  tie_wbuf;
 }

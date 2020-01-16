@@ -160,14 +160,14 @@ enum Delta : i08
 
 typedef i16 Depth;
 
-Depth constexpr DEP_ZERO        =  0;
-Depth constexpr DEP_QS_CHECK    =  0;
-Depth constexpr DEP_QS_NO_CHECK = -1;
-Depth constexpr DEP_QS_RECAP    = -5;
-Depth constexpr DEP_NONE        = -6;
-Depth constexpr DEP_OFFSET      = -7;
+constexpr Depth DEP_ZERO        =  0;
+constexpr Depth DEP_QS_CHECK    =  0;
+constexpr Depth DEP_QS_NO_CHECK = -1;
+constexpr Depth DEP_QS_RECAP    = -5;
+constexpr Depth DEP_NONE        = -6;
+constexpr Depth DEP_OFFSET      = -7;
 // Maximum Plies
-Depth constexpr DEP_MAX         = 245; // = 256 + DEP_OFFSET - 4
+constexpr Depth DEP_MAX         = 245; // = 256 + DEP_OFFSET - 4
 
 
 enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NO };
@@ -232,7 +232,7 @@ enum MoveType : u16
     PROMOTE   = 3 << 14, // [11]x---
 };
 
-//i16 constexpr MaxMoves          = 256;
+//constexpr i16 MaxMoves          = 256;
 
 /// Move needs 16-bits to be stored
 ///
@@ -354,6 +354,7 @@ inline Square& operator+=(Square &s, Delta d) { s = s + d; return s; }
 inline Square& operator-=(Square &s, Delta d) { s = s - d; return s; }
 
 inline Delta operator-(Square s1, Square s2) { return Delta(i32(s1) - i32(s2)); }
+
 INC_DEC_OPERATORS(Square)
 
 INC_DEC_OPERATORS(CastleSide)
@@ -366,7 +367,7 @@ BASIC_OPERATORS(Value)
 ARTHMAT_OPERATORS(Value)
 INC_DEC_OPERATORS(Value)
 
-Score constexpr make_score(i32 mg, i32 eg)
+constexpr Score make_score(i32 mg, i32 eg)
 {
     return Score(i32(u32(eg) << 0x10) + mg);
 }
@@ -390,8 +391,6 @@ BASIC_OPERATORS(Score)
 
 /// Division of a Score must be handled separately for each term
 inline Score operator/(Score s, i32 i) { return make_score(mg_value(s) / i, eg_value(s) / i); }
-inline Score& operator/=(Score &s, i32 i) { s = make_score(mg_value(s) / i, eg_value(s) / i); return s; }
-
 /// Multiplication of a Score by an integer. We check for overflow in debug mode.
 inline Score operator*(Score s, i32 i)
 {
@@ -403,10 +402,12 @@ inline Score operator*(Score s, i32 i)
 
     return score;
 }
-inline Score& operator*=(Score &s, i32 i) { s = Score(i32(s) * i); return s; }
+
+inline Score& operator/=(Score &s, i32 i) { s = s / i; return s; }
+inline Score& operator*=(Score &s, i32 i) { s = s * i; return s; }
 
 /// Multiplication of a Score by a boolean
-inline Score operator*(Score s, bool b) { return Score(i32(s) * i32(b)); }
+inline Score operator*(Score s, bool b) { return s * i32(b); }
 
 /// Don't want to multiply two scores due to a very high risk of overflow.
 /// So user should explicitly convert to integer.
@@ -420,62 +421,62 @@ BITWISE_OPERATORS(Bound)
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-bool constexpr        _ok(Color c) { return WHITE == c || BLACK == c; }
-Color constexpr operator~(Color c) { return Color(c ^ BLACK); }
+constexpr bool        _ok(Color c) { return WHITE == c || BLACK == c; }
+constexpr Color operator~(Color c) { return Color(c ^ BLACK); }
 
-bool constexpr       _ok(File f) { return F_A <= f && f <= F_H; }
-File constexpr operator~(File f) { return File(f ^ F_H); }
-File constexpr   to_file(char f) { return File(f - 'a'); }
+constexpr bool       _ok(File f) { return F_A <= f && f <= F_H; }
+constexpr File operator~(File f) { return File(f ^ F_H); }
+constexpr File   to_file(char f) { return File(f - 'a'); }
 // Map file [ABCDEFGH] to file [ABCDDCBA]
 inline File     map_file(File f) { return std::min(f, ~f); }
 
-bool constexpr       _ok(Rank r) { return R_1 <= r && r <= R_8; }
-Rank constexpr operator~(Rank r) { return Rank(r ^ R_8); }
-Rank constexpr   to_rank(char r) { return Rank(r - '1'); }
+constexpr bool       _ok(Rank r) { return R_1 <= r && r <= R_8; }
+constexpr Rank operator~(Rank r) { return Rank(r ^ R_8); }
+constexpr Rank   to_rank(char r) { return Rank(r - '1'); }
 
-Square constexpr operator|(File f, Rank r) { return Square(( r << 3) + f); }
-Square constexpr operator|(Rank r, File f) { return Square((~r << 3) + f); }
-Square constexpr to_square(char f, char r) { return to_file(f) | to_rank(r); }
+constexpr Square operator|(File f, Rank r) { return Square(( r << 3) + f); }
+constexpr Square operator|(Rank r, File f) { return Square((~r << 3) + f); }
+constexpr Square to_square(char f, char r) { return to_file(f) | to_rank(r); }
 
-bool constexpr    _ok(Square s) { return SQ_A1 <= s && s <= SQ_H8; }
-File constexpr  _file(Square s) { return File(s & 7); }
-Rank constexpr  _rank(Square s) { return Rank(s >> 3); }
-Color constexpr color(Square s) { return 0 != ((s ^ (s >> 3)) & 1) ? WHITE : BLACK; }
+constexpr bool    _ok(Square s) { return SQ_A1 <= s && s <= SQ_H8; }
+constexpr File  _file(Square s) { return File(s & 7); }
+constexpr Rank  _rank(Square s) { return Rank(s >> 3); }
+constexpr Color color(Square s) { return 0 != ((s ^ (s >> 3)) & 1) ? WHITE : BLACK; }
 
 // SQ_A1 -> SQ_A8
-Square constexpr operator~(Square s) { return Square(s ^ i08(SQ_A8)); }
+constexpr Square operator~(Square s) { return Square(s ^ i08(SQ_A8)); }
 // SQ_A1 -> SQ_H1
-Square constexpr operator!(Square s) { return Square(s ^ i08(SQ_H1)); }
+constexpr Square operator!(Square s) { return Square(s ^ i08(SQ_H1)); }
 
-Square constexpr rel_sq(Color c, Square s) { return Square(s ^ (c*SQ_A8)); }
+constexpr Square rel_sq(Color c, Square s) { return Square(s ^ (c*SQ_A8)); }
 
-Rank constexpr rel_rank(Color c, Rank r)   { return Rank(r ^ (c*R_8)); }
-Rank constexpr rel_rank(Color c, Square s) { return rel_rank(c, _rank(s)); }
+constexpr Rank rel_rank(Color c, Rank r)   { return Rank(r ^ (c*R_8)); }
+constexpr Rank rel_rank(Color c, Square s) { return rel_rank(c, _rank(s)); }
 
-Delta constexpr  pawn_push(Color c) { return WHITE == c ? DEL_N : DEL_S; }
-Delta constexpr pawn_l_att(Color c) { return WHITE == c ? DEL_NW : DEL_SE; }
-Delta constexpr pawn_r_att(Color c) { return WHITE == c ? DEL_NE : DEL_SW; }
+constexpr Delta pawn_push (Color c) { return WHITE == c ? DEL_N : DEL_S; }
+constexpr Delta pawn_l_att(Color c) { return WHITE == c ? DEL_NW : DEL_SE; }
+constexpr Delta pawn_r_att(Color c) { return WHITE == c ? DEL_NE : DEL_SW; }
 
-CastleRight constexpr operator|(Color c, CastleSide cs)
+constexpr CastleRight operator|(Color c, CastleSide cs)
 {
     return CastleRight(CR_WKING << (2 * c + (cs == CS_QUEN)));
 }
 
-bool constexpr   _ok(PieceType pt) { return PAWN <= pt && pt <= KING; }
+constexpr bool   _ok(PieceType pt) { return PAWN <= pt && pt <= KING; }
 
-bool constexpr        _ok(Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-PieceType constexpr ptype(Piece p) { return PieceType(p & PT_NO); }
-Color constexpr     color(Piece p) { return Color((p >> 3) & BLACK); }
-Piece constexpr operator~(Piece p) { return Piece(p ^ 8); }
-Piece constexpr operator|(Color c, PieceType pt) { return Piece((c << 3) + pt); }
+constexpr bool        _ok(Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
+constexpr PieceType ptype(Piece p) { return PieceType(p & PT_NO); }
+constexpr Color     color(Piece p) { return Color((p >> 3) & BLACK); }
+constexpr Piece operator~(Piece p) { return Piece(p ^ 8); }
+constexpr Piece operator|(Color c, PieceType pt) { return Piece((c << 3) + pt); }
 
-Square constexpr     org_sq(Move m) { return Square((m >> 6) & SQ_H8); }
-Square constexpr     dst_sq(Move m) { return Square((m >> 0) & SQ_H8); }
-bool constexpr          _ok(Move m) { return org_sq(m) != dst_sq(m); }
-PieceType constexpr promote(Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
-MoveType constexpr    mtype(Move m) { return MoveType(m & PROMOTE); }
-u16 constexpr    move_index(Move m) { return u16(m & 0x0FFF); }
-Square constexpr fix_dst_sq(Move m, bool chess960 = false)
+constexpr Square     org_sq(Move m) { return Square((m >> 6) & SQ_H8); }
+constexpr Square     dst_sq(Move m) { return Square((m >> 0) & SQ_H8); }
+constexpr bool          _ok(Move m) { return org_sq(m) != dst_sq(m); }
+constexpr PieceType promote(Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
+constexpr MoveType    mtype(Move m) { return MoveType(m & PROMOTE); }
+constexpr u16    move_index(Move m) { return u16(m & 0x0FFF); }
+constexpr Square fix_dst_sq(Move m, bool chess960 = false)
 {
     return CASTLE != mtype(m)
         || chess960 ?
@@ -484,32 +485,32 @@ Square constexpr fix_dst_sq(Move m, bool chess960 = false)
 }
 
 template<MoveType MT>
-Move constexpr make_move(Square org, Square dst)
+constexpr Move make_move(Square org, Square dst)
 {
     return Move(MT + (org << 6) + dst);
 }
 
-Move constexpr make_promote_move(Square org, Square dst, PieceType pt)
+constexpr Move make_promote_move(Square org, Square dst, PieceType pt)
 {
     return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst);
 }
 template<>
-Move constexpr make_move<PROMOTE>(Square org, Square dst)
+constexpr Move make_move<PROMOTE>(Square org, Square dst)
 {
     return make_promote_move(org, dst, QUEN);
 }
 
-Move constexpr reverse_move(Move m)
+constexpr Move reverse_move(Move m)
 {
   return make_move<NORMAL>(dst_sq(m), org_sq(m));
 }
 
-i16   constexpr value_to_cp(Value v) { return i16((v*100)/VALUE_EG_PAWN); }
-Value constexpr cp_to_value(i16  cp) { return Value((i32(cp)*VALUE_EG_PAWN)/100); }
+constexpr i16   value_to_cp(Value v) { return i16((v*100)/VALUE_EG_PAWN); }
+constexpr Value cp_to_value(i16  cp) { return Value((i32(cp)*VALUE_EG_PAWN)/100); }
 /// It adjusts a mate score from "plies to mate from the root" to "plies to mate from the current position".
 /// Non-mate scores are unchanged.
 /// The function is called before storing a value to the transposition table.
-Value constexpr value_to_tt(Value v, i32 ply)
+constexpr Value value_to_tt(Value v, i32 ply)
 {
     //assert(VALUE_NONE != v);
     return v >= +VALUE_MATE_MAX_PLY ? v + ply :
@@ -519,7 +520,7 @@ Value constexpr value_to_tt(Value v, i32 ply)
 /// It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
 /// Non-mate scores are unchanged.
 /// The function is called after retrieving a value of the transposition table.
-Value constexpr value_of_tt(Value v, i32 ply, u08 clock_ply)
+constexpr Value value_of_tt(Value v, i32 ply, u08 clock_ply)
 {
     return v ==  VALUE_NONE         ? VALUE_NONE :
            v >= +VALUE_MATE_MAX_PLY ? VALUE_MATE - v > 99 - clock_ply ? +VALUE_MATE_MAX_PLY : v - ply :
@@ -527,8 +528,8 @@ Value constexpr value_of_tt(Value v, i32 ply, u08 clock_ply)
                                       v;
 }
 
-Value constexpr mates_in(i32 ply) { return +VALUE_MATE - ply; }
-Value constexpr mated_in(i32 ply) { return -VALUE_MATE + ply; }
+constexpr Value mates_in(i32 ply) { return +VALUE_MATE - ply; }
+constexpr Value mated_in(i32 ply) { return -VALUE_MATE + ply; }
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milli-seconds
 
@@ -561,10 +562,10 @@ public:
     operator float() const = delete;
     operator double() const = delete;
 
-    bool operator<(ValMove const&vm) const { return value < vm.value; }
-    bool operator>(ValMove const&vm) const { return value > vm.value; }
-    //bool operator<=(ValMove const&vm) const { return value <= vm.value; }
-    //bool operator>=(ValMove const&vm) const { return value >= vm.value; }
+    bool operator<(const ValMove &vm) const { return value < vm.value; }
+    bool operator>(const ValMove &vm) const { return value > vm.value; }
+    //bool operator<=(const ValMove &vm) const { return value <= vm.value; }
+    //bool operator>=(const ValMove &vm) const { return value >= vm.value; }
 };
 
 class ValMoves
@@ -597,13 +598,13 @@ public:
 
 // Return the sign of a number (-1, 0, 1)
 template<class T>
-i32 constexpr sign(T val)
+constexpr i32 sign(const T val)
 {
     return (T(0) < val) - (val < T(0));
 }
 
 template<class T>
-const T& clamp(T const &v, T const &minimum, T const &maximum)
+const T& clamp(const T &v, const T &minimum, const T &maximum)
 {
     return (minimum > v) ? minimum :
            (v > maximum) ? maximum : v;
@@ -611,13 +612,13 @@ const T& clamp(T const &v, T const &minimum, T const &maximum)
 
 template<class Container>
 inline void replace(Container &container,
-                    typename Container::value_type const &old_value,
-                    typename Container::value_type const &new_value)
+                    const typename Container::value_type &old_value,
+                    const typename Container::value_type &new_value)
 {
     std::replace(container.begin(), container.end(), old_value, new_value);
 }
 
-inline bool white_spaces(std::string const &str)
+inline bool white_spaces(const std::string &str)
 {
     return str.empty()
         || str.find_first_not_of(" \t\n") == std::string::npos
@@ -637,7 +638,7 @@ inline std::string& to_upper(std::string &str)
 inline std::string& toggle(std::string &str)
 {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](int const &c) -> int
+                   [](int c) -> int
                    { return islower(c) ? toupper(c) : tolower(c); });
     return str;
 }
@@ -646,13 +647,13 @@ inline std::string& ltrim(std::string &str)
 {
     str.erase(str.begin(),
               std::find_if(str.begin(), str.end(),
-                           std::not1(std::function<bool(std::string::value_type const&)>(::isspace))));
+                           std::not1(std::function<bool(const std::string::value_type&)>(::isspace))));
     return str;
 }
 inline std::string& rtrim(std::string &str)
 {
     str.erase(std::find_if(str.rbegin(), str.rend(),
-                           std::not1(std::function<bool(std::string::value_type const&)>(::isspace))).base(),
+                           std::not1(std::function<bool(const std::string::value_type&)>(::isspace))).base(),
               str.end());
     return str;
 }
@@ -660,14 +661,14 @@ inline std::string& trim(std::string &str)
 {
     return ltrim(rtrim(str));
 }
-inline std::string append_path(std::string const &base_path, std::string const &file_path)
+inline std::string append_path(const std::string &base_path, const std::string &file_path)
 {
     return base_path[base_path.length() - 1] != '/' ?
             base_path + '/' + file_path :
             base_path + file_path;
 }
 
-std::array<Square, SQ_NO> constexpr SQ
+constexpr std::array<Square, SQ_NO> SQ
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -678,7 +679,7 @@ std::array<Square, SQ_NO> constexpr SQ
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
 };
-std::array<std::array<Value, PT_NO>, 2> constexpr PieceValues
+constexpr std::array<std::array<Value, PT_NO>, 2> PieceValues
 {{
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
@@ -688,10 +689,10 @@ std::array<std::array<Value, PT_NO>, 2> constexpr PieceValues
 //{
 //    std::vector<std::string> tokens;
 //    std::istringstream iss{str};
-//    do
+//    while (iss.good())
 //    {
 //        std::string token;
-//        bool const fail = !std::getline(iss, token, delimiter);
+//        const bool fail = !std::getline(iss, token, delimiter);
 //        if (do_trim)
 //        {
 //            token = trim(token);
@@ -705,12 +706,12 @@ std::array<std::array<Value, PT_NO>, 2> constexpr PieceValues
 //        {
 //            break;
 //        }
-//    } while (iss.good());
+//    }
 //
 //    return tokens;
 //}
 
-//inline void erase_substring(std::string &str, std::string const &sub)
+//inline void erase_substring(std::string &str, const std::string &sub)
 //{
 //    std::string::size_type pos;
 //    while ((pos = str.find(sub)) != std::string::npos)

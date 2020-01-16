@@ -59,9 +59,9 @@ namespace Endgames {
             ,   weak_color(~c)
         {}
         virtual ~EndgameBase() = default;
-        EndgameBase& operator=(EndgameBase const&) = delete;
+        EndgameBase& operator=(const EndgameBase&) = delete;
 
-        virtual T operator()(Position const&) const = 0;
+        virtual T operator()(const Position&) const = 0;
     };
 
     /// Derived functors for endgame evaluation and scaling functions
@@ -74,9 +74,9 @@ namespace Endgames {
             : EndgameBase<T>(c)
         {}
         virtual ~Endgame() = default;
-        Endgame& operator=(Endgame const&) = delete;
+        Endgame& operator=(const Endgame&) = delete;
 
-        T operator()(Position const&) const override;
+        T operator()(const Position&) const override;
     };
 
 
@@ -96,9 +96,9 @@ namespace Endgames {
     template<typename T>
     const EndgameBase<T>* probe(Key matl_key)
     {
-        auto egItr = map<T>().find(matl_key);
-        return egItr != map<T>().end() ?
-                egItr->second.get() :
+        auto itr = map<T>().find(matl_key);
+        return itr != map<T>().end() ?
+                itr->second.get() :
                 nullptr;
     }
 

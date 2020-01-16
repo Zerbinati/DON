@@ -21,10 +21,10 @@ namespace {
     /// Computes the non-pawn middle game material value for the given side.
     /// Material values are updated incrementally during the search.
     template<Color Own>
-    Value compute_npm (Position const &pos)
+    Value compute_npm (const Position &pos)
     {
         auto npm = VALUE_ZERO;
-        for (auto const &pt : { NIHT, BSHP, ROOK, QUEN })
+        for (const auto &pt : { NIHT, BSHP, ROOK, QUEN })
         {
             npm += PieceValues[MG][pt] * pos.count(Own|pt);
         }
@@ -32,8 +32,8 @@ namespace {
     }
     /// Explicit template instantiations
     /// --------------------------------
-    template Value compute_npm<WHITE>(Position const&);
-    template Value compute_npm<BLACK>(Position const&);
+    template Value compute_npm<WHITE>(const Position&);
+    template Value compute_npm<BLACK>(const Position&);
 
     // Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition".
     // Description of the algorithm in the following paper:
@@ -94,11 +94,11 @@ void Position::initialize()
     // Prepare the Cuckoo tables
     Cuckoos.fill({0, MOVE_NONE});
     u16 count = 0;
-    for (auto const &c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto const &pt : { NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt : { NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (auto const &org : SQ)
+            for (const auto &org : SQ)
             {
                 for (auto dst = org + DEL_E; dst <= SQ_H8; ++dst)
                 {
@@ -177,7 +177,7 @@ bool Position::cycled(i16 pp) const
     }
 
     Key posi_key = si->posi_key;
-    auto const *psi = si->ptr;
+    const auto *psi = si->ptr;
 
     for (Depth p = 3; p <= end; p += 2)
     {
@@ -741,7 +741,7 @@ void Position::clear()
 /// Position::setup() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
-Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
+Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
 {
     // A FEN string defines a particular position using only the ASCII character set.
     // A FEN string contains six fields separated by a space.
@@ -901,7 +901,7 @@ Position& Position::setup(string const &ff, StateInfo &nsi, Thread *const th)
 }
 /// Position::setup() initializes the position object with the given endgame code string like "KBPKN".
 /// It is mainly an helper to get the material key out of an endgame code.
-Position& Position::setup(string const &code, Color c, StateInfo &nsi)
+Position& Position::setup(const string &code, Color c, StateInfo &nsi)
 {
     assert(0 < code.size() && code.size() <= 8
         && code[0] == 'K'
@@ -1250,7 +1250,7 @@ void Position::flip()
     istringstream iss{fen()};
     string ff, token;
     // 1. Piece placement
-    for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         std::getline(iss, token, r > R_1 ? '/' : ' ');
         toggle(token);
@@ -1290,7 +1290,7 @@ void Position::mirror()
     istringstream iss{fen()};
     string ff, token;
     // 1. Piece placement
-    for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         std::getline(iss, token, r > R_1 ? '/' : ' ');
         std::reverse(token.begin(), token.end());
@@ -1349,7 +1349,7 @@ string Position::fen(bool full) const
 {
     ostringstream oss;
 
-    for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         for (auto f = F_A; f <= F_H; ++f)
         {
@@ -1402,16 +1402,16 @@ Position::operator std::string() const
     ostringstream oss;
 
     oss << " +---+---+---+---+---+---+---+---+\n";
-    for (auto const &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (const auto &r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         oss << to_char(r) << "| ";
-        for (auto const &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+        for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
             oss << piece[f|r] << " | ";
         }
         oss << "\n +---+---+---+---+---+---+---+---+\n";
     }
-    for (auto const &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+    for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
     {
         oss << "   " << to_char(f, false);
     }
@@ -1462,7 +1462,7 @@ bool Position::ok() const
         assert(false && "Position OK: BASIC");
         return false;
     }
-    for (auto const &c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
         if (   count(c) > 16
             || count(c) != pop_count(pieces(c))
@@ -1493,9 +1493,9 @@ bool Position::ok() const
         assert(false && "Position OK: BITBOARD");
         return false;
     }
-    for (auto const &pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+    for (const auto &pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        for (auto const &pt2 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto &pt2 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             if (   pt1 != pt2
                 && 0 != (pieces(pt1) & pieces(pt2)))
@@ -1505,7 +1505,7 @@ bool Position::ok() const
             }
         }
     }
-    for (auto const &c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
         if (   1 != pop_count(pieces(c, KING))
             || (          (pop_count(pieces(c, PAWN))
@@ -1537,7 +1537,7 @@ bool Position::ok() const
     }
 
     // SQUARE_LIST
-    for (auto const &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+    for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
                             B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
         if (count(pc) != pop_count(pieces(pc)))
@@ -1557,9 +1557,9 @@ bool Position::ok() const
     }
 
     // CASTLING
-    for (auto const &c : { WHITE, BLACK })
+    for (const auto &c : { WHITE, BLACK })
     {
-        for (auto const &cs : { CS_KING, CS_QUEN })
+        for (const auto &cs : { CS_KING, CS_QUEN })
         {
             auto cr = c|cs;
             if (   si->can_castle(cr)

@@ -27,21 +27,21 @@ namespace UCI {
         size_t index;
 
         explicit Option(OnChange = nullptr);
-        Option(char const*, OnChange = nullptr);
-        Option(bool const, OnChange = nullptr);
-        Option(i32 const, i32, i32, OnChange = nullptr);
-        Option(char const*, char const*, OnChange = nullptr);
-        Option(Option const&) = delete;
+        Option(const char*, OnChange = nullptr);
+        Option(const bool, OnChange = nullptr);
+        Option(const i32, i32, i32, OnChange = nullptr);
+        Option(const char*, const char*, OnChange = nullptr);
+        Option(const Option&) = delete;
 
         explicit operator std::string() const;
         explicit operator bool() const;
         explicit operator i32() const;
-        bool operator==(char const*) const;
+        bool operator==(const char*) const;
 
-        Option& operator=(char const*);
-        Option& operator=(std::string const&);
+        Option& operator=(const char*);
+        Option& operator=(const std::string&);
 
-        void    operator<<(Option const&);
+        void    operator<<(const Option&);
 
         std::string operator()()  const;
 
@@ -55,7 +55,7 @@ namespace UCI {
 
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<<(std::basic_ostream<CharT, Traits> &os, Option const &opt)
+        operator<<(std::basic_ostream<CharT, Traits> &os, const Option &opt)
     {
         os << opt.operator()();
         return os;
@@ -69,9 +69,9 @@ namespace UCI {
     {
         for (size_t idx = 0; idx < optmap.size(); ++idx)
         {
-            for (auto const &pair : optmap)
+            for (const auto &pair : optmap)
             {
-                auto const &option = pair.second;
+                const auto &option = pair.second;
                 if (idx != option.index)
                 {
                     continue;

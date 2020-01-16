@@ -241,12 +241,12 @@ namespace TBSyzygy {
             // Look for and open the file among the Paths directories where the .rtbw and .rtbz files can be found.
             static vector<string> Paths;
 
-            TBFile (string const &code, string const &ext)
+            TBFile (const string &code, const string &ext)
             {
                 auto file = code;
                 file.insert(file.find('K', 1), "v");
                 file += ext;
-                for (auto const &path : Paths)
+                for (const auto &path : Paths)
                 {
                     const auto fname = append_path(path, file);
                     ifstream::open(fname);
@@ -417,7 +417,7 @@ namespace TBSyzygy {
         {
             typedef typename conditional<WDL == Type, WDLScore, i32>::type Ret;
 
-            static i32 constexpr Sides = WDL == Type ? 2 : 1;
+            static constexpr i32 Sides = WDL == Type ? 2 : 1;
 
             atomic<bool> ready;
             void *base_address;
@@ -443,8 +443,8 @@ namespace TBSyzygy {
                 , mapping(0)
             {}
 
-            explicit TBTable(string const&);
-            explicit TBTable(TBTable<WDL> const&);
+            explicit TBTable(const string&);
+            explicit TBTable(const TBTable<WDL>&);
 
             virtual ~TBTable()
             {
@@ -456,7 +456,7 @@ namespace TBSyzygy {
         };
 
         template<>
-        TBTable<WDL>::TBTable(string const &code)
+        TBTable<WDL>::TBTable(const string &code)
             : TBTable()
         {
             StateInfo si;
@@ -465,7 +465,7 @@ namespace TBSyzygy {
             piece_count = pos.count();
             has_pawns = 0 != pos.count(PAWN);
             has_unique_pieces = false;
-            for (auto const &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN,
+            for (const auto &pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN,
                                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN })
             {
                 if (1 == pos.count(pc))
@@ -488,7 +488,7 @@ namespace TBSyzygy {
         }
 
         template<>
-        TBTable<DTZ>::TBTable(TBTable<WDL> const &wdl)
+        TBTable<DTZ>::TBTable(const TBTable<WDL> &wdl)
             : TBTable()
         {
             key1 = wdl.key1;
@@ -503,8 +503,8 @@ namespace TBSyzygy {
         class TBTables
         {
         private:
-            static i32 constexpr Size = 1 << 12; // 4K table, indexed by key's 12 lsb
-            static i32 constexpr Overflow = 1;   // Number of elements allowed to map to the last bucket
+            static constexpr i32 Size = 1 << 12; // 4K table, indexed by key's 12 lsb
+            static constexpr i32 Overflow = 1;   // Number of elements allowed to map to the last bucket
 
             typedef tuple<Key, TBTable<WDL>*, TBTable<DTZ>*> Entry;
 
@@ -548,7 +548,7 @@ namespace TBSyzygy {
             template<TBType Type>
             TBTable<Type>* get(Key key)
             {
-                for (auto const *entry = &entries[(u32)key & (Size - 1)];
+                for (const auto *entry = &entries[(u32)key & (Size - 1)];
                      entry - entries < Size;
                      ++entry)
                 {
@@ -573,7 +573,7 @@ namespace TBSyzygy {
                 return wdl_table.size();
             }
 
-            void add(vector<PieceType> const &pieces)
+            void add(const vector<PieceType> &pieces)
             {
                 string code;
                 for (auto pt : pieces)
@@ -803,7 +803,7 @@ namespace TBSyzygy {
         ///      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
         ///
         template<typename T, typename Ret = typename T::Ret>
-        Ret do_probe_table(Position const &pos, T *entry, WDLScore wdl, ProbeState &state)
+        Ret do_probe_table(const Position &pos, T *entry, WDLScore wdl, ProbeState &state)
         {
             Square squares[TBPIECES];
             Piece pieces[TBPIECES];
@@ -1302,7 +1302,7 @@ namespace TBSyzygy {
 
             data++; // First byte stores flags
 
-            i32 const  Sides = 2 == T::Sides && (e.key1 != e.key2) ? 2 : 1;
+            const i32  Sides = 2 == T::Sides && (e.key1 != e.key2) ? 2 : 1;
             const File MaxFile = e.has_pawns ? F_D : F_A;
 
             bool pp = e.has_pawns
@@ -1380,9 +1380,9 @@ namespace TBSyzygy {
         }
 
         template<TBType Type>
-        void* mapped(TBTable<Type> &e, Position const &pos)
+        void* mapped(TBTable<Type> &e, const Position &pos)
         {
-            static std::mutex mutex;
+            static mutex mtx;
 
             // Use 'acquire' to avoid a thread reading 'ready' == true while
             // another is still working. (compiler reordering may cause this).
@@ -1391,7 +1391,7 @@ namespace TBSyzygy {
                 return e.base_address; // Could be nullptr if file does not exist
             }
 
-            unique_lock<std::mutex> lock(mutex);
+            unique_lock<mutex> lock(mtx);
 
             if (e.ready.load(std::memory_order::memory_order_relaxed)) // Recheck under lock
             {
@@ -1400,7 +1400,7 @@ namespace TBSyzygy {
 
             // Pieces strings in decreasing order for each color, like ("KPP","KR")
             string w, b;
-            for (auto const &pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
+            for (const auto &pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
             {
                 w += string(pos.count(WHITE|pt), PieceChar[pt]);
                 b += string(pos.count(BLACK|pt), PieceChar[pt]);
@@ -1418,7 +1418,7 @@ namespace TBSyzygy {
         }
 
         template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
-        Ret probe_table(Position const &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
+        Ret probe_table(const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
         {
             if (0 == (pos.pieces() ^ pos.pieces(KING)))
             {
@@ -1457,7 +1457,7 @@ namespace TBSyzygy {
             StateInfo si;
             auto move_list = MoveList<GenType::LEGAL>(pos);
             size_t move_count = 0;
-            for (auto const &move : move_list)
+            for (const auto &move : move_list)
             {
                 if (   !pos.capture(move)
                     && (   !check_zeroing
@@ -1603,7 +1603,7 @@ namespace TBSyzygy {
         StateInfo si;
         i32 min_dtz = 0xFFFF;
 
-        for (auto const &vm : MoveList<GenType::LEGAL>(pos))
+        for (const auto &vm : MoveList<GenType::LEGAL>(pos))
         {
             bool zeroing = pos.capture(vm)
                         || PAWN == ptype(pos[org_sq(vm)]);
@@ -1762,7 +1762,7 @@ namespace TBSyzygy {
     }
 
     /// Initializes TB
-    void initialize(string const &paths)
+    void initialize(const string &paths)
     {
         static bool initialized = false;
 
@@ -1770,7 +1770,7 @@ namespace TBSyzygy {
         {
             // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
             i32 code = 0;
-            for (auto const &s : SQ)
+            for (const auto &s : SQ)
             {
                 if (off_A1H8(s) < 0)
                 {
@@ -1780,7 +1780,7 @@ namespace TBSyzygy {
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
             code = 0;
             vector<Square> diagonal;
-            for (auto const &s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+            for (const auto &s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
                                    SQ_A2, SQ_B2, SQ_C2, SQ_D2,
                                    SQ_A3, SQ_B3, SQ_C3, SQ_D3,
                                    SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
@@ -1806,7 +1806,7 @@ namespace TBSyzygy {
             code = 0;
             for (i32 idx = 0; idx < 10; ++idx)
             {
-                for (auto const &s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+                for (const auto &s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
                                         SQ_A2, SQ_B2, SQ_C2, SQ_D2,
                                         SQ_A3, SQ_B3, SQ_C3, SQ_D3,
                                         SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
@@ -1814,7 +1814,7 @@ namespace TBSyzygy {
                     if (   MapA1D1D4[s1] == idx
                         && (0 != idx || SQ_B1 == s1)) // SQ_B1 is mapped to 0
                     {
-                        for (auto const &s2 : SQ)
+                        for (const auto &s2 : SQ)
                         {
                             if (contains(PieceAttacks[KING][s1] | s1, s2))
                             {
@@ -1868,7 +1868,7 @@ namespace TBSyzygy {
             // with 6-men TB can have up to 4 leading pawns (KPPPPK).
             for (i32 lead_pawn_count = 1; lead_pawn_count <= 4; ++lead_pawn_count)
             {
-                for (auto const &f : { F_A, F_B, F_C, F_D })
+                for (const auto &f : { F_A, F_B, F_C, F_D })
                 {
                     // Restart the index at every file because TB table is splitted
                     // by file, so we can reuse the same index for different files.
@@ -1876,7 +1876,7 @@ namespace TBSyzygy {
 
                     // Sum all possible combinations for a given file, starting with
                     // the leading pawn on rank 2 and increasing the rank.
-                    for (auto const &r : { R_2, R_3, R_4, R_5, R_6, R_7 })
+                    for (const auto &r : { R_2, R_3, R_4, R_5, R_6, R_7 })
                     {
                         auto sq = f|r;
 

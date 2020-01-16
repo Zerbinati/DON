@@ -83,7 +83,7 @@ class TCluster
 {
 public:
     // Cluster entry count
-    static u08 constexpr EntryCount = 3;
+    static constexpr u08 EntryCount = 3;
 
     TEntry entries[EntryCount];
     char padding[2]; // Align to a divisor of the cache line size
@@ -116,9 +116,9 @@ private:
 
 public:
     // Minimum size of Table (MB)
-    static u32 constexpr MinHashSize = 4;
+    static constexpr u32 MinHashSize = 4;
     // Maximum size of Table (MB)
-    static u32 constexpr MaxHashSize =
+    static constexpr u32 MaxHashSize =
 #       if defined(BIT64)
             128 * 1024
 #       else
@@ -126,7 +126,7 @@ public:
 #       endif
         ;
 
-    u32 static constexpr BufferSize = 0x10000;
+    static constexpr u32 BufferSize = 0x10000;
 
     void *mem;
     TCluster *clusters;
@@ -137,8 +137,8 @@ public:
         , clusters(nullptr)
         , cluster_count(0)
     {}
-    TTable(TTable const&) = delete;
-    TTable& operator=(TTable const&) = delete;
+    TTable(const TTable&) = delete;
+    TTable& operator=(const TTable&) = delete;
     virtual ~TTable()
     {
         free_aligned_memory();
@@ -169,24 +169,24 @@ public:
 
     Move extract_opp_move(Position&, Move) const;
 
-    void save(std::string const&) const;
-    void load(std::string const&);
+    void save(const std::string&) const;
+    void load(const std::string&);
 
     template<typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits>&
-        operator<<(std::basic_ostream<CharT, Traits> &os, TTable const &tt)
+        operator<<(std::basic_ostream<CharT, Traits> &os, const TTable &tt)
     {
         u32 mem_size = tt.size();
         u08 dummy = 0;
-        os.write((CharT const*)(&mem_size), sizeof (mem_size));
-        os.write((CharT const*)(&dummy), sizeof (dummy));
-        os.write((CharT const*)(&dummy), sizeof (dummy));
-        os.write((CharT const*)(&dummy), sizeof (dummy));
-        os.write((CharT const*)(&TEntry::Generation), sizeof (TEntry::Generation));
-        os.write((CharT const*)(&tt.cluster_count), sizeof (tt.cluster_count));
+        os.write((const CharT*)(&mem_size), sizeof (mem_size));
+        os.write((const CharT*)(&dummy), sizeof (dummy));
+        os.write((const CharT*)(&dummy), sizeof (dummy));
+        os.write((const CharT*)(&dummy), sizeof (dummy));
+        os.write((const CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
+        os.write((const CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
         for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
-            os.write((CharT const*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
+            os.write((const CharT*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
         }
         return os;
     }

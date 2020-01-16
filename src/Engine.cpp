@@ -33,17 +33,17 @@ namespace {
     using namespace TBSyzygy;
 
     // Engine Name
-    string const Name{ "DON" };
+    const string Name{ "DON" };
     // Version number. If version is left empty, then show compile date in the format YY-MM-DD.
-    string const Version{ "" };
+    const string Version{ "" };
     // Author Name
-    string const Author{ "Ehsan Rashid" };
+    const string Author{ "Ehsan Rashid" };
 
     /// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
     /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-    string const StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
+    const string StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
 
-    vector<string> const DefaultCmds
+    const vector<string> DefaultCmds
     {
         // ---Chess Normal---
         "setoption name UCI_Chess960 value false",
@@ -102,9 +102,9 @@ namespace {
         "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
     };
 
-    array<string, 12> const Months { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    const array<string, 12> Months { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-    i32 month_num(string const &month)
+    i32 month_num(const string &month)
     {
         // for (u32 m = 0; m < Months.size(); ++m)
         // {
@@ -120,7 +120,8 @@ namespace {
                 0;
     }
 
-    const string version_info()
+    /// engine_info() returns a string trying to describe the engine
+    const string engine_info()
     {
         ostringstream oss;
 
@@ -174,19 +175,13 @@ namespace {
         return oss.str();
     }
 
-    /// compiler_info() returns a string trying to describe the compiler we use
+    /// compiler_info() returns a string trying to describe the compiler used
     const string compiler_info()
     {
-        #define STRINGIFY(x) #x
-        #define VER_STRING(major, minor, patch) STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
+        #define STRINGIFY(x)                    #x
+        #define STRING(x)                       STRINGIFY(x)
+        #define VER_STRING(major, minor, patch) STRING(major) "." STRING(minor) "." STRING(patch)
 
-        /// Predefined macros hell:
-        ///
-        /// __GNUC__           Compiler is gcc, Clang or Intel on Linux
-        /// __INTEL_COMPILER   Compiler is Intel
-        /// _MSC_VER           Compiler is MSVC or Intel on Windows
-        /// _WIN32             Building on Windows (any)
-        /// _WIN64             Building on Windows 64 bit
         ostringstream oss;
         oss << "\nCompiled by ";
 
@@ -195,10 +190,10 @@ namespace {
             oss << VER_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
         #elif __INTEL_COMPILER
             oss << "Intel compiler ";
-            oss << "(version " STRINGIFY(__INTEL_COMPILER) " update " STRINGIFY(__INTEL_COMPILER_UPDATE) ")";
+            oss << "(version " STRING(__INTEL_COMPILER) " update " STRING(__INTEL_COMPILER_UPDATE) ")";
         #elif _MSC_VER
             oss << "MSVC ";
-            oss << "(version " STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD) ")";
+            oss << "(version " STRING(_MSC_FULL_VER) "." STRING(_MSC_BUILD) ")";
         #elif __GNUC__
             oss << "g++ (GNUC) ";
             oss << VER_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
@@ -219,10 +214,10 @@ namespace {
             oss << " on Android";
         #elif defined(__linux__)
             oss << " on Linux";
-        #elif defined(_WIN64)
-            oss << " on Microsoft Windows 64-bit";
         #elif defined(_WIN32)
             oss << " on Microsoft Windows 32-bit";
+        #elif defined(_WIN64)
+            oss << " on Microsoft Windows 64-bit";
         #else
             oss << " on unknown system";
         #endif
@@ -373,7 +368,7 @@ namespace {
             else
             if (token == "ignoremoves")
             {
-                for (auto const &vm : MoveList<GenType::LEGAL>(pos))
+                for (const auto &vm : MoveList<GenType::LEGAL>(pos))
                 {
                     search_moves.push_back(vm);
                 }
@@ -428,7 +423,7 @@ namespace {
     /// bench 64 4 5000 movetime current -> search current position with 4 threads for 5 sec (TT = 64MB)
     /// bench 64 1 100000 nodes -> search default positions for 100K nodes (TT = 64MB)
     /// bench 16 1 5 perft -> run perft 5 on default positions
-    vector<string> setup_bench(istringstream &iss, Position const &pos)
+    vector<string> setup_bench(istringstream &iss, const Position &pos)
     {
         string token;
 
@@ -478,7 +473,7 @@ namespace {
 
         string go = mode == "eval" ? "eval" : "go " + mode + " " + value;
 
-        for (auto const &cmd : cmds)
+        for (const auto &cmd : cmds)
         {
             if (cmd.find("setoption") != string::npos)
             {
@@ -505,14 +500,14 @@ namespace {
     {
         auto uci_cmds = setup_bench(iss, pos);
         u16 total = u16(std::count_if(uci_cmds.begin(), uci_cmds.end(),
-                                      [](string const &s) { return s.find("go ") == 0|| s.find("eval") == 0; }));
+                                      [](const string &s) { return s.find("go ") == 0|| s.find("eval") == 0; }));
         u16 count = 0;
 
         debug_init();
 
         auto elapsed_time = now();
         u64 total_nodes = 0;
-        for (auto const &cmd : uci_cmds)
+        for (const auto &cmd : uci_cmds)
         {
             istringstream is{cmd};
             string token;
@@ -582,7 +577,7 @@ namespace {
     /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
-    void process_input(u32 argc, char const *const *argv)
+    void process_input(u32 argc, const char *const *argv)
     {
         // Join arguments
         string cmd;
@@ -642,7 +637,7 @@ namespace {
             else
             if (token == "uci")
             {
-                sync_cout << "id name " << Name << " " << version_info() << "\n"
+                sync_cout << "id name " << Name << " " << engine_info() << "\n"
                           << "id author " << Author << "\n"
                           << Options
                           << "uciok" << sync_endl;
@@ -721,7 +716,7 @@ namespace {
                     {
                         cout << "\nEvasion moves: ";
                         count = 0;
-                        for (auto const &vm : MoveList<GenType::EVASION>(pos))
+                        for (const auto &vm : MoveList<GenType::EVASION>(pos))
                         {
                             if (pos.legal(vm))
                             {
@@ -735,7 +730,7 @@ namespace {
                     {
                         cout << "\nQuiet moves: ";
                         count = 0;
-                        for (auto const &vm : MoveList<GenType::QUIET>(pos))
+                        for (const auto &vm : MoveList<GenType::QUIET>(pos))
                         {
                             if (pos.legal(vm))
                             {
@@ -747,7 +742,7 @@ namespace {
 
                         cout << "\nCheck moves: ";
                         count = 0;
-                        for (auto const &vm : MoveList<GenType::CHECK>(pos))
+                        for (const auto &vm : MoveList<GenType::CHECK>(pos))
                         {
                             if (pos.legal(vm))
                             {
@@ -759,7 +754,7 @@ namespace {
 
                         cout << "\nQuiet Check moves: ";
                         count = 0;
-                        for (auto const &vm : MoveList<GenType::QUIET_CHECK>(pos))
+                        for (const auto &vm : MoveList<GenType::QUIET_CHECK>(pos))
                         {
                             if (pos.legal(vm))
                             {
@@ -771,7 +766,7 @@ namespace {
 
                         cout << "\nCapture moves: ";
                         count = 0;
-                        for (auto const &vm : MoveList<GenType::CAPTURE>(pos))
+                        for (const auto &vm : MoveList<GenType::CAPTURE>(pos))
                         {
                             if (pos.legal(vm))
                             {
@@ -784,7 +779,7 @@ namespace {
 
                     cout << "\nLegal moves: ";
                     count = 0;
-                    for (auto const &vm : MoveList<GenType::LEGAL>(pos))
+                    for (const auto &vm : MoveList<GenType::LEGAL>(pos))
                     {
                         cout << move_to_san(vm, pos) << " ";
                         ++count;
@@ -801,9 +796,9 @@ namespace {
 }
 
 /// run() runs with command arguments
-void run(u32 argc, char const *const *argv)
+void run(u32 argc, const char *const *argv)
 {
-    cout << Name << " " << version_info() << " by " << Author << endl;
+    cout << Name << " " << engine_info() << " by " << Author << endl;
     cout << "info string Processor(s) detected " << thread::hardware_concurrency() << endl;
 
 #if defined(LPAGES)

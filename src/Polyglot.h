@@ -27,23 +27,23 @@ struct PolyEntry
         : PolyEntry(0, 0, 0, 0)
     {}
 
-    PolyEntry& operator=(PolyEntry const&) = default;
+    PolyEntry& operator=(const PolyEntry&) = default;
 
     explicit operator Move() const { return Move(move); }
 
-    bool operator==(PolyEntry const &entry) const
+    bool operator==(const PolyEntry &entry) const
     {
         return key == entry.key
             && move == entry.move
             && weight == entry.weight;
     }
-    bool operator!=(PolyEntry const &entry) const
+    bool operator!=(const PolyEntry &entry) const
     {
         return key != entry.key
             || move != entry.move
             || weight != entry.weight;
     }
-    bool operator>(PolyEntry const &entry) const
+    bool operator>(const PolyEntry &entry) const
     {
         return key != entry.key ?
                     key > entry.key :
@@ -51,7 +51,7 @@ struct PolyEntry
                         weight > entry.weight :
                         move > entry.move;
     }
-    bool operator<(PolyEntry const &entry) const
+    bool operator<(const PolyEntry &entry) const
     {
         return key != entry.key ?
                     key < entry.key :
@@ -59,7 +59,7 @@ struct PolyEntry
                         weight < entry.weight :
                         move < entry.move;
     }
-    bool operator>=(PolyEntry const &entry) const
+    bool operator>=(const PolyEntry &entry) const
     {
         return key != entry.key ?
                     key >= entry.key :
@@ -67,7 +67,7 @@ struct PolyEntry
                         weight >= entry.weight :
                         move >= entry.move;
     }
-    bool operator<=(PolyEntry const &entry) const
+    bool operator<=(const PolyEntry &entry) const
     {
         return key != entry.key ?
                     key <= entry.key :
@@ -87,7 +87,7 @@ static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, PolyEntry const &entry)
+    operator<<(std::basic_ostream<CharT, Traits> &os, const PolyEntry &entry)
 {
     os << std::string(entry);
     return os;
@@ -109,10 +109,10 @@ private:
     void clear();
 
     i64 find_index(Key) const;
-    //i64 find_index(Position const&) const;
-    //i64 find_index(std::string const&, bool = false) const;
+    //i64 find_index(const Position&) const;
+    //i64 find_index(const std::string&, bool = false) const;
 
-    bool can_probe(Position const&);
+    bool can_probe(const Position&);
 
 public:
 
@@ -124,11 +124,11 @@ public:
     PolyBook();
     virtual ~PolyBook();
 
-    void initialize(std::string const&);
+    void initialize(const std::string&);
 
     Move probe(Position&, i16, bool);
 
-    std::string show(Position const&) const;
+    std::string show(const Position&) const;
 };
 
 // Global Polyglot Book
