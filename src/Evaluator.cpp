@@ -242,7 +242,7 @@ namespace {
         // Init our king safety tables
         auto opp_sq = clamp(_file(opp_k_sq), F_B, F_G)
                     | clamp(_rank(opp_k_sq), R_2, R_7);
-        king_ring[Opp] = PieceAttacks[KING][opp_sq] | opp_sq;
+        king_ring[Opp] = opp_sq | PieceAttacks[KING][opp_sq];
 
         king_attackers_count[Own] = u08(pop_count(king_ring[Opp] & sgl_attacks[Own][PAWN]));
         king_attackers_weight[Own] = 0;
@@ -266,7 +266,7 @@ namespace {
         {
             queen_attacks[Own].fill(0);
         }
-        for (const auto &s : pos.squares[Own|PT])
+        for (const auto s : pos.squares[Own|PT])
         {
             assert((Own|PT) == pos[s]);
             // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens

@@ -12,9 +12,9 @@ using namespace BitBoard;
 Key Zobrist::compute_matl_key(const Position &pos) const
 {
     Key matl_key = 0;
-    for (const auto &c : { WHITE, BLACK })
+    for (const auto c : { WHITE, BLACK })
     {
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             for (u08 pc = 0; pc < pos.count(c|pt); ++pc)
             {
@@ -28,10 +28,10 @@ Key Zobrist::compute_matl_key(const Position &pos) const
 Key Zobrist::compute_pawn_key(const Position &pos) const
 {
     Key pawn_key = 0;
-    for (const auto &c : { WHITE, BLACK })
+    for (const auto c : { WHITE, BLACK })
     {
         pawn_key ^= piece_square[c][KING][0]; // Include King Key for zero pawns
-        for (const auto &s : pos.squares[c|PAWN])
+        for (const auto s : pos.squares[c|PAWN])
         {
             pawn_key ^= piece_square[c][PAWN][s];
         }
@@ -42,11 +42,11 @@ Key Zobrist::compute_pawn_key(const Position &pos) const
 Key Zobrist::compute_posi_key(const Position &pos) const
 {
     Key posi_key = 0;
-    for (const auto &c : { WHITE, BLACK })
+    for (const auto c : { WHITE, BLACK })
     {
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (const auto &s : pos.squares[c|pt])
+            for (const auto s : pos.squares[c|pt])
             {
                 posi_key ^= piece_square[c][pt][s];
             }
@@ -170,11 +170,11 @@ void zobrist_initialize()
     assert(PolyZob.color == U64(0xF8D626AAAF278509));
 
     // Initialize Random Zobrist
-    for (const auto &c : { WHITE, BLACK })
+    for (const auto c : { WHITE, BLACK })
     {
-        for (const auto &pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (const auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (const auto &s : SQ)
+            for (const auto s : SQ)
             {
                 RandZob.piece_square[c][pt][s] = prng.rand<Key>();
             }
@@ -190,7 +190,7 @@ void zobrist_initialize()
             RandZob.castle_right[cr] ^= 0 != k ? k : prng.rand<Key>();
         }
     }
-    for (const auto &f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+    for (const auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
     {
         RandZob.enpassant[f] = prng.rand<Key>();
     }

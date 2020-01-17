@@ -29,11 +29,11 @@ namespace BitBases {
         // bit 15-17: white pawn R_7 - rank(from R_7 to R_2)
         u32 index(Color c, Square wk_sq, Square bk_sq, Square wp_sq)
         {
-            return wk_sq
-                | (bk_sq << 6)
-                | (c << 12)
-                | (_file(wp_sq) << 13)
-                | ((R_7 - _rank(wp_sq)) << 15);
+            return (wk_sq << 0)
+                 | (bk_sq << 6)
+                 | (c << 12)
+                 | (_file(wp_sq) << 13)
+                 | ((R_7 - _rank(wp_sq)) << 15);
         }
 
         enum Result : u08

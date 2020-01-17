@@ -7,6 +7,8 @@
 
 namespace Pawns {
 
+    using namespace BitBoard;
+
     constexpr u08 MaxCache = 4;
     /// Pawns::Entry contains various information about a pawn structure.
     struct Entry
@@ -25,7 +27,7 @@ namespace Pawns {
 
         i32 passed_count() const
         {
-            return BitBoard::pop_count(passers[WHITE] | passers[BLACK]);
+            return pop_count(passers[WHITE] | passers[BLACK]);
         }
 
         template<Color Own>
@@ -50,7 +52,7 @@ namespace Pawns {
             u08 kp_dist;
             if (0 != pawns)
             {
-                if (0 != (pawns & BitBoard::PieceAttacks[KING][own_k_sq]))
+                if (0 != (pawns & PieceAttacks[KING][own_k_sq]))
                 {
                     kp_dist = 1;
                 }
@@ -59,7 +61,7 @@ namespace Pawns {
                     kp_dist = 8;
                     while (0 != pawns)
                     {
-                        kp_dist = std::min((u08)BitBoard::dist(own_k_sq, BitBoard::pop_lsq(pawns)), kp_dist);
+                        kp_dist = std::min(u08(dist(own_k_sq, pop_lsq(pawns))), kp_dist);
                     }
                 }
             }

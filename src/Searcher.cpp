@@ -2079,15 +2079,17 @@ void Thread::search()
                 }
                 double pv_instability = 1.00 + total_pv_changes / Threadpool.size();
 
+
                 auto available_time = TimePoint(main_thread->time_mgr.optimum_time
                                               * reduction
                                               * eval_falling
                                               * pv_instability);
+                auto elapsed_time = main_thread->time_mgr.elapsed_time();
 
                 // Stop the search
                 // - If all of the available time has been used
                 // - If there is only one legal move available
-                if (main_thread->time_mgr.elapsed_time() > available_time * i32(1 < root_moves.size()))
+                if (elapsed_time > available_time * i32(1 < root_moves.size()))
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".
@@ -2101,7 +2103,7 @@ void Thread::search()
                     }
                 }
                 else
-                if (main_thread->time_mgr.elapsed_time() > available_time * 0.60)
+                if (elapsed_time > available_time * 0.60)
                 {
                     if (!main_thread->ponder)
                     {

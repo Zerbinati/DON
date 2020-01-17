@@ -175,8 +175,13 @@ namespace BitBoard {
     constexpr Bitboard operator|(Bitboard  bb, Square s) { return bb | square_bb(s); }
     constexpr Bitboard operator^(Bitboard  bb, Square s) { return bb ^ square_bb(s); }
 
-    inline Bitboard& operator|=(Bitboard &bb, Square s) { return bb |= square_bb(s); }
-    inline Bitboard& operator^=(Bitboard &bb, Square s) { return bb ^= square_bb(s); }
+    constexpr Bitboard operator|(Square s, Bitboard bb) { return bb | s; }
+    constexpr Bitboard operator^(Square s, Bitboard bb) { return bb ^ s; }
+
+    inline Bitboard& operator|=(Bitboard &bb, Square s) { bb = bb | s; return bb; }
+    inline Bitboard& operator^=(Bitboard &bb, Square s) { bb = bb ^ s; return bb; }
+
+    constexpr Bitboard operator|(Square s1, Square s2) { return square_bb(s1) | square_bb(s2); }
 
     constexpr Bitboard file_bb(File f)   { return FA_bb << f; }
     constexpr Bitboard file_bb(Square s) { return file_bb(_file(s)); }
@@ -300,11 +305,11 @@ namespace BitBoard {
     {
         switch (pt)
         {
-        case NIHT: return BitBoard::PieceAttacks[NIHT][s];
-        case BSHP: return BitBoard::attacks_bb<BSHP>(s, occ);
-        case ROOK: return BitBoard::attacks_bb<ROOK>(s, occ);
-        case QUEN: return BitBoard::attacks_bb<QUEN>(s, occ);
-        case KING: return BitBoard::PieceAttacks[KING][s];
+        case NIHT: return PieceAttacks[NIHT][s];
+        case BSHP: return attacks_bb<BSHP>(s, occ);
+        case ROOK: return attacks_bb<ROOK>(s, occ);
+        case QUEN: return attacks_bb<QUEN>(s, occ);
+        case KING: return PieceAttacks[KING][s];
         default: assert(false); return 0;
         }
     }
@@ -313,12 +318,12 @@ namespace BitBoard {
     {
         switch (ptype(pc))
         {
-        case PAWN: return BitBoard::PawnAttacks[color(pc)][s];
-        case NIHT: return BitBoard::PieceAttacks[NIHT][s];
-        case BSHP: return BitBoard::attacks_bb<BSHP>(s, occ);
-        case ROOK: return BitBoard::attacks_bb<ROOK>(s, occ);
-        case QUEN: return BitBoard::attacks_bb<QUEN>(s, occ);
-        case KING: return BitBoard::PieceAttacks[KING][s];
+        case PAWN: return PawnAttacks[color(pc)][s];
+        case NIHT: return PieceAttacks[NIHT][s];
+        case BSHP: return attacks_bb<BSHP>(s, occ);
+        case ROOK: return attacks_bb<ROOK>(s, occ);
+        case QUEN: return attacks_bb<QUEN>(s, occ);
+        case KING: return PieceAttacks[KING][s];
         default: assert(false); return 0;
         }
     }

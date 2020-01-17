@@ -66,7 +66,7 @@ namespace Pawns {
         Score safety = make_score(5, 5);
 
         auto kf = clamp(_file(own_k_sq), F_B, F_G);
-        for (const auto &f : { kf - File(1), kf, kf + File(1) })
+        for (const auto f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);
             Bitboard own_front_f_pawns = own_front_pawns & file_bb(f);
@@ -126,7 +126,7 @@ namespace Pawns {
         // Unsupported enemy pawns attacked twice by friend pawns
         Score score = SCORE_ZERO;
 
-        for (const auto &s : pos.squares[Own|PAWN])
+        for (const auto s : pos.squares[Own|PAWN])
         {
             assert((Own|PAWN) == pos[s]);
 

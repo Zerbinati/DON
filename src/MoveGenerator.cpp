@@ -15,9 +15,9 @@ namespace {
     template<GenType GT>
     void generate_piece_moves(ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        for (const auto &pt : { NIHT, BSHP, ROOK, QUEN })
+        for (const auto pt : { NIHT, BSHP, ROOK, QUEN })
         {
-            for (const auto &s : pos.squares[pos.active|pt])
+            for (const auto s : pos.squares[pos.active|pt])
             {
                 Bitboard attacks = PieceAttacks[pt][s] & targets;
                 if (0 == attacks)
@@ -241,7 +241,7 @@ namespace {
         {
             if (CR_NONE != pos.si->castle_right(pos.active))
             {
-                for (auto &cs : { CS_KING, CS_QUEN })
+                for (const auto cs : { CS_KING, CS_QUEN })
                 {
                     if (   pos.expeded_castle(pos.active, cs)
                         && pos.si->can_castle(pos.active|cs))
