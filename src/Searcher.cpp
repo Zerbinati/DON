@@ -602,9 +602,9 @@ namespace Searcher {
             // Fixes also the type of TT entry depth that are going to use.
             // Note that in quien_search use only 2 types of depth: DEP_QS_CHECK or DEP_QS_NO_CHECK.
             Depth qs_depth = in_check
-                        || DEP_QS_CHECK <= depth ?
-                            DEP_QS_CHECK :
-                            DEP_QS_NO_CHECK;
+                          || DEP_QS_CHECK <= depth ?
+                                DEP_QS_CHECK :
+                                DEP_QS_NO_CHECK;
 
             if (   !PVNode
                 && VALUE_NONE != tt_value // Handle tt_hit
@@ -961,7 +961,8 @@ namespace Searcher {
             thread->tt_hit_avg = thread->tt_hit_avg * (ttHitAverageWindow - 1) / ttHitAverageWindow
                                + (tt_hit ? ttHitAverageResolution : 0);
 
-            bool prior_capture = NONE != pos.si->capture;
+            bool prior_capture_or_promotion = NONE != pos.si->capture
+                                           || NONE != pos.si->promote;
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
@@ -982,8 +983,7 @@ namespace Searcher {
                         }
 
                         // Extra penalty for early quiet moves in previous ply when it gets refuted.
-                        if (   !prior_capture
-                            && NONE == pos.si->promote
+                        if (   !prior_capture_or_promotion
                             && 2 >= (ss-1)->move_count)
                         {
                             update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), -stat_bonus(depth + 1));
@@ -1761,8 +1761,7 @@ namespace Searcher {
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
                 if (   (   1 == (ss-1)->move_count
                         || (ss-1)->killer_moves[0] == (ss-1)->played_move)
-                    && !prior_capture
-                    && NONE == pos.si->promote)
+                    && !prior_capture_or_promotion)
                 {
                     update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), -stat_bonus(depth + 1));
                 }
@@ -1771,8 +1770,7 @@ namespace Searcher {
             // Bonus for prior countermove that caused the fail low.
             if (   (   PVNode
                     || 2 < depth)
-                && !prior_capture
-                && NONE == pos.si->promote)
+                && !prior_capture_or_promotion)
             {
                 update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), stat_bonus(depth));
             }
