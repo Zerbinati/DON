@@ -28,8 +28,7 @@ const TEntry* TCluster::probe(u16 key16, bool &hit) const
             return ite;
         }
         // Replacement strategy.
-        if (  rte->worth()
-            > ite->worth())
+        if (rte->worth() > ite->worth())
         {
             rte = ite;
         }
@@ -40,12 +39,9 @@ const TEntry* TCluster::probe(u16 key16, bool &hit) const
 
 size_t TCluster::fresh_entry_count() const
 {
-    size_t count = 0;
-    for (const auto *ite = entries; ite < entries + EntryCount; ++ite)
-    {
-        count += (ite->generation() == TEntry::Generation);
-    }
-    return count;
+    return (entries[0].generation() == TEntry::Generation)
+         + (entries[1].generation() == TEntry::Generation)
+         + (entries[2].generation() == TEntry::Generation);
 }
 
 void TCluster::clear()
