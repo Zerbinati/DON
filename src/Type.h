@@ -441,7 +441,7 @@ constexpr Square to_square(char f, char r) { return to_file(f) | to_rank(r); }
 constexpr bool    _ok(Square s) { return SQ_A1 <= s && s <= SQ_H8; }
 constexpr File  _file(Square s) { return File(s & 7); }
 constexpr Rank  _rank(Square s) { return Rank(s >> 3); }
-constexpr Color color(Square s) { return 0 != ((i08(s) ^ (s >> 3)) & 1) ? WHITE : BLACK; }
+constexpr Color color(Square s) { return Color(0 == ((i08(s) ^ (s >> 3)) & BLACK)); }
 
 // SQ_A1 -> SQ_A8
 constexpr Square operator~(Square s) { return Square(i08(s) ^ i08(SQ_A8)); }

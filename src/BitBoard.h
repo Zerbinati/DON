@@ -247,7 +247,7 @@ namespace BitBoard {
     {
         //i08 s = i08(s1) ^ i08(s2);
         //return 0 != (((s >> 3) ^ s) & 1);
-        return (contains(Color_bb[WHITE], s1) == contains(Color_bb[BLACK], s2));
+        return contains(Color_bb[WHITE], s1) == contains(Color_bb[BLACK], s2);
     }
 
     constexpr Bitboard pawn_sgl_pushes_bb(Color c, Bitboard bb)
@@ -259,8 +259,8 @@ namespace BitBoard {
     constexpr Bitboard pawn_dbl_pushes_bb(Color c, Bitboard bb)
     {
         return WHITE == c ?
-            shift<DEL_NN>(bb) :
-            shift<DEL_SS>(bb);
+                shift<DEL_NN>(bb) :
+                shift<DEL_SS>(bb);
     }
     constexpr Bitboard pawn_l_attacks_bb(Color c, Bitboard bb)
     {
@@ -510,7 +510,7 @@ namespace BitBoard {
         38, 28, 58, 20, 37, 17, 36,  8
     };
 
-    constexpr std::array<u08, (1 << 8)> MSB_Table[]
+    constexpr std::array<u08, (1 << 8)> MSB_Table
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

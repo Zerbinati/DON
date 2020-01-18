@@ -294,7 +294,7 @@ namespace Searcher {
                     if (pick([&]() { return pos.see_ge(vm_itr->move, Value(-(vm_itr->value) * 55 / 1024)) ?
                                          true :
                                          // Put losing capture to bad_capture_moves to be tried later
-                                         bad_capture_moves.push_back(vm_itr->move), false;
+                                         (bad_capture_moves.push_back(vm_itr->move), false);
                                    }))
                     {
                         return (vm_itr-1)->move;
@@ -2327,7 +2327,7 @@ void MainThread::search()
         auto itr = std::next(rm.begin());
         pm = itr != rm.end() ?
             *itr :
-            TT.extract_opp_move(root_pos, bm);
+            TT.extract_next_move(root_pos, bm);
         assert(bm != pm);
     }
 

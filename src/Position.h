@@ -63,7 +63,7 @@ using namespace BitBoard;
 struct StateInfo
 {
 public:
-    static StateInfo const Empty;
+    static const StateInfo Empty;
 
     // ---Copied when making a move---
     Key         matl_key;       // Hash key of materials
@@ -81,7 +81,7 @@ public:
     i16         repetition;
     // Check info
     std::array<Bitboard, CLR_NO> king_blockers; // Absolute and Discover Blockers
-    std::array<Bitboard, CLR_NO> king_checkers;// Absolute and Discover Checkers
+    std::array<Bitboard, CLR_NO> king_checkers; // Absolute and Discover Checkers
     std::array<Bitboard, NONE>   checks;
 
     StateInfo  *ptr;            // Previous StateInfo pointer.

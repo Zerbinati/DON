@@ -21,8 +21,9 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
         if (   ite->empty()
             || ite->k16 == key16)
         {
-            ite->refresh(); // Refresh entry.
-            return hit = !ite->empty(), ite;
+            ite->refresh();
+            hit = !ite->empty();
+            return ite;
         }
         // Replacement strategy.
         if (  rte->worth()
@@ -31,7 +32,9 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
             rte = ite;
         }
     }
-    return hit = false, rte;
+    rte->refresh();
+    hit = false;
+    return rte;
 }
 
 void TCluster::clear()
@@ -200,30 +203,30 @@ u32 TTable::hash_full() const
     return u32(fresh_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
 }
 
-/// TTable::extract_opp_move() extracts opponent's move.
-Move TTable::extract_opp_move(Position &pos, Move own_move) const
+/// TTable::extract_next_move() extracts next move after current move.
+Move TTable::extract_next_move(Position &pos, Move cm) const
 {
-    assert(MOVE_NONE != own_move
-        && MoveList<GenType::LEGAL>(pos).contains(own_move));
+    assert(MOVE_NONE != cm
+        && MoveList<GenType::LEGAL>(pos).contains(cm));
 
     StateInfo si;
-    pos.do_move(own_move, si);
+    pos.do_move(cm, si);
     bool tt_hit;
     auto *tte = probe(pos.si->posi_key, tt_hit);
-    auto pm = tt_hit ?
+    auto nm = tt_hit ?
                 tte->move() :
                 MOVE_NONE;
-    if (   MOVE_NONE != pm
-        && !(   pos.pseudo_legal(pm)
-             && pos.legal(pm)))
+    if (   MOVE_NONE != nm
+        && !(   pos.pseudo_legal(nm)
+             && pos.legal(nm)))
     {
-        pm = MOVE_NONE;
+        nm = MOVE_NONE;
     }
-    assert(MOVE_NONE == pm
-        || MoveList<GenType::LEGAL>(pos).contains(pm));
-    pos.undo_move(own_move);
+    assert(MOVE_NONE == nm
+        || MoveList<GenType::LEGAL>(pos).contains(nm));
+    pos.undo_move(cm);
 
-    return pm;
+    return nm;
 }
 
 /// TTable::save() saves hash to file

@@ -69,7 +69,7 @@ namespace {
 
 }
 
-StateInfo const StateInfo::Empty
+const StateInfo StateInfo::Empty
 {
     0,          //matl_key
     0,          //pawn_key
@@ -1542,7 +1542,7 @@ bool Position::ok() const
     {
         if (count(pc) != pop_count(pieces(pc)))
         {
-            assert(false && "Position OK: SQUARELIST");
+            assert(false && "Position OK: SQUARE_LIST");
             return false;
         }
         for (auto s : squares[pc])
@@ -1550,7 +1550,7 @@ bool Position::ok() const
             if (   !_ok(s)
                 || piece[s] != pc)
             {
-                assert(false && "Position OK: SQUARELIST");
+                assert(false && "Position OK: SQUARE_LIST");
                 return false;
             }
         }
@@ -1586,7 +1586,7 @@ bool Position::ok() const
                 || R_6 != rel_rank(active, si->enpassant_sq)
                 || !can_enpassant(active, si->enpassant_sq))))
     {
-        assert(false && "Position OK: STATEINFO");
+        assert(false && "Position OK: STATE_INFO");
         return false;
     }
 

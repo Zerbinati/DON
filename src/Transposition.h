@@ -45,7 +45,7 @@ public:
     // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
     // to calculate the entry age correctly even after generation overflows into the next cycle.
     i16       worth() const { return d08 - ((Generation - g08 + 0x107) & 0xF8); }
-
+    // Refresh entry.
     void refresh() { g08 = u08(Generation | (g08 & 0x07)); }
 
     void save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv)
@@ -90,7 +90,7 @@ public:
 
     TCluster() = default;
 
-    TEntry *probe(u16, bool&);
+    TEntry* probe(u16, bool&);
 
     void clear();
 
@@ -167,7 +167,7 @@ public:
 
     u32 hash_full() const;
 
-    Move extract_opp_move(Position&, Move) const;
+    Move extract_next_move(Position&, Move) const;
 
     void save(const std::string&) const;
     void load(const std::string&);
