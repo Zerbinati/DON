@@ -226,10 +226,10 @@ enum Piece : u08
 
 enum MoveType : u16
 {
-    NORMAL    = 0 << 14, // [00]----
-    CASTLE    = 1 << 14, // [01]----
-    ENPASSANT = 2 << 14, // [10]----
-    PROMOTE   = 3 << 14, // [11]x---
+    NORMAL    = 0 << 14, // [00]-- ===
+    CASTLE    = 1 << 14, // [01]-- ===
+    ENPASSANT = 2 << 14, // [10]-- ===
+    PROMOTE   = 3 << 14, // [11]xx ===
 };
 
 //constexpr i16 MaxMoves          = 256;
@@ -439,9 +439,9 @@ constexpr Square operator|(Rank r, File f) { return Square((~r << 3) + f); }
 constexpr Square to_square(char f, char r) { return to_file(f) | to_rank(r); }
 
 constexpr bool    _ok(Square s) { return SQ_A1 <= s && s <= SQ_H8; }
-constexpr File  _file(Square s) { return File(s & 7); }
-constexpr Rank  _rank(Square s) { return Rank(s >> 3); }
-constexpr Color color(Square s) { return Color(0 == ((i08(s) ^ (s >> 3)) & BLACK)); }
+constexpr File  _file(Square s) { return File((s >> 0) & F_H); }
+constexpr Rank  _rank(Square s) { return Rank((s >> 3) & R_8); }
+constexpr Color color(Square s) { return Color(0 == ((_file(s) ^ _rank(s)) & BLACK)); }
 
 // SQ_A1 -> SQ_A8
 constexpr Square operator~(Square s) { return Square(i08(s) ^ i08(SQ_A8)); }
@@ -453,9 +453,9 @@ constexpr Square rel_sq(Color c, Square s) { return Square(i08(s) ^ (c*SQ_A8)); 
 constexpr Rank rel_rank(Color c, Rank r)   { return Rank(r ^ (c*R_8)); }
 constexpr Rank rel_rank(Color c, Square s) { return rel_rank(c, _rank(s)); }
 
-constexpr Delta pawn_push (Color c) { return WHITE == c ? DEL_N : DEL_S; }
-constexpr Delta pawn_l_att(Color c) { return WHITE == c ? DEL_NW : DEL_SE; }
-constexpr Delta pawn_r_att(Color c) { return WHITE == c ? DEL_NE : DEL_SW; }
+constexpr Delta pawn_push (Color c) { return DEL_N  + 2 * c * DEL_S; }
+constexpr Delta pawn_l_att(Color c) { return DEL_NW + 2 * c * DEL_SE; }
+constexpr Delta pawn_r_att(Color c) { return DEL_NE + 2 * c * DEL_SW; }
 
 constexpr CastleRight operator|(Color c, CastleSide cs)
 {

@@ -152,7 +152,8 @@ namespace Searcher {
                             || pos.legal(vm_itr->move))
                         && filter ())
                     {
-                        return ++vm_itr, true;
+                        ++vm_itr;
+                        return true;
                     }
                     ++vm_itr;
                 }

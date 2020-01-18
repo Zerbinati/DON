@@ -40,7 +40,7 @@ namespace Pawns {
 
         constexpr Score BlockedStorm =   S(82, 82);
 
-
+        constexpr Score Initial =        S( 5, 5);
         constexpr Score Backward =       S( 9,24);
         constexpr Score Isolated =       S( 5,15);
         constexpr Score Unopposed =      S(13,27);
@@ -63,7 +63,7 @@ namespace Pawns {
         Bitboard own_front_pawns = pos.pieces(Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces(Opp) & front_pawns;
 
-        Score safety = make_score(5, 5);
+        Score safety = Initial;
 
         auto kf = clamp(_file(own_k_sq), F_B, F_G);
         for (const auto f : { kf - File(1), kf, kf + File(1) })
