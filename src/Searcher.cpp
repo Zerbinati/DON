@@ -589,6 +589,7 @@ namespace Searcher {
             Key key = pos.si->posi_key;
             bool tt_hit;
             auto *tte = TT.probe(key, tt_hit);
+            if (tt_hit) tte->refresh();
             auto tt_move = tt_hit ?
                             tte->move() :
                             MOVE_NONE;
@@ -938,6 +939,7 @@ namespace Searcher {
             Key key = pos.si->posi_key ^ (Key(ss->excluded_move) << 0x10);
             bool tt_hit;
             auto *tte = TT.probe(key, tt_hit);
+            if (tt_hit) tte->refresh();
             auto tt_move = root_node ?
                             thread->root_moves[thread->pv_cur].front() :
                                tt_hit ?
@@ -1264,6 +1266,7 @@ namespace Searcher {
                 depth_search<PVNode>(pos, ss, alfa, beta, depth - 7, cut_node);
 
                 tte = TT.probe(key, tt_hit);
+                if (tt_hit) tte->refresh();
                 tt_move = tt_hit ?
                             tte->move() :
                             MOVE_NONE;

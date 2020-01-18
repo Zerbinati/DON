@@ -12,7 +12,10 @@ using namespace std;
 
 u08 TEntry::Generation;
 
-TEntry* TCluster::probe(u16 key16, bool &hit)
+/// TCluster::probe()
+/// If the position is found, it returns true and a pointer to the found entry.
+/// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
+const TEntry* TCluster::probe(u16 key16, bool &hit) const
 {
     // Find an entry to be replaced according to the replacement strategy.
     auto *rte = entries; // Default first
@@ -21,7 +24,6 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
         if (   ite->empty()
             || ite->k16 == key16)
         {
-            ite->refresh();
             hit = !ite->empty();
             return ite;
         }
@@ -32,14 +34,8 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
             rte = ite;
         }
     }
-    rte->refresh();
     hit = false;
     return rte;
-}
-
-void TCluster::clear()
-{
-    std::memset(this, 0, sizeof (*this));
 }
 
 size_t TCluster::fresh_entry_count() const
@@ -50,6 +46,11 @@ size_t TCluster::fresh_entry_count() const
         count += (ite->generation() == TEntry::Generation);
     }
     return count;
+}
+
+void TCluster::clear()
+{
+    std::memset(this, 0, sizeof(*this));
 }
 
 /// TTable::alloc_aligned_memory() allocates the aligned memory
@@ -180,11 +181,9 @@ void TTable::clear()
 }
 
 /// TTable::probe() looks up the entry in the transposition table.
-/// If the position is found, it returns true and a pointer to the found entry.
-/// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
 TEntry* TTable::probe(Key key, bool &hit) const
 {
-    return cluster(key)->probe(u16(key >> 0x30), hit);
+    return const_cast<TEntry*>(cluster(key)->probe(u16(key >> 0x30), hit));
 }
 /// TTable::hash_full() returns an approximation of the per-mille of the
 /// all transposition entries during a search which have received

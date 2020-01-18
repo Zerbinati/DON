@@ -90,12 +90,11 @@ public:
 
     TCluster() = default;
 
-    TEntry* probe(u16, bool&);
-
-    void clear();
+    const TEntry* probe(u16, bool&) const;
 
     size_t fresh_entry_count() const;
 
+    void clear();
 };
 
 /// Size of Transposition cluster(32 bytes)
