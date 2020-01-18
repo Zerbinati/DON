@@ -151,7 +151,7 @@ public:
 
     /// cluster() returns a pointer to the cluster of given a key.
     /// Lower 32 bits of the key are used to get the index of the cluster.
-    TCluster* cluster(Key key) const
+    const TCluster* cluster(Key key) const
     {
         return &clusters[(u32(key) * u64(cluster_count)) >> 32];
     }

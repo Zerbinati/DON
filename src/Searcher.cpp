@@ -297,7 +297,7 @@ namespace Searcher {
                                          (bad_capture_moves.push_back(vm_itr->move), false);
                                    }))
                     {
-                        return (vm_itr-1)->move;
+                        return std::prev(vm_itr)->move;
                     }
                     // If the countermove is the same as a killers, skip it
                     if (   MOVE_NONE != refutation_moves[2]
@@ -307,11 +307,11 @@ namespace Searcher {
                         refutation_moves.erase(std::next(refutation_moves.begin(), 2));
                     }
                     refutation_moves.erase(std::remove_if(refutation_moves.begin(), refutation_moves.end(),
-                                                            [&](Move m) { return MOVE_NONE == m
-                                                                              || tt_move == m
-                                                                              || pos.capture(m)
-                                                                              || !pos.pseudo_legal(m)
-                                                                              || !pos.legal(m); }),
+                                                          [&](Move m) { return MOVE_NONE == m
+                                                                            || tt_move == m
+                                                                            || pos.capture(m)
+                                                                            || !pos.pseudo_legal(m)
+                                                                            || !pos.legal(m); }),
                                             refutation_moves.end());
                     m_itr = refutation_moves.begin();
                     ++stage;
@@ -336,7 +336,7 @@ namespace Searcher {
                                                          refutation_moves.end(), vm_itr->move)
                                                       == refutation_moves.end(); }))
                     {
-                        return (vm_itr-1)->move;
+                        return std::prev(vm_itr)->move;
                     }
                     m_itr = bad_capture_moves.begin();
                     ++stage;
@@ -355,13 +355,13 @@ namespace Searcher {
                     /* fall through */
                 case Stage::EV_MOVES:
                     return pick([]() { return true; }) ?
-                            (vm_itr-1)->move :
+                            std::prev(vm_itr)->move :
                             MOVE_NONE;
                     /* end */
 
                 case Stage::PC_CAPTURES:
                     return pick([&]() { return pos.see_ge(vm_itr->move, threshold); }) ?
-                            (vm_itr-1)->move :
+                            std::prev(vm_itr)->move :
                             MOVE_NONE;
                     /* end */
 
@@ -369,7 +369,7 @@ namespace Searcher {
                     if (pick([&]() { return DEP_QS_RECAP < depth
                                          || dst_sq(vm_itr->move) == recap_sq; }))
                     {
-                        return (vm_itr-1)->move;
+                        return std::prev(vm_itr)->move;
                     }
                     // If did not find any move then do not try checks, finished.
                     if (DEP_QS_CHECK > depth)
@@ -589,7 +589,6 @@ namespace Searcher {
             Key key = pos.si->posi_key;
             bool tt_hit;
             auto *tte = TT.probe(key, tt_hit);
-            if (tt_hit) tte->refresh();
             auto tt_move = tt_hit ?
                             tte->move() :
                             MOVE_NONE;
@@ -939,7 +938,6 @@ namespace Searcher {
             Key key = pos.si->posi_key ^ (Key(ss->excluded_move) << 0x10);
             bool tt_hit;
             auto *tte = TT.probe(key, tt_hit);
-            if (tt_hit) tte->refresh();
             auto tt_move = root_node ?
                             thread->root_moves[thread->pv_cur].front() :
                                tt_hit ?
@@ -1266,7 +1264,6 @@ namespace Searcher {
                 depth_search<PVNode>(pos, ss, alfa, beta, depth - 7, cut_node);
 
                 tte = TT.probe(key, tt_hit);
-                if (tt_hit) tte->refresh();
                 tt_move = tt_hit ?
                             tte->move() :
                             MOVE_NONE;

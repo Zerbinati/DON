@@ -183,7 +183,9 @@ void TTable::clear()
 /// TTable::probe() looks up the entry in the transposition table.
 TEntry* TTable::probe(Key key, bool &hit) const
 {
-    return const_cast<TEntry*>(cluster(key)->probe(u16(key >> 0x30), hit));
+    auto *tte = const_cast<TEntry*>(cluster(key)->probe(u16(key >> 0x30), hit));
+    if (hit) tte->refresh();
+    return tte;
 }
 /// TTable::hash_full() returns an approximation of the per-mille of the
 /// all transposition entries during a search which have received
