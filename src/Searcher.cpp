@@ -146,16 +146,14 @@ namespace Searcher {
                 while (vm_itr != vmoves.end())
                 {
                     std::swap(*vm_itr, *std::max_element(vm_itr, vmoves.end()));
-                    if (   tt_move != vm_itr->move
-                        && (   (   ENPASSANT != mtype(vm_itr->move)
-                                && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(vm_itr->move)))
-                            || pos.legal(vm_itr->move))
-                        && filter ())
-                    {
-                        ++vm_itr;
-                        return true;
-                    }
+                    bool ok =  tt_move != vm_itr->move
+                            && (   (   ENPASSANT != mtype(vm_itr->move)
+                                    && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(vm_itr->move)))
+                                || pos.legal(vm_itr->move))
+                            && filter();
+
                     ++vm_itr;
+                    if (ok) return true;
                 }
                 return false;
             }
@@ -293,10 +291,9 @@ namespace Searcher {
 
                 case Stage::NT_GOOD_CAPTURES:
                     if (pick([&]() { return pos.see_ge(vm_itr->move, Value(-(vm_itr->value) * 55 / 1024)) ?
-                                         true :
-                                         // Put losing capture to bad_capture_moves to be tried later
-                                         (bad_capture_moves.push_back(vm_itr->move), false);
-                                   }))
+                                             true :
+                                             // Put losing capture to bad_capture_moves to be tried later
+                                             (bad_capture_moves.push_back(vm_itr->move), false); }))
                     {
                         return std::prev(vm_itr)->move;
                     }
@@ -326,19 +323,27 @@ namespace Searcher {
                     if (!skip_quiets)
                     {
                         generate<GenType::QUIET>(vmoves, pos);
+                        vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
+                                                    [&](const ValMove &vm) { return tt_move == vm.move
+                                                                                 || std::find(refutation_moves.begin(),
+                                                                                              refutation_moves.end(), vm.move) != refutation_moves.end()
+                                                                                 || !(   (   ENPASSANT != mtype(vm.move)
+                                                                                          && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(vm.move)))
+                                                                                      || pos.legal(vm.move)); }),
+                                     vmoves.end());
                         value<GenType::QUIET>();
+                        std::sort(vmoves.begin(), vmoves.end(), greater<ValMove>());
                         vm_itr = vmoves.begin();
                     }
                     ++stage;
                     /* fall through */
                 case Stage::NT_QUIETS:
                     if (   !skip_quiets
-                        && pick([&]() { return std::find(refutation_moves.begin(),
-                                                         refutation_moves.end(), vm_itr->move)
-                                                      == refutation_moves.end(); }))
+                        && vm_itr != vmoves.end())
                     {
-                        return std::prev(vm_itr)->move;
+                        return (vm_itr++)->move;
                     }
+
                     m_itr = bad_capture_moves.begin();
                     ++stage;
                     /* fall through */
@@ -380,16 +385,17 @@ namespace Searcher {
 
                     generate<GenType::QUIET_CHECK>(vmoves, pos);
                     vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
-                                                [&](ValMove &vm) { return tt_move == vm
-                                                                       //|| !pos.pseudo_legal(vm)
-                                                                       || !pos.legal(vm); }),
+                                                [&](const ValMove &vm) { return tt_move == vm.move
+                                                                             || !(   (   ENPASSANT != mtype(vm.move)
+                                                                                      && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(vm.move)))
+                                                                                  || pos.legal(vm.move)); }),
                                  vmoves.end());
                     vm_itr = vmoves.begin();
                     ++stage;
                     /* fall through */
                 case Stage::QS_CHECKS:
                     return vm_itr != vmoves.end() ?
-                            *vm_itr++ :
+                            (vm_itr++)->move :
                             MOVE_NONE;
                     /* end */
 
@@ -533,7 +539,7 @@ namespace Searcher {
 
             if (_ok((ss-1)->played_move))
             {
-                pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][move_index((ss-1)->played_move)] = move;
+                pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] = move;
             }
 
             pos.thread->butterfly_history[pos.active][move_index(move)] << bonus;
@@ -702,13 +708,11 @@ namespace Searcher {
 
             const array<const PieceDestinyHistory*, 6> pd_histories
             {
-                (ss-1)->pd_history,
-                (ss-2)->pd_history,
-                nullptr,//(ss-3)->pd_history,
-                (ss-4)->pd_history,
-                nullptr,//(ss-5)->pd_history,
-                (ss-6)->pd_history,
+                (ss-1)->pd_history, (ss-2)->pd_history,
+                nullptr           , (ss-4)->pd_history,
+                nullptr           , (ss-6)->pd_history
             };
+
             auto recap_sq = _ok((ss-1)->played_move) ?
                                 dst_sq((ss-1)->played_move) :
                                 SQ_NO;
@@ -1297,15 +1301,13 @@ namespace Searcher {
 
             const array<const PieceDestinyHistory*, 6> pd_histories
             {
-                (ss-1)->pd_history,
-                (ss-2)->pd_history,
-                nullptr,//(ss-3)->pd_history,
-                (ss-4)->pd_history,
-                nullptr,//(ss-5)->pd_history,
-                (ss-6)->pd_history,
+                (ss-1)->pd_history, (ss-2)->pd_history,
+                nullptr           , (ss-4)->pd_history,
+                nullptr           , (ss-6)->pd_history
             };
+
             auto counter_move = _ok((ss-1)->played_move) ?
-                                    thread->move_history[pos[dst_sq((ss-1)->played_move)]][move_index((ss-1)->played_move)] :
+                                    thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] :
                                     MOVE_NONE;
             // Initialize move picker (1) for the current position
             MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);

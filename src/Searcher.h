@@ -116,8 +116,7 @@ struct Stats
 template <typename T, i32 D, i32 Size>
 struct Stats<T, D, Size>
     : public std::array<StatsEntry<T, D>, Size>
-{
-};
+{};
 
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 /// during the current search, and is used for reduction and move ordering decisions, indexed by [color][move].
@@ -130,8 +129,7 @@ typedef Stats<i16, 29952, MAX_PIECE, SQ_NO>                 PieceDestinyHistory;
 /// The nested history table is based on PieceDestinyHistory, indexed by [piece][square]
 typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO>     ContinuationHistory;
 /// MoveHistory stores moves, indexed by [piece][square]
-//typedef Stats<Move, 0, MAX_PIECE, SQ_NO>                    MoveHistory;
-typedef Stats<Move, 0, MAX_PIECE, SQ_NO*SQ_NO>              MoveHistory;
+typedef Stats<Move, 0, MAX_PIECE, SQ_NO>                    MoveHistory;
 
 /// The root of the tree is a PV node.
 /// At a PV node all the children have to be investigated.
