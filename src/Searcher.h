@@ -128,8 +128,9 @@ typedef Stats<i16, 29952, MAX_PIECE, SQ_NO>                 PieceDestinyHistory;
 /// ContinuationHistory is the combined history of a given pair of moves, usually the current one given a previous one.
 /// The nested history table is based on PieceDestinyHistory, indexed by [piece][square]
 typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO>     ContinuationHistory;
-/// MoveHistory stores moves, indexed by [piece][square]
-typedef Stats<Move, 0, MAX_PIECE, SQ_NO>                    MoveHistory;
+
+/// MoveHistory stores moves, indexed by [piece][square][size=2]
+typedef std::array<std::array<std::array<Move, 2>, SQ_NO>, MAX_PIECE>   MoveHistory;
 
 /// The root of the tree is a PV node.
 /// At a PV node all the children have to be investigated.

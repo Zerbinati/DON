@@ -168,13 +168,13 @@ namespace Searcher {
 
             /// MovePicker constructor for the main search
             MovePicker(const Position &p, Move ttm, Depth d, const array<const PieceDestinyHistory*, 6> &pdhs,
-                       const array<Move, 2> &km, Move dcm, Move ocm)
+                       const array<Move, 2> &km, const array<Move, 2> &cm)
                 : pos(p)
                 , tt_move(ttm)
                 , depth(d)
                 , pd_histories(pdhs)
                 , threshold(Value(-3000 * d))
-                , refutation_moves({ km[0], km[1], dcm, ocm })
+                , refutation_moves({ km[0], km[1], cm[0], cm[1] })
                 , skip_quiets(false)
             {
                 assert(MOVE_NONE == tt_move
@@ -279,14 +279,11 @@ namespace Searcher {
                     if (   MOVE_NONE != refutation_moves[3]
                         && (   refutation_moves[0] == refutation_moves[3]
                             || refutation_moves[1] == refutation_moves[3]
-                            || refutation_moves[2] == refutation_moves[3]
-                            || skip_quiets
                             || (  pos.thread->butterfly_history[pos.active][move_index(refutation_moves[3])]
                                + (*pd_histories[0])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] * 2
                                + (*pd_histories[1])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] * 2
                                + (*pd_histories[3])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] * 2
-                               + (*pd_histories[5])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] < 1000 * depth)
-                            || !pos.see_ge(refutation_moves[3])))
+                               + (*pd_histories[5])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] < 1000 * depth)))
                     {
                         refutation_moves[3] = MOVE_NONE;
                     }
@@ -531,8 +528,12 @@ namespace Searcher {
 
             if (_ok((ss-1)->played_move))
             {
-                pos.thread->dst_move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] = move;
-                pos.thread->org_move_history[pos[dst_sq((ss-1)->played_move)]][org_sq((ss-1)->played_move)] = move;
+                assert(NO_PIECE != pos[dst_sq((ss-1)->played_move)]);
+                if (pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][0] != move)
+                {
+                    pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][1] = pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][0];
+                    pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][0] = move;
+                }
             }
 
             pos.thread->butterfly_history[pos.active][move_index(move)] << bonus;
@@ -1300,15 +1301,12 @@ namespace Searcher {
                 nullptr           , (ss-6)->pd_history
             };
 
-            auto dcm = _ok((ss-1)->played_move) ?
-                        thread->dst_move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] :
-                        MOVE_NONE;
-            auto ocm = _ok((ss-1)->played_move) ?
-                        thread->org_move_history[pos[dst_sq((ss-1)->played_move)]][org_sq((ss-1)->played_move)] :
-                        MOVE_NONE;
+            array<Move, 2> cm = _ok((ss-1)->played_move) ?
+                        thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] :
+                        { MOVE_NONE, MOVE_NONE };
 
             // Initialize move picker (1) for the current position
-            MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, dcm, ocm);
+            MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, cm);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move()))
             {

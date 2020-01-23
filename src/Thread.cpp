@@ -280,8 +280,14 @@ void Thread::clear()
             continuation_history[in_check][cap_type][NO_PIECE][0]->fill(CounterMovePruneThreshold - 1);
         }
     }
-    dst_move_history.fill(MOVE_NONE);
-    org_move_history.fill(MOVE_NONE);
+    for (const auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                           B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
+    {
+        for (const auto s : SQ)
+        {
+            move_history[pc][s].fill(MOVE_NONE);
+        }
+    }
 
     //// No need to clear
     //pawn_table.clear();
