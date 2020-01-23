@@ -167,13 +167,14 @@ namespace Searcher {
             MovePicker& operator=(const MovePicker&) = delete;
 
             /// MovePicker constructor for the main search
-            MovePicker(const Position &p, Move ttm, Depth d, const array<const PieceDestinyHistory*, 6> &pdhs, const array<Move, 2> &km, Move cm)
+            MovePicker(const Position &p, Move ttm, Depth d, const array<const PieceDestinyHistory*, 6> &pdhs,
+                       const array<Move, 2> &km, Move dcm, Move ocm)
                 : pos(p)
                 , tt_move(ttm)
                 , depth(d)
                 , pd_histories(pdhs)
                 , threshold(Value(-3000 * d))
-                , refutation_moves{ km[0], km[1], cm }
+                , refutation_moves({ km[0], km[1], dcm, ocm })
                 , skip_quiets(false)
             {
                 assert(MOVE_NONE == tt_move
@@ -181,19 +182,10 @@ namespace Searcher {
                     && pos.legal(tt_move)));
                 assert(DEP_ZERO < depth);
 
-                if (0 != pos.si->checkers)
-                {
-                    stage = Stage::EV_TT;
-                }
-                else
-                {
-                    stage = Stage::NT_TT;
-                }
-
-                if (MOVE_NONE == tt_move)
-                {
-                    ++stage;
-                }
+                stage = 0 != pos.si->checkers ?
+                        Stage::EV_TT :
+                        Stage::NT_TT;
+                stage += (MOVE_NONE == tt_move);
             }
 
             /// MovePicker constructor for quiescence search
@@ -212,26 +204,16 @@ namespace Searcher {
                      && pos.legal(tt_move)));
                 assert(DEP_ZERO >= depth);
 
-                if (0 != pos.si->checkers)
+                if (   MOVE_NONE != tt_move
+                    && !(   DEP_QS_RECAP < depth
+                         || dst_sq(tt_move) == recap_sq))
                 {
-                    stage = Stage::EV_TT;
+                    tt_move = MOVE_NONE;
                 }
-                else
-                {
-                    stage = Stage::QS_TT;
-
-                    if (   MOVE_NONE != tt_move
-                        && !(   DEP_QS_RECAP < depth
-                             || dst_sq(tt_move) == recap_sq))
-                    {
-                        tt_move = MOVE_NONE;
-                    }
-                }
-
-                if (MOVE_NONE == tt_move)
-                {
-                    ++stage;
-                }
+                stage = 0 != pos.si->checkers ?
+                        Stage::EV_TT :
+                        Stage::QS_TT;
+                stage += (MOVE_NONE == tt_move);
             }
 
             /// MovePicker constructor for ProbCut search.
@@ -247,19 +229,14 @@ namespace Searcher {
                     || (pos.pseudo_legal(tt_move)
                      && pos.legal(tt_move)));
 
-                stage = Stage::PC_TT;
-
                 if (   MOVE_NONE != tt_move
                     && !(   pos.capture(tt_move)
                          && pos.see_ge(tt_move, threshold)))
                 {
                     tt_move = MOVE_NONE;
                 }
-
-                if (MOVE_NONE == tt_move)
-                {
-                    ++stage;
-                }
+                stage = Stage::PC_TT;
+                stage += (MOVE_NONE == tt_move);
             }
 
             /// next_move() is the most important method of the MovePicker class.
@@ -297,12 +274,27 @@ namespace Searcher {
                     {
                         return std::prev(vm_itr)->move;
                     }
+
                     // If the countermove is the same as a killers, skip it
+                    if (   MOVE_NONE != refutation_moves[3]
+                        && (   refutation_moves[0] == refutation_moves[3]
+                            || refutation_moves[1] == refutation_moves[3]
+                            || refutation_moves[2] == refutation_moves[3]
+                            || skip_quiets
+                            || (  pos.thread->butterfly_history[pos.active][move_index(refutation_moves[3])]
+                               + (*pd_histories[0])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] * 2
+                               + (*pd_histories[1])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] * 2
+                               + (*pd_histories[3])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] * 2
+                               + (*pd_histories[5])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] < 1000 * depth)
+                            || !pos.see_ge(refutation_moves[3])))
+                    {
+                        refutation_moves[3] = MOVE_NONE;
+                    }
                     if (   MOVE_NONE != refutation_moves[2]
                         && (   refutation_moves[0] == refutation_moves[2]
                             || refutation_moves[1] == refutation_moves[2]))
                     {
-                        refutation_moves.erase(std::next(refutation_moves.begin(), 2));
+                        refutation_moves[2] = MOVE_NONE;
                     }
                     refutation_moves.erase(std::remove_if(refutation_moves.begin(), refutation_moves.end(),
                                                           [&](Move m) { return MOVE_NONE == m
@@ -539,7 +531,8 @@ namespace Searcher {
 
             if (_ok((ss-1)->played_move))
             {
-                pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] = move;
+                pos.thread->dst_move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] = move;
+                pos.thread->org_move_history[pos[dst_sq((ss-1)->played_move)]][org_sq((ss-1)->played_move)] = move;
             }
 
             pos.thread->butterfly_history[pos.active][move_index(move)] << bonus;
@@ -568,11 +561,11 @@ namespace Searcher {
             assert(PVNode || (alfa == beta-1));
             assert(DEP_ZERO >= depth);
 
-            Value prev_alfa;
+            Value actual_alfa;
 
             if (PVNode)
             {
-                prev_alfa = alfa; // To flag BOUND_EXACT when eval above alpha and no available moves
+                actual_alfa = alfa; // To flag BOUND_EXACT when eval above alpha and no available moves
                 ss->pv.clear();
             }
 
@@ -716,6 +709,7 @@ namespace Searcher {
             auto recap_sq = _ok((ss-1)->played_move) ?
                                 dst_sq((ss-1)->played_move) :
                                 SQ_NO;
+
             // Initialize move picker (2) for the current position
             MovePicker move_picker(pos, tt_move, depth, pd_histories, recap_sq);
             // Loop through the moves until no moves remain or a beta cutoff occurs
@@ -834,7 +828,7 @@ namespace Searcher {
                       best_value >= beta ?
                           BOUND_LOWER :
                              PVNode
-                          && best_value > prev_alfa ?
+                          && best_value > actual_alfa ?
                               BOUND_EXACT :
                               BOUND_UPPER,
                       tt_pv);
@@ -1306,11 +1300,15 @@ namespace Searcher {
                 nullptr           , (ss-6)->pd_history
             };
 
-            auto counter_move = _ok((ss-1)->played_move) ?
-                                    thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] :
-                                    MOVE_NONE;
+            auto dcm = _ok((ss-1)->played_move) ?
+                        thread->dst_move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] :
+                        MOVE_NONE;
+            auto ocm = _ok((ss-1)->played_move) ?
+                        thread->org_move_history[pos[dst_sq((ss-1)->played_move)]][org_sq((ss-1)->played_move)] :
+                        MOVE_NONE;
+
             // Initialize move picker (1) for the current position
-            MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);
+            MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, dcm, ocm);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move()))
             {
@@ -1374,7 +1372,7 @@ namespace Searcher {
                 bool capture_or_promotion = pos.capture_or_promotion(move);
 
                 // Calculate new depth for this move
-                Depth new_depth = depth - 1;
+                auto new_depth = Depth(depth - 1);
 
                 // Step 13. Pruning at shallow depth. (~200 ELO)
                 if (   !root_node
@@ -1382,14 +1380,14 @@ namespace Searcher {
                     && !Limits.mate_on()
                     && VALUE_ZERO < pos.non_pawn_material(pos.active))
                 {
-                    // Skip quiet moves if move count exceeds our FutilityMoveCount threshold
+                    // Skip quiet moves if move count exceeds our futility_move_count() threshold
                     move_picker.skip_quiets = futility_move_count(improving, depth) <= move_count;
 
                     if (   !capture_or_promotion
                         && !gives_check)
                     {
                         // Reduced depth of the next LMR search.
-                        auto lmr_depth = Depth(std::max(new_depth - reduction(improving, depth, move_count), 0));
+                        auto lmr_depth = std::max(new_depth - reduction(improving, depth, move_count), 0);
                         // Counter moves based pruning: (~20 ELO)
                         if (   (4 + (   0 < (ss-1)->stats
                                      || 1 == (ss-1)->move_count)) > lmr_depth
@@ -1410,7 +1408,7 @@ namespace Searcher {
                             continue;
                         }
                         // SEE based pruning: negative SEE (~20 ELO)
-                        if (!pos.see_ge(move, Value(-(32 - std::min(i32(lmr_depth), 18)) * i32(pow(i32(lmr_depth), 2)))))
+                        if (!pos.see_ge(move, Value(-(32 - std::min(lmr_depth, 18)) * lmr_depth * lmr_depth)))
                         {
                             continue;
                         }
@@ -1424,7 +1422,7 @@ namespace Searcher {
                 }
 
                 // Step 14. Extensions. (~75 ELO)
-                Depth extension = DEP_ZERO;
+                auto extension = DEP_ZERO;
 
                 // Singular extension (SE) (~70 ELO)
                 // Extend the TT move if its value is much better than its siblings.
@@ -1536,7 +1534,7 @@ namespace Searcher {
                         if (   NORMAL == mtype(move)
                             && !pos.see_ge(reverse_move(move)))
                         {
-                            reduct_depth -= 2;
+                            reduct_depth -= 2 + tt_pv;
                         }
 
                         ss->stats = thread->butterfly_history[~pos.active][move_index(move)]

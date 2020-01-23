@@ -138,6 +138,10 @@ namespace {
 
 #undef S
 
+    // Threshold for lazy and space evaluation
+    constexpr Value LazyThreshold = Value(1400);
+    constexpr Value SpaceThreshold = Value(12222);
+
     constexpr array<i32, NONE> SafeCheckWeight
     {
         30, 790, 635, 880, 980, 0
@@ -536,45 +540,39 @@ namespace {
         Bitboard bshp_pins = attacks_bb<BSHP>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
         Bitboard rook_pins = attacks_bb<ROOK>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
 
-        // Enemy queen all checks
-        Bitboard quen_check = (bshp_pins | rook_pins)
-                            &  sgl_attacks[Opp][QUEN];
-        Bitboard quen_safe_check = quen_check
-                                 & ~sgl_attacks[Own][QUEN]
-                                 & safe_area;
-
-        Bitboard b;
+        Bitboard quen_safe_check = (bshp_pins | rook_pins)
+                                 &  sgl_attacks[Opp][QUEN]
+                                 & safe_area
+                                 & ~sgl_attacks[Own][QUEN];
 
         // Enemy bishop all checks
-        Bitboard bshp_check = bshp_pins
-                            & sgl_attacks[Opp][BSHP];
-        Bitboard bshp_safe_check = bshp_check
+        Bitboard bshp_safe_check = bshp_pins
+                                 & sgl_attacks[Opp][BSHP]
                                  & safe_area;
-        b =  bshp_safe_check
-          & ~quen_safe_check;
-        if (0 != b)
+        if (0 != (   bshp_safe_check
+                  & ~quen_safe_check))
         {
             king_danger += SafeCheckWeight[BSHP];
         }
         else
         {
-            unsafe_check |= bshp_check;
+            unsafe_check |= bshp_pins
+                          & sgl_attacks[Opp][BSHP];
         }
 
         // Enemy rook all checks
-        Bitboard rook_check = rook_pins
-                            & sgl_attacks[Opp][ROOK];
-        Bitboard rook_safe_check = rook_check
+        Bitboard rook_safe_check = rook_pins
+                                 & sgl_attacks[Opp][ROOK]
                                  & safe_area;
-        b =  rook_safe_check
-          & ~quen_safe_check;
-        if (0 != b)
+        if (0 != (   rook_safe_check
+                  & ~quen_safe_check))
         {
             king_danger += SafeCheckWeight[ROOK];
         }
         else
         {
-            unsafe_check |= rook_check;
+            unsafe_check |= rook_pins
+                          & sgl_attacks[Opp][ROOK];
         }
 
         // Enemy queen all checks
@@ -582,19 +580,9 @@ namespace {
         {
             king_danger += SafeCheckWeight[QUEN];
         }
-        /*
-        else
-        {
-            unsafe_check |= (bshp_pins | rook_pins)
-                          &  sgl_attacks[Opp][QUEN]
-                          & ~sgl_attacks[Own][QUEN];
-        }
-        */
 
-        b =  quen_safe_check
-          & (bshp_safe_check
-           | rook_safe_check);
-        if (0 != b)
+        if (0 != (  quen_safe_check
+                  & (bshp_safe_check | rook_safe_check)))
         {
             king_danger += 200;
         }
@@ -602,6 +590,7 @@ namespace {
         Bitboard king_flank_camp = KingFlank_bb[_file(own_k_sq)]
                                  & Camp_bb[Own];
 
+        Bitboard b;
         b = king_flank_camp
           & sgl_attacks[Opp][NONE];
         // Friend king flank attack count
@@ -874,8 +863,8 @@ namespace {
     Score Evaluator<Trace>::space() const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-
-        if (pos.non_pawn_material() < Value(12222)) // Space Threshold
+        // Space Threshold
+        if (pos.non_pawn_material() < SpaceThreshold)
         {
             return SCORE_ZERO;
         }
@@ -1012,10 +1001,10 @@ namespace {
                    + (pe->scores[WHITE] - pe->scores[BLACK])
                    + pos.thread->contempt;
 
+        // Lazy Threshold
         // Early exit if score is high
         Value v = (mg_value(score) + eg_value(score)) / 2;
-
-        if (abs(v) > Value(1400) + pos.non_pawn_material() / 64) // Lazy Threshold
+        if (abs(v) > LazyThreshold + pos.non_pawn_material() / 64)
         {
             return WHITE == pos.active ? +v : -v;
         }

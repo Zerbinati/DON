@@ -33,8 +33,8 @@ namespace Pawns {
         template<Color Own>
         u08 king_safety_on(const Position &pos, Square own_k_sq)
         {
-            auto idx = std::find(king_square[Own].begin(), king_square[Own].begin() + index[Own] + 1, own_k_sq)
-                     - king_square[Own].begin();
+            auto idx = std::distance(king_square[Own].begin(),
+                                     std::find(king_square[Own].begin(), king_square[Own].begin() + index[Own] + 1, own_k_sq));
             assert(0 <= idx);
             if (idx <= index[Own])
             {

@@ -280,7 +280,9 @@ void Thread::clear()
             continuation_history[in_check][cap_type][NO_PIECE][0]->fill(CounterMovePruneThreshold - 1);
         }
     }
-    move_history.fill(MOVE_NONE);
+    dst_move_history.fill(MOVE_NONE);
+    org_move_history.fill(MOVE_NONE);
+
     //// No need to clear
     //pawn_table.clear();
     //matl_table.clear();

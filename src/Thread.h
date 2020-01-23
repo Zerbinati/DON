@@ -116,7 +116,8 @@ public:
     CaptureHistory      capture_history;
     std::array<std::array<ContinuationHistory, 2>, 2> continuation_history;
 
-    MoveHistory         move_history;
+    MoveHistory         dst_move_history;
+    MoveHistory         org_move_history;
 
     Pawns::Table        pawn_table;
     Material::Table     matl_table;
