@@ -97,6 +97,8 @@ namespace {
     template<GenType GT>
     void generate_pawn_moves(ValMoves &moves, const Position &pos, Bitboard targets)
     {
+        const auto Push = pawn_push(pos.active);
+
         Bitboard empties = ~pos.pieces();
         Bitboard enemies =  pos.pieces(~pos.active) & targets;
 
@@ -143,7 +145,7 @@ namespace {
                 case GenType::EVASION:
                     // If the checking piece is the double pushed pawn and also is in the target.
                     // Otherwise this is a discovery check and are forced to do otherwise.
-                    if (!contains(enemies /*& pos.pieces(PAWN)*/, pos.si->enpassant_sq - pawn_push(pos.active)))
+                    if (!contains(enemies /*& pos.pieces(PAWN)*/, pos.si->enpassant_sq - Push))
                     {
                         ep_captures = 0;
                     }
@@ -180,7 +182,7 @@ namespace {
                 {
                     b &= targets;
                 }
-                generate_promotion_moves<GT>(moves, pos, b, pawn_push(pos.active));
+                generate_promotion_moves<GT>(moves, pos, b, Push);
             }
 
             if (GenType::CAPTURE == GT)
@@ -220,8 +222,8 @@ namespace {
                 break;
             default: break;
             }
-            while (0 != pushs_1) { auto dst = pop_lsq(pushs_1); moves += make_move<NORMAL>(dst - pawn_push(pos.active)  , dst); }
-            while (0 != pushs_2) { auto dst = pop_lsq(pushs_2); moves += make_move<NORMAL>(dst - pawn_push(pos.active)*2, dst); }
+            while (0 != pushs_1) { auto dst = pop_lsq(pushs_1); moves += make_move<NORMAL>(dst - Push  , dst); }
+            while (0 != pushs_2) { auto dst = pop_lsq(pushs_2); moves += make_move<NORMAL>(dst - Push*2, dst); }
         }
             break;
         default: assert(false); break;

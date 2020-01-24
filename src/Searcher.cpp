@@ -1301,12 +1301,12 @@ namespace Searcher {
                 nullptr           , (ss-6)->pd_history
             };
 
-            array<Move, 2> cm = _ok((ss-1)->played_move) ?
+            array<Move, 2> countermove = _ok((ss-1)->played_move) ?
                         thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] :
-                        { MOVE_NONE, MOVE_NONE };
+                        array<Move, 2>{ MOVE_NONE, MOVE_NONE };
 
             // Initialize move picker (1) for the current position
-            MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, cm);
+            MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, countermove);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move()))
             {

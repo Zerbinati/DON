@@ -65,7 +65,7 @@ namespace Pawns {
 
         Score safety = Initial;
 
-        auto kf = clamp(_file(own_k_sq), F_B, F_G);
+        auto kf = ::clamp(_file(own_k_sq), F_B, F_G);
         for (const auto f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);
@@ -75,9 +75,9 @@ namespace Pawns {
             Bitboard opp_front_f_pawns = opp_front_pawns & file_bb(f);
             auto opp_r = 0 != opp_front_f_pawns ?
                         rel_rank(Own, scan_frontmost_sq(Opp, opp_front_f_pawns)) : R_1;
-            assert((R_1 == own_r
-                 && R_1 == opp_r)
-                || (own_r != opp_r));
+            assert((own_r != opp_r)
+                || (R_1 == own_r
+                 && R_1 == opp_r));
 
             auto ff = map_file(f);
             assert(F_E > ff);
@@ -104,6 +104,7 @@ namespace Pawns {
     void Entry::evaluate(const Position &pos)
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Push = pawn_push(Own);
         const auto Attack = PawnAttacks[Own];
 
         Bitboard pawns = pos.pieces(PAWN);
@@ -133,18 +134,18 @@ namespace Pawns {
             auto r = rel_rank(Own, s);
 
             Bitboard neighbours = own_pawns & adj_file_bb(s);
-            Bitboard supporters = neighbours & rank_bb(s - pawn_push(Own));
+            Bitboard supporters = neighbours & rank_bb(s - Push);
             Bitboard phalanxes  = neighbours & rank_bb(s);
             Bitboard stoppers   = opp_pawns & pawn_pass_span(Own, s);
             Bitboard levers     = opp_pawns & Attack[s];
-            Bitboard escapes    = opp_pawns & Attack[s + pawn_push(Own)]; // Push levers
+            Bitboard escapes    = opp_pawns & Attack[s + Push]; // Push levers
             Bitboard opposers   = opp_pawns & front_squares_bb(Own, s);
-            Bitboard blockers   = opp_pawns & (s + pawn_push(Own));
+            Bitboard blockers   = opp_pawns & (s + Push);
 
-            bool doubled    = contains(own_pawns, s - pawn_push(Own));
+            bool doubled    = contains(own_pawns, s - Push);
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool backward   = 0 == (neighbours & front_rank_bb(Opp, s + pawn_push(Own)))
+            bool backward   = 0 == (neighbours & front_rank_bb(Opp, s + Push))
                            && 0 != (escapes | blockers);
 
             // Compute additional span if pawn is not backward nor blocked

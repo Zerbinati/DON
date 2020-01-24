@@ -965,8 +965,8 @@ namespace {
             scl = bishop_oppose
                && pos.non_pawn_material() == 2 * VALUE_MG_BSHP ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
-                    Scale(23) :
-                    std::min(Scale(37 + (7 - 5 * (bishop_oppose)) * pos.count(color|PAWN)), SCALE_NORMAL);
+                    Scale(22) :
+                    std::min(Scale(36 + (7 - 5 * (bishop_oppose)) * pos.count(color|PAWN)), SCALE_NORMAL);
 
             // Scale down endgame factor when shuffling
             scl = std::max(Scale(scl - std::max(pos.si->clock_ply / 4 - 3, 0)), SCALE_DRAW);
