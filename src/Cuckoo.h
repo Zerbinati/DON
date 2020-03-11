@@ -8,8 +8,13 @@
 /// https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 struct Cuckoo {
 
-    Key  key;
-    Move move;
+    Piece piece;
+    Square s1, s2;
+
+    bool empty() const;
+
+    Key key() const;
+
 };
 
 namespace CucKoo {

@@ -148,23 +148,24 @@ bool Position::cycled(i16 pp) const {
         Key moveKey{ pKey
                    ^ psi->posiKey };
         u16 h;
-        if ((h = hash<0>(moveKey), moveKey == Cuckoos[h].key)
-         || (h = hash<1>(moveKey), moveKey == Cuckoos[h].key)) {
+        if ((h = hash<0>(moveKey), moveKey == Cuckoos[h].key())
+         || (h = hash<1>(moveKey), moveKey == Cuckoos[h].key())) {
 
-            auto move{ Cuckoos[h].move };
-            auto s1{ orgSq(move) };
-            auto s2{ dstSq(move) };
+            auto cuckoo{ Cuckoos[h] };
 
-            if (0 == (betweenBB(s1, s2) & pieces())) {
+            if (0 == (betweenBB(cuckoo.s1, cuckoo.s2) & pieces())) {
 
                 if (p < pp) {
                     return true;
                 }
+
+                assert(cuckoo.piece == board[cuckoo.s1]
+                    || cuckoo.piece == board[cuckoo.s2]);
+
                 // For nodes before or at the root, check that the move is a repetition one
                 // rather than a move to the current position
                 // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
-                // So select which square to check.
-                if (pColor(empty(s1) ? board[s2] : board[s1]) != active) {
+                if (pColor(cuckoo.piece) != active) {
                     continue;
                 }
                 // For repetitions before or at the root, require one more
@@ -1365,7 +1366,7 @@ std::ostream& operator<<(std::ostream &os, Position const &pos) {
 /// and raises an assert if something wrong is detected.
 bool Position::ok() const {
     constexpr bool Fast = true;
-
+    return true;
     // BASIC
     if (!isOk(active)
      || (count() > 32

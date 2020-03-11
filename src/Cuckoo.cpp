@@ -5,6 +5,17 @@
 
 Array<Cuckoo, CuckooSize> Cuckoos;
 
+bool Cuckoo::empty() const {
+    return NO_PIECE == piece
+        || (SQ_A1 == s1 && SQ_A1 == s2);
+}
+
+Key Cuckoo::key() const {
+    return RandZob.colorKey
+         ^ RandZob.pieceSquareKey[piece][s1]
+         ^ RandZob.pieceSquareKey[piece][s2];
+}
+
 namespace CucKoo {
 
     void initialize() {
@@ -14,7 +25,7 @@ namespace CucKoo {
 #endif
 
         // Prepare the Cuckoo tables
-        Cuckoos.fill({ 0, MOVE_NONE });
+        Cuckoos.fill({ NO_PIECE, SQ_A1, SQ_A1 });
 
         for (Piece p : Pieces) {
             // Pawn moves are not reversible
@@ -27,23 +38,20 @@ namespace CucKoo {
 
                     if (contains(PieceAttackBB[pType(p)][s1], s2)) {
 
-                        Cuckoo cuckoo{ RandZob.colorKey
-                                     ^ RandZob.pieceSquareKey[p][s1]
-                                     ^ RandZob.pieceSquareKey[p][s2],
-                                       makeMove<NORMAL>(s1, s2) };
+                        Cuckoo cuckoo{ p, s1, s2 };
 
-                        u16 h = hash<0>(cuckoo.key);
+                        u16 h = hash<0>(cuckoo.key());
                         while (true) {
 
                             std::swap(Cuckoos[h], cuckoo);
                             // Arrived at empty slot ?
-                            if (MOVE_NONE == cuckoo.move) {
+                            if (cuckoo.empty()) {
                                 break;
                             }
                             // Push victim to alternative slot
-                            h = h == hash<0>(cuckoo.key) ?
-                                hash<1>(cuckoo.key) :
-                                hash<0>(cuckoo.key);
+                            h = h == hash<0>(cuckoo.key()) ?
+                                hash<1>(cuckoo.key()) :
+                                hash<0>(cuckoo.key());
                         }
 
 #if !defined(NDEBUG)
@@ -57,3 +65,5 @@ namespace CucKoo {
         assert(3668 == count);
     }
 }
+
+
