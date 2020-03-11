@@ -20,8 +20,8 @@ namespace CucKoo {
                         if (contains(PieceAttackBB[pt][org], dst)) {
 
                             Cuckoo cuckoo{ RandZob.colorKey
-                                         ^ RandZob.pieceSquareKey[c][pt][org]
-                                         ^ RandZob.pieceSquareKey[c][pt][dst],
+                                         ^ RandZob.pieceSquareKey[c|pt][org]
+                                         ^ RandZob.pieceSquareKey[c|pt][dst],
                                            makeMove<NORMAL>(org, dst) };
 
                             u16 h = hash<0>(cuckoo.key);

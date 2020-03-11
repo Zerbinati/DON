@@ -76,13 +76,13 @@ Key Position::movePosiKey(Move m) const {
     auto dst{ dstSq(m) };
     auto pKey{ posiKey() };
     if (CASTLE == mType(m)) {
-        pKey ^= RandZob.pieceSquareKey[active][ROOK][dst]
-              ^ RandZob.pieceSquareKey[active][ROOK][rookCastleSq(org, dst)];
+        pKey ^= RandZob.pieceSquareKey[active|ROOK][dst]
+              ^ RandZob.pieceSquareKey[active|ROOK][rookCastleSq(org, dst)];
     }
     else {
-        auto cpt{ ENPASSANT != mType(m) ? pType(board[dst]): PAWN };
-        if (NONE != cpt) {
-            pKey ^= RandZob.pieceSquareKey[~active][cpt][ENPASSANT != mType(m) ? dst : dst - PawnPush[active]];
+        auto cp{ ENPASSANT != mType(m) ? board[dst] : ~active|PAWN };
+        if (NO_PIECE != cp) {
+            pKey ^= RandZob.pieceSquareKey[cp][ENPASSANT != mType(m) ? dst : dst - PawnPush[active]];
         }
         else
         if (PAWN == pType(board[org])
@@ -98,8 +98,8 @@ Key Position::movePosiKey(Move m) const {
     }
     return pKey
          ^ RandZob.colorKey
-         ^ RandZob.pieceSquareKey[active][pType(board[org])][org]
-         ^ RandZob.pieceSquareKey[active][PROMOTE != mType(m) ? pType(board[org]) : promoteType(m)][CASTLE != mType(m) ? dst : kingCastleSq(org, dst)]
+         ^ RandZob.pieceSquareKey[board[org]][org]
+         ^ RandZob.pieceSquareKey[PROMOTE != mType(m) ? board[org] : active|promoteType(m)][CASTLE != mType(m) ? dst : kingCastleSq(org, dst)]
          ^ RandZob.castleRightKey[castleRights() & (sqCastleRight[org]|sqCastleRight[dst])];
 }
 
@@ -896,13 +896,15 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
         && (!contains(pieces(active), dst)
          || CASTLE == mType(m)));
 
-    auto mpt = pType(board[org]);
-    assert(NONE != mpt);
     auto pasive = ~active;
 
+    auto mp = board[org];
+    assert(NO_PIECE != mp);
+    auto cp = ENPASSANT != mType(m) ? board[dst] : pasive|PAWN;
+
     if (CASTLE == mType(m)) {
-        assert((active|KING) == board[org] //&& contains(pieces(active, KING), org)
-            && (active|ROOK) == board[dst] //&& contains(pieces(active, ROOK), dst)
+        assert((active|KING) == mp //&& contains(pieces(active, KING), org)
+            && (active|ROOK) == cp //&& contains(pieces(active, ROOK), dst)
             && castleRookSq(active, dst > org ? CS_KING : CS_QUEN) == dst
             && castleExpeded(active, dst > org ? CS_KING : CS_QUEN)
             //&& RANK_1 == relativeRank(active, org)
@@ -910,7 +912,6 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
             && canCastle(active, dst > org ? CS_KING : CS_QUEN)
             && 0 == si->ptr->checkers); //&& (attackersTo(org) & pieces(pasive))
 
-        si->captured = NONE;
         auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
         auto rookDst{ rookCastleSq(org, rookOrg) };
         /* king*/dst = kingCastleSq(org, rookOrg);
@@ -918,52 +919,56 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
         removePiece(org);
         removePiece(rookOrg);
         board[org] = board[rookOrg] = NO_PIECE; // Not done by removePiece()
-        placePiece(dst    , active|KING);
-        placePiece(rookDst, active|ROOK);
-        pKey ^= RandZob.pieceSquareKey[active][ROOK][rookOrg]
-              ^ RandZob.pieceSquareKey[active][ROOK][rookDst];
+        placePiece(dst    , mp);
+        placePiece(rookDst, cp);
+        pKey ^= RandZob.pieceSquareKey[cp][rookOrg]
+              ^ RandZob.pieceSquareKey[cp][rookDst];
+
+        cp = NO_PIECE;
     }
-    else {
-        auto captured = ENPASSANT != mType(m) ? pType(board[dst]) : PAWN;
-        if (NONE != captured) {
-            assert(KING != captured);
 
-            auto cap = dst;
-            if (PAWN == captured) {
-                if (ENPASSANT == mType(m)) {
-                    cap -= PawnPush[active];
+    if (NO_PIECE != cp) {
+        assert(KING != pType(cp));
 
-                    assert(PAWN == mpt
-                        && RANK_5 == relativeRank(active, org)
-                        && RANK_6 == relativeRank(active, dst)
-                        && 1 == clockPly()
-                        && dst == epSquare()
-                        && empty(dst) //&& !contains(pieces(), dst)
-                        && (pasive|PAWN) == board[cap]); //&& contains(pieces(pasive, PAWN), cap));
-                }
-                si->pawnKey ^= RandZob.pieceSquareKey[pasive][PAWN][cap];
-            }
-            else {
-                npMaterial[pasive] -= PieceValues[MG][captured];
-            }
-
-            // Reset clock ply counter
-            si->clockPly = 0;
-            removePiece(cap);
+        auto cap = dst;
+        if (PAWN == pType(cp)) {
             if (ENPASSANT == mType(m)) {
-                board[cap] = NO_PIECE; // Not done by removePiece()
+                cap -= PawnPush[active];
+
+                assert(PAWN == pType(mp)
+                    && RANK_5 == relativeRank(active, org)
+                    && RANK_6 == relativeRank(active, dst)
+                    && 1 == clockPly()
+                    && dst == epSquare()
+                    && empty(dst) //&& !contains(pieces(), dst)
+                    && cp == board[cap]); //&& contains(pieces(pasive, PAWN), cap));
             }
-            pKey ^= RandZob.pieceSquareKey[pasive][captured][cap];
-            si->matlKey ^= RandZob.pieceSquareKey[pasive][captured][count(pasive|captured)];
-            prefetch(th->matlHash[matlKey()]);
+            si->pawnKey ^= RandZob.pieceSquareKey[cp][cap];
         }
-        // Set capture piece
-        si->captured = captured;
-        // Move the piece
+        else {
+            npMaterial[pasive] -= PieceValues[MG][pType(cp)];
+        }
+
+        removePiece(cap);
+        if (ENPASSANT == mType(m)) {
+            board[cap] = NO_PIECE; // Not done by removePiece()
+        }
+        pKey ^= RandZob.pieceSquareKey[cp][cap];
+        si->matlKey ^= RandZob.pieceSquareKey[cp][count(cp)];
+        prefetch(th->matlHash[matlKey()]);
+
+        // Reset clock ply counter
+        si->clockPly = 0;
+    }
+    // Set capture piece
+    si->captured = pType(cp);
+
+    // Move the piece. The tricky Chess960 castling is handled earlier
+    if (CASTLE != mType(m)) {
         movePiece(org, dst);
     }
-    pKey ^= RandZob.pieceSquareKey[active][mpt][org]
-          ^ RandZob.pieceSquareKey[active][mpt][dst];
+    pKey ^= RandZob.pieceSquareKey[mp][org]
+          ^ RandZob.pieceSquareKey[mp][dst];
 
     // Reset enpassant square
     if (SQ_NONE != epSquare()) {
@@ -980,27 +985,10 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
         si->castleRights &= ~cr;
     }
 
-    if (PAWN == mpt) {
-        if (PROMOTE == mType(m)) {
-            assert(PAWN == mpt
-                && RANK_7 == relativeRank(active, org)
-                && RANK_8 == relativeRank(active, dst));
-
-            auto promoted{ promoteType(m) };
-            // Replace the pawn with the promoted piece
-            removePiece(dst);
-            placePiece(dst, active|promoted);
-            npMaterial[active] += PieceValues[MG][promoted];
-            pKey ^= RandZob.pieceSquareKey[active][PAWN][dst]
-                  ^ RandZob.pieceSquareKey[active][promoted][dst];
-            si->pawnKey ^= RandZob.pieceSquareKey[active][PAWN][dst];
-            si->matlKey ^= RandZob.pieceSquareKey[active][PAWN][count(active|PAWN)]
-                         ^ RandZob.pieceSquareKey[active][promoted][count(active|promoted) - 1];
-            prefetch(th->matlHash[matlKey()]);
-        }
-        else
+    if (PAWN == pType(mp)) {
         // Double push pawn
-        if (dst == org + 2 * PawnPush[active]) {
+        if (relativeRank(active, RANK_2) == sRank(org)
+         && dst == org + 2 * PawnPush[active]) {
             auto epSq{ org + 1 * PawnPush[active] };
             // Set enpassant square if the moved pawn can be captured
             if (canEnpassant(pasive, epSq)) {
@@ -1008,16 +996,37 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
                 pKey ^= RandZob.enpassantKey[sFile(epSq)];
             }
         }
+        else
+        if (PROMOTE == mType(m)) {
+            assert(PAWN == pType(mp)
+                && RANK_7 == relativeRank(active, org)
+                && RANK_8 == relativeRank(active, dst));
+
+            auto pp{ active|promoteType(m) };
+            // Replace the pawn with the promoted piece
+            removePiece(dst);
+            placePiece(dst, pp);
+            npMaterial[active] += PieceValues[MG][pType(pp)];
+            pKey ^= RandZob.pieceSquareKey[mp][dst]
+                  ^ RandZob.pieceSquareKey[pp][dst];
+            si->pawnKey ^= RandZob.pieceSquareKey[mp][dst];
+            si->matlKey ^= RandZob.pieceSquareKey[mp][count(mp)]
+                         ^ RandZob.pieceSquareKey[pp][count(pp) - 1];
+            prefetch(th->matlHash[matlKey()]);
+        }
 
         // Reset clock ply counter
         si->clockPly = 0;
-        si->pawnKey ^= RandZob.pieceSquareKey[active][PAWN][org]
-                     ^ RandZob.pieceSquareKey[active][PAWN][dst];
+        si->pawnKey ^= RandZob.pieceSquareKey[mp][org]
+                     ^ RandZob.pieceSquareKey[mp][dst];
         //prefetch(th->pawnHash[pawnKey()]);
     }
 
-    assert(0 == (attackersTo(square(active|KING)) & pieces(pasive)));
+    // Update the key with the final value
+    si->posiKey = pKey;
+    //prefetch(TT.cluster(posiKey())->entryTable);
 
+    assert(0 == (attackersTo(square(active|KING)) & pieces(pasive)));
     // Calculate checkers
     si->checkers = isCheck ? attackersTo(square(pasive|KING)) & pieces(active) : 0;
     assert(!isCheck
@@ -1026,8 +1035,8 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
 
     // Switch sides
     active = pasive;
-    // Update the key with the final value
-    si->posiKey = pKey;
+
+    setCheckInfo();
 
     // Calculate the repetition info. It is the ply distance from the previous
     // occurrence of the same position, negative in the 3-fold case, or zero
@@ -1044,8 +1053,6 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
             }
         }
     }
-
-    setCheckInfo();
 
     assert(ok());
 }
@@ -1136,13 +1143,14 @@ void Position::doNullMove(StateInfo &nsi)
         si->epSquare = SQ_NONE;
     }
 
-    active = ~active;
     si->posiKey ^= RandZob.colorKey;
-
     prefetch(TT.cluster(posiKey())->entryTable);
 
-    si->repetition = 0;
+    active = ~active;
+
     setCheckInfo();
+
+    si->repetition = 0;
 
     assert(ok());
 }
@@ -1343,7 +1351,7 @@ std::ostream& operator<<(std::ostream &os, Position const &pos) {
 /// and raises an assert if something wrong is detected.
 bool Position::ok() const {
     constexpr bool Fast = true;
-
+/*
     // BASIC
     if (!isOk(active)
      || (count() > 32
@@ -1414,7 +1422,7 @@ bool Position::ok() const {
     if (Fast) {
         return true;
     }
-
+*/
     // SQUARE_LIST
     for (Piece p : Pieces) {
         if (count(p) != popCount(pieces(pColor(p), pType(p)))) {
