@@ -93,18 +93,18 @@ namespace BitBase {
             if (WHITE == active
              && RANK_7 == sRank(wpSq)
              && wkSq != wpSq + NORTH
+             && bkSq != wpSq + NORTH
              && (1 < distance(bkSq, wpSq + NORTH)
               || 2 > distance(wkSq, wpSq + NORTH))) {
                 result = WIN;
             }
             else
-            // Immediate draw if is a stalemate or king captures undefended pawn
+            // Immediate draw if king captures undefended pawn or is a stalemate
             if (BLACK == active
-             && (0 == (  PieceAttackBB[KING][bkSq]
-                     & ~(PieceAttackBB[KING][wkSq]
-                       | PawnAttackBB[WHITE][wpSq]))
-              || contains( PieceAttackBB[KING][bkSq]
-                        & ~PieceAttackBB[KING][wkSq], wpSq))) {
+             && ((2 > distance(bkSq, wpSq)
+               && 1 < distance(wkSq, wpSq))
+              || 0 == (   PieceAttackBB[KING][bkSq]
+                      & ~(PieceAttackBB[KING][wkSq]|PawnAttackBB[WHITE][wpSq])))) {
                 result = DRAW;
             }
             // Position will be classified later
