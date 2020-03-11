@@ -733,7 +733,7 @@ Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const n
     // 6) Full move number. The number of the full move.
     //    It starts at 1, and is incremented after Black's move.
 
-    assert(!ff.empty());
+    assert(!whiteSpaces(ff));
 
     clear();
     nsi.clear();
@@ -765,8 +765,8 @@ Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const n
             assert(false);
         }
     }
-    assert(1 == count(WHITE|KING)
-        && 1 == count(BLACK|KING));
+    assert(1 == count(W_KING)
+        && 1 == count(B_KING));
 
     // 2. Active color
     iss >> token;
@@ -786,16 +786,14 @@ Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const n
             for (rookOrg = relativeSq(c, SQ_H1);
                  rook != board[rookOrg];
                  /*&& rookOrg > square(c|KING)*/
-                 --rookOrg)
-            {}
+                 --rookOrg) {}
         }
         else
         if ('q' == token) {
             for (rookOrg = relativeSq(c, SQ_A1);
                  rook != board[rookOrg];
                  /*&& rookOrg < square(c|KING)*/
-                 ++rookOrg)
-            {}
+                 ++rookOrg) {}
         }
         else
         if ('a' <= token && token <= 'h') {
@@ -1063,13 +1061,13 @@ void Position::undoMove(Move m)
     assert(isOk(m)
         && nullptr != si->ptr);
 
+    active = ~active;
+
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
     assert(empty(org)
         || CASTLE == mType(m));
     assert(KING != captured());
-
-    active = ~active;
 
     if (CASTLE == mType(m)) {
         assert(RANK_1 == relativeRank(active, org)
@@ -1087,31 +1085,46 @@ void Position::undoMove(Move m)
         placePiece(rookOrg, active|ROOK);
     }
     else {
+
+        auto mp = board[dst];
+        assert(NO_PIECE != mp
+            && active == pColor(mp));
+
         if (PROMOTE == mType(m)) {
-            assert(RANK_7 == relativeRank(active, org)
+            assert(NIHT <= pType(mp) && pType(mp) <= QUEN
+                && RANK_7 == relativeRank(active, org)
                 && RANK_8 == relativeRank(active, dst));
 
+            mp = active|PAWN;
             removePiece(dst);
-            placePiece(dst, active|PAWN);
+            placePiece(dst, mp);
             npMaterial[active] -= PieceValues[MG][promoteType(m)];
         }
         // Move the piece
         movePiece(dst, org);
 
         if (NONE != captured()) {
+
             auto cap{ dst };
+
             if (ENPASSANT == mType(m)) {
+
                 cap -= PawnPush[active];
-                assert((active|PAWN) == board[org] //&& contains(pieces(active, PAWN), org)
+
+                assert(PAWN == pType(mp) //&& contains(pieces(active, PAWN), org)
                     && RANK_5 == relativeRank(active, org)
                     && RANK_6 == relativeRank(active, dst)
                     && dst == si->ptr->epSquare
+                    //&& empty(cap)
                     && PAWN == captured());
             }
-            // Restore the captured piece.
             assert(empty(cap));
+
+            // Restore the captured piece.
             placePiece(cap, ~active|captured());
+
             if (PAWN != captured()) {
+
                 npMaterial[~active] += PieceValues[MG][captured()];
             }
         }
@@ -1351,7 +1364,7 @@ std::ostream& operator<<(std::ostream &os, Position const &pos) {
 /// and raises an assert if something wrong is detected.
 bool Position::ok() const {
     constexpr bool Fast = true;
-/*
+
     // BASIC
     if (!isOk(active)
      || (count() > 32
@@ -1422,7 +1435,7 @@ bool Position::ok() const {
     if (Fast) {
         return true;
     }
-*/
+
     // SQUARE_LIST
     for (Piece p : Pieces) {
         if (count(p) != popCount(pieces(pColor(p), pType(p)))) {

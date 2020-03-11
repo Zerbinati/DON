@@ -185,12 +185,20 @@ namespace BitBase {
                        && UNKNOWN != kpkDB[idx].classify(kpkDB);
             }
         }
+
+#if !defined(NDEBUG)
+        u32 count = 0;
+#endif
         // Fill the bitbase with the decisive results
         for (u32 idx = 0; idx < MaxIndex; ++idx) {
             if (WIN == kpkDB[idx]) {
                 KPKBitbase.set(idx);
+#if !defined(NDEBUG)
+                ++count;
+#endif
             }
         }
+        assert(111282 == count);
     }
 
     bool probe(bool stngActive, Square skSq, Square wkSq, Square spSq) {

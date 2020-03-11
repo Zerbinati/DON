@@ -9,7 +9,9 @@ namespace CucKoo {
 
     void initialize() {
 
+#if !defined(NDEBUG)
         u16 count = 0;
+#endif
 
         // Prepare the Cuckoo tables
         Cuckoos.fill({ 0, MOVE_NONE });
@@ -44,7 +46,9 @@ namespace CucKoo {
                                 hash<0>(cuckoo.key);
                         }
 
+#if !defined(NDEBUG)
                         ++count;
+#endif
                     }
                 }
             }
