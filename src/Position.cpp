@@ -140,9 +140,9 @@ bool Position::cycled(i16 pp) const {
     }
 
     Key pKey{ posiKey() };
-    auto const *psi = si->ptr;
 
-    for (i16 p = 3; p <= end; p += 2) {
+    auto const *psi = si->ptr;
+    for (i16 i = 3; i <= end; i += 2) {
         psi = psi->ptr->ptr;
 
         Key moveKey{ pKey
@@ -151,17 +151,18 @@ bool Position::cycled(i16 pp) const {
         if ((h = hash<0>(moveKey), moveKey == Cuckoos[h].key())
          || (h = hash<1>(moveKey), moveKey == Cuckoos[h].key())) {
 
-            auto cuckoo{ Cuckoos[h] };
+            Cuckoo &cuckoo{ Cuckoos[h] };
+            assert(!cuckoo.empty());
 
+            // Legality of a reverting move: clear path
             if (0 == (betweenBB(cuckoo.s1, cuckoo.s2) & pieces())) {
 
-                if (p < pp) {
+                if (i < pp) {
                     return true;
                 }
 
                 assert(cuckoo.piece == board[cuckoo.s1]
                     || cuckoo.piece == board[cuckoo.s2]);
-
                 // For nodes before or at the root, check that the move is a repetition one
                 // rather than a move to the current position
                 // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
@@ -1366,7 +1367,7 @@ std::ostream& operator<<(std::ostream &os, Position const &pos) {
 /// and raises an assert if something wrong is detected.
 bool Position::ok() const {
     constexpr bool Fast = true;
-    return true;
+
     // BASIC
     if (!isOk(active)
      || (count() > 32

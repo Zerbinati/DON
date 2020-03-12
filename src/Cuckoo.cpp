@@ -7,11 +7,14 @@ Array<Cuckoo, CuckooSize> Cuckoos;
 
 bool Cuckoo::empty() const {
     return NO_PIECE == piece
-        || (SQ_A1 == s1 && SQ_A1 == s2);
+        || SQ_NONE == s1
+        || SQ_NONE == s2;
 }
 
 Key Cuckoo::key() const {
-    return RandZob.colorKey
+    return empty() ?
+           0 :
+           RandZob.colorKey
          ^ RandZob.pieceSquareKey[piece][s1]
          ^ RandZob.pieceSquareKey[piece][s2];
 }
@@ -25,7 +28,7 @@ namespace CucKoo {
 #endif
 
         // Prepare the Cuckoo tables
-        Cuckoos.fill({ NO_PIECE, SQ_A1, SQ_A1 });
+        Cuckoos.fill({ NO_PIECE, SQ_NONE, SQ_NONE });
 
         for (Piece p : Pieces) {
             // Pawn moves are not reversible
@@ -62,7 +65,7 @@ namespace CucKoo {
             }
         }
 
-        assert(3668 == count);
+        assert(3668 == count); // 7336/2
     }
 }
 

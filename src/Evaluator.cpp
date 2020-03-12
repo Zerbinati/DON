@@ -443,8 +443,8 @@ namespace Evaluator {
                      && RANK_4 > relativeRank(Own, s)
                      && 0 != (frontSquaresBB(Own, s) & pos.pieces(Own, PAWN))) {
                         auto kF = sFile(pos.square(Own|KING));
-                        if (((kF < FILE_E) && (sFile(s) < kF))
-                         || ((kF > FILE_D) && (sFile(s) > kF))) {
+                        if (((FILE_E > kF) && (kF > sFile(s)))
+                         || ((FILE_D < kF) && (kF < sFile(s)))) {
                             score -= RookTrapped * (1 + !pos.canCastle(Own));
                         }
                     }
