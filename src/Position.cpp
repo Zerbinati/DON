@@ -147,11 +147,9 @@ bool Position::cycled(i16 pp) const {
 
         Key moveKey{ pKey
                    ^ psi->posiKey };
-        u16 h;
-        if ((h = hash<0>(moveKey), moveKey == Cuckoos[h].key())
-         || (h = hash<1>(moveKey), moveKey == Cuckoos[h].key())) {
 
-            Cuckoo &cuckoo{ Cuckoos[h] };
+        Cuckoo cuckoo;
+        if (Cuckoos::lookup(moveKey, cuckoo)) {
             assert(!cuckoo.empty());
 
             // Legality of a reverting move: clear path
@@ -240,9 +238,8 @@ bool Position::pseudoLegal(Move m) const
         return false;
     }
 
-    auto mpt{ pType(board[org]) };
     // Handle the special case of a piece move
-    if (PAWN == mpt) {
+    if (PAWN == pType(board[org])) {
         auto orgR{ relativeRank(active, org) };
         auto dstR{ relativeRank(active, dst) };
 
@@ -285,7 +282,7 @@ bool Position::pseudoLegal(Move m) const
     }
     else
     if (NORMAL != mType(m)
-     || !contains(pieceAttacksFrom(mpt, org), dst)) {
+     || !contains(pieceAttacksFrom(pType(board[org]), org), dst)) {
         return false;
     }
 
