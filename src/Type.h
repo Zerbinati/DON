@@ -81,7 +81,8 @@ constexpr u64 nSqr(i32 n) {
 // Return the sign of a number (-1, 0, 1)
 template<typename T>
 constexpr i32 sign(T const &v) {
-    return (T{} < v) - (v < T{});
+    //return (T{} < v) - (v < T{});
+    return (0 < v) - (v < 0);
 }
 
 template<typename T>
@@ -174,7 +175,7 @@ enum Piece : u08 {
 };
 
 enum MoveType : u16 {
-    NORMAL    = 0 << 14, // [00]-- ===
+    SIMPLE    = 0 << 14, // [00]-- ===
     CASTLE    = 1 << 14, // [01]-- ===
     ENPASSANT = 2 << 14, // [10]-- ===
     PROMOTE   = 3 << 14, // [11]xx ===
@@ -510,7 +511,7 @@ constexpr Move makeMove<PROMOTE>(Square org, Square dst) {
 }
 
 constexpr Move reverseMove(Move m) {
-    return makeMove<NORMAL>(dstSq(m), orgSq(m));
+    return makeMove<SIMPLE>(dstSq(m), orgSq(m));
 }
 
 /// Convert Value to Centipawn

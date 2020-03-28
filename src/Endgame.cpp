@@ -55,7 +55,7 @@ template<> Value Endgame<KXK>::operator()(Position const &pos) const {
 
     // Stalemate detection with lone weak king
     if (pos.activeSide() == weakColor
-     && MoveList<GenType::LEGAL>(pos).size() == 0) {
+     && MoveList<LEGAL>(pos).size() == 0) {
         return VALUE_DRAW;
     }
 

@@ -71,7 +71,7 @@ namespace {
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mMask(m));
         }
         // Add special move flags and verify it is legal
-        for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+        for (auto const &vm : MoveList<LEGAL>(pos)) {
             if ((vm.move & ~PROMOTE) == m) {
                 return vm;
             }

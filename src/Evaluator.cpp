@@ -7,9 +7,10 @@
 
 #include "BitBoard.h"
 #include "Helper.h"
+#include "King.h"
 #include "Material.h"
-#include "Notation.h"
 #include "Pawns.h"
+#include "Notation.h"
 #include "Thread.h"
 #include "UCI.h"
 
@@ -71,13 +72,6 @@ namespace Evaluator {
         {
             RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5],
             RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]
-        };
-
-        constexpr Array<Bitboard, 3> SlotFileBB
-        {
-            FileBB[FILE_E]|FileBB[FILE_F]|FileBB[FILE_G]|FileBB[FILE_H],    // K-File
-            FileBB[FILE_A]|FileBB[FILE_B]|FileBB[FILE_C]|FileBB[FILE_D],    // Q-File
-            FileBB[FILE_C]|FileBB[FILE_D]|FileBB[FILE_E]|FileBB[FILE_F]     // C-File
         };
 
         constexpr Array<Bitboard, FILES> KingFlankBB
@@ -179,8 +173,9 @@ namespace Evaluator {
         private:
             Position const &pos;
 
-            Pawns   ::Entry *pawnEntry{ nullptr };
+            King    ::Entry *kingEntry{ nullptr };
             Material::Entry *matlEntry{ nullptr };
+            Pawns   ::Entry *pawnEntry{ nullptr };
 
             // Contains all squares attacked by the color and piece type.
             Array<Bitboard, COLORS> fulAttacks;
@@ -549,7 +544,7 @@ namespace Evaluator {
             i32 kingFlankDefense = popCount(b);
 
             // King Safety:
-            Score score{ pawnEntry->evaluateKingSafety<Own>(pos, fulAttacks[Opp]) };
+            Score score{ kingEntry->evaluateSafety<Own>(pos, fulAttacks[Opp]) };
 
             kingDanger +=   1 * (kingAttackersCount[Opp] * kingAttackersWeight[Opp])
                         +  69 * kingAttacksCount[Opp]
@@ -831,23 +826,23 @@ namespace Evaluator {
         /// i.e. second order bonus/malus based on the known attacking/defending status of the players
         template<bool Trace>
         Score Evaluation<Trace>::initiative(Score s) const {
-            i32 outflanking{ distance<File>(pos.square(WHITE|KING), pos.square(BLACK|KING))
-                           - distance<Rank>(pos.square(WHITE|KING), pos.square(BLACK|KING)) };
-            bool pawnNotBothFlank{ (pos.pieces(PAWN) & SlotFileBB[CS_KING]) == 0
-                                || (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) == 0 };
+            auto wkSq{ pos.square(W_KING) };
+            auto bkSq{ pos.square(B_KING) };
+
+            i32 outflanking{ distance<File>(wkSq, bkSq)
+                           - distance<Rank>(wkSq, bkSq) };
 
             // Compute the initiative bonus for the attacking side
-            i32 complexity = 11 * pos.count(PAWN)
-                           +  9 * pawnEntry->passedCount()
+            i32 complexity =  1 * pawnEntry->complexity
                            +  9 * outflanking
                             // King infiltration
-                           + 24 * (sRank(pos.square(WHITE|KING)) > RANK_4
-                                || sRank(pos.square(BLACK|KING)) < RANK_5)
+                           + 24 * (sRank(wkSq) > RANK_4
+                                || sRank(bkSq) < RANK_5)
                            + 51 * (pos.nonPawnMaterial() == VALUE_ZERO)
                             // Pawn not on both flanks
-                           - 21 * (pawnNotBothFlank)
+                           - 21 * (pawnEntry->pawnNotBothFlank)
                             // Almost Unwinnable
-                           - 43 * (pawnNotBothFlank
+                           - 43 * (pawnEntry->pawnNotBothFlank
                                 && outflanking < 0)
                            - 89;
 
@@ -857,7 +852,7 @@ namespace Evaluator {
             // sign of the midgame or endgame values, and that we carefully cap the bonus
             // so that the midgame and endgame scores do not change sign after the bonus.
             Score score{ makeScore(sign(mg) * clamp(complexity + 50, -abs(mg), 0),
-                                   sign(eg) * std::max(complexity  , -abs(eg))) };
+                                   sign(eg) * std::max(complexity, -abs(eg))) };
 
             if (Trace) {
                 Tracer::write(INITIATIVE, score);
@@ -924,6 +919,9 @@ namespace Evaluator {
                         + pos.nonPawnMaterial() / 64)) {
                 return pos.activeSide() == WHITE ? +v : -v;
             }
+
+            // Probe the king hash table
+            kingEntry = King::probe(pos);
 
             if (Trace) {
                 Tracer::clear();

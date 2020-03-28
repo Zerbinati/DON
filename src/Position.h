@@ -454,7 +454,7 @@ inline Bitboard Position::attacksFrom(PieceType pt, Square s) const {
 inline bool Position::capture(Move m) const {
     assert(isOk(m));
     //auto mt = mType(m);
-    //return ((mt == NORMAL
+    //return ((mt == SIMPLE
     //      || mt == PROMOTE) && !empty(dstSq(m)))
     //    || (mt == ENPASSANT && dstSq(m) == epSquare());
     return mType(m) != ENPASSANT ?
@@ -464,7 +464,7 @@ inline bool Position::capture(Move m) const {
 inline bool Position::captureOrPromotion(Move m) const {
     assert(isOk(m));
     //auto mt = mType(m);
-    //return mt == NORMAL    ? !empty(dstSq(m)) :
+    //return mt == SIMPLE    ? !empty(dstSq(m)) :
     //       mt == ENPASSANT ? dstSq(m) == epSquare() :
     //       mt == PROMOTE;
     return mType(m) != ENPASSANT ?

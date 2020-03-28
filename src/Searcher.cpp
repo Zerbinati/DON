@@ -402,7 +402,7 @@ namespace {
             &thread->butterFlyStats,
             &thread->captureStats,
             pieceStats,
-            ttMove, depth, dstSq((ss-1)->playedMove) };
+            ttMove, depth, depth <= DEPTH_QS_RECAP ? dstSq((ss-1)->playedMove) : SQ_NONE };
 
         u08 moveCount{ 0 };
         StateInfo si;
@@ -651,10 +651,9 @@ namespace {
          && depth > 12
          &&  pmOK
          && !pmCapOrPro
-         //&& ss->ply - 1 >= 0
-         && ss->ply - 1 < MAX_LOWPLY) {
-            assert((ss-1)->ply >= 0);
-            thread->lowPlyStats[ss->ply - 1][mMask((ss-1)->playedMove)] << statBonus(depth - 5);
+         //&& (ss-1)->ply >= 0
+         && (ss-1)->ply < MAX_LOWPLY) {
+            thread->lowPlyStats[(ss-1)->ply][mMask((ss-1)->playedMove)] << statBonus(depth - 5);
         }
 
         // ttHitAvg can be used to approximate the running average of ttHit
@@ -848,9 +847,9 @@ namespace {
                 // Null move dynamic reduction based on depth and static evaluation.
                 auto nullDepth{ Depth(depth - ((854 + 68 * depth) / 258 + std::min(i32(eval - beta) / 192, 3))) };
 
-                Key nullMoveKey{ pos.posiKey()
-                               ^ RandZob.colorKey
-                               ^ (pos.epSquare() != SQ_NONE ? RandZob.enpassantKey[sFile(pos.epSquare())] : 0) };
+                Key nullMoveKey{ key
+                               ^ RandZob.side
+                               ^ (pos.epSquare() != SQ_NONE ? RandZob.enpassant[sFile(pos.epSquare())] : 0) };
 
                 // Speculative prefetch as early as possible
                 prefetch(TT.cluster(nullMoveKey)->entryTable);
@@ -963,7 +962,7 @@ namespace {
         value = bestValue;
 
         // Mark this node as being searched.
-        ThreadMarker threadMarker{ thread, pos.posiKey(), ss->ply };
+        ThreadMarker threadMarker{ thread, key, ss->ply };
 
         bool singularLMR{ false };
         bool ttmCapture{ ttMove != MOVE_NONE
@@ -1217,7 +1216,7 @@ namespace {
                     }
                     else
                     // Decrease if move escapes a capture in no-cut nodes (~2 ELO)
-                    if (mType(move) == NORMAL
+                    if (mType(move) == SIMPLE
                      && !pos.see(reverseMove(move))) {
                         reductDepth -= 2 + ttPV;
                     }
@@ -1373,7 +1372,7 @@ namespace {
         assert(moveCount != 0
             || !inCheck
             || excludedMove != MOVE_NONE
-            || MoveList<GenType::LEGAL>(pos).size() == 0);
+            || MoveList<LEGAL>(pos).size() == 0);
 
         // Step 21. Check for checkmate and stalemate.
         // If all possible moves have been searched and if there are no legal moves,

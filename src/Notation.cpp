@@ -106,7 +106,7 @@ Move moveOfCAN(string const &can, Position const &pos) {
     //}
     assert(can.size() < 5
         || islower(can[4]));
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (moveToCAN(vm) == can) {
             return vm;
         }
@@ -183,7 +183,7 @@ namespace {
                     //& ~pos.kingBlockers(pos.activeSide()) };
         while (pcs != 0) {
             auto sq{ popLSq(pcs) };
-            auto move{ makeMove<NORMAL>(sq, dst) };
+            auto move{ makeMove<SIMPLE>(sq, dst) };
             if (!(pos.pseudoLegal(move)
                && pos.legal(move))) {
                 amb ^= sq;
@@ -239,7 +239,7 @@ namespace {
 string moveToSAN(Move m, Position &pos) {
     if (m == MOVE_NONE) return { "(none)" };
     if (m == MOVE_NULL) return { "(null)" };
-    assert(MoveList<GenType::LEGAL>(pos).contains(m));
+    assert(MoveList<LEGAL>(pos).contains(m));
 
     std::ostringstream oss;
     auto org{ orgSq(m) };
@@ -280,7 +280,7 @@ string moveToSAN(Move m, Position &pos) {
     if (pos.giveCheck(m)) {
         StateInfo si;
         pos.doMove(m, si, true);
-        oss << (MoveList<GenType::LEGAL>(pos).size() != 0 ? "+" : "#");
+        oss << (MoveList<LEGAL>(pos).size() != 0 ? "+" : "#");
         pos.undoMove(m);
     }
 
@@ -289,7 +289,7 @@ string moveToSAN(Move m, Position &pos) {
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
 Move moveOfSAN(string const &san, Position &pos) {
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (moveToSAN(vm, pos) == san) {
             return vm;
         }

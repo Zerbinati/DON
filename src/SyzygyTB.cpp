@@ -1381,7 +1381,7 @@ namespace {
 
         WDLScore wdlScore;
         StateInfo si;
-        auto moveList{ MoveList<GenType::LEGAL>(pos) };
+        auto moveList{ MoveList<LEGAL>(pos) };
         u16 moveCount{ 0 };
         for (auto &move : moveList) {
             if (!pos.capture(move)
@@ -1543,7 +1543,7 @@ namespace SyzygyTB {
         StateInfo si;
         i32 minDTZ = 0xFFFF;
 
-        for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+        for (auto const &vm : MoveList<LEGAL>(pos)) {
 
             bool zeroing = pos.capture(vm)
                         || pType(pos[orgSq(vm)]) == PAWN;
@@ -1561,7 +1561,7 @@ namespace SyzygyTB {
             // If the move mates, force minDTZ to 1
             if (dtz == 1
              && pos.checkers() != 0
-             && MoveList<GenType::LEGAL>(pos).size() == 0) {
+             && MoveList<LEGAL>(pos).size() == 0) {
                 minDTZ = 1;
             }
 

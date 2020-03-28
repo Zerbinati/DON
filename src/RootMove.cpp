@@ -75,7 +75,7 @@ void RootMoves::operator+=(RootMove const &rm) {
 void RootMoves::initialize(Position const &pos) {
     assert(empty());
     //clear();
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
         *this += vm;
         assert(back().tbRank == 0
             && back().tbValue == VALUE_ZERO);
@@ -91,7 +91,7 @@ void RootMoves::initialize(Position const &pos, Moves const &filterMoves) {
 
     assert(empty());
     //clear();
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (filterMoves.contains(vm)) {
             *this += vm;
             assert(back().tbRank == 0

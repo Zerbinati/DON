@@ -209,7 +209,7 @@ u32 TTable::hashFull() const {
 /// TTable::extractNextMove() extracts next move after this move.
 Move TTable::extractNextMove(Position &pos, Move m) const {
     assert(m != MOVE_NONE
-        && MoveList<GenType::LEGAL>(pos).contains(m));
+        && MoveList<LEGAL>(pos).contains(m));
 
     StateInfo si;
     pos.doMove(m, si);
@@ -223,7 +223,7 @@ Move TTable::extractNextMove(Position &pos, Move m) const {
         nm = MOVE_NONE;
     }
     assert(nm == MOVE_NONE
-        || MoveList<GenType::LEGAL>(pos).contains(nm));
+        || MoveList<LEGAL>(pos).contains(nm));
     pos.undoMove(m);
 
     return nm;

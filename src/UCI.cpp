@@ -597,7 +597,7 @@ namespace UCI {
                 }
                 else if (token == "ignoremoves") {
                     // Parse and Validate ignore-moves (if any)
-                    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+                    for (auto const &vm : MoveList<LEGAL>(pos)) {
                         Limits.searchMoves.emplace_back(vm);
                     }
                     while (iss >> token) {
@@ -849,7 +849,7 @@ namespace UCI {
 
                     std::cout << "\nCapture moves: ";
                     count = 0;
-                    for (auto const &vm : MoveList<GenType::CAPTURE>(pos)) {
+                    for (auto const &vm : MoveList<CAPTURE>(pos)) {
                         if (pos.pseudoLegal(vm)
                             && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
@@ -860,7 +860,7 @@ namespace UCI {
 
                     std::cout << "\nQuiet moves: ";
                     count = 0;
-                    for (auto const &vm : MoveList<GenType::QUIET>(pos)) {
+                    for (auto const &vm : MoveList<QUIET>(pos)) {
                         if (pos.pseudoLegal(vm)
                          && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
@@ -871,7 +871,7 @@ namespace UCI {
 
                     std::cout << "\nQuiet Check moves: ";
                     count = 0;
-                    for (auto const &vm : MoveList<GenType::QUIET_CHECK>(pos)) {
+                    for (auto const &vm : MoveList<QUIET_CHECK>(pos)) {
                         if (pos.pseudoLegal(vm)
                          && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
@@ -882,7 +882,7 @@ namespace UCI {
 
                     std::cout << "\nNatural moves: ";
                     count = 0;
-                    for (auto const &vm : MoveList<GenType::NATURAL>(pos)) {
+                    for (auto const &vm : MoveList<NORMAL>(pos)) {
                         if (pos.pseudoLegal(vm)
                          && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
@@ -894,7 +894,7 @@ namespace UCI {
                 else {
                     std::cout << "\nEvasion moves: ";
                     count = 0;
-                    for (auto const &vm : MoveList<GenType::EVASION>(pos)) {
+                    for (auto const &vm : MoveList<EVASION>(pos)) {
                         if (pos.pseudoLegal(vm)
                          && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";

@@ -81,44 +81,44 @@ Key Position::movePosiKey(Move m) const {
                 board[dst] : ~active|PAWN;
 
     auto pKey{ posiKey()
-             ^ RandZob.colorKey
-             ^ (epSquare() != SQ_NONE ? RandZob.enpassantKey[sFile(epSquare())] : 0) };
+             ^ RandZob.side
+             ^ (epSquare() != SQ_NONE ? RandZob.enpassant[sFile(epSquare())] : 0) };
 
     if (mType(m) == CASTLE) {
         // ROOK
-        pKey ^= RandZob.pieceSquareKey[cp][dst]
-              ^ RandZob.pieceSquareKey[cp][rookCastleSq(org, dst)];
+        pKey ^= RandZob.psq[cp][dst]
+              ^ RandZob.psq[cp][rookCastleSq(org, dst)];
     }
     else {
         if (cp != NO_PIECE) {
-            pKey ^= RandZob.pieceSquareKey[cp][mType(m) != ENPASSANT ? dst : dst - PawnPush[active]];
+            pKey ^= RandZob.psq[cp][mType(m) != ENPASSANT ? dst : dst - PawnPush[active]];
         }
         else
         if (pType(mp) == PAWN
          && dst == org + PawnPush[active] * 2) {
             auto epSq{ org + PawnPush[active] };
             if (canEnpassant(~active, epSq, false)) {
-                pKey ^= RandZob.enpassantKey[sFile(epSq)];
+                pKey ^= RandZob.enpassant[sFile(epSq)];
             }
         }
     }
     return pKey
-         ^ RandZob.pieceSquareKey[mp][org]
-         ^ RandZob.pieceSquareKey[mType(m) != PROMOTE ? mp : active|promoteType(m)][mType(m) != CASTLE ? dst : kingCastleSq(org, dst)]
-         ^ RandZob.castleRightKey[castleRights() & (sqCastleRight[org]|sqCastleRight[dst])];
+         ^ RandZob.psq[mp][org]
+         ^ RandZob.psq[mType(m) != PROMOTE ? mp : active|promoteType(m)][mType(m) != CASTLE ? dst : kingCastleSq(org, dst)]
+         ^ RandZob.castling[castleRights() & (sqCastleRight[org]|sqCastleRight[dst])];
     */
 
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
     auto pKey{ posiKey()
-             ^ RandZob.colorKey
-             ^ RandZob.pieceSquareKey[board[org]][org]
-             ^ RandZob.pieceSquareKey[board[org]][dst] };
+             ^ RandZob.side
+             ^ RandZob.psq[board[org]][org]
+             ^ RandZob.psq[board[org]][dst] };
     if (board[dst] != NO_PIECE) {
-        pKey ^= RandZob.pieceSquareKey[board[dst]][dst];
+        pKey ^= RandZob.psq[board[dst]][dst];
     }
     if (epSquare() != SQ_NONE) {
-        pKey ^= RandZob.enpassantKey[sFile(epSquare())];
+        pKey ^= RandZob.enpassant[sFile(epSquare())];
     }
     return pKey;
 }
@@ -130,7 +130,7 @@ bool Position::draw(i16 pp) const {
             // Not in check or in check have legal moves
            (clockPly() >= 2 * i16(Options["Draw MoveCount"])
          && (checkers() == 0
-          || MoveList<GenType::LEGAL>(*this).size() != 0))
+          || MoveList<LEGAL>(*this).size() != 0))
             // Draw by Repetition?
             // Return a draw score if a position repeats once earlier but strictly
             // after the root, or repeats twice before or at the root.
@@ -264,7 +264,7 @@ bool Position::pseudoLegal(Move m) const
         auto Push{ PawnPush[active] };
 
         if (// Single push
-            (((mType(m) != NORMAL
+            (((mType(m) != SIMPLE
             || RANK_2 > orgR || orgR > RANK_6
             || RANK_3 > dstR || dstR > RANK_7)
            && (mType(m) != PROMOTE
@@ -273,7 +273,7 @@ bool Position::pseudoLegal(Move m) const
           || dst != org + Push
           || !empty(dst))
             // Normal capture
-         && (((mType(m) != NORMAL
+         && (((mType(m) != SIMPLE
             || RANK_2 > orgR || orgR > RANK_6
             || RANK_3 > dstR || dstR > RANK_7)
            && (mType(m) != PROMOTE
@@ -282,7 +282,7 @@ bool Position::pseudoLegal(Move m) const
           || !contains(PawnAttackBB[active][org], dst)
           || empty(dst))
             // Double push
-         && (mType(m) != NORMAL
+         && (mType(m) != SIMPLE
           || orgR != RANK_2
           || dstR != RANK_4
           || dst != org + Push * 2
@@ -301,7 +301,7 @@ bool Position::pseudoLegal(Move m) const
         }
     }
     else {
-        if (mType(m) != NORMAL
+        if (mType(m) != SIMPLE
          || !contains(attacksFrom(org), dst)) {
             return false;
         }
@@ -388,13 +388,13 @@ bool Position::legal(Move m) const {
 
     return
         org == fkSq ?
-            // KING NORMAL moves
+            // KING SIMPLE moves
             // Only king moves to non attacked squares, sliding check x-rays the king
             // In case of king moves under check have to remove king so to catch
             // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
             // check whether the destination square is attacked by the opponent.
             (attackersTo(dst, pieces() ^ fkSq) & pieces(~active)) == 0 :
-            // OTHER NORMAL + PROMOTE moves
+            // OTHER SIMPLE + PROMOTE moves
             // A non-king move is legal if and only if
             // - not pinned
             // - moving along the ray from the king
@@ -421,7 +421,7 @@ bool Position::giveCheck(Move m) const {
     }
 
     switch (mType(m)) {
-    case NORMAL: {
+    case SIMPLE: {
         return false;
     }
     case ENPASSANT: {
@@ -563,7 +563,7 @@ bool Position::see(Move m, Value threshold) const {
     assert(isOk(m));
 
     // Only deal with normal moves, assume others pass a simple SEE
-    if (mType(m) != NORMAL) {
+    if (mType(m) != SIMPLE) {
         return threshold <= VALUE_ZERO;
     }
 
@@ -904,7 +904,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
     _thread->nodes.fetch_add(1, std::memory_order::memory_order_relaxed);
     Key pKey{ posiKey()
-            ^ RandZob.colorKey };
+            ^ RandZob.side };
 
     // Copy some fields of old state info to new state info object
     std::memcpy(&si, _stateInfo, offsetof(StateInfo, posiKey));
@@ -948,8 +948,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         board[org] = board[rookOrg] = NO_PIECE; // Not done by removePiece()
         placePiece(dst    , mp);
         placePiece(rookDst, cp);
-        pKey ^= RandZob.pieceSquareKey[cp][rookOrg]
-              ^ RandZob.pieceSquareKey[cp][rookDst];
+        pKey ^= RandZob.psq[cp][rookOrg]
+              ^ RandZob.psq[cp][rookDst];
 
         cp = NO_PIECE;
     }
@@ -971,7 +971,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
                     && cp == (pasive|PAWN)
                     && board[cap] == (pasive|PAWN)); //&& contains(pieces(pasive, PAWN), cap));
             }
-            _stateInfo->pawnKey ^= RandZob.pieceSquareKey[cp][cap];
+            _stateInfo->pawnKey ^= RandZob.psq[cp][cap];
         }
         else {
             npMaterial[pasive] -= PieceValues[MG][pType(cp)];
@@ -981,8 +981,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         if (mType(m) == ENPASSANT) {
             board[cap] = NO_PIECE; // Not done by removePiece()
         }
-        pKey ^= RandZob.pieceSquareKey[cp][cap];
-        _stateInfo->matlKey ^= RandZob.pieceSquareKey[cp][count(cp)];
+        pKey ^= RandZob.psq[cp][cap];
+        _stateInfo->matlKey ^= RandZob.psq[cp][count(cp)];
         // Reset clock ply counter
         _stateInfo->clockPly = 0;
     }
@@ -993,13 +993,13 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     if (mType(m) != CASTLE) {
         movePiece(org, dst);
     }
-    pKey ^= RandZob.pieceSquareKey[mp][org]
-          ^ RandZob.pieceSquareKey[mp][dst];
+    pKey ^= RandZob.psq[mp][org]
+          ^ RandZob.psq[mp][dst];
 
     // Reset enpassant square
     if (epSquare() != SQ_NONE) {
         assert(1 >= clockPly());
-        pKey ^= RandZob.enpassantKey[sFile(epSquare())];
+        pKey ^= RandZob.enpassant[sFile(epSquare())];
         _stateInfo->epSquare = SQ_NONE;
     }
 
@@ -1007,7 +1007,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     CastleRight cr;
     if (castleRights() != CR_NONE
      && (cr = (sqCastleRight[org]|sqCastleRight[dst])) != CR_NONE) {
-        pKey ^= RandZob.castleRightKey[castleRights() & cr];
+        pKey ^= RandZob.castling[castleRights() & cr];
         _stateInfo->castleRights &= ~cr;
     }
 
@@ -1018,7 +1018,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         if (dst == org + PawnPush[active] * 2
          && canEnpassant(pasive, org + PawnPush[active])) {
             _stateInfo->epSquare = org + PawnPush[active];
-            pKey ^= RandZob.enpassantKey[sFile(_stateInfo->epSquare)];
+            pKey ^= RandZob.enpassant[sFile(_stateInfo->epSquare)];
         }
         else
         if (mType(m) == PROMOTE) {
@@ -1031,18 +1031,18 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
             removePiece(dst);
             placePiece(dst, pp);
             npMaterial[active] += PieceValues[MG][pType(pp)];
-            pKey ^= RandZob.pieceSquareKey[mp][dst]
-                  ^ RandZob.pieceSquareKey[pp][dst];
-            _stateInfo->pawnKey ^= RandZob.pieceSquareKey[mp][dst];
-            _stateInfo->matlKey ^= RandZob.pieceSquareKey[mp][count(mp)]
-                                 ^ RandZob.pieceSquareKey[pp][count(pp) - 1];
+            pKey ^= RandZob.psq[mp][dst]
+                  ^ RandZob.psq[pp][dst];
+            _stateInfo->pawnKey ^= RandZob.psq[mp][dst];
+            _stateInfo->matlKey ^= RandZob.psq[mp][count(mp)]
+                                 ^ RandZob.psq[pp][count(pp) - 1];
             _stateInfo->promoted = true;
         }
 
         // Reset clock ply counter
         _stateInfo->clockPly = 0;
-        _stateInfo->pawnKey ^= RandZob.pieceSquareKey[mp][org]
-                             ^ RandZob.pieceSquareKey[mp][dst];
+        _stateInfo->pawnKey ^= RandZob.psq[mp][org]
+                             ^ RandZob.psq[mp][dst];
     }
 
     assert((attackersTo(square(active|KING)) & pieces(pasive)) == 0);
@@ -1174,12 +1174,12 @@ void Position::doNullMove(StateInfo &si) {
 
     // Reset enpassant square
     if (epSquare() != SQ_NONE) {
-        _stateInfo->posiKey ^= RandZob.enpassantKey[sFile(epSquare())];
+        _stateInfo->posiKey ^= RandZob.enpassant[sFile(epSquare())];
         _stateInfo->epSquare = SQ_NONE;
     }
 
     active = ~active;
-    _stateInfo->posiKey ^= RandZob.colorKey;
+    _stateInfo->posiKey ^= RandZob.side;
 
     setCheckInfo();
 

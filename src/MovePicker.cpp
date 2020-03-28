@@ -7,12 +7,12 @@ namespace {
     enum Stage : u08 {
         STAGE_NONE = 0,
 
-        NATURAL_TT = 1,
-        NATURAL_INIT,
-        NATURAL_GOOD_CAPTURES,
-        NATURAL_REFUTATIONS,
-        NATURAL_QUIETS,
-        NATURAL_BAD_CAPTURES,
+        NORMAL_TT = 1,
+        NORMAL_INIT,
+        NORMAL_GOOD_CAPTURES,
+        NORMAL_REFUTATIONS,
+        NORMAL_QUIETS,
+        NORMAL_BAD_CAPTURES,
 
         EVASION_TT = 8,
         EVASION_INIT,
@@ -35,26 +35,28 @@ namespace {
         ValMoves::iterator iEnd,
         i32 limit) {
 
-        if (iBeg != iEnd) {
+        if (iBeg == iEnd) {
+            return;
+        }
 
-            auto sortedEnd{ iBeg };
-            auto p{ std::next(sortedEnd) };
-            while (p != iEnd) {
+        auto sortedEnd{ iBeg };
+        auto p{ std::next(sortedEnd) };
+        while (p != iEnd) {
 
-                if (p->value >= limit) {
-                    auto item{ *p };
-                    *p = *(++sortedEnd);
+            if (p->value >= limit) {
+                auto item{ *p };
+                std::advance(sortedEnd, +1);
+                *p = *sortedEnd;
 
-                    auto q{ sortedEnd };
-                    while (q != iBeg
-                        && std::prev(q)->value < item.value) {
-                        *q = *std::prev(q);
-                        --q;
-                    }
-                    *q = item;
+                auto q{ sortedEnd };
+                while (q != iBeg
+                    && std::prev(q)->value < item.value) {
+                    *q = *std::prev(q);
+                    std::advance(q, -1);
                 }
-                ++p;
+                *q = item;
             }
+            std::advance(p, +1);
         }
     }
 
@@ -88,7 +90,7 @@ MovePicker::MovePicker(
     assert(!skipQuiets);
 
     ttMove = ttm;
-    stage = (pos.checkers() != 0 ? EVASION_TT : NATURAL_TT)
+    stage = (pos.checkers() != 0 ? EVASION_TT : NORMAL_TT)
           + (ttMove == MOVE_NONE);
 }
 
@@ -109,7 +111,7 @@ MovePicker::MovePicker(
     recapSq{ rs } {
     assert(ttm == MOVE_NONE
         || pos.pseudoLegal(ttm));
-    assert(depth <= DEPTH_QS_CHECK);
+    assert(DEPTH_QS_RECAP <= depth && depth <= DEPTH_QS_CHECK);
     assert(!skipQuiets);
 
     ttMove = ttm != MOVE_NONE
@@ -149,21 +151,21 @@ MovePicker::MovePicker(
 /// Quiets are ordered using the histories.
 template<GenType GT>
 void MovePicker::value() {
-    static_assert (GT == GenType::CAPTURE
-                || GT == GenType::QUIET
-                || GT == GenType::EVASION, "GT incorrect");
+    static_assert (GT == CAPTURE
+                || GT == QUIET
+                || GT == EVASION, "GT incorrect");
 
     auto vmCur = vmBeg;
     while (vmCur != vmEnd) {
         auto &vm = *(vmCur++);
 
-        if (GT == GenType::CAPTURE) {
+        if (GT == CAPTURE) {
             auto captured{ pos.captured(vm) };
 
             vm.value = i32(PieceValues[MG][captured]) * 6
                      + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][captured];
         }
-        if (GT == GenType::QUIET) {
+        if (GT == QUIET) {
             auto dst{ dstSq(vm) };
             auto mp{ pos[orgSq(vm)] };
             auto mask{ mMask(vm) };
@@ -176,7 +178,7 @@ void MovePicker::value() {
                    + (ply < MAX_LOWPLY ?
                        (*lowPlyStats)[ply][mask] * 4 : 0);
         }
-        if (GT == GenType::EVASION) {
+        if (GT == EVASION) {
 
             vm.value =
                 pos.capture(vm) ?
@@ -217,7 +219,7 @@ Move MovePicker::nextMove() {
     reStage:
     switch (stage) {
 
-    case NATURAL_TT:
+    case NORMAL_TT:
     case EVASION_TT:
     case PROBCUT_TT:
     case QUIESCENCE_TT: {
@@ -227,16 +229,16 @@ Move MovePicker::nextMove() {
         return ttMove;
     }
 
-    case NATURAL_INIT:
+    case NORMAL_INIT:
     case PROBCUT_INIT:
     case QUIESCENCE_INIT: {
         vmoves.reserve(32);
         vmoves.clear();
-        generate<GenType::CAPTURE>(vmoves, pos);
+        generate<CAPTURE>(vmoves, pos);
 
         vmBeg = vmoves.begin();
         vmEnd = stage == QUIESCENCE_INIT
-             && depth == DEPTH_QS_RECAP ?
+             && depth <= DEPTH_QS_RECAP ?
                 std::remove_if(vmBeg, vmoves.end(),
                     [&](ValMove const &vm) {
                         return vm == ttMove
@@ -245,14 +247,14 @@ Move MovePicker::nextMove() {
                 ttMove != MOVE_NONE ?
                     std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
 
-        value<GenType::CAPTURE>();
+        value<CAPTURE>();
 
         ++stage;
     }
         // Re-branch at the top of the switch
         goto reStage;
 
-    case NATURAL_GOOD_CAPTURES: {
+    case NORMAL_GOOD_CAPTURES: {
         if (pick([&]() {
                 return pos.see(*vmBeg, Value(-55 * vmBeg->value / 1024)) ?
                         // Put losing capture to badCaptureMoves to be tried later
@@ -279,7 +281,7 @@ Move MovePicker::nextMove() {
         ++stage;
     }
         /* fall through */
-    case NATURAL_REFUTATIONS: {
+    case NORMAL_REFUTATIONS: {
         // Refutation moves: Killers, Counter moves
         if (mBeg != mEnd) {
             return *mBeg++;
@@ -288,7 +290,7 @@ Move MovePicker::nextMove() {
         if (!skipQuiets) {
             vmoves.reserve(64);
             vmoves.clear();
-            generate<GenType::QUIET>(vmoves, pos);
+            generate<QUIET>(vmoves, pos);
             mBeg = refutationMoves.begin();
             vmBeg = vmoves.begin();
             vmEnd = std::remove_if(vmBeg, vmoves.end(),
@@ -296,13 +298,13 @@ Move MovePicker::nextMove() {
                         return vm == ttMove
                             || std::find(mBeg, mEnd, vm.move) != mEnd;
                     });
-            value<GenType::QUIET>();
+            value<QUIET>();
             limitedInsertionSort(vmBeg, vmEnd, -3000 * depth);
         }
         ++stage;
     }
         /* fall through */
-    case NATURAL_QUIETS: {
+    case NORMAL_QUIETS: {
         if (!skipQuiets
          && vmBeg != vmEnd) {
             //assert(std::find(mBeg, mEnd, (*vmBeg).move) == mEnd);
@@ -314,7 +316,7 @@ Move MovePicker::nextMove() {
         ++stage;
     }
         /* fall through */
-    case NATURAL_BAD_CAPTURES: {
+    case NORMAL_BAD_CAPTURES: {
         return mBeg != mEnd ?
                 *mBeg++ : MOVE_NONE;
     }
@@ -323,11 +325,11 @@ Move MovePicker::nextMove() {
     case EVASION_INIT: {
         vmoves.reserve(32);
         vmoves.clear();
-        generate<GenType::EVASION>(vmoves, pos);
+        generate<EVASION>(vmoves, pos);
         vmBeg = vmoves.begin();
         vmEnd = ttMove != MOVE_NONE ?
                 std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
-        value<GenType::EVASION>();
+        value<EVASION>();
         ++stage;
     }
         /* fall through */
@@ -360,7 +362,7 @@ Move MovePicker::nextMove() {
         }
 
         vmoves.clear();
-        generate<GenType::QUIET_CHECK>(vmoves, pos);
+        generate<QUIET_CHECK>(vmoves, pos);
         vmBeg = vmoves.begin();
         vmEnd = ttMove != MOVE_NONE ?
                 std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();

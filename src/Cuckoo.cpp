@@ -33,9 +33,9 @@ bool Cuckoo::operator!=(Cuckoo const &ck) const {
 
 Key Cuckoo::key() const {
     return empty() ? 0 :
-           RandZob.colorKey
-         ^ RandZob.pieceSquareKey[piece][sq1]
-         ^ RandZob.pieceSquareKey[piece][sq2];
+           RandZob.side
+         ^ RandZob.psq[piece][sq1]
+         ^ RandZob.psq[piece][sq2];
 }
 
 namespace Cuckoos {

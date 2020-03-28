@@ -115,8 +115,9 @@ void Thread::clear() {
         }
     }
 
-    pawnHash.clear();
+    kingHash.clear();
     matlHash.clear();
+    pawnHash.clear();
 }
 
 void MainThread::setTicks(i16 tc) {

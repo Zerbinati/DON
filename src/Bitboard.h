@@ -133,6 +133,12 @@ constexpr Array<Bitboard, COLORS, RANKS> FrontRankBB
     }
 }};
 
+constexpr Array<Bitboard, 3> SlotFileBB
+{
+    FileBB[FILE_E]|FileBB[FILE_F]|FileBB[FILE_G]|FileBB[FILE_H],    // K-File
+    FileBB[FILE_A]|FileBB[FILE_B]|FileBB[FILE_C]|FileBB[FILE_D],    // Q-File
+    FileBB[FILE_C]|FileBB[FILE_D]|FileBB[FILE_E]|FileBB[FILE_F]     // C-File
+};
 
 extern Array<Bitboard, SQUARES, SQUARES> LineBB;
 
