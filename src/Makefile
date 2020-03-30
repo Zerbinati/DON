@@ -320,7 +320,7 @@ endif
 ifeq ($(bm2), yes)
 	CXXFLAGS += -DBM2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
-		CXXFLAGS += -msse4 -mbmi -mbmi2
+		CXXFLAGS += -msse4 -mbmi2
 	endif
 endif
 

@@ -34,7 +34,6 @@ int main(int argc, char const *const *argv) {
     UCI::initialize();
     EndGame::initialize();
     Book.initialize(Options["Book File"]);
-    WinProcGroup::initialize();
     Threadpool.setup(optionThreads());
     TimeMgr.clear();
     UCI::clear();

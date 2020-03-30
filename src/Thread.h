@@ -29,7 +29,7 @@ private:
 
     std::mutex _mutex;
     std::condition_variable _conditionVar;
-    u16 _index;
+    u16 _index; // indentity
     NativeThread _nativeThread;
 
 protected:
@@ -131,13 +131,6 @@ public:
     void search() override final;
 };
 
-namespace WinProcGroup {
-
-    extern void initialize();
-
-    extern void bind(u16);
-}
-
 
 /// ThreadPool class handles all the threads related stuff like,
 /// initializing & deinitializing, starting, parking & launching a thread
@@ -190,6 +183,11 @@ public:
 
     void startThinking(Position&, StateListPtr&);
 };
+
+namespace WinProcGroup {
+
+    extern void bind(u16);
+}
 
 // Global ThreadPool
 extern ThreadPool Threadpool;

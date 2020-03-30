@@ -28,38 +28,6 @@ namespace {
         QUIESCENCE_CHECKS,
     };
 
-    /// limitedInsertionSort() sorts moves in descending order up to and including a given limit.
-    /// The order of moves smaller than the limit is left unspecified.
-    void limitedInsertionSort(
-        ValMoves::iterator iBeg,
-        ValMoves::iterator iEnd,
-        i32 limit) {
-
-        if (iBeg == iEnd) {
-            return;
-        }
-
-        auto sortedEnd{ iBeg };
-        auto p{ std::next(sortedEnd) };
-        while (p != iEnd) {
-
-            if (p->value >= limit) {
-                auto item{ *p };
-                std::advance(sortedEnd, +1);
-                *p = *sortedEnd;
-
-                auto q{ sortedEnd };
-                while (q != iBeg
-                    && std::prev(q)->value < item.value) {
-                    *q = *std::prev(q);
-                    std::advance(q, -1);
-                }
-                *q = item;
-            }
-            std::advance(p, +1);
-        }
-    }
-
 }
 
 /// Constructors of the MovePicker class.
@@ -87,7 +55,7 @@ MovePicker::MovePicker(
     assert(ttm == MOVE_NONE
         || pos.pseudoLegal(ttm));
     assert(depth > DEPTH_ZERO);
-    assert(!skipQuiets);
+    assert(pickQuiets);
 
     ttMove = ttm;
     stage = (pos.checkers() != 0 ? EVASION_TT : NORMAL_TT)
@@ -111,8 +79,8 @@ MovePicker::MovePicker(
     recapSq{ rs } {
     assert(ttm == MOVE_NONE
         || pos.pseudoLegal(ttm));
-    assert(DEPTH_QS_RECAP <= depth && depth <= DEPTH_QS_CHECK);
-    assert(!skipQuiets);
+    assert(depth <= DEPTH_QS_CHECK);
+    assert(pickQuiets);
 
     ttMove = ttm != MOVE_NONE
           && (depth > DEPTH_QS_RECAP
@@ -135,7 +103,7 @@ MovePicker::MovePicker(
     assert(ttm == MOVE_NONE
         || pos.pseudoLegal(ttm));
     assert(pos.checkers() == 0);
-    assert(!skipQuiets);
+    assert(pickQuiets);
 
     ttMove = ttm != MOVE_NONE
           && pos.capture(ttm)
@@ -193,6 +161,37 @@ void MovePicker::value() {
     }
 }
 
+/// limitedInsertionSort() sorts moves in descending order up to and including a given limit.
+/// The order of moves smaller than the limit is left unspecified.
+void MovePicker::limitedInsertionSort(i32 limit) const {
+
+    if (vmBeg == vmEnd) {
+        return;
+    }
+
+    auto iSortedEnd{ vmBeg };
+    auto iUnsortedBeg{ iSortedEnd + 1 };
+    while (iUnsortedBeg != vmEnd) {
+
+        if (iUnsortedBeg->value >= limit) {
+            auto unSortedItem{ *iUnsortedBeg };
+            *iUnsortedBeg = *++iSortedEnd;
+
+            auto iE0{ iSortedEnd };
+            while (iE0 != vmBeg) {
+                auto iE1{ iE0 - 1 };
+                if (iE1->value >= unSortedItem.value) {
+                    break;
+                }
+                *iE0 = *iE1;
+                iE0 = iE1;
+            }
+            *iE0 = unSortedItem;
+        }
+        ++iUnsortedBeg;
+    }
+}
+
 /// pick() returns the next move satisfying a predicate function
 template<typename Pred>
 bool MovePicker::pick(Pred filter) {
@@ -232,8 +231,8 @@ Move MovePicker::nextMove() {
     case NORMAL_INIT:
     case PROBCUT_INIT:
     case QUIESCENCE_INIT: {
-        vmoves.reserve(32);
         vmoves.clear();
+        vmoves.reserve(32);
         generate<CAPTURE>(vmoves, pos);
 
         vmBeg = vmoves.begin();
@@ -260,7 +259,7 @@ Move MovePicker::nextMove() {
                         // Put losing capture to badCaptureMoves to be tried later
                         true : (badCaptureMoves += *vmBeg, false);
             })) {
-            return *std::prev(vmBeg);
+            return *(vmBeg - 1);
         }
 
         // If the countermove is the same as a killers, skip it
@@ -287,9 +286,10 @@ Move MovePicker::nextMove() {
             return *mBeg++;
         }
 
-        if (!skipQuiets) {
-            vmoves.reserve(64);
+        //assert(vmBeg == vmEnd);
+        if (pickQuiets) {
             vmoves.clear();
+            if (vmoves.capacity() < 64) vmoves.reserve(64);
             generate<QUIET>(vmoves, pos);
             mBeg = refutationMoves.begin();
             vmBeg = vmoves.begin();
@@ -299,14 +299,15 @@ Move MovePicker::nextMove() {
                             || std::find(mBeg, mEnd, vm.move) != mEnd;
                     });
             value<QUIET>();
-            limitedInsertionSort(vmBeg, vmEnd, -3000 * depth);
+            limitedInsertionSort(-3000 * depth);
         }
         ++stage;
     }
         /* fall through */
     case NORMAL_QUIETS: {
-        if (!skipQuiets
-         && vmBeg != vmEnd) {
+        if (vmBeg != vmEnd
+         && (pickQuiets
+          || vmBeg->value == (vmBeg - 1)->value)) {
             //assert(std::find(mBeg, mEnd, (*vmBeg).move) == mEnd);
             return *vmBeg++;
         }
@@ -337,7 +338,7 @@ Move MovePicker::nextMove() {
         return pick([]() {
                     return true;
                 }) ?
-                *std::prev(vmBeg) : MOVE_NONE;
+                *(vmBeg - 1) : MOVE_NONE;
     }
         /* end */
 
@@ -345,7 +346,7 @@ Move MovePicker::nextMove() {
         return pick([&]() {
                     return pos.see(*vmBeg, threshold);
                 }) ?
-                *std::prev(vmBeg) : MOVE_NONE;
+                *(vmBeg - 1) : MOVE_NONE;
     }
         /* end */
 
@@ -353,7 +354,7 @@ Move MovePicker::nextMove() {
         if (pick([&]() {
                 return true; // No filter required, all done in QUIESCENCE_INIT
             })) {
-            return *std::prev(vmBeg);
+            return *(vmBeg - 1);
         }
 
         // If did not find any move then do not try checks, finished.

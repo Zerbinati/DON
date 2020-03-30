@@ -149,6 +149,7 @@ namespace King {
 
     Entry* probe(Position const &pos) {
         Key kingKey{ pos.pawnKey()
+                   ^ RandZob.nopawn
                    ^ RandZob.psq[W_KING][pos.square(W_KING)]
                    ^ RandZob.psq[B_KING][pos.square(B_KING)] };
 

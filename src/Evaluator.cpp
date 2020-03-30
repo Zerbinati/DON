@@ -255,9 +255,9 @@ namespace Evaluator {
                              pawnEntry->sglAttacks[Opp]
                              // Squares occupied by friend Queen and King
                            | pos.pieces(Own, QUEN, KING)
-                            // Squares occupied by friend King blockers
-                           | (pos.kingBlockers(Own)) // pos.pieces(Own)
-                            // Squares occupied by block pawns (pawns on ranks 2-3/blocked)
+                             // Squares occupied by friend King blockers
+                           | pos.kingBlockers(Own)
+                             // Squares occupied by block pawns (pawns on ranks 2-3/blocked)
                            | (pos.pieces(Own, PAWN)
                             & (LowRankBB[Own]
                              | pawnSglPushBB<Opp>(pos.pieces()))));
@@ -404,7 +404,7 @@ namespace Evaluator {
                         auto kF{ sFile(kSq) };
                         if (((kF < FILE_E) && (sFile(s) < kF))
                          || ((kF > FILE_D) && (sFile(s) > kF))) {
-                            score -= RookTrapped * (1 + (/*(sRank(s) == sRank(kSq)) &&*/ !pos.canCastle(Own)));
+                            score -= RookTrapped * (1 + !pos.canCastle(Own));
                         }
                     }
                 }
@@ -725,7 +725,8 @@ namespace Evaluator {
             Bitboard passPawns{ pawnEntry->passPawns[Own] };
             while (passPawns != 0) {
                 auto s{ popLSq(passPawns) };
-                assert((pos.pieces(Opp, PAWN)
+                assert((frontSquaresBB(Own, s) & pos.pieces(Own, PAWN)) == 0
+                    && (pos.pieces(Opp, PAWN)
                       & (pawnSglPushBB<Own>(frontSquaresBB(Own, s))
                        | ( pawnPassSpan(Own, s + Push)
                         & ~PawnAttackBB[Own][s + Push]))) == 0);

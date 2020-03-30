@@ -16,15 +16,12 @@
 #   include <immintrin.h>   // Header for BMI2 instructions
 // PDEP  = Parallel bits deposit
 // PEXT  = Parallel bits extract
-// BLSR  = Reset lowest set bit
 #   if defined(BIT64)
-#       define PDEP(b, m)   _pdep_u64(b, m)
+//#       define PDEP(b, m)   _pdep_u64(b, m)
 #       define PEXT(b, m)   _pext_u64(b, m)
-#       define BLSR(b)      _blsr_u64(b)
 // #   else
 // #       define PDEP(b, m)   _pdep_u32(b, m)
 // #       define PEXT(b, m)   _pext_u32(b, m)
-// #       define BLSR(b)      _blsr_u32(b)
 #   endif
 #endif
 
@@ -177,14 +174,7 @@ inline Bitboard& operator^=(Bitboard &bb, Square s) { return bb ^= SquareBB[s]; 
 
 constexpr Bitboard operator|(Square s1, Square s2) { return SquareBB[s1] | SquareBB[s2]; }
 
-inline bool moreThanOne(Bitboard bb) {
-
-#if defined(BM2)
-    return BLSR(bb) != 0;
-#else
-    return (bb & (bb - 1)) != 0;
-#endif
-}
+inline bool moreThanOne(Bitboard bb) { return (bb & (bb - 1)) != 0; }
 
 /// Shift the bitboard using delta
 template<Direction D> constexpr Bitboard shift(Bitboard) { return 0; }
@@ -216,12 +206,8 @@ inline Bitboard betweenBB(Square s1, Square s2) {
     Bitboard sLine{ LineBB[s1][s2]
                   & ((BoardBB << s1) ^ (BoardBB << s2)) };
     // Exclude lsb
-#if defined(BM2)
-    return BLSR(sLine);
-#else
     //return sLine & ~std::min(s1, s2);
     return sLine & (sLine - 1);
-#endif
 }
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
 inline bool aligned(Square s1, Square s2, Square s3) { return contains(LineBB[s1][s2], s3); }
@@ -384,33 +370,9 @@ template<> inline Square scanFrontMostSq<BLACK>(Bitboard bb) { assert(bb != 0); 
 inline Square popLSq(Bitboard &bb) {
     assert(bb != 0);
     Square sq{ scanLSq(bb) };
-#if defined(BM2)
-    bb = BLSR(bb);
-#else
     bb &= (bb - 1);
-#endif
     return sq;
 }
-
-///// makeBitboard() returns a bitboard compile-time constructed from a list of squares, files, ranks
-//constexpr Bitboard makeBitboard() { return 0; }
-//template<typename... Squares>
-//constexpr Bitboard makeBitboard(Square s, Squares... squares) {
-//    return U64(0x0000000000000001) << s | makeBitboard(squares...);
-//}
-//template<typename... Files>
-//constexpr Bitboard makeBitboard(File f, Files... files) {
-//    return U64(0x0101010101010101) << f | makeBitboard(files...);
-//}
-//template<typename... Ranks>
-//constexpr Bitboard makeBitboard(Rank r, Ranks... ranks) {
-//    return U64(0x00000000000000FF) << (r * 8) | makeBitboard(ranks...);
-//}
-
-///// Rotate Right (toward LSB)
-//constexpr Bitboard rotateR(Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQUARES - k)); }
-///// Rotate Left  (toward MSB)
-//constexpr Bitboard rotateL(Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQUARES - k)); }
 
 namespace BitBoard {
 

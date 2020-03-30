@@ -159,6 +159,7 @@ public:
     Score psqScore() const;
     i16 gamePly() const;
     Thread* thread() const;
+    void thread(Thread*);
 
     bool castleExpeded(Color, CastleSide) const;
 
@@ -301,7 +302,7 @@ inline Bitboard Position::castleRookPath(Color c, CastleSide cs) const {
 inline Square Position::square(Piece p, u08 index) const {
     assert(isOk(p));
     assert(squareSet[p].size() > index);
-    //return *std::next(squareSet[p].begin(), index);
+    //return *(squareSet[p].begin() + index);
     return squareSet[p][index];
 }
 
@@ -369,6 +370,9 @@ inline i16 Position::gamePly() const {
 
 inline Thread* Position::thread() const {
     return _thread;
+}
+inline void Position::thread(Thread *th) {
+    _thread = th;
 }
 
 inline bool Position::castleExpeded(Color c, CastleSide cs) const {

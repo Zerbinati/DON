@@ -39,7 +39,7 @@ public:
     bool         pv() const { return bool (g08 & 4); }
     u08  generation() const { return u08  (g08 & 248); }
 
-    void save(u64, Move, Value, Value, Depth, Bound, bool);
+    void save(Key, Move, Value, Value, Depth, Bound, bool);
 };
 
 /// Size of TEntry (10 bytes)
@@ -117,3 +117,4 @@ public:
 
 // Global Transposition Table
 extern TTable TT;
+extern TTable TTEx;

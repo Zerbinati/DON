@@ -592,56 +592,20 @@ bool Position::see(Move m, Value threshold) const {
 
     auto mov{ pColor(board[org]) };
 
-    Array<Square, COLORS> kSq
-    {
-        square(W_KING),
-        square(B_KING)
-    };
-    Array<Bitboard, COLORS> kBlockers
-    {
-        kingBlockers(WHITE),
-        kingBlockers(BLACK)
-    };
-    Array<Bitboard, COLORS> kCheckers
-    {
-        kingCheckers(WHITE),
-        kingCheckers(BLACK)
-    };
-
     while (attackers != 0) {
         mov = ~mov;
         attackers &= mocc;
 
         Bitboard movAttackers{ attackers & pieces(mov) };
 
-        // If mov has no more attackers then give up: mov loses
-        if (movAttackers == 0) {
-            break;
-        }
-        // Update Pinners and Pinneds
-        if (contains(kCheckers[mov], org)) {
-            kCheckers[mov] ^= org;
-            kBlockers[mov] &= ~betweenBB(kSq[mov], org);
-        }
-        // Don't allow pinned pieces for defensive capture,
-        // as long respective pinners are on their original square.
-        if (// Pinners
-            (kCheckers[mov]
-           & pieces(~mov)
-           & mocc) != 0) {
-            movAttackers &= ~kBlockers[mov];
-        }
-        else
-        // Only allow king for defensive capture to evade the discovered check,
-        // as long any discoverers are on their original square.
-        if (contains(kBlockers[mov], org)
-         && !aligned(kSq[mov], org, dst)
-         && (kCheckers[~mov]
-           //& pieces(~mov)
-           & mocc
-           //& attacksBB<QUEN>(kSq[mov], mocc)
-           & LineBB[kSq[mov]][org]) != 0) {
-            movAttackers = SquareBB[kSq[mov]];
+        Bitboard b;
+        // Don't allow pinned pieces to attack (except the king) as long as
+        // there are pinners on their original square.
+        if (movAttackers != 0
+         && (b = kingCheckers(mov) & pieces(~mov) & mocc) != 0) {
+            while (b != 0) {
+                movAttackers &= ~betweenBB(square(mov|KING), popLSq(b));
+            }
         }
 
         // If mov has no more attackers then give up: mov loses
@@ -659,7 +623,7 @@ bool Position::see(Move m, Value threshold) const {
             if ((val = VALUE_MG_PAWN - val) < res) {
                 break;
             }
-            mocc ^= (org = scanLSq(bb));
+            mocc ^= scanLSq(bb);
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
         else
@@ -667,14 +631,14 @@ bool Position::see(Move m, Value threshold) const {
             if ((val = VALUE_MG_NIHT - val) < res) {
                 break;
             }
-            mocc ^= (org = scanLSq(bb));
+            mocc ^= scanLSq(bb);
         }
         else
         if ((bb = pieces(BSHP) & movAttackers) != 0) {
             if ((val = VALUE_MG_BSHP - val) < res) {
                 break;
             }
-            mocc ^= (org = scanLSq(bb));
+            mocc ^= scanLSq(bb);
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
         else
@@ -682,7 +646,7 @@ bool Position::see(Move m, Value threshold) const {
             if ((val = VALUE_MG_ROOK - val) < res) {
                 break;
             }
-            mocc ^= (org = scanLSq(bb));
+            mocc ^= scanLSq(bb);
             attackers |= (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
         }
         else
@@ -690,13 +654,12 @@ bool Position::see(Move m, Value threshold) const {
             if ((val = VALUE_MG_QUEN - val) < res) {
                 break;
             }
-            mocc ^= (org = scanLSq(bb));
+            mocc ^= scanLSq(bb);
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc))
                        | (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
         }
         else { // KING
             // If we "capture" with the king but opponent still has attackers, reverse the result.
-            //return (attackers & pieces(~mov)) != 0 ? !res : res;
             return ((attackers & pieces(~mov)) != 0) != res;
         }
     }

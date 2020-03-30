@@ -42,7 +42,7 @@ namespace Pawns {
         score      [Own] = SCORE_ZERO;
         sglAttacks [Own] =
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
-        dblAttacks [Own] = pawnDblAttackBB<Own>(ownPawns);
+        dblAttacks [Opp] = pawnDblAttackBB<Opp>(oppPawns);
         for (Square s : pos.squares(Own|PAWN)) {
             assert(pos[s] == (Own|PAWN));
 
@@ -69,20 +69,22 @@ namespace Pawns {
                 attacksSpan[Own] |= pawnAttackSpan(Own, s); // + Push
             }
 
-            // A pawn is passed if one of the three following conditions is true:
+            // A pawn is passed if no forward friend pawn with
+            // one of the three following conditions is true:
             // - Lever there is no stoppers except the levers
             // - Sentry there is no stoppers except the sentres, but we outnumber them
             // - Sneaker there is only one front stopper which can be levered.
-            if (// Lever
-                (stoppers == levers)
-                // Lever + Sentry
-             || (stoppers == (levers | sentres)
-              && popCount(phalanxes) >= popCount(sentres))
-                // Sneaker => Blocked pawn
-             || (stoppers == blocker
-              && r >= RANK_5
-              && ( pawnSglPushBB<Own>(supporters)
-                & ~(oppPawns | pawnDblAttackBB<Opp>(oppPawns))) != 0)) {
+            if ((frontSquaresBB(Own, s) & ownPawns) == 0
+             && (// Lever
+                 (stoppers == levers)
+                 // Lever + Sentry
+              || (stoppers == (levers | sentres)
+               && popCount(phalanxes) >= popCount(sentres))
+                 // Sneaker => Blocked pawn
+              || (stoppers == blocker
+               && r >= RANK_5
+               && ( pawnSglPushBB<Own>(supporters)
+                 & ~(oppPawns | dblAttacks[Opp])) != 0))) {
                 // Passed pawns will be properly scored later in evaluation when we have full attack info.
                 passPawns[Own] |= s;
             }

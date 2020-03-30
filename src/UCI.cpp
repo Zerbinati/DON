@@ -338,6 +338,7 @@ namespace UCI {
 
         void onHash() {
             TT.autoResize(Options["Hash"]);
+            TTEx.autoResize(u32(Options["Hash"])/4);
         }
 
         void onClearHash() {
@@ -494,7 +495,7 @@ namespace UCI {
 
 
         /// setoption() updates the UCI option ("name") to the given value ("value").
-        void setOption(istringstream &iss) {
+        void setOption(istringstream &iss, Position &pos) {
             string token;
             iss >> token; // Consume "name" token
 
@@ -516,6 +517,7 @@ namespace UCI {
             if (Options.find(name) != Options.end()) {
                 Options[name] = value;
                 sync_cout << "info string option " << name << " = " << value << sync_endl;
+                if (pos.thread() != Threadpool.mainThread()) pos.thread(Threadpool.mainThread());
             }
             else { sync_cout << "No such option: \'" << name << "\'" << sync_endl; }
         }
@@ -717,7 +719,7 @@ namespace UCI {
                 is >> std::skipws >> token;
 
                 if (whiteSpaces(token))         { continue; }
-                else if (token == "setoption")  { setOption(is); }
+                else if (token == "setoption")  { setOption(is, pos); }
                 else if (token == "position")   { position(is, pos, states); }
                 else if (token == "eval"
                       || token == "perft"
@@ -817,7 +819,7 @@ namespace UCI {
             else if (token == "ucinewgame") { UCI::clear(); }
             else if (token == "position")   { position(iss, pos, states); }
             else if (token == "go")         { go(iss, pos, states); }
-            else if (token == "setoption")  { setOption(iss); }
+            else if (token == "setoption")  { setOption(iss, pos); }
             // Additional custom non-UCI commands, useful for debugging
             // Do not use these commands during a search!
             else if (token == "bench")      { bench(iss, pos, states); }
@@ -921,6 +923,7 @@ namespace UCI {
 
         Threadpool.clean();
         TT.clear();
+        TTEx.clear();
         TimeMgr.clear();
 
         SyzygyTB::initialize(Options["SyzygyPath"]); // Free up mapped files

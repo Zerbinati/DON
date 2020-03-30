@@ -135,6 +135,8 @@ private:
         mBeg,
         mEnd;
 
+    void limitedInsertionSort(i32) const;
+
     template<GenType GT>
     void value();
 
@@ -143,7 +145,7 @@ private:
 
 public:
 
-    bool skipQuiets{ false };
+    bool pickQuiets{ true };
 
     MovePicker() = delete;
     MovePicker(MovePicker const&) = delete;

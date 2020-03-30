@@ -11,10 +11,11 @@
 #include "UCI.h"
 
 TTable TT;
+TTable TTEx;
 
 u08 TEntry::Generation = 0;
 
-void TEntry::save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv) {
+void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool pv) {
     // Preserve more valuable entries
     if (m != MOVE_NONE
      || k16 != u16(k >> 0x30)) {
@@ -139,7 +140,7 @@ u32 TTable::resize(u32 memSize) {
     }
 
     clear();
-    sync_cout << "info string Hash memory " << memSize << " MB" << sync_endl;
+    //sync_cout << "info string Hash memory " << memSize << " MB" << sync_endl;
     return memSize;
 }
 
@@ -165,15 +166,17 @@ void TTable::clear() {
 
     std::vector<std::thread> threads;
     auto threadCount{ optionThreads() };
-    for (u16 idx = 0; idx < threadCount; ++idx) {
+    for (u16 index = 0; index < threadCount; ++index) {
         threads.emplace_back(
-            [this, idx, threadCount]() {
+            [this, index, threadCount]() {
+
                 if (threadCount > 8) {
-                    WinProcGroup::bind(idx);
+                    WinProcGroup::bind(index);
                 }
+
                 auto const stride{ _clusterCount / threadCount };
-                auto const start{ stride * idx };
-                auto const count{ idx != threadCount - 1 ?
+                auto const start{ stride * index };
+                auto const count{ index != threadCount - 1 ?
                                     stride :
                                     _clusterCount - start };
                 std::memset(_clusterTable + start, 0, count * sizeof (TCluster));

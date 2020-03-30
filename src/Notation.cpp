@@ -299,7 +299,7 @@ Move moveOfSAN(string const &san, Position &pos) {
 
 /*
 /// Returns formated human-readable search information.
-string prettyInfo(Thread *const &th) {
+string prettyInfo(Thread *th) {
     u64 nodes{ Threadpool.sum(&Thread::nodes) };
 
     std::ostringstream oss;
