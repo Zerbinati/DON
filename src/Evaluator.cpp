@@ -771,15 +771,9 @@ namespace Evaluator {
                     }
                 }
 
-                // Scale down bonus for candidate passPawns
-                // - need more than one pawn push to become passPawns
-                // - have a pawn in front of it
-                if (!pos.pawnPassedAt(Own, pushSq)
-                 || contains(pos.pieces(PAWN), pushSq)) {
-                    bonus = bonus / 2;
-                }
+                // Pass bonus less if need more than one pawn push to become passer
                 // Rank bonus + File bonus
-                score += bonus
+                score += bonus / (1 + !pos.pawnPassedAt(Own, pushSq))
                        - PasserFile * foldFile(sFile(s));
             }
 

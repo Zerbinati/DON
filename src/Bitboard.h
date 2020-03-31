@@ -326,7 +326,7 @@ inline Square scanMSq(Bitboard bb) {
 
 #if defined(__GNUC__)   // GCC, Clang, ICC
 
-    return Square(__builtin_clzll(bb) ^ i32(SQ_H8));
+    return Square(63 - __builtin_clzll(bb));
 
 #elif defined(_MSC_VER) // MSVC
 
@@ -370,7 +370,13 @@ template<> inline Square scanFrontMostSq<BLACK>(Bitboard bb) { assert(bb != 0); 
 inline Square popLSq(Bitboard &bb) {
     assert(bb != 0);
     Square sq{ scanLSq(bb) };
-    bb &= (bb - 1);
+    bb &= (bb - 1); // bb &= ~(1ULL << sq);
+    return sq;
+}
+inline Square popMSq(Bitboard &bb) {
+    assert(bb != 0);
+    Square sq{ scanMSq(bb) };
+    bb &= ~(1ULL << sq);
     return sq;
 }
 

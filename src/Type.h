@@ -374,7 +374,7 @@ constexpr bool isOk(Color c) {
     return WHITE <= c && c <= BLACK;
 }
 constexpr Color operator~(Color c) {
-    return Color(c ^ BLACK);
+    return Color(c ^ 1);
 }
 
 constexpr bool isOk(File f) {
@@ -409,21 +409,21 @@ constexpr Square makeSquare(File f, Rank r) {
     return Square((r << 3) + f);
 }
 constexpr File sFile(Square s) {
-    return File(s & 7); //File((s >> 0) & i32(FILE_H));
+    return File(s & 7);
 }
 constexpr Rank sRank(Square s) {
-    return Rank(s >> 3); //Rank((s >> 3) & i32(RANK_8));
+    return Rank(s >> 3);
 }
 constexpr Color sColor(Square s) {
     return Color(((s + sRank(s)) ^ 1) & 1);
 }
 // Flip File: SQ_H1 -> SQ_A1
 constexpr Square flipFile(Square s) {
-    return Square(s ^ SQ_H1);
+    return Square(s ^ 7);
 }
 // Flip Rank: SQ_A8 -> SQ_A1
 constexpr Square flipRank(Square s) {
-    return Square(s ^ SQ_A8);
+    return Square(s ^ 56);
 }
 
 constexpr bool colorOpposed(Square s1, Square s2) {
@@ -431,7 +431,7 @@ constexpr bool colorOpposed(Square s1, Square s2) {
 }
 
 constexpr Square relativeSq(Color c, Square s) {
-    return Square(s ^ (SQ_A8 * c));
+    return Square(s ^ (56 * c));
 }
 constexpr Rank relativeRank(Color c, Square s) {
     return relativeRank(c, sRank(s));
@@ -458,12 +458,10 @@ constexpr Piece operator|(Color c, PieceType pt) {
 }
 
 constexpr PieceType pType(Piece p) {
-    //assert(isOk(p));
-    return PieceType(p & 7); //PieceType((p >> 0) & 7);
+    return PieceType(p & 7);
 }
 constexpr Color pColor(Piece p) {
-    //assert(isOk(p));
-    return Color(p >> 3); //Color((p >> 3) & 1);
+    return Color(p >> 3);
 }
 
 constexpr Piece flipColor(Piece p) {

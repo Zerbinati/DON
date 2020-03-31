@@ -157,7 +157,7 @@ Thread* ThreadPool::bestThread() const
           * i32(th->rootMoves[0].newValue - minValue + 14);
 
         if (bestTh->rootMoves[0].newValue >= +VALUE_MATE_2_MAX_PLY) {
-            // Select the shortest mate
+            // Select the shortest mate / TB conversion
             if (bestTh->rootMoves[0].newValue
               <     th->rootMoves[0].newValue) {
                 bestTh = th;

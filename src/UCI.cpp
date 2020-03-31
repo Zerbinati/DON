@@ -37,6 +37,12 @@ UCI::StringOptionMap Options;
 
 namespace {
 
+    string ToString(bool b) {
+        ostringstream oss;
+        oss << std::boolalpha << b;
+        return oss.str();
+    }
+
     Array<string, 12> const Months{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
     i32 month(string const &mmm) {
@@ -159,7 +165,7 @@ namespace UCI {
     Option::Option(bool v, OnChange pFn) :
         type{ "check" },
         onChange{ pFn } {
-        defaultVal = currentVal = (v ? "true" : "false");
+        defaultVal = currentVal = ToString(v);
     }
     Option::Option(char const *v, OnChange pFn) :
         Option{ string{ v }, pFn }
@@ -493,7 +499,6 @@ namespace UCI {
             "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
         };
 
-
         /// setoption() updates the UCI option ("name") to the given value ("value").
         void setOption(istringstream &iss, Position &pos) {
             string token;
@@ -502,8 +507,8 @@ namespace UCI {
             //if (token != "name") return;
             string name;
             // Read option-name (can contain spaces)
-            while ((iss >> token)
-                && token != "value") {// Consume "value" token if any
+            while (iss >> token) { // Consume "value" token if any
+                if (token == "value") break;
                 name += (name.empty() ? "" : " ") + token;
             }
 
@@ -533,15 +538,15 @@ namespace UCI {
                 fen = StartFEN;
                 iss >> token; // Consume "moves" token if any
             }
-            else { //if (token == "fen") // Can ignore this condition
-                while (iss >> token
-                    && token != "moves") {
+            else
+            if (token == "fen") {
+                while (iss >> token) { // Consume "moves" token if any
+                    if (token == "moves") break;
                     fen += token + " ";
-                    token.clear();
                 }
                 //assert(isOk(fen));
             }
-            //else { return; }
+            else { return; }
             assert(token == "" || token == "moves");
 
             // Drop old and create a new one
@@ -549,15 +554,13 @@ namespace UCI {
             pos.setup(fen, states->back(), Threadpool.mainThread());
             //assert(pos.fen() == trim(fen));
 
-            u16 count = 0;
             // Parse and validate moves (if any)
             while (iss >> token) {
-                ++count;
                 auto m = moveOfCAN(token, pos);
-                //if (m == MOVE_NONE) {
-                //    std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
-                //    return;
-                //}
+                if (m == MOVE_NONE) {
+                    std::cerr << "ERROR: Illegal Move '" << token << "' at " << iss.tellg() << std::endl;
+                    break;
+                }
 
                 states->emplace_back();
                 pos.doMove(m, states->back());
@@ -574,8 +577,7 @@ namespace UCI {
 
             string token;
             while (iss >> token) {
-                if (whiteSpaces(token))        { continue; }
-                else if (token == "wtime")     { iss >> Limits.clock[WHITE].time; }
+                     if (token == "wtime")     { iss >> Limits.clock[WHITE].time; }
                 else if (token == "btime")     { iss >> Limits.clock[BLACK].time; }
                 else if (token == "winc")      { iss >> Limits.clock[WHITE].inc; }
                 else if (token == "binc")      { iss >> Limits.clock[BLACK].inc; }
@@ -586,14 +588,15 @@ namespace UCI {
                 else if (token == "mate")      { iss >> Limits.mate; }
                 else if (token == "infinite")  { Limits.infinite = true; }
                 else if (token == "ponder")    { Limits.ponder = true; }
+                // Needs to be the last command on the line
                 else if (token == "searchmoves") {
                     // Parse and Validate search-moves (if any)
                     while (iss >> token) {
                         auto m = moveOfCAN(token, pos);
-                        //if (m == MOVE_NONE) {
-                        //    std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
-                        //    continue;
-                        //}
+                        if (m == MOVE_NONE) {
+                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
+                            continue;
+                        }
                         Limits.searchMoves.emplace_back(m);
                     }
                 }
@@ -604,18 +607,18 @@ namespace UCI {
                     }
                     while (iss >> token) {
                         auto m = moveOfCAN(token, pos);
-                        //if (m == MOVE_NONE) {
-                        //    std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
-                        //    continue;
-                        //}
+                        if (m == MOVE_NONE) {
+                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
+                            continue;
+                        }
                         Limits.searchMoves.erase(std::remove(Limits.searchMoves.begin()
                                                            , Limits.searchMoves.end(), m)
                                                , Limits.searchMoves.end());
                     }
                 }
-                else {
-                    std::cerr << "Unknown token : " << token << std::endl;
-                }
+                //else {
+                //    std::cerr << "Unknown token : " << token << std::endl;
+                //}
             }
             Threadpool.startThinking(pos, states);
         }
@@ -654,8 +657,7 @@ namespace UCI {
             vector<string> cmds;
             vector<string> uciCmds;
 
-            if (whiteSpaces(fen))      { return uciCmds; }
-            else if (fen == "current") { cmds.emplace_back(pos.fen()); }
+                 if (fen == "current") { cmds.emplace_back(pos.fen()); }
             else if (fen == "default") { cmds = DefaultCmds; }
             else {
                 std::ifstream ifs{ fen, std::ios::in };
@@ -692,7 +694,7 @@ namespace UCI {
             }
 
             if (fen != "current") {
-                uciCmds.emplace_back("setoption name UCI_Chess960 value " + string{ chess960 ? "true" : "false" });
+                uciCmds.emplace_back("setoption name UCI_Chess960 value " + ToString(chess960));
                 uciCmds.emplace_back("position fen " + pos.fen());
             }
             return uciCmds;
@@ -701,13 +703,13 @@ namespace UCI {
         /// bench() setup list of UCI commands is setup according to bench parameters,
         /// then it is run one by one printing a summary at the end.
         void bench(istringstream &iss, Position &pos, StateListPtr &states) {
-            auto const uciCmds = setupBench(iss, pos);
-            auto const count = u16(std::count_if(uciCmds.begin(), uciCmds.end(),
+            auto const uciCmds{ setupBench(iss, pos) };
+            auto const count{ u16(std::count_if(uciCmds.begin(), uciCmds.end(),
                                                 [](string const &s) {
                                                     return s.find("eval") == 0
                                                         || s.find("perft ") == 0
                                                         || s.find("go ") == 0;
-                                                }));
+                                                })) };
             Debugger::reset();
 
             auto elapsed{ now() };
@@ -718,10 +720,7 @@ namespace UCI {
                 string token;
                 is >> std::skipws >> token;
 
-                if (whiteSpaces(token))         { continue; }
-                else if (token == "setoption")  { setOption(is, pos); }
-                else if (token == "position")   { position(is, pos, states); }
-                else if (token == "eval"
+                     if (token == "eval"
                       || token == "perft"
                       || token == "go")         {
                     std::cerr
@@ -745,13 +744,9 @@ namespace UCI {
                         nodes += Threadpool.sum(&Thread::nodes);
                     }
                 }
-                else if (token == "ucinewgame") {
-                    UCI::clear();
-                    elapsed = now();
-                }
-                else {
-                    std::cerr << "Unknown command: \'" << token << "\'" << std::endl;
-                }
+                else if (token == "setoption")  { setOption(is, pos); }
+                else if (token == "position")   { position(is, pos, states); }
+                else if (token == "ucinewgame") { UCI::clear(); elapsed = now(); }
             }
 
             elapsed = now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
@@ -802,8 +797,7 @@ namespace UCI {
             iss >> std::skipws >> token;
             toLower(token);
 
-            if (whiteSpaces(token))         { continue; }
-            else if (token == "quit"
+                 if (token == "quit"
                   || token == "stop")       { Threadpool.stop = true; }
             // GUI sends 'ponderhit' to tell that the opponent has played the expected move.
             // So 'ponderhit' will be sent if told to ponder on the same move the opponent has played.

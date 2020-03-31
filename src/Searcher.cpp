@@ -317,7 +317,7 @@ namespace {
                         tte->move() : MOVE_NONE };
         auto ttValue{ ttHit ?
                         valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
-        //auto ttPV   { ttHit && tte->pv() };
+        auto ttPV   { ttHit && tte->pv() };
 
         // Decide whether or not to include checks.
         // Fixes also the type of TT entry depth that are going to use.
@@ -534,9 +534,9 @@ namespace {
                   ss->staticEval,
                   qsDepth,
                   bestValue >= beta ? BOUND_LOWER :
-                      PVNode
-                   && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
-                  ttHit && tte->pv());
+                  PVNode
+               && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
+                  ttPV);
 
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
@@ -652,7 +652,11 @@ namespace {
         auto ttValue{ ttHit ?
                         valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto ttPV   { PVNode
-                   || (ttHit && tte->pv()) };
+                   || (ttHit
+                    && tte->pv()) };
+
+        auto formerPv{ !PVNode
+                    && ttPV };
 
         auto activeSide{ pos.activeSide() };
 
@@ -875,12 +879,16 @@ namespace {
                 pos.undoNullMove();
 
                 if (nullValue >= beta) {
+
+                    // Don't return unproven mates or TB scores
+                    if (nullValue >= +VALUE_MATE_2_MAX_PLY) {
+                        nullValue = beta;
+                    }
                     // Skip verification search
                     if (thread->nmpPly != 0 // Recursive verification is not allowed
                      || (depth < 13
                       && abs(beta) < +VALUE_KNOWN_WIN)) {
-                        // Don't return unproven wins
-                        return nullValue >= +VALUE_MATE_2_MAX_PLY ? beta : nullValue;
+                        return nullValue;
                     }
 
                     // Do verification search at high depths,
@@ -892,8 +900,7 @@ namespace {
                     thread->nmpPly = 0;
 
                     if (value >= beta) {
-                        // Don't return unproven wins
-                        return nullValue >= +VALUE_MATE_2_MAX_PLY ? beta : nullValue;
+                        return nullValue;
                     }
                 }
             }
@@ -1131,8 +1138,8 @@ namespace {
              && (tte->bound() & BOUND_LOWER)
              && depth < (tte->depth() + 4)) {
 
-                auto singularBeta{ ttValue - ((4 + (!PVNode && ttPV)) * depth) / 2 };
-                auto singularDepth{ (depth + 3 * (!PVNode && ttPV) - 1) / 2 };
+                auto singularBeta{ ttValue - ((4 + formerPv) * depth) / 2 };
+                auto singularDepth{ (depth + 3 * formerPv - 1) / 2 };
 
                 ss->excludedMove = move;
                 value = depthSearch<false>(pos, ss, singularBeta-1, singularBeta, singularDepth, cutNode);
@@ -1211,13 +1218,13 @@ namespace {
                     // Increase if other threads are searching this position.
                     +1 * threadMarker.marked
                     // Increase if move count pruning
-                    +1 * ((PVNode || !ttPV) && moveCountPruning)
+                    +1 * (moveCountPruning && !formerPv)
                     // Decrease if the ttHit running average is large
                     -1 * (thread->ttHitAvg > 500 * TTHitAverageWindow)
                     // Decrease if position is or has been on the PV (~10 ELO)
                     -2 * ttPV
                     // Decrease if move has been singularly extended (~3 ELO)
-                    -(1 + (!PVNode && ttPV)) * singularLMR
+                    -(1 + formerPv) * singularLMR
                     // Decrease if opponent's move count is high (~5 ELO)
                     -1 * ((ss-1)->moveCount > 14);
 
@@ -1457,11 +1464,9 @@ namespace {
                       valueToTT(bestValue, ss->ply),
                       ss->staticEval,
                       depth,
-                      bestValue >= beta ?
-                          BOUND_LOWER :
-                          PVNode
-                       && bestMove != MOVE_NONE ?
-                              BOUND_EXACT : BOUND_UPPER,
+                      bestValue >= beta ? BOUND_LOWER :
+                      PVNode
+                   && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
                       ttPV);
         }
 
