@@ -20,12 +20,14 @@ void TEntry::refresh() {
 }
 
 void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) {
-    if (k16 != u16(k >> 0x30)
-     || d08 < (d - DEPTH_OFFSET + 4)
-     || b == BOUND_EXACT) {
-        assert(d > DEPTH_OFFSET);
-        if (m != MOVE_NULL)
+    if ((m != MOVE_NONE)
+     || (k >> 0x30) != k16) {
         m16 = u16(m);
+    }
+    if ((k >> 0x30) != k16
+     || (d - DEPTH_OFFSET) > (d08 - 4)
+     || (b == BOUND_EXACT)) {
+        assert(d > DEPTH_OFFSET);
 
         k16 = u16(k >> 0x30);
         v16 = i16(v);

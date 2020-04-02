@@ -85,7 +85,7 @@ namespace {
         PieceSquareStatsTable *pieceStats;
 
         Array<Move, 2> killerMoves;
-        Moves pv;
+        Move *pv;
     };
 
     constexpr u64 TTHitAverageWindow{ 4096 };
@@ -214,14 +214,11 @@ namespace {
     }
 
     /// updatePV() appends the move and child pv
-    void updatePV(Moves &pv, Move move, Moves const &childPV) {
-        pv.resize(1);
-        pv[0] = move;
-        pv.insert(pv.end(), childPV.begin(), childPV.end());
-
-        //assert(pv.front() == move
-        //    && ((pv.size() == 1 && childPV.empty())
-        //     || (pv.back() == childPV.back())));
+    void updatePV(Move *pv, Move move, Move *childPV) {
+        for (*pv++ = move; childPV && *childPV != MOVE_NONE; ) {
+            *pv++ = *childPV++;
+        }
+        *pv = MOVE_NONE;
     }
 
     /// multipvInfo() formats PV information according to UCI protocol.
@@ -287,10 +284,12 @@ namespace {
         assert(depth <= DEPTH_ZERO);
 
         Value actualAlfa;
+        Move pv[MAX_PLY+1];
 
         if (PVNode) {
             actualAlfa = alfa; // To flag BOUND_EXACT when eval above alpha and no available moves
-            ss->pv.clear();
+            (ss+1)->pv = pv;
+            ss->pv[0] = MOVE_NONE;
         }
 
         bool inCheck{ pos.checkers() != 0 };
@@ -306,13 +305,17 @@ namespace {
         assert(ss->ply >= 1
             && ss->ply == (ss-1)->ply + 1
             && ss->ply < MAX_PLY);
-        assert(ss->excludedMove == MOVE_NONE);
+        //assert(ss->excludedMove == MOVE_NONE);
 
         Move move;
+        Move excludedMove{ ss->excludedMove };
         // Transposition table lookup.
-        Key key{ pos.posiKey() };
+        Key key{ pos.posiKey()
+               ^ Key(excludedMove << 16) };
         bool ttHit;
-        auto *tte   { TT.probe(key, ttHit) };
+        auto *tte   { excludedMove == MOVE_NONE ?
+                        TT.probe(key, ttHit) :
+                        TTEx.probe(key, ttHit) };
 
         auto ttMove { ttHit ?
                         tte->move() : MOVE_NONE };
@@ -377,7 +380,7 @@ namespace {
                 if (bestValue >= beta) {
                     if (!ttHit) {
                         tte->save(key,
-                                  MOVE_NULL,
+                                  MOVE_NONE,
                                   valueToTT(bestValue, ss->ply),
                                   ss->staticEval,
                                   DEPTH_NONE,
@@ -425,6 +428,10 @@ namespace {
             assert(isOk(move)
                 && (inCheck || pos.pseudoLegal(move)));
 
+            if (move == excludedMove) {
+                continue;
+            }
+
             ++moveCount;
 
             auto org{ orgSq(move) };
@@ -454,8 +461,7 @@ namespace {
                  && Limits.mate == 0) {
                     assert(mType(move) != ENPASSANT); // Due to !pos.pawnAdvanceAt
                     // Futility pruning parent node
-                    auto futilityValue{ futilityBase
-                                      + PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE] };
+                    auto futilityValue{ futilityBase + PieceValues[EG][pType(pos[dst])] };
                     if (futilityValue <= alfa) {
                         if (bestValue < futilityValue) {
                             bestValue = futilityValue;
@@ -527,15 +533,17 @@ namespace {
             return matedIn(ss->ply); // Plies to mate from the root
         }
 
-        tte->save(key,
-                  bestMove,
-                  valueToTT(bestValue, ss->ply),
-                  ss->staticEval,
-                  qsDepth,
-                  bestValue >= beta ? BOUND_LOWER :
-                  PVNode
-               && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
-                  ttPV);
+        if (excludedMove == MOVE_NONE) {
+            tte->save(key,
+                      bestMove,
+                      valueToTT(bestValue, ss->ply),
+                      ss->staticEval,
+                      qsDepth,
+                      bestValue >= beta ? BOUND_LOWER :
+                      PVNode
+                   && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
+                      ttPV);
+        }
 
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
@@ -612,6 +620,7 @@ namespace {
             }
         }
 
+        Move pv[MAX_PLY+1];
         Value value;
         auto bestValue{ -VALUE_INFINITE };
         auto maxValue{ +VALUE_INFINITE };
@@ -749,7 +758,7 @@ namespace {
                     if ( bound == BOUND_EXACT
                      || (bound == BOUND_LOWER ? beta <= value : value <= alfa)) {
                         tte->save(key,
-                                  MOVE_NULL,
+                                  MOVE_NONE,
                                   valueToTT(value, ss->ply),
                                   VALUE_NONE,
                                   Depth(std::min(depth + 6, MAX_PLY - 1)),
@@ -814,7 +823,7 @@ namespace {
                         -(ss-1)->staticEval + 2 * VALUE_TEMPO;
 
                 tte->save(key,
-                          MOVE_NULL,
+                          MOVE_NONE,
                           VALUE_NONE,
                           eval,
                           DEPTH_NONE,
@@ -825,7 +834,6 @@ namespace {
             // Step 7. Razoring (~1 ELO)
             if (!rootNode // The RootNode PV handling is not available in qsearch
              && depth == DEPTH_ONE
-             && excludedMove == MOVE_NONE
                 // Razor Margin
              && eval <= alfa - 531) {
                 return quienSearch<PVNode>(pos, ss, alfa, beta);
@@ -960,7 +968,7 @@ namespace {
             }
 
             // Step 11. Internal iterative deepening (IID). (~1 ELO)
-            if (depth >= 7 + (excludedMove != MOVE_NONE)
+            if (depth >= 7
              && ttMove == MOVE_NONE) {
 
                 depthSearch<PVNode>(pos, ss, alfa, beta, depth - 7, cutNode);
@@ -1056,7 +1064,7 @@ namespace {
             ss->moveCount = ++moveCount;
 
             if (PVNode) {
-                (ss+1)->pv.clear();
+                (ss+1)->pv = nullptr;
             }
 
             auto org{ orgSq(move) };
@@ -1310,7 +1318,8 @@ namespace {
                && (rootNode
                 || value < beta)))) {
 
-                (ss+1)->pv.clear();
+                (ss+1)->pv = pv;
+                (ss+1)->pv[0] = MOVE_NONE;
 
                 value = -depthSearch<true>(pos, ss+1, -beta, -alfa, newDepth, false);
             }
@@ -1337,7 +1346,11 @@ namespace {
                     rm.newValue = value;
                     rm.selDepth = thread->selDepth;
                     rm.resize(1);
-                    rm.insert(rm.end(), (ss+1)->pv.begin(), (ss+1)->pv.end());
+
+                    assert((ss+1)->pv != nullptr);
+                    for (Move *m = (ss+1)->pv; *m != MOVE_NONE; ++m) {
+                        rm += *m;
+                    }
 
                     // Record how often the best move has been changed in each iteration.
                     // This information is used for time management:
@@ -1571,12 +1584,12 @@ void Thread::search() {
         ss->stats           = 0;
         ss->pieceStats      = ssOk ? nullptr : &this->continuationStats[0][0][NO_PIECE][0];
         ss->killerMoves.fill(MOVE_NONE);
-        if (ssOk) {
-        //ss->pv.clear();
-        ss->pv.reserve(std::max(32 - ss->ply, 4));
-        }
+        ss->pv              = nullptr;
     }
     ss = stack + 7;
+
+    Move pv[MAX_PLY+1];
+    ss->pv = pv;
 
     // Iterative deepening loop until requested to stop or the target depth is reached.
     while (++rootDepth < MAX_PLY
