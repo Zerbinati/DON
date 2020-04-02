@@ -39,6 +39,10 @@ string toString(Square s) {
     return{ toChar(sFile(s)), toChar(sRank(s)) };
 }
 
+char toChar(PieceType pt) {
+    return PieceChar[pt];
+}
+
 Piece toPiece(char p) {
     auto pos{ PieceChar.find(p) };
     return pos != string::npos ? Piece(pos) : NO_PIECE;
@@ -211,9 +215,9 @@ namespace {
         return oss.str();
     }
 
-    constexpr u32 SecondMilliSec = 1000;
-    constexpr u32 MinuteMilliSec = 60*SecondMilliSec;
-    constexpr u32 HourMilliSec   = 60*MinuteMilliSec;
+    constexpr u32 SecondMilliSec{ 1000 };
+    constexpr u32 MinuteMilliSec{ 60*SecondMilliSec };
+    constexpr u32 HourMilliSec  { 60*MinuteMilliSec };
     string prettyTime(u64 time) {
         u32 hours  = u32(time / HourMilliSec);
         time      %= HourMilliSec;

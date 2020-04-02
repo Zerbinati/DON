@@ -21,15 +21,15 @@ ThreadMarker::ThreadMarker(
     threadMark = &ThreadMarks[u16(posiKey) & (ThreadMarkSize - 1)];
     // Check if another already marked it, if not, mark it
     auto *th{ threadMark->load(&ThreadMark::thread) };
-    auto key{ threadMark->load(&ThreadMark::posiKey) };
     if (th == nullptr) {
         threadMark->store(&ThreadMark::thread, thread);
         threadMark->store(&ThreadMark::posiKey, posiKey);
         owner = true;
+        return;
     }
-    else
+
     if (th != thread
-     && key == posiKey) {
+     && threadMark->load(&ThreadMark::posiKey) == posiKey) {
         marked = true;
     }
 }

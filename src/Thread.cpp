@@ -146,41 +146,42 @@ Thread* ThreadPool::bestThread() const
 
     auto minValue{ +VALUE_INFINITE };
     for (auto *th : *this) {
-        minValue = std::min(th->rootMoves[0].newValue, minValue);
+        if (minValue > th->rootMoves[0].newValue) {
+            minValue = th->rootMoves[0].newValue;
+        }
     }
     // Vote according to value and depth
-    std::map<Move, u64> votes;
+    std::map<Move, i64> votes;
     for (auto *th : *this) {
+        votes[th->rootMoves[0][0]] += i32(th->rootMoves[0].newValue - minValue + 14) * i32(th->finishedDepth);
 
-        votes[th->rootMoves[0][0]] +=
-            i32(th->finishedDepth)
-          * i32(th->rootMoves[0].newValue - minValue + 14);
-
-        if (bestTh->rootMoves[0].newValue >= +VALUE_MATE_2_MAX_PLY) {
-            // Select the shortest mate / TB conversion
-            if (bestTh->rootMoves[0].newValue
-              <     th->rootMoves[0].newValue) {
+        if (std::abs(bestTh->rootMoves[0].newValue) < +VALUE_MATE_2_MAX_PLY) {
+            if (  th->rootMoves[0].newValue >  -VALUE_MATE_2_MAX_PLY
+             && ( th->rootMoves[0].newValue >= +VALUE_MATE_2_MAX_PLY
+              ||  votes[bestTh->rootMoves[0][0]] <  votes[th->rootMoves[0][0]]
+              || (votes[bestTh->rootMoves[0][0]] == votes[th->rootMoves[0][0]]
+               && bestTh->finishedDepth < th->finishedDepth))) {
                 bestTh = th;
             }
         }
         else {
-            if (th->rootMoves[0].newValue >= +VALUE_MATE_2_MAX_PLY
-             || (votes[bestTh->rootMoves[0][0]]
-               < votes[    th->rootMoves[0][0]])) {
+            // Select the shortest mate for own/longest mate for opp
+            if ( bestTh->rootMoves[0].newValue <  th->rootMoves[0].newValue
+             || (bestTh->rootMoves[0].newValue == th->rootMoves[0].newValue
+              && bestTh->finishedDepth < th->finishedDepth)) {
                 bestTh = th;
             }
         }
     }
-    // Select best thread with max depth
-    auto bestMove{ bestTh->rootMoves[0][0] };
-    for (auto *th : *this) {
-        if (bestMove == th->rootMoves[0][0]) {
-            if (bestTh->finishedDepth
-              <     th->finishedDepth) {
-                bestTh = th;
-            }
-        }
-    }
+    //// Select best thread with max depth
+    //auto bestMove{ bestTh->rootMoves[0][0] };
+    //for (auto *th : *this) {
+    //    if (bestMove == th->rootMoves[0][0]) {
+    //        if (bestTh->finishedDepth < th->finishedDepth) {
+    //            bestTh = th;
+    //        }
+    //    }
+    //}
 
     return bestTh;
 }
@@ -285,28 +286,28 @@ namespace WinProcGroup {
         i16 bestGroup(u16 index) {
 
             // Early exit if the needed API is not available at runtime
-            auto kernel32{ GetModuleHandle("Kernel32.dll") };
-            if (kernel32 == nullptr) {
+            auto pKernel32{ GetModuleHandle("Kernel32.dll") };
+            if (pKernel32 == nullptr) {
                 return -1;
             }
-            auto glpie{ (GLPIE)(void(*)())GetProcAddress(kernel32, "GetLogicalProcessorInformationEx") };
-            if (glpie == nullptr) {
+            auto pGLPIE{ (GLPIE)(void(*)())GetProcAddress(pKernel32, "GetLogicalProcessorInformationEx") };
+            if (pGLPIE == nullptr) {
                 return -1;
             }
 
             DWORD buffSize;
             // First call to get size, expect it to fail due to null buffer
-            if (glpie(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &buffSize)) {
+            if (pGLPIE(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &buffSize)) {
                 return -1;
             }
             // Once know size, allocate the buffer
-            auto *ptrBase{ (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) malloc(buffSize) };
-            if (ptrBase == nullptr) {
+            auto *pSLPI{ (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) malloc(buffSize) };
+            if (pSLPI == nullptr) {
                 return -1;
             }
             // Second call, now expect to succeed
-            if (!glpie(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, ptrBase, &buffSize)) {
-                free(ptrBase);
+            if (!pGLPIE(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, pSLPI, &buffSize)) {
+                free(pSLPI);
                 return -1;
             }
 
@@ -315,14 +316,14 @@ namespace WinProcGroup {
             u16 threadCount{ 0 };
 
             DWORD byteOffset{ 0UL };
-            auto *ptrCur{ ptrBase };
+            auto *iSLPI{ pSLPI };
             while (byteOffset < buffSize) {
-                assert(ptrCur->Size != 0);
+                assert(iSLPI->Size != 0);
 
-                switch (ptrCur->Relationship) {
+                switch (iSLPI->Relationship) {
                 case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore: {
                     coreCount += 1;
-                    threadCount += 1 + 1 * (ptrCur->Processor.Flags == LTP_PC_SMT);
+                    threadCount += 1 + 1 * (iSLPI->Processor.Flags == LTP_PC_SMT);
                 }
                     break;
                 case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode: {
@@ -332,10 +333,10 @@ namespace WinProcGroup {
                 default:
                     break;
                 }
-                byteOffset += ptrCur->Size;
-                ptrCur = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) (((char*)ptrCur) + ptrCur->Size);
+                byteOffset += iSLPI->Size;
+                iSLPI = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) (((char*)iSLPI) + iSLPI->Size);
             }
-            free(ptrBase);
+            free(pSLPI);
 
             std::vector<i16> groups;
             // Run as many threads as possible on the same node until core limit is
@@ -369,23 +370,23 @@ namespace WinProcGroup {
             return;
         }
 
-        auto kernel32{ GetModuleHandle("Kernel32.dll") };
-        if (kernel32 == nullptr) {
+        auto pKernel32{ GetModuleHandle("Kernel32.dll") };
+        if (pKernel32 == nullptr) {
             return;
         }
 
-        auto gnnpme{ (GNNPME)(void(*)())GetProcAddress(kernel32, "GetNumaNodeProcessorMaskEx") };
-        if (gnnpme == nullptr) {
+        auto pGNNPME{ (GNNPME)(void(*)())GetProcAddress(pKernel32, "GetNumaNodeProcessorMaskEx") };
+        if (pGNNPME == nullptr) {
             return;
         }
-        auto stga{ (STGA)(void(*)())GetProcAddress(kernel32, "SetThreadGroupAffinity") };
-        if (stga == nullptr) {
+        auto pSTGA{ (STGA)(void(*)())GetProcAddress(pKernel32, "SetThreadGroupAffinity") };
+        if (pSTGA == nullptr) {
             return;
         }
 
         GROUP_AFFINITY group_affinity;
-        if (gnnpme(group, &group_affinity)) {
-            stga(GetCurrentThread(), &group_affinity, nullptr);
+        if (pGNNPME(group, &group_affinity)) {
+            pSTGA(GetCurrentThread(), &group_affinity, nullptr);
         }
     }
 

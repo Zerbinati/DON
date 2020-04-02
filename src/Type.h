@@ -181,7 +181,7 @@ enum MoveType : u16 {
     PROMOTE   = 3 << 14, // [11]xx ===
 };
 
-//constexpr i32 MaxMoves          = 256;
+//constexpr i32 MaxMoves{ 256 };
 
 /// Move needs 16-bits to be stored
 ///
@@ -374,7 +374,7 @@ constexpr bool isOk(Color c) {
     return WHITE <= c && c <= BLACK;
 }
 constexpr Color operator~(Color c) {
-    return Color(c ^ 1);
+    return Color(BLACK - c);
 }
 
 constexpr bool isOk(File f) {
@@ -477,10 +477,10 @@ constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
 
 
 constexpr Square orgSq(Move m) {
-    return Square((m >> 6) & 63); //Square((m >> 6) & SQ_H8);
+    return Square((m >> 6) & 63);
 }
 constexpr Square dstSq(Move m) {
-    return Square((m     ) & 63); //Square((m     ) & SQ_H8);
+    return Square((m >> 0) & 63);
 }
 constexpr bool isOk(Move m) {
     return orgSq(m) != dstSq(m);
@@ -496,12 +496,12 @@ constexpr u16 mMask(Move m) {
 }
 
 constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN) {
-    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst);
+    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + (dst << 0));
 }
 
 template<MoveType MT>
 constexpr Move makeMove(Square org, Square dst) {
-    return Move(MT + (org << 6) + dst);
+    return Move(MT + (org << 6) + (dst << 0));
 }
 template<>
 constexpr Move makeMove<PROMOTE>(Square org, Square dst) {
@@ -535,12 +535,12 @@ class Moves :
 public:
     using std::vector<Move>::vector;
 
-    bool contains(Move const move) const {
+    bool contains(Move move) const {
         return std::find(begin(), end(), move) != end();
     }
 
     void operator+=(Move move) { push_back(move); }
-    //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
+    void operator-=(Move move) { erase(std::find(begin(), end(), move)); }
 
 };
 
@@ -583,9 +583,9 @@ public:
     using std::vector<ValMove>::vector;
 
     void operator+=(Move move) { emplace_back(move); }
-    //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
+    //void operator-=(Move move) { erase(std::find(begin(), end(), move)); }
 
-    bool contains(Move const move) const {
+    bool contains(Move move) const {
         return std::find(begin(), end(), move) != end();
     }
     //bool contains(ValMove const &vm) const {

@@ -449,11 +449,9 @@ bool Position::giveCheck(Move m) const {
         return
          //   ppt > NIHT
          //&& contains(attacksBB(ppt, dst, mocc), ekSq)
-            ((ppt == BSHP
-           || ppt == QUEN)
+            ((ppt == QUEN || ppt == BSHP)
           && contains(attacksBB<BSHP>(dst, mocc), ekSq))
-         || ((ppt == ROOK
-           || ppt == QUEN)
+         || ((ppt == QUEN || ppt == ROOK)
           && contains(attacksBB<ROOK>(dst, mocc), ekSq));
     }
     }
@@ -577,21 +575,15 @@ bool Position::see(Move m, Value threshold) const {
     }
 
     val = PieceValues[MG][pType(board[org])] - val;
-    if (val <= 0) {
-        return true;
-    }
-
-    Bitboard mocc{ pieces() ^ org ^ dst };
-    Bitboard attackers{ attackersTo(dst, mocc) };
-
-    if (attackers == 0) {
+    if (val < 1) {
         return true;
     }
 
     bool res{ true };
-
     auto mov{ pColor(board[org]) };
 
+    Bitboard mocc{ pieces() ^ org ^ dst };
+    Bitboard attackers{ attackersTo(dst, mocc) };
     while (attackers != 0) {
         mov = ~mov;
         attackers &= mocc;
@@ -841,20 +833,18 @@ Position& Position::setup(std::string const &code, Color c, StateInfo &si) {
 
     Array<std::string, COLORS> codes
     {
-        code.substr(code.find('K', 1)),
-        code.substr(0, std::min(code.find('v'), code.find('K', 1)))
+        code.substr(code.find('K', 1)),                             // Weak
+        code.substr(0, std::min(code.find('v'), code.find('K', 1))) // Strong
     };
-    assert(0 < codes[WHITE].length() && codes[WHITE].length() < 8);
-    assert(0 < codes[BLACK].length() && codes[BLACK].length() < 8);
+    assert(0 < codes[WHITE].size() && codes[WHITE].size() < 8);
+    assert(0 < codes[BLACK].size() && codes[BLACK].size() < 8);
 
     toLower(codes[c]);
 
-    std::ostringstream oss;
-    oss << "8/"
-        << codes[WHITE] << char('0' + 8 - codes[WHITE].length()) << "/8/8/8/8/"
-        << codes[BLACK] << char('0' + 8 - codes[BLACK].length()) << "/8 w - - 0 1";
+    std::string fenStr = "8/" + codes[WHITE] + char('0' + 8 - codes[WHITE].size()) + "/8/8/8/8/"
+                              + codes[BLACK] + char('0' + 8 - codes[BLACK].size()) + "/8 w - - 0 10";
 
-    return setup(oss.str(), si, nullptr);
+    return setup(fenStr, si, nullptr);
 }
 
 /// Position::doMove() makes a move, and saves all information necessary to a StateInfo object.
@@ -1342,7 +1332,7 @@ std::ostream& operator<<(std::ostream &os, Position const &pos) {
 /// Position::ok() performs some consistency checks for the position,
 /// and raises an assert if something wrong is detected.
 bool Position::ok() const {
-    constexpr bool Fast = true;
+    constexpr bool Fast{ true };
 
     // BASIC
     if (!isOk(active)

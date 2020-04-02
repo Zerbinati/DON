@@ -202,10 +202,10 @@ bool MovePicker::pick(Pred filter) {
             && (pos.checkers() != 0
              || pos.pseudoLegal(*vmBeg)));
 
-        bool ok{ filter() };
-
+        if (filter()) {
+            return true;
+        }
         ++vmBeg;
-        if (ok) return true;
     }
     return false;
 }
@@ -259,7 +259,7 @@ Move MovePicker::nextMove() {
                         // Put losing capture to badCaptureMoves to be tried later
                         true : (badCaptureMoves += *vmBeg, false);
             })) {
-            return *(vmBeg - 1);
+            return *vmBeg++;
         }
 
         // If the countermove is the same as a killers, skip it
@@ -338,7 +338,7 @@ Move MovePicker::nextMove() {
         return pick([]() {
                     return true;
                 }) ?
-                *(vmBeg - 1) : MOVE_NONE;
+                *vmBeg++ : MOVE_NONE;
     }
         /* end */
 
@@ -346,7 +346,7 @@ Move MovePicker::nextMove() {
         return pick([&]() {
                     return pos.see(*vmBeg, threshold);
                 }) ?
-                *(vmBeg - 1) : MOVE_NONE;
+                *vmBeg++ : MOVE_NONE;
     }
         /* end */
 
@@ -354,7 +354,7 @@ Move MovePicker::nextMove() {
         if (pick([&]() {
                 return true; // No filter required, all done in QUIESCENCE_INIT
             })) {
-            return *(vmBeg - 1);
+            return *vmBeg++;
         }
 
         // If did not find any move then do not try checks, finished.

@@ -249,10 +249,28 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
                      PieceAttackBB[KING][s];
 }
 
+inline Bitboard floodFill(Bitboard b) {
+    b &= ~(FileBB[FILE_A]|FileBB[FILE_H]);
+    b |= b << 1 | b >> 1;
+    return b | shift<SOUTH>(b) | shift<NORTH>(b);
+}
+
 /// popCount() counts the number of non-zero bits in a bitboard
 inline i32 popCount(Bitboard bb) {
 
-#if !defined(ABM) // PopCount Table
+#if defined(ABM)
+
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+    return i32(_mm_popcnt_u64(bb));
+
+#   else // #elif defined(__GNUC__) // GCC, Clang, ICC or compatible compiler
+
+    return i32(__builtin_popcountll(bb));
+
+#   endif
+
+#else // PopCount Table
 
     //Bitboard x = bb;
     //x -= (x >> 1) & 0x5555555555555555;
@@ -267,14 +285,6 @@ inline i32 popCount(Bitboard bb) {
          + PopCount16[v.u[2]]
          + PopCount16[v.u[3]];
 
-#elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-    return i32(_mm_popcnt_u64(bb));
-
-#else // GCC, Clang, ICC or compatible compiler
-
-    return i32(__builtin_popcountll(bb));
-
 #endif
 
 }
@@ -283,32 +293,31 @@ inline i32 popCount(Bitboard bb) {
 inline Square scanLSq(Bitboard bb) {
     assert(bb != 0);
 
-#if defined(__GNUC__)   // GCC, Clang, ICC
+#if defined(__GNUC__) // GCC, Clang, ICC
 
     return Square(__builtin_ctzll(bb));
 
 #elif defined(_MSC_VER) // MSVC
 
     unsigned long index;
+
 #   if defined(BIT64)
 
     _BitScanForward64(&index, bb);
+    return Square(index);
 
 #   else
 
-    if (u32(bb >> 0) != 0)
-    {
+    if (u32(bb >> 0) != 0) {
         _BitScanForward(&index, u32(bb >> 0x00));
+        return Square(index);
     }
-    else
-    {
+    else {
         _BitScanForward(&index, u32(bb >> 0x20));
-        index += 0x20;
+        return Square(index + 0x20);
     }
 
 #   endif
-
-    return Square(index);
 
 #else // Compiler is neither GCC nor MSVC compatible
 
@@ -324,32 +333,31 @@ inline Square scanLSq(Bitboard bb) {
 inline Square scanMSq(Bitboard bb) {
     assert(bb != 0);
 
-#if defined(__GNUC__)   // GCC, Clang, ICC
+#if defined(__GNUC__) // GCC, Clang, ICC
 
-    return Square(63 - __builtin_clzll(bb));
+    return Square(SQ_H8 - __builtin_clzll(bb));
 
 #elif defined(_MSC_VER) // MSVC
 
     unsigned long index;
+
 #   if defined(BIT64)
 
     _BitScanReverse64(&index, bb);
+    return Square(index);
 
 #   else
 
-    if (u32(bb >> 0x20) != 0)
-    {
+    if (u32(bb >> 0x20) != 0) {
         _BitScanReverse(&index, u32(bb >> 0x20));
-        index += 0x20;
+        return Square(index + 0x20);
     }
-    else
-    {
+    else {
         _BitScanReverse(&index, u32(bb >> 0x00));
+        return Square(index);
     }
 
 #   endif
-
-    return Square(index);
 
 #else // Compiler is neither GCC nor MSVC compatible
 
@@ -373,12 +381,12 @@ inline Square popLSq(Bitboard &bb) {
     bb &= (bb - 1); // bb &= ~(1ULL << sq);
     return sq;
 }
-inline Square popMSq(Bitboard &bb) {
-    assert(bb != 0);
-    Square sq{ scanMSq(bb) };
-    bb &= ~(1ULL << sq);
-    return sq;
-}
+//inline Square popMSq(Bitboard &bb) {
+//    assert(bb != 0);
+//    Square sq{ scanMSq(bb) };
+//    bb &= ~(1ULL << sq);
+//    return sq;
+//}
 
 namespace BitBoard {
 

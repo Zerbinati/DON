@@ -13,13 +13,6 @@
 #include "UCI.h"
 #include "Zobrist.h"
 
-/// clear() clears the stuffs in case of some crash.
-void clear() {
-    Threadpool.stop = true;
-    Threadpool.setup(0);
-    Threadpool.clear();
-}
-
 int main(int argc, char const *const *argv) {
 
     std::cout
@@ -38,8 +31,6 @@ int main(int argc, char const *const *argv) {
     TimeMgr.clear();
     UCI::clear();
 
-    std::atexit(clear);
-
     // Join arguments
     std::string cmdLine;
     for (int i = 1; i < argc; ++i) {
@@ -47,6 +38,10 @@ int main(int argc, char const *const *argv) {
     }
 
     UCI::handleCommands(cmdLine);
+
+    //std::atexit(clear);
+    Threadpool.stop = true;
+    Threadpool.setup(0);
 
     std::exit(EXIT_SUCCESS);
     return EXIT_SUCCESS;

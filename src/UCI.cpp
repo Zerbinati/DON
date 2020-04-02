@@ -104,21 +104,16 @@ string const compilerInfo() {
     ostringstream oss;
     oss << "\nCompiled by ";
 
-#ifdef __clang__
-    oss << "clang++ ";
-    oss << VER_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
-#elif __INTEL_COMPILER
-    oss << "Intel compiler ";
-    oss << "(version " STRING(__INTEL_COMPILER) " update " STRING(__INTEL_COMPILER_UPDATE) ")";
-#elif _MSC_VER
-    oss << "MSVC ";
-    oss << "(version " STRING(_MSC_FULL_VER) "." STRING(_MSC_BUILD) ")";
-#elif __GNUC__
-    oss << "g++ (GNUC) ";
-    oss << VER_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#if defined(__clang__)
+    oss << "clang++ " << VER_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
+#elif defined(__INTEL_COMPILER)
+    oss << "Intel compiler " << "(version " STRING(__INTEL_COMPILER) " update " STRING(__INTEL_COMPILER_UPDATE) ")";
+#elif defined(_MSC_VER)
+    oss << "MSVC " << "(version " STRING(_MSC_FULL_VER) "." STRING(_MSC_BUILD) ")";
+#elif defined(__GNUC__)
+    oss << "g++ (GNUC) " << VER_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #else
-    oss << "Unknown compiler ";
-    oss << "(unknown version)";
+    oss << "Unknown compiler " << "(unknown version)";
 #endif
 
 #if defined(__APPLE__)
@@ -547,7 +542,6 @@ namespace UCI {
                 //assert(isOk(fen));
             }
             else { return; }
-            assert(token == "" || token == "moves");
 
             // Drop old and create a new one
             states = StateListPtr{ new std::deque<StateInfo>(1) };
@@ -597,13 +591,13 @@ namespace UCI {
                             std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                             continue;
                         }
-                        Limits.searchMoves.emplace_back(m);
+                        Limits.searchMoves += m;
                     }
                 }
                 else if (token == "ignoremoves") {
                     // Parse and Validate ignore-moves (if any)
                     for (auto const &vm : MoveList<LEGAL>(pos)) {
-                        Limits.searchMoves.emplace_back(vm);
+                        Limits.searchMoves += vm;
                     }
                     while (iss >> token) {
                         auto m = moveOfCAN(token, pos);
@@ -611,9 +605,9 @@ namespace UCI {
                             std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                             continue;
                         }
-                        Limits.searchMoves.erase(std::remove(Limits.searchMoves.begin()
-                                                           , Limits.searchMoves.end(), m)
-                                               , Limits.searchMoves.end());
+                        if (Limits.searchMoves.contains(m)) {
+                            Limits.searchMoves -= m;
+                        }
                     }
                 }
                 //else {
@@ -657,7 +651,7 @@ namespace UCI {
             vector<string> cmds;
             vector<string> uciCmds;
 
-                 if (fen == "current") { cmds.emplace_back(pos.fen()); }
+                 if (fen == "current") { cmds.push_back(pos.fen()); }
             else if (fen == "default") { cmds = DefaultCmds; }
             else {
                 std::ifstream ifs{ fen, std::ios::in };
@@ -668,7 +662,7 @@ namespace UCI {
                 string cmd;
                 while (std::getline(ifs, cmd, '\n')) {
                     if (!whiteSpaces(cmd)) {
-                        cmds.emplace_back(cmd);
+                        cmds.push_back(cmd);
                     }
                 }
                 ifs.close();
@@ -676,26 +670,26 @@ namespace UCI {
 
             bool chess960{ Options["UCI_Chess960"] };
 
-            uciCmds.emplace_back("setoption name Threads value " + threads);
-            uciCmds.emplace_back("setoption name Hash value " + hash);
-            uciCmds.emplace_back("ucinewgame");
+            uciCmds.push_back("setoption name Threads value " + threads);
+            uciCmds.push_back("setoption name Hash value " + hash);
+            uciCmds.push_back("ucinewgame");
 
             for (auto const &cmd : cmds) {
                 if (cmd.find("setoption") != string::npos) {
-                    uciCmds.emplace_back(cmd);
+                    uciCmds.push_back(cmd);
                 }
                 else {
-                    uciCmds.emplace_back("position fen " + cmd);
-                    if (mode == "eval")     { uciCmds.emplace_back(mode); }
+                    uciCmds.push_back("position fen " + cmd);
+                    if (mode == "eval")     { uciCmds.push_back(mode); }
                     else
-                    if (mode == "perft")    { uciCmds.emplace_back(mode + " " + value); }
-                    else                    { uciCmds.emplace_back("go " + mode + " " + value); }
+                    if (mode == "perft")    { uciCmds.push_back(mode + " " + value); }
+                    else                    { uciCmds.push_back("go " + mode + " " + value); }
                 }
             }
 
             if (fen != "current") {
-                uciCmds.emplace_back("setoption name UCI_Chess960 value " + ToString(chess960));
-                uciCmds.emplace_back("position fen " + pos.fen());
+                uciCmds.push_back("setoption name UCI_Chess960 value " + ToString(chess960));
+                uciCmds.push_back("position fen " + pos.fen());
             }
             return uciCmds;
         }

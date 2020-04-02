@@ -15,22 +15,23 @@ TTable TTEx;
 
 u08 TEntry::Generation = 0;
 
-void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool pv) {
-    // Preserve more valuable entries
-    if (m != MOVE_NONE
-     || k16 != u16(k >> 0x30)) {
-        m16 = u16(m);
-    }
+void TEntry::refresh() {
+    g08 = u08(Generation | (g08 & 7));
+}
+
+void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) {
     if (k16 != u16(k >> 0x30)
      || d08 < (d - DEPTH_OFFSET + 4)
      || b == BOUND_EXACT) {
         assert(d > DEPTH_OFFSET);
+        if (m != MOVE_NULL)
+        m16 = u16(m);
 
         k16 = u16(k >> 0x30);
         v16 = i16(v);
         e16 = i16(e);
         d08 = u08(d - DEPTH_OFFSET);
-        g08 = u08(Generation | u08(pv) << 2 | b);
+        g08 = u08(Generation | pv << 2 | b);
     }
     assert(d08 != 0);
 }
@@ -52,7 +53,7 @@ TEntry* TCluster::probe(u16 key16, bool &hit) {
         if (ite->d08 == 0
          || ite->k16 == key16) {
             // Refresh entry
-            ite->g08 = u08(TEntry::Generation | (ite->g08 & 7));
+            ite->refresh();
             hit = (ite->d08 != 0);
             return ite;
         }
@@ -60,8 +61,7 @@ TEntry* TCluster::probe(u16 key16, bool &hit) {
         // Due to packed storage format for generation and its cyclic nature
         // add 263 (256 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        if ((rte->d08 - ((263 + TEntry::Generation - rte->g08) & 248))
-          > (ite->d08 - ((263 + TEntry::Generation - ite->g08) & 248))) {
+        if (rte->worth() > ite->worth()) {
             rte = ite;
         }
     }
@@ -86,16 +86,16 @@ namespace {
 
 #   if defined(__linux__) && !defined(__ANDROID__)
 
-        constexpr size_t alignment = 2 * 1024 * 1024; // assumed 2MB page sizes
-        size_t size = ((mSize + alignment - 1) / alignment) * alignment; // multiple of alignment
+        constexpr size_t alignment{ 2 * 1024 * 1024 };                      // assumed 2MB page sizes
+        size_t size{ ((mSize + alignment - 1) / alignment) * alignment };   // multiple of alignment
         mem = aligned_alloc(alignment, size);
         madvise(mem, mSize, MADV_HUGEPAGE);
         return mem;
 
 #   else
 
-        constexpr size_t alignment = 64;        // assumed cache line size
-        size_t size = mSize + alignment - 1;    // allocate some extra space
+        constexpr size_t alignment{ 64 };        // assumed cache line size
+        size_t size{ mSize + alignment - 1 };    // allocate some extra space
         mem = malloc(size);
         return reinterpret_cast<void*>((uPtr(mem) + alignment - 1) & ~uPtr(alignment - 1));
 

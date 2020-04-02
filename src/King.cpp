@@ -132,14 +132,11 @@ namespace King {
         i32 dist{ 0 };
         Bitboard pawns{ pos.pieces(Own, PAWN) };
         if (pawns != 0) {
-            if ((pawns & PieceAttackBB[KING][kSq]) != 0) {
-                dist = 1;
-            }
-            else {
-                dist = 8;
-                while (pawns != 0) {
-                    dist = std::min(distance(kSq, popLSq(pawns)), dist);
-                }
+            dist = 1;
+            Bitboard b{ PieceAttackBB[KING][kSq] };
+            while ((pawns & b) == 0) {
+                ++dist;
+                b = floodFill(b);
             }
         }
         pawnDist[Own] = makeScore(0, 16 * dist);
@@ -149,7 +146,6 @@ namespace King {
 
     Entry* probe(Position const &pos) {
         Key kingKey{ pos.pawnKey()
-                   ^ RandZob.nopawn
                    ^ RandZob.psq[W_KING][pos.square(W_KING)]
                    ^ RandZob.psq[B_KING][pos.square(B_KING)] };
 

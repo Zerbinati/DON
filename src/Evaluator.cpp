@@ -758,14 +758,13 @@ namespace Evaluator {
                             attackedSquares &= sqlAttacks[Opp][NONE];
                         }
 
-                        i32 k{ 0 };
-                        // Bonus according to attacked squares
-                        k += ((attackedSquares) == 0                           ? 35 :
-                              (attackedSquares & frontSquaresBB(Own, s)) == 0  ? 20 :
-                              !contains(attackedSquares, pushSq)               ?  9 : 0);
-                        // Bonus according to defended squares
-                        k += 5 * ((behindMajors & pos.pieces(Own)) != 0
-                               || contains(sqlAttacks[Own][NONE], pushSq));
+                        i32 k = // Bonus according to attacked squares
+                              + 15 * ((attackedSquares) == 0)
+                              + 11 * ((attackedSquares & frontSquaresBB(Own, s)) == 0)
+                              +  9 * !contains(attackedSquares, pushSq)
+                                // Bonus according to defended squares
+                              +  5 * ((behindMajors & pos.pieces(Own)) != 0
+                                   || contains(sqlAttacks[Own][NONE], pushSq));
 
                         bonus += makeScore(k*w, k*w);
                     }

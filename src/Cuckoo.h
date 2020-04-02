@@ -25,7 +25,7 @@ struct Cuckoo {
 
 namespace Cuckoos {
 
-    constexpr u16 CuckooSize = 0x2000;
+    constexpr u16 CuckooSize{ 0x2000 };
 
     // Hash function for indexing the Cuckoo table
     template<u08 F>

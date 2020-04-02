@@ -3,7 +3,7 @@
 #include "Type.h"
 
 // Threshold for counter moves based pruning
-constexpr i32 CounterMovePruneThreshold = 0;
+constexpr i32 CounterMovePruneThreshold{ 0 };
 
 /// Limit stores information sent by GUI after Go command about limit to search
 ///  - Available Time and Increment

@@ -82,9 +82,9 @@ public:
     // usually the current one given a previous one.
     Array<ContinuationStatsTable, 2, 2> continuationStats;
 
-    King    ::Table kingHash{ King    ::Table(0x20000) };
-    Material::Table matlHash{ Material::Table(0x2000) };
+    Material::Table matlHash{ Material::Table(0x2000 ) };
     Pawns   ::Table pawnHash{ Pawns   ::Table(0x20000) };
+    King    ::Table kingHash{ King    ::Table(0x40000) };
 
     Thread() = delete;
     explicit Thread(u16);
@@ -166,7 +166,7 @@ public:
         return s;
     }
     template<typename T>
-    void reset(std::atomic<T> Thread::*member) const {
+    void reset(std::atomic<T> Thread::*member) {
         for (auto *th : *this) {
             th->*member = {};
         }

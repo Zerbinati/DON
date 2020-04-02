@@ -8,7 +8,7 @@
 
 namespace Material {
 
-    constexpr i32 PhaseResolution = 128;
+    constexpr i32 PhaseResolution{ 128 };
 
     /// Material::Entry contains information about Material configuration.
     struct Entry {

@@ -20,6 +20,8 @@ extern char toChar(Rank);
 
 extern std::string toString(Square);
 
+extern char toChar(PieceType);
+
 extern Piece toPiece(char);
 extern char toChar(Piece);
 
