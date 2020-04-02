@@ -55,7 +55,7 @@ template<> Value Endgame<KXK>::operator()(Position const &pos) const {
 
     // Stalemate detection with lone weak king
     if (pos.activeSide() == weakColor
-     && MoveList<GenType::LEGAL>(pos).size() == 0) {
+     && MoveList<LEGAL>(pos).size() == 0) {
         return VALUE_DRAW;
     }
 
@@ -448,24 +448,6 @@ template<> Scale Endgame<KRPPKRP>::operator()(Position const &pos) const {
     return SCALE_NONE;
 }
 
-/// KNP vs K. There is a single rule: if the pawn is a rook pawn on the 7th rank
-/// and the defending king prevents the pawn from advancing the position is drawn.
-template<> Scale Endgame<KNPK>::operator()(Position const &pos) const {
-    assert(verifyMaterial(pos, stngColor, VALUE_MG_NIHT, 1)
-        && verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
-
-    auto spFile{ sFile(pos.square(stngColor|PAWN)) };
-    auto spSq{ normalize(pos.square(stngColor|PAWN), stngColor, spFile) };
-    auto wkSq{ normalize(pos.square(weakColor|KING), stngColor, spFile) };
-
-    if (spSq == SQ_A7
-     && distance(wkSq, SQ_A8) <= 1) {
-        return SCALE_DRAW;
-    }
-
-    return SCALE_NONE;
-}
-
 /// KBP vs KB. There are two rules:
 /// If the two bishops have opposite color, it's almost always a draw.
 /// If the defending king is somewhere along the path of the pawn,
@@ -694,11 +676,11 @@ namespace EndGame {
 
     namespace {
 
-        template<EndgameCode C, typename T = EndgameType<C>>
+        template<EndgameCode EC, typename T = EndgameType<EC>>
         void addEG(std::string const &code) {
             StateInfo si;
-            mapEG<T>()[Position().setup(code, WHITE, si).matlKey()] = EGPtr<T>(new Endgame<C>(WHITE));
-            mapEG<T>()[Position().setup(code, BLACK, si).matlKey()] = EGPtr<T>(new Endgame<C>(BLACK));
+            mapEG<T>()[Position().setup(code, WHITE, si).matlKey()] = EGPtr<T>(new Endgame<EC>(WHITE));
+            mapEG<T>()[Position().setup(code, BLACK, si).matlKey()] = EGPtr<T>(new Endgame<EC>(BLACK));
         }
 
     }
@@ -719,7 +701,6 @@ namespace EndGame {
         addEG<KRPKR  >("KRPKR");
         addEG<KRPKB  >("KRPKB");
         addEG<KRPPKRP>("KRPPKRP");
-        addEG<KNPK   >("KNPK");
         addEG<KBPKB  >("KBPKB");
         addEG<KBPPKB >("KBPPKB");
         addEG<KBPKN  >("KBPKN");

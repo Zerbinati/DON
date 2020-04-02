@@ -10,6 +10,7 @@
 #include "MovePicker.h"
 #include "Position.h"
 #include "RootMove.h"
+#include "King.h"
 #include "Material.h"
 #include "Pawns.h"
 #include "Type.h"
@@ -28,7 +29,7 @@ private:
 
     std::mutex _mutex;
     std::condition_variable _conditionVar;
-    u16 _index;
+    u16 _index; // indentity
     NativeThread _nativeThread;
 
 protected:
@@ -81,8 +82,9 @@ public:
     // usually the current one given a previous one.
     Array<ContinuationStatsTable, 2, 2> continuationStats;
 
+    Material::Table matlHash{ Material::Table(0x2000 ) };
     Pawns   ::Table pawnHash{ Pawns   ::Table(0x20000) };
-    Material::Table matlHash{ Material::Table(0x2000) };
+    King    ::Table kingHash{ King    ::Table(0x40000) };
 
     Thread() = delete;
     explicit Thread(u16);
@@ -129,13 +131,6 @@ public:
     void search() override final;
 };
 
-namespace WinProcGroup {
-
-    extern void initialize();
-
-    extern void bind(u16);
-}
-
 
 /// ThreadPool class handles all the threads related stuff like,
 /// initializing & deinitializing, starting, parking & launching a thread
@@ -171,7 +166,7 @@ public:
         return s;
     }
     template<typename T>
-    void reset(std::atomic<T> Thread::*member) const {
+    void reset(std::atomic<T> Thread::*member) {
         for (auto *th : *this) {
             th->*member = {};
         }
@@ -188,6 +183,11 @@ public:
 
     void startThinking(Position&, StateListPtr&);
 };
+
+namespace WinProcGroup {
+
+    extern void bind(u16);
+}
 
 // Global ThreadPool
 extern ThreadPool Threadpool;

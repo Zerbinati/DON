@@ -122,6 +122,15 @@ namespace Material {
 
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
+
+        // Only pawns left
+        if (pos.count(W_PAWN) == 1
+         && pos.count(B_PAWN) == 1
+         && (npm[WHITE] + npm[BLACK]) == VALUE_ZERO) {
+            // This is a special case so set scaling functions for both
+            scalingFunc[WHITE] = &ScaleKPKP[WHITE];
+            scalingFunc[BLACK] = &ScaleKPKP[BLACK];
+        }
         for (Color c : { WHITE, BLACK }) {
 
             if (npm[ c] == VALUE_MG_BSHP
@@ -139,22 +148,10 @@ namespace Material {
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scaleFactor for cases such as KRKBP and KmmKm (except for KBBKN).
-            if ((npm[ c] - npm[~c]) <= VALUE_MG_BSHP
-             && pos.count( c|PAWN) == 0) {
-                scaleFactor[c] =
-                    npm[ c] < VALUE_MG_ROOK ?
-                        SCALE_DRAW :
-                        Scale(14 - 10 * (npm[~c] <= VALUE_MG_BSHP));
+            if (pos.count(c|PAWN) == 0
+             && (npm[ c] - npm[~c]) <= VALUE_MG_BSHP) {
+                scaleFactor[c] = Scale((14 - 10 * (npm[~c] <= VALUE_MG_BSHP)) * (npm[ c] >= VALUE_MG_ROOK));
             }
-        }
-
-        // Only pawns left
-        if ((npm[WHITE] + npm[BLACK]) == VALUE_ZERO
-         && pos.count(W_PAWN) == 1
-         && pos.count(B_PAWN) == 1) {
-            // This is a special case so set scaling functions for both
-            scalingFunc[WHITE] = &ScaleKPKP[WHITE];
-            scalingFunc[BLACK] = &ScaleKPKP[BLACK];
         }
 
         // Evaluate the material imbalance.

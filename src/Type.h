@@ -81,7 +81,8 @@ constexpr u64 nSqr(i32 n) {
 // Return the sign of a number (-1, 0, 1)
 template<typename T>
 constexpr i32 sign(T const &v) {
-    return (T{} < v) - (v < T{});
+    //return (T{} < v) - (v < T{});
+    return (0 < v) - (v < 0);
 }
 
 template<typename T>
@@ -174,13 +175,13 @@ enum Piece : u08 {
 };
 
 enum MoveType : u16 {
-    NORMAL    = 0 << 14, // [00]-- ===
+    SIMPLE    = 0 << 14, // [00]-- ===
     CASTLE    = 1 << 14, // [01]-- ===
     ENPASSANT = 2 << 14, // [10]-- ===
     PROMOTE   = 3 << 14, // [11]xx ===
 };
 
-//constexpr i32 MaxMoves          = 256;
+//constexpr i32 MaxMoves{ 256 };
 
 /// Move needs 16-bits to be stored
 ///
@@ -373,7 +374,7 @@ constexpr bool isOk(Color c) {
     return WHITE <= c && c <= BLACK;
 }
 constexpr Color operator~(Color c) {
-    return Color(c ^ BLACK);
+    return Color(BLACK - c);
 }
 
 constexpr bool isOk(File f) {
@@ -408,21 +409,21 @@ constexpr Square makeSquare(File f, Rank r) {
     return Square((r << 3) + f);
 }
 constexpr File sFile(Square s) {
-    return File(s & 7); //File((s >> 0) & i32(FILE_H));
+    return File(s & 7);
 }
 constexpr Rank sRank(Square s) {
-    return Rank(s >> 3); //Rank((s >> 3) & i32(RANK_8));
+    return Rank(s >> 3);
 }
 constexpr Color sColor(Square s) {
     return Color(((s + sRank(s)) ^ 1) & 1);
 }
 // Flip File: SQ_H1 -> SQ_A1
 constexpr Square flipFile(Square s) {
-    return Square(s ^ SQ_H1);
+    return Square(s ^ 7);
 }
 // Flip Rank: SQ_A8 -> SQ_A1
 constexpr Square flipRank(Square s) {
-    return Square(s ^ SQ_A8);
+    return Square(s ^ 56);
 }
 
 constexpr bool colorOpposed(Square s1, Square s2) {
@@ -430,7 +431,7 @@ constexpr bool colorOpposed(Square s1, Square s2) {
 }
 
 constexpr Square relativeSq(Color c, Square s) {
-    return Square(s ^ (SQ_A8 * c));
+    return Square(s ^ (56 * c));
 }
 constexpr Rank relativeRank(Color c, Square s) {
     return relativeRank(c, sRank(s));
@@ -457,12 +458,10 @@ constexpr Piece operator|(Color c, PieceType pt) {
 }
 
 constexpr PieceType pType(Piece p) {
-    //assert(isOk(p));
-    return PieceType(p & 7); //PieceType((p >> 0) & 7);
+    return PieceType(p & 7);
 }
 constexpr Color pColor(Piece p) {
-    //assert(isOk(p));
-    return Color(p >> 3); //Color((p >> 3) & 1);
+    return Color(p >> 3);
 }
 
 constexpr Piece flipColor(Piece p) {
@@ -478,10 +477,10 @@ constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
 
 
 constexpr Square orgSq(Move m) {
-    return Square((m >> 6) & 63); //Square((m >> 6) & SQ_H8);
+    return Square((m >> 6) & 63);
 }
 constexpr Square dstSq(Move m) {
-    return Square((m     ) & 63); //Square((m     ) & SQ_H8);
+    return Square((m >> 0) & 63);
 }
 constexpr bool isOk(Move m) {
     return orgSq(m) != dstSq(m);
@@ -497,12 +496,12 @@ constexpr u16 mMask(Move m) {
 }
 
 constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN) {
-    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst);
+    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + (dst << 0));
 }
 
 template<MoveType MT>
 constexpr Move makeMove(Square org, Square dst) {
-    return Move(MT + (org << 6) + dst);
+    return Move(MT + (org << 6) + (dst << 0));
 }
 template<>
 constexpr Move makeMove<PROMOTE>(Square org, Square dst) {
@@ -510,7 +509,7 @@ constexpr Move makeMove<PROMOTE>(Square org, Square dst) {
 }
 
 constexpr Move reverseMove(Move m) {
-    return makeMove<NORMAL>(dstSq(m), orgSq(m));
+    return makeMove<SIMPLE>(dstSq(m), orgSq(m));
 }
 
 /// Convert Value to Centipawn
@@ -536,12 +535,12 @@ class Moves :
 public:
     using std::vector<Move>::vector;
 
-    bool contains(Move const move) const {
+    bool contains(Move move) const {
         return std::find(begin(), end(), move) != end();
     }
 
     void operator+=(Move move) { push_back(move); }
-    //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
+    void operator-=(Move move) { erase(std::find(begin(), end(), move)); }
 
 };
 
@@ -584,9 +583,9 @@ public:
     using std::vector<ValMove>::vector;
 
     void operator+=(Move move) { emplace_back(move); }
-    //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
+    //void operator-=(Move move) { erase(std::find(begin(), end(), move)); }
 
-    bool contains(Move const move) const {
+    bool contains(Move move) const {
         return std::find(begin(), end(), move) != end();
     }
     //bool contains(ValMove const &vm) const {

@@ -17,10 +17,13 @@ bool whiteSpaces(string const &str) {
 }
 
 string& toLower(string &str) {
+    /*
     std::transform(str.begin(), str.end(), str.begin(),
         //[](int ch) { return std::tolower(ch); }
         std::ptr_fun<int, int>([](int ch) { return std::tolower(ch); })
     );
+    */
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
 }
 string& toUpper(string &str) {
@@ -85,7 +88,8 @@ string& trim(string &str) {
 }
 
 string appendPath(string const &basePath, string const &filePath) {
-    return basePath[basePath.length() - 1] != '/' ?
+    return !basePath.empty()
+        &&  basePath[basePath.length() - 1] != '/' ?
             basePath + '/' + filePath : basePath + filePath;
 }
 void removeExtension(string &filename) {

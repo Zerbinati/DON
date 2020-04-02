@@ -65,13 +65,12 @@ namespace {
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
         u08 pt = (m >> 12) & 7;
-        if (pt > PAWN) {
-            assert(NIHT <= pt && pt <= QUEN);
+        if (pt != 0) {
             // Set new type for promotion piece
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mMask(m));
         }
         // Add special move flags and verify it is legal
-        for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+        for (auto const &vm : MoveList<LEGAL>(pos)) {
             if ((vm.move & ~PROMOTE) == m) {
                 return vm;
             }

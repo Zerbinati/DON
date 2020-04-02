@@ -81,7 +81,7 @@ using ColorIndexStatsTable      = StatsTable<i16, 10692, COLORS, SQUARES*SQUARES
 
 /// PlyIndexStatsTable stores moves history according to ply from 0 to MAX_LOWPLY-1
 /// indexed by [0...MAX_LOWPLY-1][moveMask]
-constexpr i16 MAX_LOWPLY = 4;
+constexpr i16 MAX_LOWPLY{ 4 };
 using PlyIndexStatsTable        = StatsTable<i16, 10692, MAX_LOWPLY, SQUARES*SQUARES>;
 
 /// PieceSquareTypeStatsTable stores move history according to piece.
@@ -135,6 +135,8 @@ private:
         mBeg,
         mEnd;
 
+    void limitedInsertionSort(i32) const;
+
     template<GenType GT>
     void value();
 
@@ -143,7 +145,7 @@ private:
 
 public:
 
-    bool skipQuiets{ false };
+    bool pickQuiets{ true };
 
     MovePicker() = delete;
     MovePicker(MovePicker const&) = delete;
