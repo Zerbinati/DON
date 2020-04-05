@@ -25,7 +25,7 @@ namespace Pawns {
     }
 
     i32 Entry::passedCount() const {
-        return popCount(passPawns[WHITE] | passPawns[BLACK]);
+        return passCount[WHITE] + passCount[BLACK];
     }
 
     /// Entry::evaluate()
@@ -38,11 +38,12 @@ namespace Pawns {
         Bitboard ownPawns{ pos.pieces(Own) & pawns };
         Bitboard oppPawns{ pos.pieces(Opp) & pawns };
 
-        passPawns  [Own] = 0;
-        score      [Own] = SCORE_ZERO;
         sglAttacks [Own] =
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
         dblAttacks [Opp] = pawnDblAttackBB<Opp>(oppPawns);
+        std::fill_n(passSquare[Own], FILES+1, SQ_NONE);
+        passCount  [Own] = 0;
+        score      [Own] = SCORE_ZERO;
 
         Square const *ps{ pos.squares(Own|PAWN) };
         Square s;
@@ -89,7 +90,7 @@ namespace Pawns {
                && ( pawnSglPushBB<Own>(supporters)
                  & ~(oppPawns | dblAttacks[Opp])) != 0))) {
                 // Passed pawns will be properly scored later in evaluation when we have full attack info.
-                passPawns[Own] |= s;
+                passSquare[Own][passCount[Own]++] = s;
             }
 
             Score sp{ SCORE_ZERO };

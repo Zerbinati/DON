@@ -671,7 +671,7 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     //    It starts at 1, and is incremented after Black's move.
 
     std::memset(this, 0, sizeof (*this));
-    std::fill_n(&pieceSquare[0][0], PIECES*12, SQ_NONE);
+    std::fill_n(pieceSquare[0], PIECES*12, SQ_NONE);
     std::memset(&si, 0, sizeof (si));
     _stateInfo = &si;
 
@@ -712,24 +712,17 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     iss >> token;
     while ((iss >> token)
         && !isspace(token)) {
-        Color c = isupper(token) ? WHITE : BLACK;
-        Piece rook = (c|ROOK);
+        Color c{ isupper(token) ? WHITE : BLACK };
+        Piece rook{ (c|ROOK) };
 
-        Square rookOrg;
         token = char(tolower(token));
-
+        Square rookOrg;
         if (token == 'k') {
-            for (rookOrg = relativeSq(c, SQ_H1);
-                 rook != board[rookOrg];
-                 /*&& rookOrg > square(c|KING)*/
-                 --rookOrg) {}
+            for (rookOrg = relativeSq(c, SQ_H1); rook != board[rookOrg] /*&& rookOrg > square(c|KING)*/; --rookOrg) {}
         }
         else
         if (token == 'q') {
-            for (rookOrg = relativeSq(c, SQ_A1);
-                 rook != board[rookOrg];
-                 /*&& rookOrg < square(c|KING)*/
-                 ++rookOrg) {}
+            for (rookOrg = relativeSq(c, SQ_A1); rook != board[rookOrg] /*&& rookOrg < square(c|KING)*/; ++rookOrg) {}
         }
         else
         if ('a' <= token && token <= 'h') {
@@ -1371,7 +1364,7 @@ bool Position::ok() const {
         }
         for (int i = 0; i < pieceCount[p]; ++i) {
             if (board[pieceSquare[p][i]] != p
-             || index[pieceSquare[p][i]] != i) {
+             || pieceIndex[pieceSquare[p][i]] != i) {
                 assert(false && "Position OK: SQUARE_LIST");
                 return false;
             }

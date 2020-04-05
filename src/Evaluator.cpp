@@ -726,9 +726,9 @@ namespace Evaluator {
 
             Score score{ SCORE_ZERO };
 
-            Bitboard passPawns{ pawnEntry->passPawns[Own] };
-            while (passPawns != 0) {
-                auto s{ popLSq(passPawns) };
+            Square const *ps{ pawnEntry->passSquare[Own] };
+            Square s;
+            while ((s = *ps++) != SQ_NONE) {
                 assert((pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) == 0
                     && (pos.pieces(Opp, PAWN)
                       & (pawnSglPushBB<Own>(frontSquaresBB(Own, s))

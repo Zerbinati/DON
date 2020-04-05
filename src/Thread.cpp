@@ -132,6 +132,10 @@ void MainThread::clear() {
     timeReduction = 1.00;
 }
 
+ThreadPool::~ThreadPool() {
+    setup(0);
+}
+
 u16 ThreadPool::size() const {
     return u16(Base::size());
 }

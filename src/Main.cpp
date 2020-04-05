@@ -39,6 +39,5 @@ int main(int argc, char const *const *argv) {
     UCI::handleCommands(cmdLine);
 
     //std::atexit(clear);
-    Threadpool.setup(0);
     return EXIT_SUCCESS;
 }

@@ -154,6 +154,7 @@ public:
     ThreadPool() = default;
     ThreadPool(ThreadPool const&) = delete;
     ThreadPool& operator=(ThreadPool const&) = delete;
+    virtual ~ThreadPool();
 
     template<typename T>
     T sum(std::atomic<T> Thread::*member) const {

@@ -18,7 +18,8 @@ namespace Pawns {
         Bitboard sglAttacks[COLORS];
         Bitboard dblAttacks[COLORS];
         Bitboard attacksSpan[COLORS];
-        Bitboard passPawns[COLORS];
+        Square   passSquare[COLORS][FILES+1];
+        u08      passCount[COLORS];
 
         i32 passedCount() const;
 

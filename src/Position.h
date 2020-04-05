@@ -71,7 +71,7 @@ private:
     Bitboard types[PIECE_TYPES];
 
     Piece  board[SQUARES];
-    u08    index[SQUARES];
+    u08    pieceIndex[SQUARES];
     Square pieceSquare[PIECES][12];
     u08    pieceCount[PIECES];
 
@@ -374,8 +374,8 @@ inline void Position::placePiece(Square s, Piece p) {
     types[pType(p)] |= s;
     colors[pColor(p)] |= s;
     board[s] = p;
-    index[s] = pieceCount[p]++;
-    pieceSquare[p][index[s]] = s;
+    pieceIndex[s] = pieceCount[p]++;
+    pieceSquare[p][pieceIndex[s]] = s;
     ++pieceCount[pColor(p)|NONE];
     psq += PSQ[p][s];
 }
@@ -386,8 +386,8 @@ inline void Position::removePiece(Square s) {
     colors[pColor(p)] ^= s;
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
     Square endSq = pieceSquare[p][--pieceCount[p]];
-    index[endSq] = index[s];
-    pieceSquare[p][index[endSq]] = endSq;
+    pieceIndex[endSq] = pieceIndex[s];
+    pieceSquare[p][pieceIndex[endSq]] = endSq;
     pieceSquare[p][pieceCount[p]] = SQ_NONE;
     --pieceCount[pColor(p)|NONE];
     psq -= PSQ[p][s];
@@ -400,8 +400,8 @@ inline void Position::movePiece(Square s1, Square s2) {
     colors[pColor(p)] ^= bb;
     board[s2] = p;
     board[s1] = NO_PIECE;
-    index[s2] = index[s1];
-    pieceSquare[p][index[s2]] = s2;
+    pieceIndex[s2] = pieceIndex[s1];
+    pieceSquare[p][pieceIndex[s2]] = s2;
     psq += PSQ[p][s2]
          - PSQ[p][s1];
 }
