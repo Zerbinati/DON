@@ -44,8 +44,9 @@ namespace Pawns {
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
         dblAttacks [Opp] = pawnDblAttackBB<Opp>(oppPawns);
 
-        Square const *ss = pos.squares(Own|PAWN);
-        for (Square s = *ss; s != SQ_NONE; s = *++ss) {
+        Square const *ps{ pos.squares(Own|PAWN) };
+        Square s;
+        while ((s = *ps++) != SQ_NONE) {
             assert(pos[s] == (Own|PAWN));
 
             auto r{ relativeRank(Own, s) };

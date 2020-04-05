@@ -123,8 +123,9 @@ namespace PSQT {
         Score psq{ SCORE_ZERO };
 
         for (Piece p : Pieces) {
-            Square const *ss = pos.squares(p);
-            for (Square s = *ss; s != SQ_NONE; s = *++ss) {
+            Square const *ps{ pos.squares(p) };
+            Square s;
+            while ((s = *ps++) != SQ_NONE) {
                 psq += PSQ[p][s];
             }
         }

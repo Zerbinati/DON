@@ -14,8 +14,9 @@ namespace {
         auto activeSide{ pos.activeSide() };
 
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
-            Square const *ss = pos.squares(activeSide|pt);
-            for (Square s = *ss; s != SQ_NONE; s = *++ss) {
+            Square const *ps{ pos.squares(activeSide|pt) };
+            Square s;
+            while ((s = *ps++) != SQ_NONE) {
 
                 if (Checks
                  && contains(pos.kingBlockers(~activeSide), s)) {

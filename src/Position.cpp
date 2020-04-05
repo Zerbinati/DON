@@ -670,9 +670,9 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     // 6) Full move number. The number of the full move.
     //    It starts at 1, and is incremented after Black's move.
 
-    std::memset(this, 0, sizeof (Position));
-    std::fill_n(&squareSet[0][0], sizeof (squareSet) / sizeof (Square), SQ_NONE);
-    std::memset(&si, 0, sizeof (StateInfo));
+    std::memset(this, 0, sizeof (*this));
+    std::fill_n(&pieceSquare[0][0], PIECES*12, SQ_NONE);
+    std::memset(&si, 0, sizeof (si));
     _stateInfo = &si;
 
     std::istringstream iss{ ff };
@@ -1370,8 +1370,8 @@ bool Position::ok() const {
             return false;
         }
         for (int i = 0; i < pieceCount[p]; ++i) {
-            if (board[squareSet[p][i]] != p
-             || index[squareSet[p][i]] != i) {
+            if (board[pieceSquare[p][i]] != p
+             || index[pieceSquare[p][i]] != i) {
                 assert(false && "Position OK: SQUARE_LIST");
                 return false;
             }

@@ -3,7 +3,6 @@
 #include <deque>
 #include <memory> // For std::unique_ptr
 #include <string>
-#include <vector>
 
 #include "Bitboard.h"
 #include "Type.h"
@@ -68,13 +67,13 @@ extern Score PSQ[PIECES][SQUARES];
 class Position {
 
 private:
-
-    Piece board[SQUARES];
     Bitboard colors[COLORS];
     Bitboard types[PIECE_TYPES];
-    Square squareSet[PIECES][16];
-    u08 pieceCount[PIECES];
-    u08 index[SQUARES];
+
+    Piece  board[SQUARES];
+    u08    index[SQUARES];
+    Square pieceSquare[PIECES][12];
+    u08    pieceCount[PIECES];
 
     Value npMaterial[COLORS];
 
@@ -266,7 +265,7 @@ inline i32 Position::count() const {
 }
 
 inline Square const *Position::squares(Piece p) const {
-    return squareSet[p];
+    return pieceSquare[p];
 }
 inline Square Position::square(Piece p, u08 idx) const {
     assert(isOk(p));
@@ -376,8 +375,8 @@ inline void Position::placePiece(Square s, Piece p) {
     colors[pColor(p)] |= s;
     board[s] = p;
     index[s] = pieceCount[p]++;
-    squareSet[p][index[s]] = s;
-    pieceCount[pColor(p)|NONE]++;
+    pieceSquare[p][index[s]] = s;
+    ++pieceCount[pColor(p)|NONE];
     psq += PSQ[p][s];
 }
 inline void Position::removePiece(Square s) {
@@ -386,11 +385,11 @@ inline void Position::removePiece(Square s) {
     types[pType(p)] ^= s;
     colors[pColor(p)] ^= s;
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
-    Square endSq = squareSet[p][--pieceCount[p]];
+    Square endSq = pieceSquare[p][--pieceCount[p]];
     index[endSq] = index[s];
-    squareSet[p][index[endSq]] = endSq;
-    squareSet[p][pieceCount[p]] = SQ_NONE;
-    pieceCount[pColor(p)|NONE]--;
+    pieceSquare[p][index[endSq]] = endSq;
+    pieceSquare[p][pieceCount[p]] = SQ_NONE;
+    --pieceCount[pColor(p)|NONE];
     psq -= PSQ[p][s];
 }
 inline void Position::movePiece(Square s1, Square s2) {
@@ -402,7 +401,7 @@ inline void Position::movePiece(Square s1, Square s2) {
     board[s2] = p;
     board[s1] = NO_PIECE;
     index[s2] = index[s1];
-    squareSet[p][index[s2]] = s2;
+    pieceSquare[p][index[s2]] = s2;
     psq += PSQ[p][s2]
          - PSQ[p][s1];
 }

@@ -1,7 +1,6 @@
 #include "Evaluator.h"
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cmath>
 
@@ -24,11 +23,11 @@ namespace Evaluator {
         class Tracer {
 
         private:
-            static Table<Score, TERM_NO, COLORS> Scores;
+            static Score Scores[TERM_NO][COLORS];
 
         public:
             static void clear() {
-                Scores.fill(SCORE_ZERO);
+                std::fill_n(&Scores[0][0], sizeof (Scores) / sizeof (Score), SCORE_ZERO);
             }
 
             static void write(Term t, Color c, Score s) {
@@ -44,7 +43,7 @@ namespace Evaluator {
 
         };
 
-        Table<Score, TERM_NO, COLORS> Tracer::Scores;
+        Score Tracer::Scores[TERM_NO][COLORS];
 
         std::ostream& operator<<(std::ostream &os, Term t) {
             if (t == MATERIAL
@@ -292,13 +291,13 @@ namespace Evaluator {
 
             Score score{ SCORE_ZERO };
 
-            Square const *ss = pos.squares(Own|PT);
+            Square const *ps{ pos.squares(Own | PT) };
             if (PT == QUEN
-             && *ss != SQ_NONE) {
+             && *ps != SQ_NONE) {
                 std::fill_n(queenAttacked[Own], 3, 0);
             }
-
-            for (Square s = *ss; s != SQ_NONE; s = *++ss) {
+            Square s;
+            while ((s = *ps++) != SQ_NONE) {
                 assert(pos[s] == (Own|PT));
 
                 Bitboard action{

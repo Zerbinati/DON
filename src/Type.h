@@ -29,7 +29,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <array>
 #include <vector>
 
 using i08 =  int8_t;
@@ -616,57 +615,6 @@ public:
         return &std::vector<T>::operator[](key & Mask);
     }
 };
-/*
-/// Multi-dimensional Array
-template<typename T, size_t Size, size_t... Sizes>
-class ArrayType {
-
-    static_assert (Size != 0, "Size incorrect");
-private:
-    using NestedArrayType = typename ArrayType<T, Sizes...>::type;
-
-public:
-    using type = std::array<NestedArrayType, Size>;
-};
-
-template<typename T, size_t Size>
-class ArrayType<T, Size> {
-
-    static_assert (Size != 0, "Size incorrect");
-public:
-    using type = std::array<T, Size>;
-};
-
-template<typename T, size_t... Sizes>
-using Array = typename ArrayType<T, Sizes...>::type;
-*/
-
-/// Table is a generic N-dimensional array
-template<typename T, size_t Size, size_t... Sizes>
-class Table :
-    public std::array<Table<T, Sizes...>, Size> {
-
-    static_assert (Size != 0, "Size incorrect");
-private:
-    using NestedTable = Table<T, Size, Sizes...>;
-
-public:
-
-    void fill(T const &value) {
-        assert(std::is_standard_layout<NestedTable>::value);
-
-        auto *p = reinterpret_cast<T*>(this);
-        std::fill(p, p + sizeof (*this) / sizeof (T), value);
-    }
-
-};
-template<typename T, size_t Size>
-class Table<T, Size> :
-    public std::array<T, Size> {
-
-    static_assert (Size != 0, "Size incorrect");
-};
-
 
 // Fold file [ABCDEFGH] to file [ABCDDCBA]
 // Fold rank [12345678] to rank [12344321]

@@ -18,8 +18,9 @@ Key Zobrist::computeMatlKey(Position const &pos) const {
 Key Zobrist::computePawnKey(Position const &pos) const {
     Key pawnKey{ nopawn };
     for (Piece p : { W_PAWN, B_PAWN }) {
-        Square const *ss = pos.squares(p);
-        for (Square s = *ss; s != SQ_NONE; s = *++ss) {
+        Square const *ps{ pos.squares(p) };
+        Square s;
+        while ((s = *ps++) != SQ_NONE) {
             pawnKey ^= psq[p][s];
         }
     }
@@ -29,8 +30,9 @@ Key Zobrist::computePawnKey(Position const &pos) const {
 Key Zobrist::computePosiKey(Position const &pos) const {
     Key posiKey{ 0 };
     for (Piece p : Pieces) {
-        Square const *ss = pos.squares(p);
-        for (Square s = *ss; s != SQ_NONE; s = *++ss) {
+        Square const *ps{ pos.squares(p) };
+        Square s;
+        while ((s = *ps++) != SQ_NONE) {
             posiKey ^= psq[p][s];
         }
     }

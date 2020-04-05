@@ -1,6 +1,7 @@
 #include "Material.h"
 
 #include <cassert>
+#include <cstring> // For std::memset
 
 #include "Helper.h"
 #include "Thread.h"
@@ -85,9 +86,7 @@ namespace Material {
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
         phase = (i32(clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
               / i32(VALUE_MIDGAME - VALUE_ENDGAME);
-        imbalance = SCORE_ZERO;
         scaleFactor[WHITE] = scaleFactor[BLACK] = SCALE_NORMAL;
-        scalingFunc[WHITE] = scalingFunc[BLACK] = nullptr;
 
         // Let's look if have a specialized evaluation function for this particular material configuration.
         // First look for a fixed configuration one, then a generic one if previous search failed.
@@ -183,6 +182,7 @@ namespace Material {
             return e;
         }
 
+        std::memset(e, 0, sizeof(*e));
         e->key = matlKey;
         e->evaluate(pos);
 

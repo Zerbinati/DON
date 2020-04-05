@@ -1,11 +1,39 @@
 #pragma once
 
+#include <array>
 #include <limits>
 #include <type_traits>
 
 #include "MoveGenerator.h"
 #include "Position.h"
 #include "Type.h"
+
+/// Table is a generic N-dimensional array
+template<typename T, size_t Size, size_t... Sizes>
+class Table :
+    public std::array<Table<T, Sizes...>, Size> {
+
+    static_assert (Size != 0, "Size incorrect");
+private:
+    using NestedTable = Table<T, Size, Sizes...>;
+
+public:
+
+    void fill(T const &value) {
+        assert(std::is_standard_layout<NestedTable>::value);
+
+        auto *p = reinterpret_cast<T*>(this);
+        std::fill(p, p + sizeof (*this) / sizeof (T), value);
+    }
+
+};
+template<typename T, size_t Size>
+class Table<T, Size> :
+    public std::array<T, Size> {
+
+    static_assert (Size != 0, "Size incorrect");
+};
+
 
 
 /// Stats stores the value. It is usually a number.

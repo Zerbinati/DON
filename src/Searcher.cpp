@@ -685,10 +685,10 @@ namespace {
          && ttValue != VALUE_NONE
          && (ttValue >= beta ? tte->bound() & BOUND_LOWER :
                                tte->bound() & BOUND_UPPER)) {
-            if (ttMove != MOVE_NONE
-             && contains(pos.pieces(activeSide), orgSq(ttMove))) {
+            if (ttMove != MOVE_NONE) {
                 // Update move sorting heuristics on ttMove
-                if (!pos.captureOrPromotion(ttMove)) {
+                if (!pos.captureOrPromotion(ttMove)
+                 && contains(pos.pieces(activeSide), orgSq(ttMove))) {
                     auto bonus{ statBonus(depth) };
                     // Bonus for a quiet ttMove that fails high
                     if (ttValue >= beta) {

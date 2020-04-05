@@ -461,7 +461,7 @@ namespace {
 
         void insert(Key matlKey, TBTable<WDL> *wdl, TBTable<DTZ> *dtz) {
             u32 homeBucket = matlKey & (Size - 1);
-            Entry entry = std::make_tuple(matlKey, wdl, dtz);
+            Entry entry{ std::make_tuple(matlKey, wdl, dtz) };
 
             // Ensure last element is empty to avoid overflow when looking up
             for (u32 bucket = homeBucket; bucket < Size; ++bucket) {
@@ -492,7 +492,7 @@ namespace {
         TBTable<Type>* get(Key matlKey) {
             Entry const *entry = &entryTable[matlKey & (Size - 1)];
             while (true) {
-                if (std::get<KEY>(*entry) == matlKey
+                if ( std::get<KEY>(*entry) == matlKey
                  || !std::get<Type>(*entry)) {
 
                     return std::get<Type>(*entry);
