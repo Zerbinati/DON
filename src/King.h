@@ -13,10 +13,10 @@ namespace King {
 
         Key key;
 
-        Array<Score, COLORS> pawnDist;
+        Score pawnDist[COLORS];
 
-        Array<u08  , COLORS> castleSide;
-        Array<Score, COLORS> pawnSafety;
+        u08   castleSide[COLORS];
+        Score pawnSafety[COLORS];
 
         template<Color>
         Score evaluateSafety(Position const&, Bitboard);

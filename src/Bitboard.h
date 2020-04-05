@@ -57,7 +57,7 @@ inline u16 Magic::index(Bitboard occ) const {
 constexpr Bitboard BoardBB{ U64(0xFFFFFFFFFFFFFFFF) };
 //constexpr Bitboard DiagonalBB{ U64(0x8142241818244281) }; // A1..H8 | H1..A8
 
-constexpr Array<Bitboard, SQUARES> SquareBB
+constexpr Bitboard SquareBB[SQUARES]
 {
 #   define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
 #   define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
@@ -70,7 +70,7 @@ constexpr Array<Bitboard, SQUARES> SquareBB
 #   undef S_02
 };
 
-constexpr Array<Bitboard, FILES> FileBB
+constexpr Bitboard FileBB[FILES]
 {
     U64(0x0101010101010101),
     U64(0x0202020202020202),
@@ -82,7 +82,7 @@ constexpr Array<Bitboard, FILES> FileBB
     U64(0x8080808080808080)
 };
 
-constexpr Array<Bitboard, RANKS> RankBB
+constexpr Bitboard RankBB[RANKS]
 {
     U64(0x00000000000000FF),
     U64(0x000000000000FF00),
@@ -94,20 +94,20 @@ constexpr Array<Bitboard, RANKS> RankBB
     U64(0xFF00000000000000)
 };
 
-constexpr Array<Bitboard, COLORS> ColorBB
+constexpr Bitboard ColorBB[COLORS]
 {
     U64(0x55AA55AA55AA55AA),
     U64(0xAA55AA55AA55AA55)
 };
 
-constexpr Array<Bitboard, COLORS> PawnSideBB
+constexpr Bitboard PawnSideBB[COLORS]
 {
     RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4],
     RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]
 };
 
-constexpr Array<Bitboard, COLORS, RANKS> FrontRankBB
-{{
+constexpr Bitboard FrontRankBB[COLORS][RANKS]
+{
     {
         RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3]|RankBB[RANK_2],
         RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3],
@@ -128,27 +128,27 @@ constexpr Array<Bitboard, COLORS, RANKS> FrontRankBB
         RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5]|RankBB[RANK_6],
         RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5]|RankBB[RANK_6]|RankBB[RANK_7],
     }
-}};
+};
 
-constexpr Array<Bitboard, 3> SlotFileBB
+constexpr Bitboard SlotFileBB[3]
 {
     FileBB[FILE_E]|FileBB[FILE_F]|FileBB[FILE_G]|FileBB[FILE_H],    // K-File
     FileBB[FILE_A]|FileBB[FILE_B]|FileBB[FILE_C]|FileBB[FILE_D],    // Q-File
     FileBB[FILE_C]|FileBB[FILE_D]|FileBB[FILE_E]|FileBB[FILE_F]     // C-File
 };
 
-extern Array<Bitboard, SQUARES, SQUARES> LineBB;
+extern Bitboard LineBB[SQUARES][SQUARES];
 
-extern Array<Bitboard, COLORS, SQUARES> PawnAttackBB;
-extern Array<Bitboard, PIECE_TYPES, SQUARES> PieceAttackBB;
+extern Bitboard PawnAttacksBB[COLORS][SQUARES];
+extern Bitboard PieceAttacksBB[PIECE_TYPES][SQUARES];
 
-extern Array<Magic, SQUARES> BMagics;
-extern Array<Magic, SQUARES> RMagics;
+extern Magic BMagics[SQUARES];
+extern Magic RMagics[SQUARES];
 
 
 #if !defined(ABM)
 
-extern Array<u08, 1 << 16> PopCount16;
+extern u08 PopCount[USHRT_MAX+1]; // 16-bit
 
 #endif
 
@@ -212,13 +212,13 @@ inline Bitboard betweenBB(Square s1, Square s2) {
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
 inline bool aligned(Square s1, Square s2, Square s3) { return contains(LineBB[s1][s2], s3); }
 
-constexpr Array<Direction, COLORS> PawnPush{ NORTH, SOUTH };
+constexpr Direction PawnPush[COLORS] { NORTH, SOUTH };
 
 template<Color C> constexpr Bitboard pawnSglPushBB(Bitboard bb) { return shift<PawnPush[C]>(bb); }
 template<Color C> constexpr Bitboard pawnDblPushBB(Bitboard bb) { return shift<PawnPush[C] * 2>(bb); }
 
-constexpr Array<Direction, COLORS> PawnLAtt{ NORTH_WEST, SOUTH_EAST };
-constexpr Array<Direction, COLORS> PawnRAtt{ NORTH_EAST, SOUTH_WEST };
+constexpr Direction PawnLAtt[COLORS] { NORTH_WEST, SOUTH_EAST };
+constexpr Direction PawnRAtt[COLORS] { NORTH_EAST, SOUTH_WEST };
 
 template<Color C> constexpr Bitboard pawnLAttackBB(Bitboard bb) { return shift<PawnLAtt[C]>(bb); }
 template<Color C> constexpr Bitboard pawnRAttackBB(Bitboard bb) { return shift<PawnRAtt[C]>(bb); }
@@ -228,8 +228,8 @@ template<Color C> constexpr Bitboard pawnDblAttackBB(Bitboard bb) { return pawnL
 /// attacksBB(s, occ) takes a square and a bitboard of occupied squares,
 /// and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
 template<PieceType PT> Bitboard attacksBB(Square, Bitboard);
-//template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) { return PieceAttackBB[NIHT][s]; }
-//template<> inline Bitboard attacksBB<KING>(Square s, Bitboard) { return PieceAttackBB[KING][s]; }
+//template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) { return PieceAttacksBB[NIHT][s]; }
+//template<> inline Bitboard attacksBB<KING>(Square s, Bitboard) { return PieceAttacksBB[KING][s]; }
 /// Attacks of the Bishop with occupancy
 template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) { return BMagics[s].attacksBB(occ); }
 /// Attacks of the Rook with occupancy
@@ -242,11 +242,11 @@ template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) { return BMag
 inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
     assert(NIHT <= pt && pt <= KING);
     return
-        pt == NIHT ? PieceAttackBB[NIHT][s] :
+        pt == NIHT ? PieceAttacksBB[NIHT][s] :
         pt == BSHP ? attacksBB<BSHP>(s, occ) :
         pt == ROOK ? attacksBB<ROOK>(s, occ) :
         pt == QUEN ? attacksBB<QUEN>(s, occ) :
-                     PieceAttackBB[KING][s];
+                     PieceAttacksBB[KING][s];
 }
 
 inline Bitboard floodFill(Bitboard b) {
@@ -280,10 +280,10 @@ inline i32 popCount(Bitboard bb) {
     //return (x * 0x0101010101010101) >> 56;
 
     union { Bitboard b; u16 u[4]; } v{ bb };
-    return PopCount16[v.u[0]]
-         + PopCount16[v.u[1]]
-         + PopCount16[v.u[2]]
-         + PopCount16[v.u[3]];
+    return PopCount[v.u[0]]
+         + PopCount[v.u[1]]
+         + PopCount[v.u[2]]
+         + PopCount[v.u[3]];
 
 #endif
 

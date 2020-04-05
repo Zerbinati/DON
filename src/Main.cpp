@@ -1,5 +1,4 @@
 #include <iostream>
-#include <thread>
 
 #include "Bitbase.h"
 #include "Bitboard.h"
@@ -40,9 +39,6 @@ int main(int argc, char const *const *argv) {
     UCI::handleCommands(cmdLine);
 
     //std::atexit(clear);
-    Threadpool.stop = true;
     Threadpool.setup(0);
-
-    std::exit(EXIT_SUCCESS);
     return EXIT_SUCCESS;
 }

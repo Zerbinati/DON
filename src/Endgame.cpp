@@ -7,8 +7,8 @@ namespace {
 
     // Drive a piece towards the edge of the board
     inline int pushToEdge(Square s) {
-        return 90 - (7 * nSqr(foldFile(sFile(s))) / 2
-                   + 7 * nSqr(foldRank(sRank(s))) / 2);
+        return 90 - (7 * nSqr(edgeDistance(sFile(s))) / 2
+                   + 7 * nSqr(edgeDistance(sRank(s))) / 2);
     }
     // Drive a piece towards the corner of the board, used in KBN vs K to A1H8 corners
     inline int pushToCorner(Square s) {
@@ -308,7 +308,7 @@ template<> Scale Endgame<KRPKR>::operator()(Position const &pos) const {
      && sRank(skSq) <= RANK_6 - sTempo
      && (sRank(wrSq) == RANK_1
       || (!sTempo
-       && distance<File>(wrSq, spSq) >= 3))) {
+       && fileDistance(wrSq, spSq) >= 3))) {
         return SCALE_DRAW;
     }
     //
@@ -413,8 +413,8 @@ template<> Scale Endgame<KRPKB>::operator()(Position const &pos) const {
         // and the defending king is near the corner
         if (spR == RANK_6
          && distance(spSq + Push * 2, wkSq) <= 1
-         && distance<File>(spSq, wbSq) >= 2
-         && contains(PieceAttackBB[BSHP][wbSq], spSq + Push)) {
+         && fileDistance(spSq, wbSq) >= 2
+         && contains(PieceAttacksBB[BSHP][wbSq], spSq + Push)) {
             return Scale(8);
         }
     }
@@ -438,8 +438,8 @@ template<> Scale Endgame<KRPPKRP>::operator()(Position const &pos) const {
     }
 
     auto spR{ std::max(relativeRank(stngColor, sp1Sq), relativeRank(stngColor, sp2Sq)) };
-    if (distance<File>(wkSq, sp1Sq) <= 1
-     && distance<File>(wkSq, sp2Sq) <= 1
+    if (fileDistance(wkSq, sp1Sq) <= 1
+     && fileDistance(wkSq, sp2Sq) <= 1
      && spR < relativeRank(stngColor, wkSq)) {
         assert(RANK_2 <= spR && spR <= RANK_6); // Not RANK_7 due to pawnPassedAt()
         return Scale(7 * spR);
@@ -501,7 +501,7 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
             block2Sq = makeSquare(sFile(sp1Sq), sRank(sp2Sq));
         }
 
-        auto d{ distance<File>(sp1Sq, sp2Sq) };
+        auto d{ fileDistance(sp1Sq, sp2Sq) };
         // Both pawns are on the same file. It's an easy draw if the defender firmly
         // controls some square in the front most pawn's path.
         if (d == 0) {
@@ -515,7 +515,7 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
         // behind this square on the file of the other pawn.
         if (d == 1) {
             if ((wkSq == block1Sq
-              && (distance<Rank>(sp1Sq, sp2Sq) >= 2
+              && (rankDistance(sp1Sq, sp2Sq) >= 2
                || contains(pos.attacksFrom(BSHP, wbSq) | wbSq, block2Sq)))
              || (wkSq == block2Sq
               && contains(pos.attacksFrom(BSHP, wbSq) | wbSq, block1Sq))) {
@@ -662,7 +662,7 @@ template<> Scale Endgame<KQKRPs>::operator()(Position const &pos) const {
      && relativeRank(weakColor, wrSq) == RANK_3
      && (pos.pieces(weakColor, PAWN)
        & pos.attacksFrom(KING, wkSq)
-       & PawnAttackBB[stngColor][wrSq]) != 0) {
+       & PawnAttacksBB[stngColor][wrSq]) != 0) {
         return SCALE_DRAW;
     }
 

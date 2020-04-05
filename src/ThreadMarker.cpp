@@ -2,9 +2,9 @@
 
 namespace {
 
-    constexpr u16 ThreadMarkSize{ 0x800 };
+    constexpr u16 ThreadMarkSize{ 0x400 };
 
-    Array<ThreadMark, ThreadMarkSize> ThreadMarks;
+    ThreadMark ThreadMarks[ThreadMarkSize];
 
 }
 
@@ -18,7 +18,7 @@ ThreadMarker::ThreadMarker(
         return;
     }
 
-    threadMark = &ThreadMarks[u16(posiKey) & (ThreadMarkSize - 1)];
+    threadMark = &ThreadMarks[posiKey & (ThreadMarkSize - 1)];
     // Check if another already marked it, if not, mark it
     auto *th{ threadMark->load(&ThreadMark::thread) };
     if (th == nullptr) {

@@ -18,7 +18,8 @@ Key Zobrist::computeMatlKey(Position const &pos) const {
 Key Zobrist::computePawnKey(Position const &pos) const {
     Key pawnKey{ nopawn };
     for (Piece p : { W_PAWN, B_PAWN }) {
-        for (Square s : pos.squares(p)) {
+        Square const *ss = pos.squares(p);
+        for (Square s = *ss; s != SQ_NONE; s = *++ss) {
             pawnKey ^= psq[p][s];
         }
     }
@@ -28,7 +29,8 @@ Key Zobrist::computePawnKey(Position const &pos) const {
 Key Zobrist::computePosiKey(Position const &pos) const {
     Key posiKey{ 0 };
     for (Piece p : Pieces) {
-        for (Square s : pos.squares(p)) {
+        Square const *ss = pos.squares(p);
+        for (Square s = *ss; s != SQ_NONE; s = *++ss) {
             posiKey ^= psq[p][s];
         }
     }
@@ -86,7 +88,7 @@ Zobrist RandZob;
 Zobrist const PolyZob
 {
     // PieceSquare (768)
-    {{
+    {
         {},
         // W_PAWN
         {
@@ -321,7 +323,7 @@ Zobrist const PolyZob
         U64(0x13AE978D09FE5557), U64(0x730499AF921549FF), U64(0x4E4B705B92903BA4), U64(0xFF577222C14F0A3A)
         }
 
-    }},
+    },
     // CastleRights (4)->(16)
     {
     U64(0x0000000000000000),

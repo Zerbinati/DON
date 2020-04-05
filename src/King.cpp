@@ -14,24 +14,24 @@ namespace King {
     #define S(mg, eg) makeScore(mg, eg)
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
-        constexpr Array<Score, FILES/2, RANKS> Shelter
-        {{
+        constexpr Score Shelter[FILES/2][RANKS]
+        {
             { S( -6, 0), S( 81, 0), S( 93, 0), S( 58, 0), S( 39, 0), S( 18, 0), S(  25, 0), S(0, 0) },
             { S(-43, 0), S( 61, 0), S( 35, 0), S(-49, 0), S(-29, 0), S(-11, 0), S( -63, 0), S(0, 0) },
             { S(-10, 0), S( 75, 0), S( 23, 0), S( -2, 0), S( 32, 0), S(  3, 0), S( -45, 0), S(0, 0) },
             { S(-39, 0), S(-13, 0), S(-29, 0), S(-52, 0), S(-48, 0), S(-67, 0), S(-166, 0), S(0, 0) }
-        }};
+        };
 
         // Danger of unblocked enemy pawns storm toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
         // [0][1 - 2] accommodate opponent pawn on edge (likely blocked by king)
-        constexpr Array<Score, FILES/2, RANKS> UnblockedStorm
-        {{
+        constexpr Score UnblockedStorm[FILES/2][RANKS]
+        {
             { S( 85, 0), S(-289, 0), S(-166, 0), S( 97, 0), S( 50, 0), S( 45, 0), S( 50, 0), S(0, 0) },
             { S( 46, 0), S( -25, 0), S( 122, 0), S( 45, 0), S( 37, 0), S(-10, 0), S( 20, 0), S(0, 0) },
             { S( -6, 0), S(  51, 0), S( 168, 0), S( 34, 0), S( -2, 0), S(-22, 0), S(-14, 0), S(0, 0) },
             { S(-15, 0), S( -11, 0), S( 101, 0), S(  4, 0), S( 11, 0), S(-15, 0), S(-29, 0), S(0, 0) }
-        }};
+        };
 
         constexpr Score BasicSafety { S( 5, 5) };
         constexpr Score BlockedStorm{ S(82,82) };
@@ -62,12 +62,13 @@ namespace King {
                     || (ownR == RANK_1
                      && oppR == RANK_1));
 
+                i16 d = edgeDistance(f);
                 safety +=
-                    Shelter[foldFile(f)][ownR]
-                  - ((ownR != RANK_1)
-                   && (ownR + 1) == oppR ?
+                    Shelter[d][ownR]
+                  - (ownR != RANK_1
+                  && ownR + 1 == oppR ?
                         BlockedStorm * (oppR == RANK_3) :
-                        UnblockedStorm[foldFile(f)][oppR]);
+                        UnblockedStorm[d][oppR]);
             }
 
             return safety;
@@ -133,7 +134,7 @@ namespace King {
         Bitboard pawns{ pos.pieces(Own, PAWN) };
         if (pawns != 0) {
             dist = 1;
-            Bitboard b{ PieceAttackBB[KING][kSq] };
+            Bitboard b{ PieceAttacksBB[KING][kSq] };
             while ((pawns & b) == 0) {
                 ++dist;
                 b = floodFill(b);

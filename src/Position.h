@@ -37,13 +37,11 @@ struct StateInfo {
     bool        promoted;
     i16         repetition;
     // Check info
-    Array<Bitboard, COLORS> kingBlockers; // Absolute and Discover Blockers
-    Array<Bitboard, COLORS> kingCheckers; // Absolute and Discover Checkers
-    Array<Bitboard, PIECE_TYPES> checks;
+    Bitboard kingBlockers[COLORS]; // Absolute and Discover Blockers
+    Bitboard kingCheckers[COLORS]; // Absolute and Discover Checkers
+    Bitboard checks[PIECE_TYPES];
 
     StateInfo *ptr;             // Previous StateInfo pointer
-
-    void clear();
 };
 
 /// A list to keep track of the position states along the setup moves
@@ -54,7 +52,7 @@ using StateListPtr = std::unique_ptr<std::deque<StateInfo>>;
 
 class Thread;
 
-extern Array<Score, PIECES, SQUARES> PSQ;
+extern Score PSQ[PIECES][SQUARES];
 
 /// Position class stores information regarding the board representation:
 ///  - 64-entry array of pieces, indexed by the square.
@@ -71,17 +69,19 @@ class Position {
 
 private:
 
-    Array<Piece, SQUARES> board;
-    Array<Bitboard, COLORS> colors;
-    Array<Bitboard, PIECE_TYPES> types;
-    Array<std::vector<Square>, PIECES> squareSet;
+    Piece board[SQUARES];
+    Bitboard colors[COLORS];
+    Bitboard types[PIECE_TYPES];
+    Square squareSet[PIECES][16];
+    u08 pieceCount[PIECES];
+    u08 index[SQUARES];
 
-    Array<Value, COLORS> npMaterial;
+    Value npMaterial[COLORS];
 
-    Table<Square, COLORS, CASTLE_SIDES> cslRookSq;
-    Table<Bitboard, COLORS, CASTLE_SIDES> cslKingPath;
-    Table<Bitboard, COLORS, CASTLE_SIDES> cslRookPath;
-    Array<CastleRight, SQUARES> sqCastleRight;
+    Square cslRookSq[COLORS][CASTLE_SIDES];
+    Bitboard cslKingPath[COLORS][CASTLE_SIDES];
+    Bitboard cslRookPath[COLORS][CASTLE_SIDES];
+    CastleRight sqCastleRight[SQUARES];
 
     Color active;
     Score psq;
@@ -124,7 +124,7 @@ public:
     i32 count(PieceType) const;
     i32 count(Color) const;
     i32 count() const;
-    std::vector<Square> const& squares(Piece) const;
+    Square const *squares(Piece) const;
     Square square(Piece, u08 = 0) const;
 
     Value nonPawnMaterial(Color) const;
@@ -199,8 +199,6 @@ public:
     bool bishopOpposed() const;
     bool semiopenFileOn(Color, Square) const;
 
-    void clear();
-
     Position& setup(std::string const&, StateInfo&, Thread *const = nullptr);
     Position& setup(std::string const&, Color, StateInfo&);
 
@@ -252,7 +250,7 @@ inline Bitboard Position::pieces(Color c, PieceTypes... pts) const {
 
 /// Position::count() counts specific piece
 inline i32 Position::count(Piece p) const {
-    return i32(squareSet[p].size());
+    return pieceCount[p];
 }
 /// Position::count() counts specific type
 inline i32 Position::count(PieceType pt) const {
@@ -267,15 +265,13 @@ inline i32 Position::count() const {
     return count(WHITE) + count(BLACK);
 }
 
-
-inline std::vector<Square> const& Position::squares(Piece p) const {
+inline Square const *Position::squares(Piece p) const {
     return squareSet[p];
 }
-inline Square Position::square(Piece p, u08 index) const {
+inline Square Position::square(Piece p, u08 idx) const {
     assert(isOk(p));
-    assert(count(p) > index);
-    //return *(squares(p).begin() + index);
-    return squares(p)[index];
+    assert(count(p) > idx);
+    return squares(p)[idx];
 }
 
 //inline CastleRight Position::castleRight(Square s) const { return sqCastleRight[s]; }
@@ -375,54 +371,46 @@ inline i16 Position::moveCount() const {
 }
 
 inline void Position::placePiece(Square s, Piece p) {
-    //assert(isOk(p));
-    //assert(std::count(squareSet[p].begin(), squareSet[p].end(), s) == 0);
-    colors[pColor(p)] |= s;
-    types[pType(p)] |= s;
     types[NONE] |= s;
-    psq += PSQ[p][s];
-    squareSet[p].push_back(s);
+    types[pType(p)] |= s;
+    colors[pColor(p)] |= s;
     board[s] = p;
+    index[s] = pieceCount[p]++;
+    squareSet[p][index[s]] = s;
+    pieceCount[pColor(p)|NONE]++;
+    psq += PSQ[p][s];
 }
 inline void Position::removePiece(Square s) {
     auto p{ board[s] };
-    //assert(isOk(p));
-    //assert(squareSet[p].size() != 0);
-    //assert(std::count(squareSet[p].begin(), squareSet[p].end(), s) == 1);
-    colors[pColor(p)] ^= s;
-    types[pType(p)] ^= s;
     types[NONE] ^= s;
-    psq -= PSQ[p][s];
-    // Do keep order
-    //squareSet[p].erase(std::find(squareSet[p].begin(), squareSet[p].end(), s));
-    // Don't keep order
-    if (squareSet[p].size() > 1) {
-        *std::find(squareSet[p].begin(), squareSet[p].end(), s) = squareSet[p].back();
-    }
-    squareSet[p].pop_back();
+    types[pType(p)] ^= s;
+    colors[pColor(p)] ^= s;
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
+    Square endSq = squareSet[p][--pieceCount[p]];
+    index[endSq] = index[s];
+    squareSet[p][index[endSq]] = endSq;
+    squareSet[p][pieceCount[p]] = SQ_NONE;
+    pieceCount[pColor(p)|NONE]--;
+    psq -= PSQ[p][s];
 }
 inline void Position::movePiece(Square s1, Square s2) {
     auto p{ board[s1] };
-    //assert(isOk(p));
-    //assert(squareSet[p].size() != 0);
-    //assert(std::count(squareSet[p].begin(), squareSet[p].end(), s1) == 1
-    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s2) == 0);
     Bitboard bb{ s1 | s2 };
-    colors[pColor(p)] ^= bb;
-    types[pType(p)] ^= bb;
     types[NONE] ^= bb;
-    psq += PSQ[p][s2]
-         - PSQ[p][s1];
-    *std::find(squareSet[p].begin(), squareSet[p].end(), s1) = s2;
+    types[pType(p)] ^= bb;
+    colors[pColor(p)] ^= bb;
     board[s2] = p;
     board[s1] = NO_PIECE;
+    index[s2] = index[s1];
+    squareSet[p][index[s2]] = s2;
+    psq += PSQ[p][s2]
+         - PSQ[p][s1];
 }
 
 /// Position::attackersTo() finds attackers to the square on occupancy.
 inline Bitboard Position::attackersTo(Square s, Bitboard occ) const {
-    return (pieces(BLACK, PAWN) & PawnAttackBB[WHITE][s])
-         | (pieces(WHITE, PAWN) & PawnAttackBB[BLACK][s])
+    return (pieces(BLACK, PAWN) & PawnAttacksBB[WHITE][s])
+         | (pieces(WHITE, PAWN) & PawnAttacksBB[BLACK][s])
          | (pieces(NIHT)        & attacksFrom(NIHT, s))
          | (pieces(BSHP, QUEN)  & attacksBB<BSHP>(s, occ))
          | (pieces(ROOK, QUEN)  & attacksBB<ROOK>(s, occ))

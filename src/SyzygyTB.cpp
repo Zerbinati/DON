@@ -60,14 +60,16 @@ namespace {
         SINGLE_VALUE    = 1 << 7
     };
 
-    Array<i32, SQUARES> MapPawns;
-    Array<i32, SQUARES> MapB1H1H7;
-    Array<i32, SQUARES> MapA1D1D4;
-    Array<i32, 10, SQUARES> MapKK; // [MapA1D1D4][SQUARES]
+    i32 MapPawns[SQUARES];
+    i32 MapB1H1H7[SQUARES];
+    i32 MapA1D1D4[SQUARES];
 
-    Array<i32, TBPIECES - 1, SQUARES> Binomial;      // [k][n] k elements from a set of n elements
-    Array<i32, TBPIECES - 1, SQUARES> LeadPawnIdx;   // [lpCount][SQUARES]
-    Array<i32, TBPIECES - 1, FILES/2> LeadPawnsSize; // [lpCount][FILE_A..FILE_D]
+    constexpr i16 MapKKSize{ 10 };
+    i32 MapKK[MapKKSize][SQUARES]; // [MapA1D1D4][SQUARES]
+
+    i32 Binomial[TBPIECES - 1][SQUARES];      // [k][n] k elements from a set of n elements
+    i32 LeadPawnIdx[TBPIECES - 1][SQUARES];   // [lpCount][SQUARES]
+    i32 LeadPawnsSize[TBPIECES - 1][FILES/2]; // [lpCount][FILE_A..FILE_D]
 
     /// Comparison function to sort leading pawns in ascending MapPawns[] order
     bool mapPawnsCompare(Square s1, Square s2) { return MapPawns[s1] < MapPawns[s2]; }
@@ -458,7 +460,7 @@ namespace {
         std::deque<TBTable<DTZ>> dtzTable;
 
         void insert(Key matlKey, TBTable<WDL> *wdl, TBTable<DTZ> *dtz) {
-            u32 homeBucket = (u32)matlKey & (Size - 1);
+            u32 homeBucket = matlKey & (Size - 1);
             Entry entry = std::make_tuple(matlKey, wdl, dtz);
 
             // Ensure last element is empty to avoid overflow when looking up
@@ -472,7 +474,7 @@ namespace {
 
                 // Robin Hood hashing: If we've probed for longer than this element,
                 // insert here and search for a new spot for the other element instead.
-                u32 ohomeBucket = (u32)omatlKey & (Size - 1);
+                u32 ohomeBucket = omatlKey & (Size - 1);
                 if (ohomeBucket > homeBucket) {
                     std::swap(entry, entryTable[bucket]);
                     matlKey = omatlKey;
@@ -488,7 +490,7 @@ namespace {
 
         template<TBType Type>
         TBTable<Type>* get(Key matlKey) {
-            Entry const *entry = &entryTable[(u32)matlKey & (Size - 1)];
+            Entry const *entry = &entryTable[matlKey & (Size - 1)];
             while (true) {
                 if (std::get<KEY>(*entry) == matlKey
                  || !std::get<Type>(*entry)) {
@@ -769,7 +771,7 @@ namespace {
             pawnCount = size;
 
             std::swap(squares[0], *std::max_element(squares, squares + pawnCount, mapPawnsCompare));
-            pawnFile = foldFile(sFile(squares[0]));
+            pawnFile = File(edgeDistance(sFile(squares[0])));
         }
         else {
             pawns = 0;
@@ -1129,7 +1131,7 @@ namespace {
         }
 
         data += base64Size * sizeof (Symbol);
-        d->symLen.resize(number<u16, true>(data)); data += sizeof(u16);
+        d->symLen.resize(number<u16, true>(data)); data += sizeof (u16);
         d->btree = (LR*)(data);
 
         // The compression scheme used is "Recursive Pairing", that replaces the most
@@ -1702,13 +1704,13 @@ namespace SyzygyTB {
             // MapKK[] encodes all the 461 possible legal positions of two kings where the first is in the a1-d1-d4 triangle.
             // If the first king is on the a1-d4 diagonal, the other one shall not to be above the a1-h8 diagonal.
             vector<std::pair<i32, Square>> bothOnDiagonal;
-            for (i16 idx = 0; idx < i16(MapKK.size()); ++idx) {
+            for (i16 idx = 0; idx < MapKKSize; ++idx) {
                 for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1) {
                     if (idx == MapA1D1D4[s1]
                      && (idx != 0 || s1 == SQ_B1)) { // SQ_B1 is mapped to 0
 
                         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
-                            if (contains(PieceAttackBB[KING][s1] | s1, s2)) {
+                            if (contains(PieceAttacksBB[KING][s1] | s1, s2)) {
                                 continue; // Illegal position
                             }
 

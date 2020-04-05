@@ -43,18 +43,18 @@ namespace {
         return oss.str();
     }
 
-    Array<string, 12> const Months{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    string const Months[12] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
     i32 month(string const &mmm) {
-        // for (u32 m = 0; m < Months.size(); ++m) {
+        // for (u32 m = 0; m < 12; ++m) {
         //     if (mmm == Months[m]) {
         //         return m+1;
         //     }
         // }
         // return 0;
-        auto itr{ std::find(Months.begin(), Months.end(), mmm) };
-        return itr != Months.end() ?
-                i32(std::distance(Months.begin(), itr)) + 1 : 0;
+        auto itr{ std::find(std::begin(Months), std::end(Months), mmm) };
+        return itr != std::end(Months) ?
+                i32(std::distance(std::begin(Months), itr)) + 1 : 0;
     }
 }
 

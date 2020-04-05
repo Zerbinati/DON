@@ -16,7 +16,7 @@
 #include "Zobrist.h"
 #include "UCI.h"
 
-Array<Score, PIECES, SQUARES> PSQ;
+Score PSQ[PIECES][SQUARES];
 
 namespace {
 
@@ -37,27 +37,6 @@ namespace {
     template Value computeNPM<WHITE>(Position const&);
     template Value computeNPM<BLACK>(Position const&);
 
-}
-
-
-void StateInfo::clear() {
-    matlKey = 0;
-    pawnKey = 0;
-    castleRights = CR_NONE;
-    epSquare = SQ_NONE;
-    clockPly = 0;
-    nullPly = 0;
-
-    posiKey = 0;
-    checkers = 0;
-    captured = NONE;
-    promoted = false;
-    repetition = 0;
-    kingBlockers.fill(0);
-    kingCheckers.fill(0);
-    checks.fill(0);
-
-    ptr = nullptr;
 }
 
 //// initialize() static function
@@ -205,8 +184,8 @@ Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinn
     // Snipers are X-ray slider attackers at 's'
     // No need to remove direct attackers at 's' as in check no evaluation
     Bitboard snipers{ attackers
-                    & ((pieces(BSHP, QUEN) & PieceAttackBB[BSHP][s])
-                     | (pieces(ROOK, QUEN) & PieceAttackBB[ROOK][s])) };
+                    & ((pieces(BSHP, QUEN) & PieceAttacksBB[BSHP][s])
+                     | (pieces(ROOK, QUEN) & PieceAttacksBB[ROOK][s])) };
     Bitboard mocc{ pieces() ^ snipers };
     while (snipers != 0) {
         auto sniperSq{ popLSq(snipers) };
@@ -279,7 +258,7 @@ bool Position::pseudoLegal(Move m) const
            && (mType(m) != PROMOTE
             || orgR != RANK_7
             || dstR != RANK_8))
-          || !contains(PawnAttackBB[active][org], dst)
+          || !contains(PawnAttacksBB[active][org], dst)
           || empty(dst))
             // Double push
          && (mType(m) != SIMPLE
@@ -293,7 +272,7 @@ bool Position::pseudoLegal(Move m) const
           || orgR != RANK_5
           || dstR != RANK_6
           || dst != epSquare()
-          || !contains(PawnAttackBB[active][org], dst)
+          || !contains(PawnAttacksBB[active][org], dst)
           || !empty(dst)
           || empty(dst - Push)
           || clockPly() != 0)) {
@@ -517,7 +496,7 @@ void Position::setCheckInfo() {
     _stateInfo->kingBlockers[BLACK] = sliderBlockersAt(square(BLACK|KING), pieces(WHITE), _stateInfo->kingCheckers[BLACK], _stateInfo->kingCheckers[WHITE]);
 
     auto ekSq{ square(~active|KING) };
-    _stateInfo->checks[PAWN] = PawnAttackBB[~active][ekSq];
+    _stateInfo->checks[PAWN] = PawnAttacksBB[~active][ekSq];
     _stateInfo->checks[NIHT] = attacksFrom(NIHT, ekSq);
     _stateInfo->checks[BSHP] = attacksFrom(BSHP, ekSq);
     _stateInfo->checks[ROOK] = attacksFrom(ROOK, ekSq);
@@ -533,15 +512,15 @@ bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const {
     assert(board[cap] == (~c|PAWN)); //contains(pieces(~c, PAWN), cap));
     // Enpassant attackers
     Bitboard attackers{ pieces(c, PAWN)
-                      & PawnAttackBB[~c][epSq] };
+                      & PawnAttacksBB[~c][epSq] };
     assert(popCount(attackers) <= 2);
     if (attackers == 0) {
        return false;
     }
 
     auto kSq{ square(c|KING) };
-    Bitboard bq{ pieces(~c, BSHP, QUEN) & PieceAttackBB[BSHP][kSq] };
-    Bitboard rq{ pieces(~c, ROOK, QUEN) & PieceAttackBB[ROOK][kSq] };
+    Bitboard bq{ pieces(~c, BSHP, QUEN) & PieceAttacksBB[BSHP][kSq] };
+    Bitboard rq{ pieces(~c, ROOK, QUEN) & PieceAttacksBB[ROOK][kSq] };
     Bitboard mocc{ (pieces() ^ cap) | epSq };
     while (attackers != 0) {
         Bitboard amocc{ mocc ^ popLSq(attackers) };
@@ -658,28 +637,6 @@ bool Position::see(Move m, Value threshold) const {
     return res;
 }
 
-/// Position::clear() clear the position.
-void Position::clear() {
-    board.fill(NO_PIECE);
-    colors.fill(0);
-    types.fill(0);
-    for (auto &set : squareSet) {
-        set.clear();
-    }
-    npMaterial.fill(VALUE_ZERO);
-
-    cslRookSq.fill(SQ_NONE);
-    cslKingPath.fill(0);
-    cslRookPath.fill(0);
-
-    sqCastleRight.fill(CR_NONE);
-
-    psq = SCORE_ZERO;
-    ply = 0;
-    active = COLORS;
-    _thread = nullptr;
-}
-
 /// Position::setup() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
@@ -713,10 +670,9 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     // 6) Full move number. The number of the full move.
     //    It starts at 1, and is incremented after Black's move.
 
-    assert(!whiteSpaces(ff));
-
-    clear();
-    si.clear();
+    std::memset(this, 0, sizeof (Position));
+    std::fill_n(&squareSet[0][0], sizeof (squareSet) / sizeof (Square), SQ_NONE);
+    std::memset(&si, 0, sizeof (StateInfo));
     _stateInfo = &si;
 
     std::istringstream iss{ ff };
@@ -791,10 +747,13 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     u08 file, rank;
     if ((iss >> file && ('a' <= file && file <= 'h'))
      && (iss >> rank && ('3' == rank || rank == '6'))) {
-        auto epSq{ makeSquare(toFile(file), toRank(rank)) };
-        if (canEnpassant(active, epSq)) {
-            _stateInfo->epSquare = epSq;
+        _stateInfo->epSquare = makeSquare(toFile(file), toRank(rank));
+        if (!canEnpassant(active, _stateInfo->epSquare)) {
+            _stateInfo->epSquare = SQ_NONE;
         }
+    }
+    else {
+        _stateInfo->epSquare = SQ_NONE;
     }
 
     // 5-6. Half move clock and Full move number.
@@ -830,7 +789,7 @@ Position& Position::setup(std::string const &code, Color c, StateInfo &si) {
     assert(code[0] == 'K'
         && code.find('K', 1) != std::string::npos);
 
-    Array<std::string, COLORS> codes
+    std::string codes[COLORS]
     {
         code.substr(code.find('K', 1)),                             // Weak
         code.substr(0, std::min(code.find('v'), code.find('K', 1))) // Strong
@@ -1343,7 +1302,7 @@ bool Position::ok() const {
     for (Color c : { WHITE, BLACK }) {
         if (count(c) > 16
          || count(c) != popCount(pieces(c))
-         || std::count(board.begin(), board.end(), (c|KING)) != 1
+         || std::count(board, board + SQUARES, (c|KING)) != 1
          || count(c|KING) != 1
          || !isOk(square(c|KING))
          || board[square(c|KING)] != (c|KING)
@@ -1410,9 +1369,9 @@ bool Position::ok() const {
             assert(false && "Position OK: SQUARE_LIST");
             return false;
         }
-        for (Square s : squares(p)) {
-            if (!isOk(s)
-             || board[s] != p) {
+        for (int i = 0; i < pieceCount[p]; ++i) {
+            if (board[squareSet[p][i]] != p
+             || index[squareSet[p][i]] != i) {
                 assert(false && "Position OK: SQUARE_LIST");
                 return false;
             }

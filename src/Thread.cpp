@@ -190,6 +190,7 @@ Thread* ThreadPool::bestThread() const
 /// Created and launched threads will immediately go to sleep in idleFunction.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::setup(u16 threadCount) {
+    stop = true;
     if (!empty()) {
         mainThread()->waitIdle();
     }
@@ -207,11 +208,10 @@ void ThreadPool::setup(u16 threadCount) {
         }
 
         clean();
-
-        reductionFactor = std::pow(24.8 + std::log(size()) / 2, 2);
         // Reallocate the hash with the new threadpool size
         TT.autoResize(Options["Hash"]);
         TTEx.autoResize(u32(Options["Hash"])/4);
+        Searcher::initialize();
     }
 }
 
@@ -363,7 +363,7 @@ namespace WinProcGroup {
     void bind(u16 index) {
 
         // Use only local variables to be thread-safe
-        i16 group = bestGroup(index);
+        i16 group{ bestGroup(index) };
 
         // If we still have more threads than the total number of logical processors then let the OS to decide what to do.
         if (group == -1) {

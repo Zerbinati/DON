@@ -80,7 +80,7 @@ public:
 
     // continuationStats is the combined stats of a given pair of moves,
     // usually the current one given a previous one.
-    Array<ContinuationStatsTable, 2, 2> continuationStats;
+    ContinuationStatsTable continuationStats[2][2];
 
     Material::Table matlHash{ Material::Table(0x2000 ) };
     Pawns   ::Table pawnHash{ Pawns   ::Table(0x20000) };
@@ -119,7 +119,7 @@ public:
 
     Value  bestValue;
     double timeReduction;
-    Array<Value, 4> iterValues;
+    Value  iterValues[4];
 
     Move bestMove;
     i16  bestDepth;
@@ -146,8 +146,6 @@ protected:
     using Base = std::vector<Thread*>;
 
 public:
-
-    double reductionFactor{ 0.0 };
 
     std::atomic<bool>
         stop, // Stop search forcefully

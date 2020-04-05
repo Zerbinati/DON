@@ -43,7 +43,7 @@ MovePicker::MovePicker(
     PieceSquareTypeStatsTable   const *cStats,
     PieceSquareStatsTable       const **pStats,
     Move ttm, Depth d, i16 sp,
-    Array<Move, 2> const &km, Move cm) :
+    Move const *km, Move cm) :
     pos{ p },
     butterFlyStats{ bfStats },
     lowPlyStats{ lpStats },

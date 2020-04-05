@@ -181,8 +181,6 @@ enum MoveType : u16 {
     PROMOTE   = 3 << 14, // [11]xx ===
 };
 
-//constexpr i32 MaxMoves{ 256 };
-
 /// Move needs 16-bits to be stored
 ///
 /// bit 00-05: Destiny square
@@ -383,10 +381,6 @@ constexpr bool isOk(File f) {
 constexpr File operator~(File f) {
     return File(FILE_H - f);
 }
-// Fold file [ABCDEFGH] to file [ABCDDCBA]
-inline File foldFile(File f) {
-    return std::min(f, ~f);
-}
 
 constexpr bool isOk(Rank r) {
     return RANK_1 <= r && r <= RANK_8;
@@ -394,10 +388,7 @@ constexpr bool isOk(Rank r) {
 constexpr Rank operator~(Rank r) {
     return Rank(RANK_8 - r);
 }
-// Fold rank [12345678] to rank [12344321]
-inline Rank foldRank(Rank r) {
-    return std::min(r, ~r);
-}
+
 constexpr Rank relativeRank(Color c, Rank r) {
     return Rank(r ^ (RANK_8 * c));
 }
@@ -622,10 +613,10 @@ public:
     }
 
     T* operator[](Key key) {
-        return &std::vector<T>::operator[](u32(key) & Mask);
+        return &std::vector<T>::operator[](key & Mask);
     }
 };
-
+/*
 /// Multi-dimensional Array
 template<typename T, size_t Size, size_t... Sizes>
 class ArrayType {
@@ -648,7 +639,7 @@ public:
 
 template<typename T, size_t... Sizes>
 using Array = typename ArrayType<T, Sizes...>::type;
-
+*/
 
 /// Table is a generic N-dimensional array
 template<typename T, size_t Size, size_t... Sizes>
@@ -677,32 +668,32 @@ class Table<T, Size> :
 };
 
 
-/// distance() functions return the distance between s1 and s2, defined as the
-/// number of steps for a king in s1 to reach s2.
+// Fold file [ABCDEFGH] to file [ABCDDCBA]
+// Fold rank [12345678] to rank [12344321]
+constexpr i32 edgeDistance(i08 d) { return std::min(d - 0, 7 - d); }
 
-template<typename T = Square> inline i32 distance(Square, Square);
+/// distance() functions return the distance between s1 and s2
+/// defined as the number of steps for a king in s1 to reach s2.
 
-template<> inline i32 distance<File>(Square s1, Square s2) {
-    return std::abs(sFile(s1) - sFile(s2));
+inline i32 fileDistance(Square s1, Square s2) { return std::abs(sFile(s1) - sFile(s2)); }
+inline i32 rankDistance(Square s1, Square s2) { return std::abs(sRank(s1) - sRank(s2)); }
+
+extern u08 Distance[SQUARES][SQUARES];
+
+inline i32 distance(Square s1, Square s2) {
+    //return std::max(fileDistance(s1, s2), rankDistance(s1, s2));
+    return Distance[s1][s2];
 }
-template<> inline i32 distance<Rank>(Square s1, Square s2) {
-    return std::abs(sRank(s1) - sRank(s2));
-}
 
-extern Array<u08, SQUARES, SQUARES> SquareDistance;
-template<> inline i32 distance<Square>(Square s1, Square s2) {
-    //return std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
-    return SquareDistance[s1][s2];
-}
 
-constexpr Array<Piece, 12> Pieces
+constexpr Piece Pieces[12]
 {
     W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
 };
 
-constexpr Array<Value, PHASES, PIECE_TYPES> PieceValues
-{{
+constexpr Value PieceValues[PHASES][PIECE_TYPES]
+{
     { VALUE_ZERO, VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO },
     { VALUE_ZERO, VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO }
-}};
+};

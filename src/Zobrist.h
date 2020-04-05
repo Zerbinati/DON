@@ -10,12 +10,11 @@ struct Zobrist {
     // 15*64 + 16 + 8 + 1 = 985
     // 12*64 + 16 + 8 + 1 = 793
     //                    = 192 extra
-    Array<Key, PIECES
-             , SQUARES>       psq;
-    Array<Key, CASTLE_RIGHTS> castling;
-    Array<Key, FILES>         enpassant;
-    Key                       side;
-    Key                       nopawn;
+    Key psq[PIECES][SQUARES];
+    Key castling[CASTLE_RIGHTS];
+    Key enpassant[FILES];
+    Key side;
+    Key nopawn;
 
     Zobrist() = default;
     Zobrist(Zobrist const&) = delete;

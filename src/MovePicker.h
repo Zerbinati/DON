@@ -160,7 +160,7 @@ public:
         PieceSquareTypeStatsTable   const*,
         PieceSquareStatsTable       const**,
         Move, Depth, i16,
-        Array<Move, 2> const&, Move);
+        Move const *, Move);
 
     MovePicker(
         Position const&,

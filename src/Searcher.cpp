@@ -84,33 +84,24 @@ namespace {
         i32   stats{ 0 };
         PieceSquareStatsTable *pieceStats;
 
-        Array<Move, 2> killerMoves;
+        Move killerMoves[2];
         Move *pv;
     };
 
     constexpr u64 TTHitAverageWindow{ 4096 };
     constexpr u64 TTHitAverageResolution{ 1024 };
 
+    constexpr i32 MaxMoves{ 256 };
+    Depth Reduction[MaxMoves]{};
+    Depth reduction(Depth d, u08 mc, bool imp) {
+        assert(d >= DEPTH_ZERO);
+        auto r{ Reduction[d] * Reduction[mc] };
+        return Depth((r + 511) / 1024 + (!imp && (r > 1007)));
+    }
+
     /// Futility Move Count
     constexpr i16 futilityMoveCount(Depth d, bool imp) {
         return (4 + nSqr(d)) / (2 - imp);
-    }
-
-    Array<double, 256> cacheLog{};
-    double memoizeLog(i32 x) {
-        if (x == 0
-         || x == 1) return 0;
-        if (//x < cacheLog.size() &&
-            cacheLog[x] == 0.0) {
-            cacheLog[x] = std::log(x);
-        }
-        return cacheLog[x];
-    }
-
-    Depth reduction(Depth d, u08 mc, bool imp) {
-        assert(d >= DEPTH_ZERO);
-        auto r{ Threadpool.reductionFactor * memoizeLog(d) * memoizeLog(mc) };
-        return Depth((r + 511) / 1024 + (!imp && (r > 1007)));
     }
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
@@ -305,13 +296,12 @@ namespace {
         assert(ss->ply >= 1
             && ss->ply == (ss-1)->ply + 1
             && ss->ply < MAX_PLY);
-        //assert(ss->excludedMove == MOVE_NONE);
 
         Move move;
         Move excludedMove{ ss->excludedMove };
         // Transposition table lookup.
         Key key{ pos.posiKey()
-               ^ Key(excludedMove << 16) };
+               ^ Key(excludedMove << 0x10) };
         bool ttHit;
         auto *tte   { excludedMove == MOVE_NONE ?
                         TT.probe(key, ttHit) :
@@ -632,7 +622,8 @@ namespace {
             && ss->ply < MAX_PLY);
 
         assert((ss+1)->excludedMove == MOVE_NONE);
-        (ss+2)->killerMoves.fill(MOVE_NONE);
+        (ss+2)->killerMoves[0] =
+        (ss+2)->killerMoves[1] = MOVE_NONE,
 
         // Initialize stats to zero for the grandchildren of the current position.
         // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
@@ -648,7 +639,7 @@ namespace {
         // a previous full search TT value, so we use a different
         // position key in case of an excluded move.
         Key key{ pos.posiKey()
-               ^ Key(excludedMove << 16) };
+               ^ Key(excludedMove << 0x10) };
         bool ttHit;
         auto *tte   { excludedMove == MOVE_NONE ?
                         TT.probe(key, ttHit) :
@@ -1122,9 +1113,6 @@ namespace {
             if (!rootNode
              && !pos.legal(move)) {
                 ss->moveCount = --moveCount;
-                if (move == ttMove) {
-                    ttmCapture = false;
-                }
                 continue;
             }
 
@@ -1273,10 +1261,10 @@ namespace {
 
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
                     reductDepth +=
-                        +1 * ((ss-0)->stats <= -155
-                           && (ss-1)->stats >= -116)
-                        -1 * ((ss-0)->stats >= -102
-                           && (ss-1)->stats <= -115);
+                        +1 * ( ((ss-0)->stats <= -155
+                             && (ss-1)->stats >= -116)
+                             - ((ss-0)->stats >= -102
+                             && (ss-1)->stats <= -115));
 
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)
                     reductDepth -= i16(ss->stats / 16434);
@@ -1519,6 +1507,16 @@ void Limit::clear() {
     startTime   = 0;
 }
 
+namespace Searcher {
+
+    void initialize() {
+        double r = 24.8 + std::log(Threadpool.size());
+        for (i16 i = 1; i < MaxMoves; ++i) {
+            Reduction[i] = i32(r * std::log(i));
+        }
+    }
+}
+
 /// Thread::search() is thread iterative deepening loop function.
 /// It calls depthSearch() repeatedly with increasing depth until
 /// - Force stop requested.
@@ -1554,7 +1552,7 @@ void Thread::search() {
                         static_cast<MainThread*>(this) : nullptr };
 
     if (mainThread != nullptr) {
-        mainThread->iterValues.fill(
+        std::fill_n(mainThread->iterValues, 4,
             mainThread->bestValue != +VALUE_INFINITE ?
                 mainThread->bestValue : VALUE_ZERO);
     }
@@ -1583,7 +1581,8 @@ void Thread::search() {
         ss->staticEval      = VALUE_ZERO;
         ss->stats           = 0;
         ss->pieceStats      = ssOk ? nullptr : &this->continuationStats[0][0][NO_PIECE][0];
-        ss->killerMoves.fill(MOVE_NONE);
+        ss->killerMoves[0]  =
+        ss->killerMoves[1]  = MOVE_NONE;
         ss->pv              = nullptr;
     }
     ss = stack + 7;
@@ -1796,7 +1795,7 @@ void Thread::search() {
                 mainThread->timeReduction = timeReduction;
 
                 mainThread->iterValues[iterIdx] = bestValue;
-                iterIdx = (iterIdx + 1) & (mainThread->iterValues.size() - 1);
+                iterIdx = (iterIdx + 1) & 3;
             }
         }
     }

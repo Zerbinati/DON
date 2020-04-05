@@ -10,7 +10,7 @@ namespace Pawns {
 
     namespace {
         // Connected pawn bonus
-        constexpr Array<i32, RANKS> Connected{ 0, 7, 8, 12, 29, 48, 86, 0 };
+        constexpr i32 Connected[RANKS] { 0, 7, 8, 12, 29, 48, 86, 0 };
 
     #define S(mg, eg) makeScore(mg, eg)
 
@@ -43,7 +43,9 @@ namespace Pawns {
         sglAttacks [Own] =
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
         dblAttacks [Opp] = pawnDblAttackBB<Opp>(oppPawns);
-        for (Square s : pos.squares(Own|PAWN)) {
+
+        Square const *ss = pos.squares(Own|PAWN);
+        for (Square s = *ss; s != SQ_NONE; s = *++ss) {
             assert(pos[s] == (Own|PAWN));
 
             auto r{ relativeRank(Own, s) };
@@ -54,8 +56,8 @@ namespace Pawns {
             Bitboard phalanxes  { neighbours & rankBB(s) };
             Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
             Bitboard blocker    { stoppers & (s + Push) };
-            Bitboard levers     { stoppers & PawnAttackBB[Own][s] };
-            Bitboard sentres    { stoppers & PawnAttackBB[Own][s + Push] }; // push levers
+            Bitboard levers     { stoppers & PawnAttacksBB[Own][s] };
+            Bitboard sentres    { stoppers & PawnAttacksBB[Own][s + Push] }; // push levers
 
             bool opposed { (stoppers & frontSquaresBB(Own, s)) != 0 };
             // Backward: A pawn is backward when it is behind all pawns of the same color
@@ -74,7 +76,7 @@ namespace Pawns {
             // - Lever there is no stoppers except the levers
             // - Sentry there is no stoppers except the sentres, but we outnumber them
             // - Sneaker there is only one front stopper which can be levered.
-            if ((frontSquaresBB(Own, s) & ownPawns) == 0
+            if ((ownPawns & frontSquaresBB(Own, s)) == 0
              && (// Lever
                  (stoppers == levers)
                  // Lever + Sentry
