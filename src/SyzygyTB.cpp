@@ -175,8 +175,7 @@ namespace {
 
         string filename;
 
-        TBFile(string const &code, string const &ext) {
-            auto file{ code + ext };
+        TBFile(string const &file) {
             filename.clear();
             for (auto &path : Paths) {
                 auto fname{ path + "/" + file }; //appendPath(path, file);
@@ -465,7 +464,7 @@ namespace {
 
             // Ensure last element is empty to avoid overflow when looking up
             for (u32 bucket = homeBucket; bucket < Size; ++bucket) {
-                Key omatlKey = std::get<KEY>(entryTable[bucket]);
+                Key omatlKey{ std::get<KEY>(entryTable[bucket]) };
                 if (omatlKey == matlKey
                 || !std::get<WDL>(entryTable[bucket])) {
                     entryTable[bucket] = entry;
@@ -490,7 +489,7 @@ namespace {
 
         template<TBType Type>
         TBTable<Type>* get(Key matlKey) {
-            Entry const *entry = &entryTable[matlKey & (Size - 1)];
+            Entry const *entry{ &entryTable[matlKey & (Size - 1)] };
             while (true) {
                 if ( std::get<KEY>(*entry) == matlKey
                  || !std::get<Type>(*entry)) {
@@ -520,7 +519,8 @@ namespace {
             }
 
             string code{ oss.str() };
-            TBFile file{ code.insert(code.find('K', 1), "v"), ".rtbw" };
+            code.insert(code.find('K', 1), "v");
+            TBFile file{ code + ".rtbw" };
             if (file.filename.empty()) { // Only WDL file is checked
                 return;
             }
@@ -1290,9 +1290,8 @@ namespace {
         }
 
         string code{ pos.matlKey() == e.matlKey1 ? w + 'v' + b : b + 'v' + w };
-        string ext{ Type == WDL ? ".rtbw" : ".rtbz" };
 
-        u08 *data{ TBFile{ code, ext }.map(&e.baseAddress, &e.mapping, Type) };
+        u08 *data{ TBFile{ code + (Type == WDL ? ".rtbw" : ".rtbz") }.map(&e.baseAddress, &e.mapping, Type) };
         if (data != nullptr) {
             set(e, data);
         }
@@ -1311,7 +1310,7 @@ namespace {
             return Ret(WDL_DRAW);
         }
 
-        TBTable<Type> *entry = TBTables.get<Type>(pos.matlKey());
+        TBTable<Type> *entry{ TBTables.get<Type>(pos.matlKey()) };
 
         if (entry == nullptr
          || mapped(*entry, pos) == nullptr) {

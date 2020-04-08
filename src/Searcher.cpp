@@ -92,10 +92,10 @@ namespace {
     constexpr u64 TTHitAverageResolution{ 1024 };
 
     constexpr i32 MaxMoves{ 256 };
-    Depth Reduction[MaxMoves]{};
-    Depth reduction(Depth d, u08 mc, bool imp) {
+    i32 Reduction[MaxMoves]{};
+    inline Depth reduction(Depth d, u08 mc, bool imp) {
         assert(d >= DEPTH_ZERO);
-        auto r{ Reduction[d] * Reduction[mc] };
+        i32 r{ Reduction[d] * Reduction[mc] };
         return Depth((r + 511) / 1024 + (!imp && (r > 1007)));
     }
 
@@ -300,8 +300,8 @@ namespace {
         Move move;
         Move excludedMove{ ss->excludedMove };
         // Transposition table lookup.
-        Key key{ pos.posiKey()
-               ^ Key(excludedMove << 0x10) };
+        Key key     { pos.posiKey()
+                    ^ Key(excludedMove) };
         bool ttHit;
         auto *tte   { excludedMove == MOVE_NONE ?
                         TT.probe(key, ttHit) :
@@ -333,7 +333,6 @@ namespace {
          && !pos.pseudoLegal(ttMove)) {
             ttMove = MOVE_NONE;
         }
-
 
         Value bestValue
             , futilityBase;
@@ -574,7 +573,7 @@ namespace {
 
         // Check for the available remaining limit
         if (thread == Threadpool.mainThread()) {
-            static_cast<MainThread*>(thread)->doTick();
+            static_cast<MainThread*>(thread)->tick();
         }
 
         if (PVNode) {
@@ -638,8 +637,8 @@ namespace {
         // Don't want the score of a partial search to overwrite
         // a previous full search TT value, so we use a different
         // position key in case of an excluded move.
-        Key key{ pos.posiKey()
-               ^ Key(excludedMove << 0x10) };
+        Key key     { pos.posiKey()
+                    ^ Key(excludedMove) };
         bool ttHit;
         auto *tte   { excludedMove == MOVE_NONE ?
                         TT.probe(key, ttHit) :
@@ -687,8 +686,7 @@ namespace {
                                tte->bound() & BOUND_UPPER)) {
             if (ttMove != MOVE_NONE) {
                 // Update move sorting heuristics on ttMove
-                if (!pos.captureOrPromotion(ttMove)
-                 && contains(pos.pieces(activeSide), orgSq(ttMove))) {
+                if (!pos.captureOrPromotion(ttMove)) {
                     auto bonus{ statBonus(depth) };
                     // Bonus for a quiet ttMove that fails high
                     if (ttValue >= beta) {
@@ -730,7 +728,7 @@ namespace {
 
                 // Force check of time on the next occasion
                 if (thread == Threadpool.mainThread()) {
-                    static_cast<MainThread*>(thread)->setTicks(1);
+                    static_cast<MainThread*>(thread)->tickCount = 0;
                 }
 
                 if (probeState != SyzygyTB::ProbeState::PS_FAILURE) {
@@ -831,7 +829,8 @@ namespace {
             }
 
             improving = (ss-2)->staticEval != VALUE_NONE ? ss->staticEval > (ss-2)->staticEval :
-                        (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval : true;
+                        (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval :
+                        (ss-6)->staticEval != VALUE_NONE ? ss->staticEval > (ss-6)->staticEval : true;
 
             // Step 8. Futility pruning: child node (~50 ELO)
             // Betting that the opponent doesn't have a move that will reduce
@@ -852,7 +851,8 @@ namespace {
              && (ss-1)->stats < 23397
              && eval >= ss->staticEval
              && ss->staticEval >= beta - 32 * depth - 30 * improving + 120 * ttPV + 292
-             && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
+             && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
+             && pos.count(activeSide) >= 3
              && excludedMove == MOVE_NONE
              && (thread->nmpPly <= ss->ply
               || thread->nmpColor != activeSide)
@@ -911,6 +911,7 @@ namespace {
              && abs(beta) < +VALUE_MATE_2_MAX_PLY
              && Limits.mate == 0) {
                 auto raisedBeta{ beta - 45 * improving + 189 };
+                assert(raisedBeta < +VALUE_INFINITE);
 
                 u08 probMoveCount{ 0 };
                 // Initialize move-picker(3) for the current position
@@ -1076,30 +1077,43 @@ namespace {
                 moveCountPruning = (moveCount >= futilityMoveCount(depth, improving));
                 movePicker.pickQuiets = !moveCountPruning;
 
-                if (giveCheck
-                 || captureOrPromotion) {
+                // Reduced depth of the next LMR search.
+                i16 lmrDepth = std::max(newDepth - reduction(depth, moveCount, improving), 0);
+
+                if (giveCheck) {
+
+                    // SEE based pruning: negative SEE (~25 ELO)
+                    if (!pos.see(move, Value(-194 * depth))) {
+                        continue;
+                    }
+                }
+                else
+                if (captureOrPromotion) {
+
+                    if (lmrDepth <= 0
+                     && thread->captureStats[mp][dst][pos.captured(move)] < 0) {
+                        continue;
+                    }
                     // SEE based pruning: negative SEE (~25 ELO)
                     if (!pos.see(move, Value(-194 * depth))) {
                         continue;
                     }
                 }
                 else {
-                    // Reduced depth of the next LMR search.
-                    i16 lmrDepth = std::max(newDepth - reduction(depth, moveCount, improving), 0);
 
                     // Counter moves based pruning: (~20 ELO)
-                    if (lmrDepth < (4 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1))
+                    if (lmrDepth <= (3 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1))
                      && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
                      && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
                         continue;
                     }
                     // Futility pruning: parent node. (~5 ELO)
-                    if (!inCheck
-                     && lmrDepth < 6
+                    if (lmrDepth <= 5
+                     && !inCheck
                      && ss->staticEval + 172 * lmrDepth + 235 <= alfa
-                     && (*pieceStats[0])[mp][dst]
-                      + (*pieceStats[1])[mp][dst]
-                      + (*pieceStats[3])[mp][dst] < 27400) {
+                     && ((*pieceStats[0])[mp][dst]
+                       + (*pieceStats[1])[mp][dst]
+                       + (*pieceStats[3])[mp][dst] < 27400)) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
@@ -1136,7 +1150,7 @@ namespace {
              && depth < (tte->depth() + 4)) {
 
                 auto singularBeta{ ttValue - ((4 + pastPV) * depth) / 2 };
-                auto singularDepth{ (depth + 3 * pastPV - 1) / 2 };
+                auto singularDepth{ Depth((depth + 3 * pastPV - 1) / 2) };
 
                 ss->excludedMove = move;
                 value = depthSearch<false>(pos, ss, singularBeta-1, singularBeta, singularDepth, cutNode);
@@ -1279,7 +1293,7 @@ namespace {
             }
             else {
                 doFullSearch = !PVNode
-                            || moveCount > 1;
+                            || moveCount >= 2;
             }
 
             // Step 17. Full depth search when LMR is skipped or fails high.
@@ -1343,7 +1357,7 @@ namespace {
                     // Record how often the best move has been changed in each iteration.
                     // This information is used for time management:
                     // When the best move changes frequently, allocate some more time.
-                    if (moveCount > 1
+                    if (moveCount >= 2
                      && Limits.useTimeMgmt()) {
                         ++thread->pvChange;
                     }
@@ -1557,6 +1571,7 @@ void Thread::search() {
                 mainThread->bestValue : VALUE_ZERO);
     }
 
+    double timeReduction{ 1.0 };
     i16 iterIdx{ 0 };
     double pvChangeSum{ 0.0 };
     i16 researchCount{ 0 };
@@ -1600,7 +1615,7 @@ void Thread::search() {
         if (mainThread != nullptr
          && Limits.useTimeMgmt()) {
             // Age out PV variability metric
-            pvChangeSum *= 0.5;
+            pvChangeSum /= 2;
         }
 
         // Save the last iteration's values before first PV line is searched and
@@ -1609,6 +1624,10 @@ void Thread::search() {
 
         pvBeg = 0;
         pvEnd = 0;
+
+        if (Threadpool.research) {
+            ++researchCount;
+        }
 
         // MultiPV loop. Perform a full root search for each PV line.
         for (pvCur = 0; pvCur < PVCount && !Threadpool.stop; ++pvCur) {
@@ -1640,10 +1659,6 @@ void Thread::search() {
                 contempt = rootPos.activeSide() == WHITE ?
                             +makeScore(dc, dc / 2) :
                             -makeScore(dc, dc / 2);
-            }
-
-            if (Threadpool.research) {
-                ++researchCount;
             }
 
             i16 failHighCount{ 0 };
@@ -1690,7 +1705,7 @@ void Thread::search() {
                 }
                 else
                 // If fail high set new bounds.
-                if (beta <= bestValue) {
+                if (bestValue >= beta) {
                     // NOTE:: Don't change alfa = (alfa + beta) / 2
                     beta = std::min(bestValue + window, +VALUE_INFINITE);
 
@@ -1712,7 +1727,7 @@ void Thread::search() {
 
             if (mainThread != nullptr
              && (Threadpool.stop
-              || PVCount - 1 == pvCur
+              || PVCount == pvCur + 1
               || TimeMgr.elapsed() > 3000)) {
                 sync_cout << multipvInfo(mainThread, rootDepth, alfa, beta) << sync_endl;
             }
@@ -1751,7 +1766,7 @@ void Thread::search() {
 
                 // Reduce time if the bestMove is stable over 10 iterations
                 // Time Reduction factor
-                double timeReduction{ 0.91 + 1.03 * ((finishedDepth - mainThread->bestDepth) > 9) };
+                timeReduction = 0.91 + 1.03 * ((finishedDepth - mainThread->bestDepth) > 9);
                 // Reduction factor - Use part of the gained time from a previous stable move for the current move
                 double reduction{ (1.41 + mainThread->timeReduction) / (2.27 * timeReduction) };
                 // Eval Falling factor
@@ -1791,13 +1806,18 @@ void Thread::search() {
                         Threadpool.research = true;
                     }
                 }
-
-                mainThread->timeReduction = timeReduction;
+                //else {
+                //    Threadpool.research = false;
+                //}
 
                 mainThread->iterValues[iterIdx] = bestValue;
                 iterIdx = (iterIdx + 1) & 3;
             }
         }
+    }
+
+    if (mainThread != nullptr) {
+        mainThread->timeReduction = timeReduction;
     }
 }
 
@@ -1945,19 +1965,19 @@ void MainThread::search() {
     std::cout << sync_endl;
 }
 
-/// MainThread::doTick() is used as timer function.
+/// MainThread::tick() is used as timer function.
 /// Used to detect when out of available limit and thus stop the search, also print debug info.
-void MainThread::doTick() {
+void MainThread::tick() {
     static TimePoint InfoTime{ now() };
 
-    if (--_ticks > 0) {
+    if (--tickCount > 0) {
         return;
     }
     // When using nodes, ensure checking rate is in range [1, 1024]
-    setTicks(i16(Limits.nodes != 0 ? clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024));
+    tickCount = i16(Limits.nodes != 0 ? clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024);
 
     auto elapsed{ TimeMgr.elapsed() };
-    auto time = Limits.startTime + elapsed;
+    auto time{ Limits.startTime + elapsed };
 
     if (InfoTime + 1000 <= time) {
         InfoTime = time;

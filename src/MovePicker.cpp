@@ -49,6 +49,7 @@ MovePicker::MovePicker(
     lowPlyStats{ lpStats },
     captureStats{ cStats },
     pieceStats{ pStats },
+    ttMove { ttm },
     depth{ d },
     ply { sp },
     refutationMoves{ km[0], km[1], cm } {
@@ -57,9 +58,8 @@ MovePicker::MovePicker(
     assert(depth > DEPTH_ZERO);
     assert(pickQuiets);
 
-    ttMove = ttm;
     stage = (pos.checkers() != 0 ? EVASION_TT : NORMAL_TT)
-          + (ttMove == MOVE_NONE);
+          + !(ttMove != MOVE_NONE);
 }
 
 /// MovePicker constructor for quiescence search
@@ -75,6 +75,7 @@ MovePicker::MovePicker(
     butterFlyStats{ bfStats },
     captureStats{ cStats },
     pieceStats{ pStats },
+    ttMove { ttm },
     depth{ d },
     recapSq{ rs } {
     assert(ttm == MOVE_NONE
@@ -82,12 +83,10 @@ MovePicker::MovePicker(
     assert(depth <= DEPTH_QS_CHECK);
     assert(pickQuiets);
 
-    ttMove = ttm != MOVE_NONE
-          && (depth > DEPTH_QS_RECAP
-           || dstSq(ttm) == recapSq) ?
-                ttm : MOVE_NONE;
     stage = (pos.checkers() != 0 ? EVASION_TT : QUIESCENCE_TT)
-          + (ttMove == MOVE_NONE);
+          + !(ttMove != MOVE_NONE
+           && (depth > DEPTH_QS_RECAP
+            || dstSq(ttMove) == recapSq));
 }
 
 /// MovePicker constructor for ProbCut search.
@@ -98,6 +97,7 @@ MovePicker::MovePicker(
     Move ttm, Depth d, Value thr) :
     pos{ p },
     captureStats{ cStats },
+    ttMove { ttm },
     depth{ d },
     threshold{ thr } {
     assert(ttm == MOVE_NONE
@@ -105,12 +105,10 @@ MovePicker::MovePicker(
     assert(pos.checkers() == 0);
     assert(pickQuiets);
 
-    ttMove = ttm != MOVE_NONE
-          && pos.capture(ttm)
-          && pos.see(ttm, threshold) ?
-                ttm : MOVE_NONE;
     stage = PROBCUT_TT
-          + (ttMove == MOVE_NONE);
+          + !(ttMove != MOVE_NONE
+           && pos.capture(ttMove)
+           && pos.see(ttMove, threshold));
 }
 
 

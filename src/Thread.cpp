@@ -47,14 +47,14 @@
 
 ThreadPool Threadpool;
 
-/// Thread constructor launches the thread and waits until it goes to sleep in idleFunction().
+/// Thread constructor launches the thread and waits until it goes to sleep in threadFunc().
 /// Note that 'busy' and 'dead' should be already set.
 Thread::Thread(u16 index) :
     _index(index),
-    _nativeThread(&Thread::idleFunction, this) {
+    _nativeThread(&Thread::threadFunc, this) {
     waitIdle();
 }
-/// Thread destructor wakes up the thread in idleFunction() and waits for its termination.
+/// Thread destructor wakes up the thread in threadFunc() and waits for its termination.
 /// Thread should be already waiting.
 Thread::~Thread() {
     assert(!_busy);
@@ -66,16 +66,16 @@ Thread::~Thread() {
 void Thread::wakeUp() {
     std::lock_guard<std::mutex> lockGuard(_mutex);
     _busy = true;
-    _conditionVar.notify_one(); // Wake up the thread in idleFunction()
+    _conditionVar.notify_one(); // Wake up the thread in threadFunc()
 }
 /// Thread::waitIdle() blocks on the condition variable while the thread is busy.
 void Thread::waitIdle() {
     std::unique_lock<std::mutex> uniqueLock(_mutex);
     _conditionVar.wait(uniqueLock, [&]{ return !_busy; });
 }
-/// Thread::idleFunction() is where the thread is parked.
+/// Thread::threadFunc() is where the thread is parked.
 /// Blocked on the condition variable, when it has no work to do.
-void Thread::idleFunction() {
+void Thread::threadFunc() {
     // If OS already scheduled us on a different group than 0 then don't overwrite
     // the choice, eventually we are one of many one-threaded processes running on
     // some Windows NUMA hardware, for instance in fishtest. To make it simple,
@@ -86,6 +86,7 @@ void Thread::idleFunction() {
     }
 
     while (true) {
+        {
         std::unique_lock<std::mutex> uniqueLock(_mutex);
         _busy = false;
         _conditionVar.notify_one(); // Wake up anyone waiting for search finished
@@ -93,7 +94,7 @@ void Thread::idleFunction() {
         if (_dead) {
             return;
         }
-        uniqueLock.unlock();
+        } //uniqueLock.unlock();
         search();
     }
 }
@@ -114,19 +115,14 @@ void Thread::clear() {
         }
     }
 
-    kingHash.clear();
-    matlHash.clear();
-    pawnHash.clear();
+    //kingHash.clear();
+    //matlHash.clear();
+    //pawnHash.clear();
 }
 
-void MainThread::setTicks(i16 tc) {
-    _ticks = tc;
-}
 /// MainThread::clear()
 void MainThread::clear() {
     Thread::clear();
-
-    setTicks(1);
 
     bestValue = +VALUE_INFINITE;
     timeReduction = 1.00;
@@ -191,7 +187,7 @@ Thread* ThreadPool::bestThread() const
 }
 
 /// ThreadPool::setSize() creates/destroys threads to match the requested number.
-/// Created and launched threads will immediately go to sleep in idleFunction.
+/// Created and launched threads will immediately go to sleep in threadFunc.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::setup(u16 threadCount) {
     stop = true;
@@ -227,7 +223,7 @@ void ThreadPool::clean() {
     }
 }
 
-/// ThreadPool::startThinking() wakes up main thread waiting in idleFunction() and returns immediately.
+/// ThreadPool::startThinking() wakes up main thread waiting in threadFunc() and returns immediately.
 /// Main thread will wake up other threads and start the search.
 void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
 

@@ -98,7 +98,7 @@ public:
     void wakeUp();
     void waitIdle();
 
-    void idleFunction();
+    void threadFunc();
 
     virtual void clear();
     virtual void search();
@@ -107,9 +107,6 @@ public:
 /// MainThread class is derived from Thread class used specific for main thread.
 class MainThread :
     public Thread {
-
-private:
-    i16  _ticks;
 
 public:
     using Base::Base;
@@ -123,9 +120,9 @@ public:
 
     Move bestMove;
     i16  bestDepth;
+    i16  tickCount;
 
-    void setTicks(i16);
-    void doTick();
+    void tick();
 
     void clear() override final;
     void search() override final;

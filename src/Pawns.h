@@ -8,12 +8,12 @@ namespace Pawns {
     /// Pawns::Entry contains information about Pawn structure.
     struct Entry {
 
-        Key key;
+        Key      key;
 
-        i32 complexity;
-        bool pawnNotBothFlank;
+        i32      complexity;
+        bool     pawnNotBothFlank;
 
-        Score score[COLORS];
+        Score    score[COLORS];
 
         Bitboard sglAttacks[COLORS];
         Bitboard dblAttacks[COLORS];

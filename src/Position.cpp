@@ -671,7 +671,9 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     //    It starts at 1, and is incremented after Black's move.
 
     std::memset(this, 0, sizeof (*this));
-    std::fill_n(pieceSquare[0], PIECES*12, SQ_NONE);
+    std::fill_n(*pieceSquare, PIECES*12, SQ_NONE);
+    std::fill_n(*cslRookSq, COLORS*CASTLE_SIDES, SQ_NONE);
+
     std::memset(&si, 0, sizeof (si));
     _stateInfo = &si;
 
@@ -1376,7 +1378,8 @@ bool Position::ok() const {
         for (CastleSide cs : { CS_KING, CS_QUEN }) {
             auto cr{ makeCastleRight(c, cs) };
             if (canCastle(c, cs)
-             && (board[castleRookSq(c, cs)] != (c|ROOK)
+             && (castleRookSq(c, cs) == SQ_NONE
+              || board[castleRookSq(c, cs)] != (c|ROOK)
               ||  sqCastleRight[castleRookSq(c, cs)] != cr
               || (sqCastleRight[square(c|KING)] & cr) != cr)) {
                 assert(false && "Position OK: CASTLING");

@@ -175,7 +175,8 @@ namespace {
          || GT == NORMAL) {
             if (pos.canCastle(activeSide)) {
                 for (CastleSide cs : { CS_KING, CS_QUEN }) {
-                    if (pos.castleExpeded(activeSide, cs)
+                    if (pos.castleRookSq(activeSide, cs) != SQ_NONE
+                     && pos.castleExpeded(activeSide, cs)
                      && pos.canCastle(activeSide, cs)) {
                         moves += makeMove<CASTLE>(fkSq, pos.castleRookSq(activeSide, cs));
                     }

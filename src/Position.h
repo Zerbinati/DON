@@ -77,7 +77,7 @@ private:
 
     Value npMaterial[COLORS];
 
-    Square cslRookSq[COLORS][CASTLE_SIDES];
+    Square   cslRookSq[COLORS][CASTLE_SIDES];
     Bitboard cslKingPath[COLORS][CASTLE_SIDES];
     Bitboard cslRookPath[COLORS][CASTLE_SIDES];
     CastleRight sqCastleRight[SQUARES];
@@ -85,9 +85,9 @@ private:
     Color active;
     Score psq;
     i16   ply;
-    Thread *_thread;
 
     StateInfo *_stateInfo;
+    Thread    *_thread;
 
     void placePiece(Square, Piece);
     void removePiece(Square);

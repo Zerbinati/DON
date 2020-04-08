@@ -27,7 +27,7 @@ namespace Evaluator {
 
         public:
             static void clear() {
-                std::fill_n(&Scores[0][0], sizeof (Scores) / sizeof (Score), SCORE_ZERO);
+                std::fill_n(*Scores, TERM_NO*COLORS, SCORE_ZERO);
             }
 
             static void write(Term t, Color c, Score s) {
@@ -418,21 +418,23 @@ namespace Evaluator {
                                & ~kingBlockers };
                     dblAttacks[Own] |= sqlAttacks[Own][NONE]
                                      & (attacks
-                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pc & pos.pieces(BSHP) & PieceAttacksBB[BSHP][s])) & action)
-                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pc & pos.pieces(ROOK) & PieceAttacksBB[ROOK][s])) & action));
+                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & pc & PieceAttacksBB[BSHP][s])) & action)
+                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & pc & PieceAttacksBB[ROOK][s])) & action));
 
                     queenAttacked[Own][0] |= pos.attacksFrom(NIHT, s);
                     queenAttacked[Own][1] |= pos.attacksFrom(BSHP, s);
                     queenAttacked[Own][2] |= pos.attacksFrom(ROOK, s);
 
                     // Penalty for pin or discover attack on the queen
-                    b = 0; // Queen attackers
-                    Bitboard queenBlockers{  pos.sliderBlockersAt(s, pos.pieces(Opp, BSHP, ROOK), b, b)
-                                          & ~(  pos.kingBlockers(Opp)
-                                            | ( pos.pieces(Opp, PAWN)
-                                             &  fileBB(s)
-                                             & ~pawnSglAttackBB<Own>(pos.pieces(Own)))) };
-                    if (queenBlockers != 0) {
+                    // Queen attackers
+                    b =  pos.pieces(Opp, BSHP, ROOK)
+                      & ~(pos.kingBlockers(Opp)
+                        | sqlAttacks[Own][PAWN]);
+                    if ((pos.sliderBlockersAt(s, b, b, b)
+                      & ~(  pos.kingBlockers(Opp)
+                        | ( pos.pieces(Opp, PAWN)
+                         &  fileBB(s)
+                         & ~pawnSglAttackBB<Own>(pos.pieces(Own))))) != 0) {
                         score -= QueenAttacked;
                     }
                 }
@@ -469,17 +471,19 @@ namespace Evaluator {
             i32 kingDanger{ 0 };
 
             // Attacked squares defended at most once by friend queen or king
-            Bitboard weakArea{ sqlAttacks[Opp][NONE]
-                             & ~dblAttacks[Own]
-                             & (~sqlAttacks[Own][NONE]
-                              |  sqlAttacks[Own][QUEN]
-                              |  sqlAttacks[Own][KING]) };
+            Bitboard weakArea{
+                 sqlAttacks[Opp][NONE]
+              & ~dblAttacks[Own]
+              & (~sqlAttacks[Own][NONE]
+               |  sqlAttacks[Own][QUEN]
+               |  sqlAttacks[Own][KING]) };
 
             // Safe squares where enemy's safe checks are possible on next move
-            Bitboard safeArea{ ~pos.pieces(Opp)
-                             & (~sqlAttacks[Own][NONE]
-                              | (weakArea
-                               & dblAttacks[Opp])) };
+            Bitboard safeArea{
+                 ~pos.pieces(Opp)
+              & (~sqlAttacks[Own][NONE]
+               | (weakArea
+                & dblAttacks[Opp])) };
 
             Bitboard unsafeCheck{ 0 };
 
@@ -590,29 +594,30 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::threats() const {
             constexpr auto Opp{ ~Own };
+            constexpr Bitboard Rank3{ RankBB[relativeRank(Own, RANK_3)] };
 
             Score score{ SCORE_ZERO };
 
             // Squares defended by the opponent,
             // - defended the square with a pawn
             // - defended the square twice and not attacked twice.
-            Bitboard defendedArea =
+            Bitboard defendedArea{
                 sqlAttacks[Opp][PAWN]
               | ( dblAttacks[Opp]
-               & ~dblAttacks[Own]);
+               & ~dblAttacks[Own]) };
             // Enemy non-pawns
-            Bitboard nonPawnsEnemies =
+            Bitboard nonPawnsEnemies{
                 pos.pieces(Opp)
-             & ~pos.pieces(PAWN);
+             & ~pos.pieces(PAWN) };
             // Enemy not defended and under attacked by any friend piece
-            Bitboard attackedUndefendedEnemies =
+            Bitboard attackedUndefendedEnemies{
                 pos.pieces(Opp)
              & ~defendedArea
-             &  sqlAttacks[Own][NONE];
+             &  sqlAttacks[Own][NONE] };
             // Non-pawn enemies, defended by enemies
-            Bitboard defendedNonPawnsEnemies =
+            Bitboard defendedNonPawnsEnemies{
                 nonPawnsEnemies
-              & defendedArea;
+              & defendedArea };
 
             Bitboard b;
 
@@ -665,15 +670,18 @@ namespace Evaluator {
             score += PieceRestricted * popCount(b);
 
             // Defended or Unattacked squares
-            Bitboard safeArea =
-                sqlAttacks[Own][NONE]
-             | ~sqlAttacks[Opp][NONE];
+            Bitboard safeArea{
+                ~sqlAttacks[Opp][NONE]
+              | (sqlAttacks[Own][NONE]
+               & ~dblAttacks[Opp])
+              | dblAttacks[Own] };
+
             // Safe friend pawns
             b =  safeArea
               &  pos.pieces(Own, PAWN);
             // Safe friend pawns attacks on non-pawn enemies
-            b =  pawnSglAttackBB<Own>(b)
-              &  nonPawnsEnemies;
+            b =  nonPawnsEnemies
+              &  pawnSglAttackBB<Own>(b);
             score += PawnThreat * popCount(b);
 
             // Friend pawns who can push on the next move
@@ -682,7 +690,7 @@ namespace Evaluator {
             // Friend pawns push (squares where friend pawns can push on the next move)
             b =  pawnSglPushBB<Own>(b)
               & ~pos.pieces();
-            b |= pawnSglPushBB<Own>(b & RankBB[relativeRank(Own, RANK_3)])
+            b |= pawnSglPushBB<Own>(b & Rank3)
               & ~pos.pieces();
             // Friend pawns push safe (only the squares which are relatively safe)
             b &= safeArea
