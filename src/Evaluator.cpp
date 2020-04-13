@@ -414,12 +414,12 @@ namespace Evaluator {
                 }
                 if (PT == QUEN) {
 
-                    Bitboard pc{  pos.pieces(Own)
-                               & ~kingBlockers };
+                    b =  pos.pieces(Own)
+                      & ~kingBlockers;
                     dblAttacks[Own] |= sqlAttacks[Own][NONE]
-                                     & (attacks
-                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & pc & PieceAttacksBB[BSHP][s])) & action)
-                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & pc & PieceAttacksBB[ROOK][s])) & action));
+                                     & ( attacks
+                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & b & PieceAttacksBB[BSHP][s])) & action)
+                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & b & PieceAttacksBB[ROOK][s])) & action));
 
                     queenAttacked[Own][0] |= pos.attacksFrom(NIHT, s);
                     queenAttacked[Own][1] |= pos.attacksFrom(BSHP, s);
@@ -428,8 +428,7 @@ namespace Evaluator {
                     // Penalty for pin or discover attack on the queen
                     // Queen attackers
                     b =  pos.pieces(Opp, BSHP, ROOK)
-                      & ~(pos.kingBlockers(Opp)
-                        | sqlAttacks[Own][PAWN]);
+                      & ~pos.kingBlockers(Opp);
                     if ((pos.sliderBlockersAt(s, b, b, b)
                       & ~(  pos.kingBlockers(Opp)
                         | ( pos.pieces(Opp, PAWN)
@@ -734,9 +733,9 @@ namespace Evaluator {
 
             Score score{ SCORE_ZERO };
 
-            Square const *ps{ pawnEntry->passSquare[Own] };
-            Square s;
-            while ((s = *ps++) != SQ_NONE) {
+            Bitboard passPawns{ pawnEntry->passPawns[Own] };
+            while (passPawns != 0) {
+                auto s{ popLSq(passPawns) };
                 assert((pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) == 0
                     && (pos.pieces(Opp, PAWN)
                       & (pawnSglPushBB<Own>(frontSquaresBB(Own, s))
@@ -857,8 +856,8 @@ namespace Evaluator {
             // Now apply the bonus: note that we find the attacking side by extracting the
             // sign of the midgame or endgame values, and that we carefully cap the bonus
             // so that the midgame and endgame scores do not change sign after the bonus.
-            Score score{ makeScore(sign(mg) * clamp(complexity + 50, -abs(mg), 0),
-                                   sign(eg) * std::max(complexity, -abs(eg))) };
+            Score score{ makeScore(sign(mg) * clamp(complexity + 50, -std::abs(mg), 0),
+                                   sign(eg) * std::max(complexity, -std::abs(eg))) };
 
             if (Trace) {
                 Tracer::write(INITIATIVE, score);
@@ -921,7 +920,7 @@ namespace Evaluator {
 
             // Early exit if score is high
             Value v{ (mgValue(score) + egValue(score)) / 2 };
-            if (abs(v) > (VALUE_LAZY_THRESHOLD
+            if (std::abs(v) > (VALUE_LAZY_THRESHOLD
                         + pos.nonPawnMaterial() / 64)) {
                 return pos.activeSide() == WHITE ? +v : -v;
             }

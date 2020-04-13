@@ -51,8 +51,7 @@ public:
     std::atomic<u32>
         pvChange;
 
-    i16   nmpPly;
-    Color nmpColor;
+    i16   nmpPly[COLORS];
 
     u16
         pvBeg,
@@ -111,7 +110,7 @@ class MainThread :
 public:
     using Base::Base;
 
-    bool stopOnPonderhit;       // Stop search on ponderhit
+    bool stopOnPonderHit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
 
     Value  bestValue;

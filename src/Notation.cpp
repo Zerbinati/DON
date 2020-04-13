@@ -60,7 +60,7 @@ string toString(Value v) {
     assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
 
     std::ostringstream oss;
-    if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
+    if (std::abs(v) < +VALUE_MATE_1_MAX_PLY) {
         oss << "cp " << i32(toCP(v));
     }
     else {
@@ -202,7 +202,7 @@ namespace {
     string prettyValue(Value v) {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
         std::ostringstream oss;
-        if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
+        if (std::abs(v) < +VALUE_MATE_1_MAX_PLY) {
             oss << std::showpos << std::fixed << std::setprecision(2)
                 << toCP(v) / 100;
         }

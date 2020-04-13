@@ -230,7 +230,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     stop = false;
     research = false;
 
-    mainThread()->stopOnPonderhit = false;
+    mainThread()->stopOnPonderHit = false;
     mainThread()->ponder = Limits.ponder;
 
     RootMoves rootMoves;
@@ -260,8 +260,8 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->nodes           = 0;
         th->tbHits          = 0;
         th->pvChange        = 0;
-        th->nmpPly          = 0;
-        th->nmpColor        = COLORS;
+        th->nmpPly[WHITE]   = 0;
+        th->nmpPly[BLACK]   = 0;
         th->lowPlyStats.fill(0);
         th->rootMoves       = rootMoves;
         th->rootPos.setup(fen, _states->back(), th);

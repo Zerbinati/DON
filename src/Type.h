@@ -132,7 +132,6 @@ enum Direction : i08 {
 using Depth = i16;
 
 constexpr Depth DEPTH_ZERO       {  0 };
-constexpr Depth DEPTH_ONE        {  1 };
 constexpr Depth DEPTH_QS_CHECK   {  0 };
 constexpr Depth DEPTH_QS_NO_CHECK{ -1 };
 constexpr Depth DEPTH_QS_RECAP   { -5 };

@@ -436,7 +436,7 @@ Perft perft(Position &pos, Depth depth, bool detail) {
     for (auto const &vm : MoveList<LEGAL>(pos)) {
         Perft leaf;
         if (RootNode
-         && depth <= DEPTH_ONE) {
+         && depth <= 1) {
             ++leaf.any;
             if (detail) {
                 leaf.classify(pos, vm);
@@ -446,7 +446,7 @@ Perft perft(Position &pos, Depth depth, bool detail) {
             StateInfo si;
             pos.doMove(vm, si);
 
-            if (depth <= 2 * DEPTH_ONE) {
+            if (depth <= 2) {
                 for (auto &ivm : MoveList<LEGAL>(pos)) {
                     ++leaf.any;
                     if (detail) {

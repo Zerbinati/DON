@@ -208,7 +208,7 @@ ifeq ($(COMP), clang)
 	CXX = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
-	ifneq ($(filter $(KERNEL), Darwin OpenBSD), )
+	ifneq ( , $(filter $(KERNEL), Darwin OpenBSD))
 		LDFLAGS += -latomic
 	endif
 

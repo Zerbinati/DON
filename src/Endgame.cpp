@@ -117,7 +117,7 @@ template<> Value Endgame<KBNK>::operator()(Position const &pos) const {
               + VALUE_EG_NIHT
               + pushClose(skSq, wkSq)
               + pushToCorner(colorOpposed(sbSq, SQ_A1) ? flipFile(wkSq) : wkSq) };
-    assert(abs(value) < +VALUE_MATE_2_MAX_PLY);
+    assert(value < +VALUE_MATE_2_MAX_PLY);
     return pos.activeSide() == stngColor ? +value : -value;
 }
 

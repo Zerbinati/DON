@@ -225,7 +225,7 @@ namespace {
         for (u16 i = 0; i < PVCount; ++i)
         {
             bool updated{ th->rootMoves[i].newValue != -VALUE_INFINITE };
-            if (depth == DEPTH_ONE
+            if (depth == 1
              && !updated) {
                 continue;
             }
@@ -235,14 +235,14 @@ namespace {
                     th->rootMoves[i].oldValue };
 
             bool tb{ SyzygyTB::HasRoot
-                  && abs(v) < +VALUE_MATE_1_MAX_PLY };
+                  && std::abs(v) < +VALUE_MATE_1_MAX_PLY };
             v = tb ? th->rootMoves[i].tbValue : v;
 
             //if (oss.rdbuf()->in_avail()) // Not at first line
             //    oss << "\n";
             oss << std::setfill('0')
                 << "info"
-                << " depth "    << std::setw(2) << (updated ? depth : depth - DEPTH_ONE)
+                << " depth "    << std::setw(2) << (updated ? depth : depth - 1)
                 << " seldepth " << std::setw(2) << th->rootMoves[i].selDepth
                 << " multipv "  << i + 1
                 << std::setfill(' ')
@@ -415,7 +415,8 @@ namespace {
         // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
         while ((move = movePicker.nextMove()) != MOVE_NONE) {
             assert(isOk(move)
-                && (inCheck || pos.pseudoLegal(move)));
+                && (inCheck
+                 || pos.pseudoLegal(move)));
 
             if (move == excludedMove) {
                 continue;
@@ -488,7 +489,7 @@ namespace {
             ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mp][dst];
             // Do the move
             pos.doMove(move, si, giveCheck);
-            auto value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - DEPTH_ONE) };
+            auto value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - 1) };
             // Undo the move
             pos.undoMove(move);
 
@@ -822,7 +823,7 @@ namespace {
 
             // Step 7. Razoring (~1 ELO)
             if (!rootNode // The RootNode PV handling is not available in qsearch
-             && depth == DEPTH_ONE
+             && depth == 1
                 // Razor Margin
              && eval <= alfa - 531) {
                 return quienSearch<PVNode>(pos, ss, alfa, beta);
@@ -852,10 +853,10 @@ namespace {
              && eval >= ss->staticEval
              && ss->staticEval >= beta - 32 * depth - 30 * improving + 120 * ttPV + 292
              && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
-             && pos.count(activeSide) >= 3
+             //&& pos.count(activeSide) >= 3
              && excludedMove == MOVE_NONE
-             && (thread->nmpPly <= ss->ply
-              || thread->nmpColor != activeSide)
+             // Null move pruning disabled for activeSide until ply exceeds nmpPly
+             && ss->ply >= thread->nmpPly[activeSide]
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
                 auto nullDepth{ Depth(depth - ((854 + 68 * depth) / 258 + std::min(i32(eval - beta) / 192, 3))) };
@@ -883,19 +884,16 @@ namespace {
                         nullValue = beta;
                     }
                     // Skip verification search
-                    if (thread->nmpPly != 0 // Recursive verification is not allowed
+                    if (thread->nmpPly[activeSide] != 0 // Recursive verification is not allowed
                      || (depth <= 12
-                      && abs(beta) < +VALUE_KNOWN_WIN)) {
+                      && std::abs(beta) < +VALUE_KNOWN_WIN)) {
                         return nullValue;
                     }
 
-                    // Do verification search at high depths,
-                    // with null move pruning disabled for nmpColor until ply exceeds nmpPly
-                    thread->nmpColor = activeSide;
-
-                    thread->nmpPly = ss->ply + 3 * nullDepth / 4;
+                    // Do verification search at high depths
+                    thread->nmpPly[activeSide] = ss->ply + 3 * nullDepth / 4;
                     value = depthSearch<false>(pos, ss, beta-1, beta, nullDepth, false);
-                    thread->nmpPly = 0;
+                    thread->nmpPly[activeSide] = 0;
 
                     if (value >= beta) {
                         return nullValue;
@@ -908,7 +906,7 @@ namespace {
             // then can (almost) safely prune the previous move.
             if (!PVNode
              && depth >= 5
-             && abs(beta) < +VALUE_MATE_2_MAX_PLY
+             && std::abs(beta) < +VALUE_MATE_2_MAX_PLY
              && Limits.mate == 0) {
                 auto raisedBeta{ beta - 45 * improving + 189 };
                 assert(raisedBeta < +VALUE_INFINITE);
@@ -996,7 +994,7 @@ namespace {
             nullptr           , (ss-6)->pieceStats
         };
 
-        auto counterMove = pos.thread()->counterMoves[pmPiece][pmDst];
+        auto counterMove{ pos.thread()->counterMoves[pmPiece][pmDst] };
 
         // Initialize move-picker(1) for the current position
         MovePicker movePicker{
@@ -1018,7 +1016,8 @@ namespace {
         // Step 12. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
         while ((move = movePicker.nextMove()) != MOVE_NONE) {
             assert(isOk(move)
-                && (inCheck || pos.pseudoLegal(move)));
+                && (inCheck
+                 || pos.pseudoLegal(move)));
 
             // Skip exclusion move
             if (move == excludedMove) {
@@ -1066,7 +1065,7 @@ namespace {
             bool captureOrPromotion{ pos.captureOrPromotion(move) };
 
             // Calculate new depth for this move
-            auto newDepth{ Depth(depth - DEPTH_ONE) };
+            auto newDepth{ Depth(depth - 1) };
 
             // Step 13. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
@@ -1145,7 +1144,7 @@ namespace {
              && move == ttMove
              && excludedMove == MOVE_NONE // Avoid recursive singular search
              // && ttValue != VALUE_NONE  Already implicit in the next condition
-             && abs(ttValue) < VALUE_KNOWN_WIN
+             && std::abs(ttValue) < VALUE_KNOWN_WIN
              && (tte->bound() & BOUND_LOWER)
              && depth < (tte->depth() + 4)) {
 
@@ -1157,7 +1156,7 @@ namespace {
                 ss->excludedMove = MOVE_NONE;
 
                 if (value < singularBeta) {
-                    extension = DEPTH_ONE;
+                    extension = 1;
                     singularLMR = true;
                 }
                 // Multi-cut pruning
@@ -1184,12 +1183,20 @@ namespace {
               && pType(mp) == PAWN
               && pos.pawnAdvanceAt(activeSide, org)
               && pos.pawnPassedAt(activeSide, dst))) {
-                extension = DEPTH_ONE;
+                extension = 1;
             }
 
             // Castle extension
             if (mType(move) == CASTLE) {
-                extension = DEPTH_ONE;
+                extension = 1;
+            }
+
+            // Late irreversible move extension
+            if (pos.clockPly() > 80
+             && move == ttMove
+             && (captureOrPromotion
+              || pType(mp) == PAWN)) {
+                extension = 2;
             }
 
             // Add extension to new depth
@@ -1284,7 +1291,7 @@ namespace {
                     reductDepth -= i16(ss->stats / 16434);
                 }
 
-                auto d{ clamp(Depth(newDepth - reductDepth), DEPTH_ONE, newDepth) };
+                auto d{ Depth(clamp(newDepth - reductDepth, 1, {newDepth})) };
 
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
@@ -1313,7 +1320,7 @@ namespace {
                 }
             }
 
-            // Full PV search.
+            // Full PV search
             if (PVNode
              && (moveCount == 1
               || (alfa < value
@@ -1570,14 +1577,14 @@ void Thread::search() {
             mainThread->bestValue != +VALUE_INFINITE ?
                 mainThread->bestValue : VALUE_ZERO);
     }
+    i16 iterIdx{ 0 };
 
     double timeReduction{ 1.0 };
-    i16 iterIdx{ 0 };
     double pvChangeSum{ 0.0 };
     i16 researchCount{ 0 };
 
     auto bestValue{ -VALUE_INFINITE };
-    auto window{ +VALUE_ZERO };
+    auto window{ VALUE_ZERO };
     auto  alfa{ -VALUE_INFINITE }
         , beta{ +VALUE_INFINITE };
 
@@ -1654,7 +1661,7 @@ void Thread::search() {
                 auto dc{ bc };
                 i32 contemptValue{ Options["Contempt Value"] };
                 if (contemptValue != 0) {
-                    dc += ((102 - bc / 2) * oldValue * 100) / ((abs(oldValue) + 157) * contemptValue);
+                    dc += ((102 - bc / 2) * oldValue * 100) / ((std::abs(oldValue) + 157) * contemptValue);
                 }
                 contempt = rootPos.activeSide() == WHITE ?
                             +makeScore(dc, dc / 2) :
@@ -1700,7 +1707,7 @@ void Thread::search() {
 
                     failHighCount = 0;
                     if (mainThread != nullptr) {
-                        mainThread->stopOnPonderhit = false;
+                        mainThread->stopOnPonderHit = false;
                     }
                 }
                 else
@@ -1740,7 +1747,7 @@ void Thread::search() {
         finishedDepth = rootDepth;
 
         // Has any of the threads found a "mate in <x>"?
-        if (Limits.mate != 0
+        if ( Limits.mate != 0
          && !Limits.useTimeMgmt()
          && bestValue >= +VALUE_MATE_1_MAX_PLY
          && bestValue >= +VALUE_MATE - 2 * Limits.mate) {
@@ -1755,9 +1762,9 @@ void Thread::search() {
                 SkillMgr.pickBestMove();
             }
 
-            if (Limits.useTimeMgmt()
+            if ( Limits.useTimeMgmt()
              && !Threadpool.stop
-             && !mainThread->stopOnPonderhit) {
+             && !mainThread->stopOnPonderHit) {
 
                 if (mainThread->bestMove != rootMoves[0][0]) {
                     mainThread->bestMove = rootMoves[0][0];
@@ -1797,7 +1804,7 @@ void Thread::search() {
                         Threadpool.stop = true;
                     }
                     else {
-                        mainThread->stopOnPonderhit = true;
+                        mainThread->stopOnPonderHit = true;
                     }
                 }
                 else
@@ -1846,8 +1853,8 @@ void MainThread::search() {
                   << " time "  << 0 << sync_endl;
     }
     else {
-        if (!Limits.infinite
-         && Limits.mate == 0
+        if ( Limits.mate == 0
+         && !Limits.infinite
          && Options["Use Book"]) {
             auto bbm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
             if (bbm != MOVE_NONE
@@ -1991,7 +1998,7 @@ void MainThread::tick() {
     }
 
     if ((Limits.useTimeMgmt()
-      && (stopOnPonderhit
+      && (stopOnPonderHit
        || TimeMgr.maximum() < elapsed + 10))
      || (Limits.moveTime != 0
       && Limits.moveTime <= elapsed)
